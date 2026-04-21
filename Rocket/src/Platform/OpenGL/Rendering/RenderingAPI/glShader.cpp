@@ -201,7 +201,7 @@ namespace rke
             Path cached_path{};
             try {
                 const Path& assets_dir{ Application::get().get_engine_assets_dir() };
-                Path cache_directory{ file::get_shader_cache_dir() / u8"vulkan"};
+                Path cache_directory{ file::get_shader_cache_dir() / u8"vulkan" };
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
                 cached_path = cache_directory /
                     (source.first.filename().string() + u8".cached_vulkan");

@@ -33,7 +33,7 @@ namespace rke::file
 
     Path get_shader_cache_dir()
     {
-        Path build_dir{ find_assets_dir().parent_path() / u8".build" };
+        Path build_dir{ find_assets_dir().parent_path() / u8"bin" };
         if(!build_dir.exists()) fs::create_directory(build_dir);
         Path shader_cache_dir{ build_dir / u8"shaders" };
         if(!shader_cache_dir.exists()) fs::create_directory(shader_cache_dir);
