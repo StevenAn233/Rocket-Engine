@@ -1,0 +1,2 @@
+Vertex: "src/fullscreen.vert"
+Fragment: "src/fxaa.frag"

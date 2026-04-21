@@ -1,0 +1,15 @@
+module;
+
+#include <rke_glue.h>
+
+export module MyScript;
+
+import rke;
+
+export class MyScript : public rke::Script
+{
+public:
+    // to override functions
+};
+
+RKE_REGISTER_SCRIPT(MyScript);

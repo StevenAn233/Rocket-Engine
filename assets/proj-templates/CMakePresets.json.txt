@@ -1,0 +1,43 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired":
+  {
+    "major": 3,
+    "minor": 31,
+    "patch": 0
+  },
+  "configurePresets":
+  [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/.build/${presetName}",
+      "cacheVariables": { "ROCKET_OUTPUT_NAME": "${presetName}" }
+    },
+    {
+      "name": "win-base",
+      "hidden": true,
+      "generator": "Visual Studio 18 2026",
+      "inherits": "base",
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-windows" }
+    },
+    {
+      "name": "windows-x64-debug",
+      "displayName": "Windows x64 (Debug)",
+      "inherits": "win-base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "windows-x64-release",
+      "displayName": "Windows x64 (Release)",
+      "inherits": "win-base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "windows-x64-shipping",
+      "displayName": "Windows x64 (Shipping)",
+      "inherits": "win-base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Shipping" }
+    }
+  ]
+}

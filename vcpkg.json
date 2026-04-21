@@ -1,0 +1,16 @@
+{
+  "name": "rocket-engine",
+  "version": "0.1.0",
+  "dependencies":
+  [
+    "glfw3",
+    "glad",
+    "box2d",
+    "yaml-cpp",
+    "stb",
+    "glm",
+    "entt",
+    "shaderc",
+    "spirv-cross"
+  ]
+}
