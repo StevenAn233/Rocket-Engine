@@ -1,7 +1,7 @@
 # Rocket-Engine
 ## Introduction
 
-**Rocket-Engine** is a 2D Game engine based on ESC architecture and **C++20** `modules`.
+**Rocket-Engine** is a 2D Game engine based on ECS architecture and **C++20** `modules`.
 
 It is designed to be cross-platform, but currently it only supports **Windows(x86-64)**.
 
