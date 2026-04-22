@@ -16,6 +16,7 @@ Youtube account: https://www.youtube.com/@TheCherno
 Hazel 2D: https://github.com/TheCherno/Hazel
  
 ## How to build?
+
 The project uses **CMake**(version greater than 3.31) and **vcpkg** as building support. Make sure the are correctly installed and added to the environment.  
 On **Windows**, `MSVC` is the first(now the only) choice as the C++ compiler. Maybe `clang(llvm)` can work, but untested.  
 With **Visual Studio 2026**, you don't need a single line in console to build.
@@ -36,7 +37,7 @@ Run `RocketEngine.exe`, press **File -> New Project**. You don't need to close t
 This engine relies on multiple C/C++ Third-Party libraries.
 
 **glad**(OpenGL support): https://github.com/Dav1dde/glad  
-**glfw**(Muti-platform window support): https://github.com/glfw/glfw  
+**glfw**(Multi-platform window support): https://github.com/glfw/glfw  
 **glm**(3D Graphics math support): https://github.com/icaven/glm  
 **Box2D**(2D Physics engine): https://github.com/erincatto/box2d  
 **EnTT**(ECS support): https://github.com/skypjack/entt  
