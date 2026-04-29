@@ -6,9 +6,7 @@ export module Layer;
 
 import Types;
 import String;
-import Log;
 import Event;
-import HeapManager;
 
 export namespace rke
 {

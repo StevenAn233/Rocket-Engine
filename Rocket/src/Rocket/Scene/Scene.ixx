@@ -6,13 +6,12 @@
 
 export module Scene;
 
-import Types;
 import Log;
+import UUID;
+import Types;
 import String;
 import Event;
-import Texture;
 import HeapManager;
-import UUID;
 import Components;
 import PhysicsLayers;
 import Gravity2D;

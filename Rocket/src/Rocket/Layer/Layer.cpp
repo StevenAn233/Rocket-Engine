@@ -1,6 +1,7 @@
 ﻿module;
 module Layer;
 
+import Log;
 import Application;
 import EventDispatcher;
 import Window;
