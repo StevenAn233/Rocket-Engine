@@ -45,16 +45,14 @@ namespace rke
     glVertexArray::~glVertexArray()
         { glDeleteVertexArrays(1, &renderer_id_); }
 
-    void glVertexArray::add_vbo(const vbo_ref& vbo,
+    void glVertexArray::add_vbo(const Ref<VertexBuffer>& vbo,
                                 const BufferLayout& layout)
     {
         CORE_ASSERT(layout.get_elements().size(),
             u8"VertexBuffer: Layout has no elements!");
 
         glBindVertexArray(renderer_id_);
-        glVertexArrayVertexBuffer
-        // bind the vertex buffer to the vertex array
-        (
+        glVertexArrayVertexBuffer ( // bind the vertex buffer to the vertex array
             renderer_id_,           // VAO ID
             binding_index_,         // binding index
             vbo->get_renderer_id(), // VBO ID
@@ -62,7 +60,7 @@ namespace rke
             layout.get_stride()     // stride
         );
 
-        const auto& elements = layout.get_elements();
+        const auto& elements{ layout.get_elements() };
         for(int i{}; i < elements.size(); i++)
         {
             uint32 attrib_index{ binding_index_ + i };
@@ -71,7 +69,7 @@ namespace rke
             // attribute here means a set of values which
             // represent one certain type of information e.g pos/normal/uv/color...
 
-            switch (elements[i].type)
+            switch(elements[i].type)
             {
             case ShaderDataType::Float:
             case ShaderDataType::Float2:
@@ -79,7 +77,6 @@ namespace rke
             case ShaderDataType::Float4:
             case ShaderDataType::Mat3: // Mat is composed of floats
             case ShaderDataType::Mat4:
-            {
                 glVertexArrayAttribFormat (
                     renderer_id_,
                     attrib_index,
@@ -88,39 +85,30 @@ namespace rke
                     elements[i].normalized ? GL_TRUE : GL_FALSE,
                     elements[i].offset);
                 break;
-            }
             case ShaderDataType::Int:
             case ShaderDataType::Int2:
             case ShaderDataType::Int3:
             case ShaderDataType::Int4:
             case ShaderDataType::Bool:
-            {
                 glVertexArrayAttribIFormat (
                     renderer_id_,
                     attrib_index,
                     elements[i].count, // component count
                     shader_data_type_to_GLenum(elements[i].type),
-                    elements[i].offset
-                );
+                    elements[i].offset);
                 break;
-            }}
-            glVertexArrayAttribBinding (
-                renderer_id_, attrib_index, binding_index_
-            ); // bind the attribute to the vbo
-            glEnableVertexArrayAttrib (
-                renderer_id_, attrib_index
-            ); // and then enable it
+            }
+            glVertexArrayAttribBinding(renderer_id_, attrib_index, binding_index_);
+            glEnableVertexArrayAttrib (renderer_id_, attrib_index);
         }
         binding_index_++;
 
         vbos_.push_back(vbo); // keep it alive
     }
-    void glVertexArray::set_ibo(const ibo_ref& ibo)
+
+    void glVertexArray::set_ibo(const Ref<IndexBuffer>& ibo)
     {
-        glVertexArrayElementBuffer (
-            renderer_id_,
-            ibo->get_renderer_id()
-        );
+        glVertexArrayElementBuffer(renderer_id_, ibo->get_renderer_id());
         ibo_ = ibo; // keep it alive
     }
 
@@ -129,8 +117,9 @@ namespace rke
         glBindVertexArray(renderer_id_);
         glEnableVertexArrayAttrib(renderer_id_, 0);
         glEnableVertexArrayAttrib(renderer_id_, 1);
-        //glVertexArrayAttribBinding(renderer_id_, 0, 0);
-        //glVertexArrayAttribBinding(renderer_id_, 1, 0);
+        // glVertexArrayAttribBinding(renderer_id_, 0, 0);
+        // glVertexArrayAttribBinding(renderer_id_, 1, 0);
     }
+
     void glVertexArray::unbind() const { glBindVertexArray(0); }
 }

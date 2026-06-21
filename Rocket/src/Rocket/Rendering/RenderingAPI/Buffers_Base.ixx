@@ -74,8 +74,8 @@ export namespace rke
         bool normalized;
         uint32 offset;
 
-        BufferElements(const String& _name,
-                       ShaderDataType     _type,
+        BufferElements(const String&  _name,
+                       ShaderDataType _type,
                        bool _normalized = false)
             : name(_name), type(_type)
             , count(countoftype(_type))
