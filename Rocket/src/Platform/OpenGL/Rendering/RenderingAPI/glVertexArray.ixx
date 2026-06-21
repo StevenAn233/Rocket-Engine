@@ -24,7 +24,7 @@ namespace rke
         uint32 renderer_id_{};
 
         std::vector<Ref<VertexBuffer>> vbos_{}; // keep vbos alive
-        Ref<IndexBuffer> ibo_{}; // keep the ibo alive(and for darw calling)
+        Ref<IndexBuffer> ibo_{}; // keep the ibo alive(for draw-call)
 
         uint32 binding_index_{};
     };

@@ -69,7 +69,7 @@ namespace {
         std::array<Texture2D*, MAX_TEXTURE_SLOTS> texture_slots{};
         uint32 texture_slot_index{ 1 }; // 0 for default texture
 
-        std::unordered_map<uintptr, PerContextData> context_data{};
+        std::unordered_map<uintptr, Scope<PerContextData>> context_data{};
         QuadVertexProps* quad_vertex_ptr{ nullptr };
 
         Renderer2D::Statistics stats{};
@@ -79,10 +79,7 @@ namespace {
     static bool s_in_scene{ false };
 }
 
-namespace rke
-{
-    
-
+namespace rke {
 // public
     void Renderer2D::init()
     {
@@ -110,11 +107,11 @@ namespace rke
         CORE_ASSERT(handle, u8"Renderer2D: Cannot register a null context!");
         if(s_data.context_data.count(handle)) return;
 
-        PerContextData data{};
-        data.vao = VertexArray ::create();
-        data.vbo = VertexBuffer::create(s_data.MAX_VERTICES * sizeof(QuadVertexProps));
+        Scope<PerContextData> data{ create_scope<PerContextData>() };
+        data->vao = VertexArray ::create();
+        data->vbo = VertexBuffer::create(s_data.MAX_VERTICES * sizeof(QuadVertexProps));
          // huge, empty vbo(only with size)
-        data.ubo = UniformBuffer::create(sizeof(CameraData));
+        data->ubo = UniformBuffer::create(sizeof(CameraData));
 
         static const rke::BufferLayout quad_vertex_layout
         {
@@ -128,7 +125,7 @@ namespace rke
             { u8"a_is_font"	   , rke::ShaderDataType::Int },
             { u8"a_entity_id"  , rke::ShaderDataType::Int } // EDITOR ONLY
         };
-        data.vao->add_vbo(data.vbo, quad_vertex_layout);
+        data->vao->add_vbo(data->vbo, quad_vertex_layout);
 
         auto* indices{ new uint32[s_data.MAX_INDICES] }; // only malloc during init
         uint32 offset{};
@@ -146,11 +143,11 @@ namespace rke
             // 4 for 4 vertices of a quad
             // 6 for 6 vertices of two triangles
         }
-        data.ibo = IndexBuffer::create(indices, s_data.MAX_INDICES);
+        data->ibo = IndexBuffer::create(indices, s_data.MAX_INDICES);
         delete[] indices; // per-context
-        data.vao->set_ibo(data.ibo);
+        data->vao->set_ibo(data->ibo);
 
-        s_data.context_data[handle] = data;
+        s_data.context_data[handle] = std::move(data);
         CORE_INFO(u8"Renderer2D: Registered new context and created vao.");
     }
 
@@ -161,11 +158,11 @@ namespace rke
         auto handle{ Application::get()
             .get_window_lib()->get_current_context().get_integral() };
         CORE_ASSERT(s_data.context_data.count(handle), u8"Renderer2D: Unregistered context!");
-        auto& data{ s_data.context_data.at(handle) };
+        PerContextData* data{ s_data.context_data.at(handle).get() };
 
-        data.ubo->bind(BindingPoint::UBO_Camera);
-        data.camera_buffer.view_proj = view_projection;
-        data.ubo->set_data(&data.camera_buffer, sizeof(CameraData));
+        data->ubo->bind(BindingPoint::UBO_Camera);
+        data->camera_buffer.view_proj = view_projection;
+        data->ubo->set_data(&(data->camera_buffer), sizeof(CameraData));
     #ifdef RKE_ENABLE_STATISTICS
         s_data.stats.cam_set_count++;
     #endif
@@ -184,7 +181,6 @@ namespace rke
     {
         RKE_PROFILE_FUNCTION();
         s_in_scene = false;
-
         flush();
     }
 
@@ -198,9 +194,9 @@ namespace rke
             .get_window_lib()->get_current_context().get_integral() };
         CORE_ASSERT(s_data.context_data.count(handle),
             u8"Renderer2D: Drawing on an unregistered context!");
-        auto& data{ s_data.context_data.at(handle) };
+        PerContextData* data{ s_data.context_data.at(handle).get() };
 
-        if(data.index_count	>= s_data.MAX_INDICES ||
+        if(data->index_count >= s_data.MAX_INDICES ||
            s_data.texture_slot_index >= s_data.MAX_TEXTURE_SLOTS)
             { flush(); start_batch(); }
 
@@ -244,7 +240,7 @@ namespace rke
             s_data.quad_vertex_ptr->entity_id	  = props.entity_id; // EDITOR ONLY
             s_data.quad_vertex_ptr++; // stride: QuadVertexProps
         }
-        data.index_count += 6;
+        data->index_count += 6;
     #ifdef RKE_ENABLE_STATISTICS
         s_data.stats.quad_count++;
     #endif
@@ -300,19 +296,19 @@ namespace rke
             .get_window_lib()->get_current_context().get_integral() };
         CORE_ASSERT(s_data.context_data.count(handle),
             u8"Renderer2D: Drawing on an unregistered context!");
-        auto& data{ s_data.context_data.at(handle) };
-        data.index_count = 0;
+        PerContextData* data{ s_data.context_data.at(handle).get() };
+        data->index_count = 0;
         s_data.texture_slot_index = 1; // set to the head
 
         if(s_data.quad_vertex_ptr != nullptr) 
         {
-            data.vbo->unmap();
+            data->vbo->unmap();
             s_data.quad_vertex_ptr = nullptr;
             CORE_ERROR(u8"Renderer2D: VBO was explicitly "
                 u8"unmapped before re-mapping. Check flush logic!");
         }
         s_data.quad_vertex_ptr = reinterpret_cast<QuadVertexProps*>
-            (data.vbo->map(GBuffer::Access::Write));
+            (data->vbo->map(GBuffer::Access::Write));
         CORE_ASSERT(s_data.quad_vertex_ptr, u8"Renderer2D: Failed to map vertex buffer!");
     }
 
@@ -328,19 +324,19 @@ namespace rke
 
         if(s_data.quad_vertex_ptr)
         {
-            data.vbo->unmap();
+            data->vbo->unmap();
             s_data.quad_vertex_ptr = nullptr;
         }
-        if(data.index_count == 0) return;
+        if(data->index_count == 0) return;
 
         // bind textures
         for(uint32 i{}; i < s_data.texture_slot_index; i++)
             s_data.texture_slots[i]->bind
                 (static_cast<uint32>(BindingPoint::Sampler2D_0) + i);
 
-        data.vao->bind();
-        RenderCommand::draw_indexed(data.index_count);
-        data.vao->unbind();
+        data->vao->bind();
+        RenderCommand::draw_indexed(data->index_count);
+        data->vao->unbind();
     #ifdef RKE_ENABLE_STATISTICS
         s_data.stats.drawcall_count++;
     #endif
