@@ -1,5 +1,7 @@
 ﻿module;
 
+#include <vector>
+#include <initializer_list>
 #include "rke_macros.h"
 
 export module Buffers:Base;
@@ -86,9 +88,8 @@ export namespace rke
     class RKE_API BufferLayout
     {
     public:
-        BufferLayout(const std::initializer_list<BufferElements>& elements)
-            : elements_(elements)
-            { set_elements_offset_and_my_stride(); }
+        BufferLayout(std::initializer_list<BufferElements> elements)
+            : elements_(elements) { set_elements_offset_and_my_stride(); }
 
         const std::vector<BufferElements>& get_elements() const { return elements_; }
         uint32 get_stride() const { return stride_; } // for constexpr obj
