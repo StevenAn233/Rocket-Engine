@@ -1,6 +1,5 @@
 *
 
-# whitelist
 !/.editorconfig
 !/.gitignore
 !/.gitmodules
@@ -10,24 +9,16 @@
 
 !/assets/
 !/assets/**
-!/custom-triplets/
-!/custom-triplets/**
 !/editor/
 !/editor/config/
 !/editor/config/**
 
 !/Rocket/
 !/Rocket/**
-
-!/RocketGlue/
-!/RocketGlue/**
-
+!/RocketFuel/
+!/RocketFuel/**
 !/RocketLauncher/
-!/RocketLauncher/CMakeLists.txt
-!/RocketLauncher/assets/
-!/RocketLauncher/assets/**
-!/RocketLauncher/src/
-!/RocketLauncher/src/**
+!/RocketLauncher/**
 
 # visual studio
 .vs/

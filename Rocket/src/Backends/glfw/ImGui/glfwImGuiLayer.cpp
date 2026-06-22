@@ -15,6 +15,7 @@ import RenderCommand;
 import FileUtils;
 import MathUtils;
 import Style;
+import String;
 
 namespace {
     using namespace rke;

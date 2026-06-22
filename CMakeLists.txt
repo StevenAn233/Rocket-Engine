@@ -20,26 +20,23 @@ set(CMAKE_INSTALL_PREFIX "${RKE_SDK_DIR}")
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
-# Third-Party
-  # window support
-  find_package(glfw3 CONFIG REQUIRED)
-
-  # graphics api support
+# Platform(Graphics API)
+if(WIN32)
   find_package(glad CONFIG REQUIRED) # opengl
-  find_package(unofficial-shaderc CONFIG REQUIRED) # glsl(opengl/vulkan)
-  find_package(spirv_cross_core CONFIG REQUIRED)   # glsl(opengl/vulkan)
-  find_package(spirv_cross_glsl CONFIG REQUIRED)   # glsl(opengl/vulkan)
+endif()
+find_package(Vulkan REQUIRED)
+find_package(unofficial-shaderc CONFIG REQUIRED)
+find_package(spirv_cross_core CONFIG REQUIRED)
+find_package(spirv_cross_glsl CONFIG REQUIRED)
 
-  # 2D physics
-  find_package(box2d CONFIG REQUIRED)
-  # 3D math
-  find_package(glm CONFIG REQUIRED)
-  # entity-component-system
-  find_package(EnTT CONFIG REQUIRED)
+# Backends
+find_package(glfw3 CONFIG REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
+find_package(box2d CONFIG REQUIRED)
+find_package(Stb REQUIRED)
 
-  # serialization
-  find_package(yaml-cpp CONFIG REQUIRED)
-# ---
+find_package(glm CONFIG REQUIRED)
+find_package(EnTT CONFIG REQUIRED)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_definitions (
@@ -68,7 +65,7 @@ if(WIN32)
 endif()
 
 add_subdirectory(Rocket)
-add_subdirectory(RocketGlue)
+add_subdirectory(RocketFuel)
 add_subdirectory(RocketLauncher)
 
-install(FILES "assets/RocketSDK.cmake" DESTINATION ".")
+install(FILES "assets/cmake/RocketSDK.cmake" DESTINATION ".")

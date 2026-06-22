@@ -10,11 +10,14 @@ set(IMGUI_SOURCES
   ${IMGUI_DIR}/imgui_widgets.cpp
   ${IMGUI_DIR}/imgui_demo.cpp
   ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-  ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+  ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp # temp
 )
 
-set_source_files_properties(${IMGUI_SOURCES} "${IMGUIZMO_DIR}/ImGuizmo.cpp"
-  PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+set_source_files_properties (
+  ${IMGUI_SOURCES}
+  "${IMGUIZMO_DIR}/ImGuizmo.cpp"
+  PROPERTIES SKIP_PRECOMPILE_HEADERS ON
+)
 
 file(GLOB_RECURSE ROCKET_HEADERS "include/*.h")
 file(GLOB_RECURSE ROCKET_SOURCES "src/Rocket/*.cpp")
@@ -23,8 +26,32 @@ file(GLOB_RECURSE ROCKET_MODULES "src/Rocket/*.ixx")
 file(GLOB_RECURSE ROCKET_BACKENDS_SOURCES "src/Backends/*.cpp")
 file(GLOB_RECURSE ROCKET_BACKENDS_MODULES "src/Backends/*.ixx")
 
-set_source_files_properties(${ROCKET_MODULES} ${ROCKET_BACKENDS_MODULES}
-  PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+set_source_files_properties (
+  ${ROCKET_MODULES}
+  ${ROCKET_BACKENDS_MODULES}
+  PROPERTIES SKIP_PRECOMPILE_HEADERS ON
+)
+
+target_link_libraries(Rocket
+  PRIVATE
+  # Platform(Graphics API)
+    glad::glad
+    Vulkan::Vulkan
+    unofficial::shaderc::shaderc
+    spirv-cross-core
+    spirv-cross-glsl
+  # Backends
+    glfw
+    box2d::box2d
+    yaml-cpp::yaml-cpp
+  PUBLIC
+    glm::glm
+    EnTT::EnTT
+)
+
+if(WIN32)
+  target_link_libraries(Rocket PRIVATE opengl32)
+endif()
 
 target_sources(Rocket
   PUBLIC
@@ -110,25 +137,8 @@ target_include_directories(Rocket
     $<INSTALL_INTERFACE:include/imgui>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${IMGUIZMO_DIR}>
     $<INSTALL_INTERFACE:include/imguizmo>
+    ${Stb_INCLUDE_DIR}
 )
-
-target_link_libraries(Rocket
-  PRIVATE
-    glfw
-    glad::glad
-    box2d::box2d
-    yaml-cpp::yaml-cpp
-    unofficial::shaderc::shaderc
-    spirv-cross-core
-    spirv-cross-glsl
-  PUBLIC
-    glm::glm
-    EnTT::EnTT
-)
-
-if(WIN32)
-  target_link_libraries(Rocket PRIVATE opengl32)
-endif()
 
 target_precompile_headers(Rocket PRIVATE "include/rke_pch.h")
 

@@ -3,12 +3,12 @@ set(ROCKET_INCLUDE_DIRS
   "${CMAKE_CURRENT_LIST_DIR}/include/Rocket"
   "${CMAKE_CURRENT_LIST_DIR}/include/imgui"
   "${CMAKE_CURRENT_LIST_DIR}/include/imguizmo"
-  "${CMAKE_CURRENT_LIST_DIR}/include/RocketGlue"
+  "${CMAKE_CURRENT_LIST_DIR}/include/RocketFuel"
 )
 
 set(ROCKET_LIBS
   "${CMAKE_CURRENT_LIST_DIR}/lib/${ROCKET_OUTPUT_NAME}/Rocket.lib"
-  "${CMAKE_CURRENT_LIST_DIR}/lib/${ROCKET_OUTPUT_NAME}/RocketGlue.lib"
+  "${CMAKE_CURRENT_LIST_DIR}/lib/${ROCKET_OUTPUT_NAME}/RocketFuel.lib"
 )
 
 set(ROCKET_MODULE_DIR ${CMAKE_CURRENT_LIST_DIR}/modules)

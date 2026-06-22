@@ -3,14 +3,17 @@
   "version": "0.1.0",
   "dependencies":
   [
-    "glfw3",
     "glad",
-    "box2d",
-    "yaml-cpp",
-    "stb",
-    "glm",
-    "entt",
+    "vulkan",
     "shaderc",
-    "spirv-cross"
+    "spirv-cross",
+
+    "glfw3",
+    "yaml-cpp",
+    "box2d",
+    "stb",
+
+    "glm",
+    "entt"
   ]
 }

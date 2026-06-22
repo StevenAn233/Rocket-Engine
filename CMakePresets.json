@@ -13,7 +13,7 @@
       "hidden": true,
       "binaryDir": "${sourceDir}/.build/${presetName}",
       "cacheVariables": {
-        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/custom-triplets",
+        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/assets/cmake",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "ROCKET_OUTPUT_NAME": "${presetName}"
       }
