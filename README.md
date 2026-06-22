@@ -4,7 +4,7 @@
 **Rocket-Engine** is a 2D Game engine based on ECS architecture and **C++20** `modules`.  
 It is designed to be cross-platform, but currently it only supports **Windows(x86-64)**.
 
-The engine is made up of three projects. **Rocket**(dynamic lib) is the engine kernel; **RocketGlue**(static lib) is the native-scripting(registering) support; **RocketLauncher**(executable) is the engine editor.
+The engine is made up of three projects. **Rocket**(dynamic lib) is the engine kernel; **RocketFuel**(static lib) is the native-scripting(registering) support; **RocketLauncher**(executable) is the engine editor.
 
 At first, this is just a toy engine, step by step created, following the **Hazel 2D** tutorial by **TheCherno**. As it develops, the scale of the project has become big enough to actually own some productivity. This engine is still on development and will soon become usable for cross-platform game making.
 
