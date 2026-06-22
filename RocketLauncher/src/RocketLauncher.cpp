@@ -17,7 +17,7 @@ namespace rke
 
         #ifndef RKE_SHIPPING
             ImGuiLayer::StyleConfig config{};
-            Path config_path{ file::find_editor_dir() / u8"config" / u8".style" };
+            Path config_path{ file::find_editor_dir() / u8"config" / u8"style.conf" };
 
             auto cr{ ConfigReader::create(config_path) };
             auto font_data{ cr ? cr->get_child(u8"Font") : nullptr };
