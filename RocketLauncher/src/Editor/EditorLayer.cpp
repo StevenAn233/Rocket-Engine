@@ -48,8 +48,7 @@ namespace rke
                 bool is_play{ scene_state_ == SceneState::Play };
                 bool no_project{ !Project::get_active_project() };
                 if(ImGui::MenuItem("New Project..." , "Ctrl+N", false, !is_play)) new_project();
-                if(ImGui::MenuItem("Open Project...", "Ctrl+O", false, !is_play))
-                    open_project(reinterpret_cast<Window*>(owner_));
+                if(ImGui::MenuItem("Open Project...", "Ctrl+O", false, !is_play)) open_project(get_owner());
                 if(ImGui::MenuItem("Save Project", "Ctrl+S", false, !is_play && !no_project)) save_project();
                 ImGui::EndMenu();
             }
@@ -90,7 +89,7 @@ namespace rke
             { entity_right_click_popup_content(scene); });
 
     // WindowSetting
-        window_setting_panel_.set_context(reinterpret_cast<Window*>(owner_));
+        window_setting_panel_.set_context(get_owner());
 
     // ContentBrowser
         Path assets_dir{ file::assets_dir() };
@@ -337,7 +336,7 @@ namespace rke
             project_creating_modal_.popup();
             to_create_new_proj_ = false;
         }
-        project_creating_modal_.on_render(reinterpret_cast<Window*>(owner_));
+        project_creating_modal_.on_render(get_owner());
     }
 
     void EditorLayer::on_runtime_start()
@@ -517,4 +516,6 @@ namespace rke
             scene->set_selected_entity(copied);
         }
     }
+
+    Window* EditorLayer::get_owner() { return reinterpret_cast<Window*>(owner_); }
 }

@@ -12,7 +12,7 @@ import Layer;
 
 export namespace rke
 {
-    class LayerStack
+    class RKE_API LayerStack
     {
     public:
         LayerStack() {};
@@ -20,10 +20,10 @@ export namespace rke
         LayerStack& operator=(const LayerStack&) = delete;
         ~LayerStack();
 
-        RKE_API void push_layer(Scope<Layer> layer);      // put layer to the first-half
-        RKE_API Scope<Layer> pop_layer(Layer* layer);     // pop specified first-half-layer
-        RKE_API void push_overlay(Scope<Layer> overlay);  // put layer to the second-half
-        RKE_API Scope<Layer> pop_overlay(Layer* overlay); // pop specified second-half-layer
+        void push_layer(Scope<Layer> layer);      // put layer to the first-half
+        Scope<Layer> pop_layer(Layer* layer);     // pop specified first-half-layer
+        void push_overlay(Scope<Layer> overlay);  // put layer to the second-half
+        Scope<Layer> pop_overlay(Layer* overlay); // pop specified second-half-layer
 
         inline std::vector<Scope<Layer>>::iterator begin() { return layers_.begin(); }
         inline std::vector<Scope<Layer>>::iterator end() { return layers_.end(); }

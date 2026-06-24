@@ -82,7 +82,7 @@ export namespace rke
 
         explicit Scene(String name = u8"Untitled");
         Scene(const Scene&) = delete;
-        Scene(Scene&& ____) = delete;
+        Scene(Scene&&) = delete;
         ~Scene();
 
         void on_attach(); // Called by Project
@@ -100,34 +100,15 @@ export namespace rke
         std::vector<Entity> get_all_entities();
         Ref<Scene> deep_copy(bool temp = true);
 
-        Entity create_entity(String tag = u8"New Entity", UUID uuid = {});
-        Entity get_entity(entt::entity handle, bool warn = true) const
-        {
-            if(registry_->valid(handle)) return Entity(handle, this);
-            if(warn) CORE_WARN(u8"Scene: Entity handle is not valid!");
-            return {};
-        }
-        Entity get_entity(uint32 handle, bool warn = true) const
-            { return get_entity(static_cast<entt::entity>(handle), warn); }
-        Entity get_entity(int probable, bool warn = true) const
-        {
-            if(probable <= -1) {
-                if(warn) CORE_WARN(u8"Scene: Entity handle is null!");
-                return {};
-            }
-            return get_entity(static_cast<uint32>(probable), warn);
-        }
-
         bool has_entity(UUID uuid) const
             { return (entity_map_.find(uuid) != entity_map_.end()); }
-        Entity get_entity(UUID uuid) const
-        {
-            if(uuid.empty()) return {};
-            if(entity_map_.find(uuid) != entity_map_.end())
-                return { entity_map_.at(uuid), this };
-            CORE_ERROR(u8"Scene: Entity UUID '{}' not found!", uuid.value());
-            return {};
-        }
+
+        Entity create_entity(String tag = u8"New Entity", UUID uuid = {});
+        Entity get_entity(entt::entity handle, bool warn = true) const;
+        Entity get_entity(uint32 handle, bool warn = true) const
+            { return get_entity(static_cast<entt::entity>(handle), warn); }
+        Entity get_entity(int probable, bool warn = true) const;
+        Entity get_entity(UUID uuid) const;
 
         void destroy_entity(Entity entity);
         Entity  copy_entity(Entity entity);
@@ -160,6 +141,7 @@ export namespace rke
         glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
 
         Entity get_selected_entity() const { return selected_entity_; }
+        void set_selected_entity(Entity entity);
         void set_selected_entity(uint32 handle)
         {
             selected_entity_ = get_entity(handle);
@@ -174,15 +156,6 @@ export namespace rke
         {
             selected_entity_ = get_entity(uuid);
             if(on_entity_selected_) on_entity_selected_(selected_entity_);
-        }
-        void set_selected_entity(Entity entity)
-        {
-            if(entity.empty() || (entity.valid() && entity.belongs_to(this)))
-            {
-                selected_entity_ = entity;
-                if(on_entity_selected_) on_entity_selected_(selected_entity_);
-            }
-            else CORE_ERROR(u8"Scene: Selected entity invalid!");
         }
         void destroy_selected_entity()
         {

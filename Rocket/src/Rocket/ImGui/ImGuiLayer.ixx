@@ -11,6 +11,7 @@ import Instrumentor;
 import HeapManager;
 import Event;
 import Layer;
+import Window;
 
 export namespace rke
 {
@@ -23,7 +24,7 @@ export namespace rke
             float font_size{};
         };
 
-        ImGuiLayer(String name, void* owner, StyleConfig config)
+        ImGuiLayer(String name, Window* owner, StyleConfig config)
             : Layer(std::move(name), owner)
             , style_config_(std::move(config)) {}
 

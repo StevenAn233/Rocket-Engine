@@ -19,7 +19,7 @@ export namespace rke
         void render(float size); // only square supported now
     private:
         String name_{};
-        String id_	 {};
+        String id_{};
 
         Ref<Texture2D> icon_{};
 

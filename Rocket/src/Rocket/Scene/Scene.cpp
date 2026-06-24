@@ -130,6 +130,31 @@ namespace rke {
         return entity;
     }
 
+    Entity Scene::get_entity(entt::entity handle, bool warn) const
+    {
+        if(registry_->valid(handle)) return Entity(handle, this);
+        if(warn) CORE_WARN(u8"Scene: Entity handle is not valid!");
+        return {};
+    }
+
+    Entity Scene::get_entity(int probable, bool warn) const
+    {
+        if(probable <= -1) {
+            if(warn) CORE_WARN(u8"Scene: Entity handle is null!");
+            return {};
+        }
+        return get_entity(static_cast<uint32>(probable), warn);
+    }
+
+    Entity Scene::get_entity(UUID uuid) const
+    {
+        if(uuid.empty()) return {};
+        if(entity_map_.find(uuid) != entity_map_.end())
+            return { entity_map_.at(uuid), this };
+        CORE_ERROR(u8"Scene: Entity UUID '{}' not found!", uuid.value());
+        return {};
+    }
+
     void Scene::destroy_entity(Entity entity)
         { if(entity.valid()) to_destroy_.push_back(entity); }
 
@@ -232,6 +257,16 @@ namespace rke {
             return master_cam_;
         }
         return {};
+    }
+
+    void Scene::set_selected_entity(Entity entity)
+    {
+        if(entity.empty() || (entity.valid() && entity.belongs_to(this)))
+        {
+            selected_entity_ = entity;
+            if(on_entity_selected_) on_entity_selected_(selected_entity_);
+        }
+        else CORE_ERROR(u8"Scene: Selected entity invalid!");
     }
 
     void Scene::flush_destroy_queue()

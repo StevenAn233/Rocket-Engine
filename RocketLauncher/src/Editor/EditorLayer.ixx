@@ -25,7 +25,7 @@ export namespace rke
     class EditorLayer : public Layer
     {
     public:
-        EditorLayer(String name, void* owner)
+        EditorLayer(String name, Window* owner)
             : Layer(std::move(name), owner) {}
 
         void on_attach() override;
@@ -54,6 +54,7 @@ export namespace rke
 
         void entity_right_click_popup_content(Scene* scene);
     private:
+        Window* get_owner();
         bool editing() const { return scene_state_ == SceneState::Edit; }
         bool playing() const { return scene_state_ == SceneState::Play; }
     private:
