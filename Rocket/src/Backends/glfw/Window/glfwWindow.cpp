@@ -165,10 +165,10 @@ namespace {
 
 namespace rke
 {
-    glfwWindow::glfwWindow(WindowProps props_arg, NativeWindow shared_handle)
-        : Window(std::move(props_arg)), data_({props_})
+    glfwWindow::glfwWindow(Scope<Props> pprops, NativeWindow shared_handle)
+        : Window(std::move(pprops)), data_({ *props_ })
     {
-        WindowProps& props{ data_.props };
+        Props& props{ data_.props };
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_SAMPLES, 4);			   // IMPORTANT
         glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_FALSE); // Manually applied in ToneMapping
@@ -327,7 +327,7 @@ namespace rke
 
     void glfwWindow::on_event(Event& e)
     {
-        if(props_.name != e.get_window_name()) return;
+        if(props_->name != e.get_window_name()) return;
         for(auto it{ layer_stack_.rbegin() }; it != layer_stack_.rend(); ++it)
         {
             if(e.handled()) return;

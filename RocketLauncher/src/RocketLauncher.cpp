@@ -8,13 +8,14 @@ namespace rke
     public:
         RocketLauncher() : Application()
         {
-            Window::WindowProps props {
+            auto props{ create_scope<Window::Props>
+            ( Window::Props {
                 .name{ u8"main" }, .title{ u8"Rocket" },
                 .icon_path{ file::assets_dir() / u8"icons" / u8"RKE.png" },
                 .width{ 2450 }, .height{ 1300 },
                 .x_coord{ 50 }, .y_coord{ 100 }
-            };
-            Window* main_window{ create_window(std::move(props))};
+            }) };
+            Window* main_window{ create_window(std::move(props)) };
 
         #ifndef RKE_SHIPPING
             ImGuiLayer::StyleConfig config{};

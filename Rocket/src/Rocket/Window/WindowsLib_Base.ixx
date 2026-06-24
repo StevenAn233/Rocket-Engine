@@ -39,7 +39,7 @@ export namespace rke
         const Window* operator[](const String& name) const;
 
         virtual void refresh() = 0;
-        virtual Window* load(Window::WindowProps props) = 0;
+        virtual Window* load(Scope<Window::Props> props) = 0;
         virtual NativeWindow get_current_context() const = 0;
         virtual NativeWindow get_master_context () const = 0;
         virtual void make_master_context_current() = 0;

@@ -30,7 +30,7 @@ export namespace rke
         void on_event(Event& e); // for glfw(input) callbacks
 
         WindowsLib& get_windows_lib() const { return *(windows_.get()); }
-        Window* create_window(Window::WindowProps props);
+        Window* create_window(Scope<Window::Props> props);
         const Window* get_window(const String& name) const { return (*windows_)[name]; }
         Window* get_window_mut(const String& name) { return (*windows_)[name]; }
 

@@ -17,7 +17,7 @@ namespace rke
     class glfwWindow : public Window
     {
     public:
-        glfwWindow(WindowProps props, NativeWindow shared_handle);
+        glfwWindow(Scope<Props> pprops, NativeWindow shared_handle);
         ~glfwWindow() override;
 
         void swap_buffers() override;
@@ -48,9 +48,6 @@ namespace rke
         void make_context_current() override;
         void check_layer_blocking() override;
     private:
-        void init(NativeWindow shared_handle);
-        void shutdown();
-    private:
         GLFWwindow* handle_{};
         Scope<Context> context_{};
 
@@ -60,7 +57,7 @@ namespace rke
         // For glfwSetWindowUserPointer(only expose necessary data)
         struct WindowData
         {
-            WindowProps& props;
+            Props& props;
             bool minimized{ false };
             float vsync_extent{ 1.0f };
             EventCallbackFunc event_callback{};

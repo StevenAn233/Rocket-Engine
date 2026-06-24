@@ -14,7 +14,7 @@ import FileUtils;
 namespace rke {
     Application::Application() { windows_ = WindowsLib::create(); }
 
-    Window* Application::create_window(Window::WindowProps props)
+    Window* Application::create_window(Scope<Window::Props> props)
     {
         Window* window{ windows_->load(std::move(props)) };
         window->set_event_callback([this](Event& e) { on_event(e); });

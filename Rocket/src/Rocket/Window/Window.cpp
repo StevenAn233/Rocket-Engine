@@ -5,7 +5,7 @@ module Window;
 import :glfw;
 
 namespace rke {
-    Scope<Window> Window::create(const WindowProps& props, NativeWindow handle)
-        { return create_scope<glfwWindow>(props, handle); }
+    Scope<Window> Window::create(Scope<Props> props, NativeWindow handle)
+        { return create_scope<glfwWindow>(std::move(props), handle); }
 }
 #endif
