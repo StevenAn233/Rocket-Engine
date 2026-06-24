@@ -10,12 +10,12 @@ import Path;
 import VertexArray;
 import Shader;
 import Buffers;
-import Application;
 import RenderCommand;
 import BindingPoint;
 import AssetsManager;
 import MathUtils;
-
+import FileUtils;
+import Application;
 import Instrumentor;
 
 // maybe need to remove EDITOR ONLY stuffs in the future
@@ -83,8 +83,7 @@ namespace rke {
 // public
     void Renderer2D::init()
     {
-        Path shader_path{ Application::get().asset_path
-            (Path(u8"shaders") / u8"renderer2D.rkshdr") };
+        Path shader_path{ file::assets_dir() / u8"shaders" / u8"renderer2D.rkshdr" };
         s_data.shader = Shader::create(shader_path);
 
         CORE_ASSERT(s_data.MAX_TEXTURE_SLOTS >= 2,
@@ -100,10 +99,8 @@ namespace rke {
 
     void Renderer2D::shutdown() {}
 
-    void Renderer2D::register_context()
+    void Renderer2D::register_context(uintptr handle)
     {
-        auto handle{ Application::get()
-            .get_window_lib()->get_current_context().get_integral() };
         CORE_ASSERT(handle, u8"Renderer2D: Cannot register a null context!");
         if(s_data.context_data.count(handle)) return;
 
@@ -155,8 +152,7 @@ namespace rke {
     {
         RKE_PROFILE_FUNCTION();
 
-        auto handle{ Application::get()
-            .get_window_lib()->get_current_context().get_integral() };
+        auto handle{ app().get_windows_lib().get_current_context().val() };
         CORE_ASSERT(s_data.context_data.count(handle), u8"Renderer2D: Unregistered context!");
         PerContextData* data{ s_data.context_data.at(handle).get() };
 
@@ -190,8 +186,7 @@ namespace rke {
         CORE_ASSERT(s_in_scene, u8"Renderer2D: Call of draw_quad"
             u8" should be between begin_sence and end_sence!");
 
-        auto handle{ Application::get()
-            .get_window_lib()->get_current_context().get_integral() };
+        auto handle{ app().get_windows_lib().get_current_context().val() };
         CORE_ASSERT(s_data.context_data.count(handle),
             u8"Renderer2D: Drawing on an unregistered context!");
         PerContextData* data{ s_data.context_data.at(handle).get() };
@@ -292,8 +287,7 @@ namespace rke {
         RKE_PROFILE_FUNCTION();
 
         // refresh the huge data buffer
-        auto handle{ Application::get()
-            .get_window_lib()->get_current_context().get_integral() };
+        auto handle{ app().get_windows_lib().get_current_context().val() };
         CORE_ASSERT(s_data.context_data.count(handle),
             u8"Renderer2D: Drawing on an unregistered context!");
         PerContextData* data{ s_data.context_data.at(handle).get() };
@@ -316,8 +310,7 @@ namespace rke {
     {
         RKE_PROFILE_FUNCTION();
 
-        auto handle{ Application::get()
-            .get_window_lib()->get_current_context().get_integral() };
+        auto handle{ app().get_windows_lib().get_current_context().val() };
         CORE_ASSERT(s_data.context_data.count(handle),
             u8"Renderer2D: Drawing on an unregistered context!");
         auto& data{ s_data.context_data.at(handle) };

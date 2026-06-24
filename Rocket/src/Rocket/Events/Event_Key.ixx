@@ -14,13 +14,13 @@ export namespace rke
     class RKE_API CharTypedEvent : public Event
     {
     public:
-        CharTypedEvent(StringView title, uint32 code_point)
-            : Event(title), code_point_(code_point) {}
+        CharTypedEvent(StringView name, uint32 code_point)
+            : Event(name), code_point_(static_cast<uint8>(code_point)) {}
 
         String to_string() const override
         {
-            return String::format(u8"{}: {}",
-                get_name(), static_cast<char>(code_point_));
+            return String::format(u8"{}: {}", get_name(),
+                static_cast<char>(code_point_));
         }
 
         EVENT_CLASS_TYPE(CharTyped)
@@ -36,7 +36,7 @@ export namespace rke
 
         EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput)
     protected:
-        KeyEvent(StringView title, Key key) : Event(title), key_(key) {}
+        KeyEvent(StringView name, Key key) : Event(name), key_(key) {}
     protected:
         Key key_;
     };
@@ -44,8 +44,8 @@ export namespace rke
     class RKE_API KeyPressedEvent : public KeyEvent
     {
     public:
-        KeyPressedEvent(StringView title, Key key, bool held = false)
-            : KeyEvent(title, key), is_held_(held) {}
+        KeyPressedEvent(StringView name, Key key, bool held = false)
+            : KeyEvent(name, key), is_held_(held) {}
 
         bool is_held() const { return is_held_; }
         String to_string() const override
@@ -62,10 +62,13 @@ export namespace rke
     class RKE_API KeyReleasedEvent : public KeyEvent
     {
     public:
-        KeyReleasedEvent(StringView title, Key key) : KeyEvent(title, key) {}
+        KeyReleasedEvent(StringView name, Key key) : KeyEvent(name, key) {}
 
         String to_string() const override
-            { return String::format(u8"{}: {}", get_name(), key_to_string(key_)); }
+        {
+            return String::format(u8"{}: {}",
+                get_name(), key_to_string(key_));
+        }
 
         EVENT_CLASS_TYPE(KeyReleased)
     };

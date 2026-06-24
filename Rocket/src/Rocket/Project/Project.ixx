@@ -51,7 +51,7 @@ export namespace rke
         static bool create(const Path& path);
         static Project* load_to_active(const Path& path);
         static bool save_active();
-        static void release_active();
+        static void clear_active();
 
         void set_name(String name) { project_config_.name = std::move(name); }
         const String& get_name() const { return project_config_.name; }

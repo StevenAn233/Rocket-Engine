@@ -7,14 +7,8 @@ import FXAAEffect;
 
 namespace rke
 {
-    EditorLayer::EditorLayer(String window_title, String name)
-        : Layer(std::move(window_title), std::move(name)) {}
-
     void EditorLayer::on_attach()
     {
-        Layer::on_attach();
-        const auto& app{ Application::get() };
-
         Scene::set_on_entity_selected([this](Entity entity)
             { editor_setting_panel_.get_selected()->set_target(entity); });
 
@@ -36,30 +30,27 @@ namespace rke
         {
             editor_cam_.deserialize_from(reader);
             if(reader->has_key(u8"Cam Demo Target")) {
-                UUID id{reader->get_at(u8"Cam Demo Target", 0ui64)};
+                UUID id{ reader->get_at(u8"Cam Demo Target", 0ui64) };
                 cam_renderer_.set_cam_demo_target(scene->get_entity(id));
-            }
-            else cam_renderer_.set_cam_demo_target({});
+            } else cam_renderer_.set_cam_demo_target({});
         });
 
     // DockSpace
-        dockspace_.load_from(file::find_editor_dir() / u8"settings" / u8"dockspace.yaml");
+        dockspace_.load_from(file::editor_dir() / u8"settings" / u8"dockspace.yaml");
         dockspace_.set_menubar_callback([this]()
         {
             if(ImGui::BeginMenu("Window")) {
                 if(ImGui::MenuItem("Close", "Alt+F4"))
-                    Application::get().remove_window(get_owner_title());
+                    app().remove_window(get_owner_name());
                 ImGui::EndMenu();
             }
             if(ImGui::BeginMenu("File")) {
                 bool is_play{ scene_state_ == SceneState::Play };
                 bool no_project{ !Project::get_active_project() };
-                if(ImGui::MenuItem("New Project...", "Ctrl+N",
-                    false, !is_play)) new_project();
-                if(ImGui::MenuItem("Open Project...", "Ctrl+O",
-                    false, !is_play)) open_project(get_owner());
-                if(ImGui::MenuItem("Save Project", "Ctrl+S",
-                    false, !is_play && !no_project)) save_project();
+                if(ImGui::MenuItem("New Project..." , "Ctrl+N", false, !is_play)) new_project();
+                if(ImGui::MenuItem("Open Project...", "Ctrl+O", false, !is_play))
+                    open_project(reinterpret_cast<Window*>(owner_));
+                if(ImGui::MenuItem("Save Project", "Ctrl+S", false, !is_play && !no_project)) save_project();
                 ImGui::EndMenu();
             }
             if(ImGui::BeginMenu("Panels")) {
@@ -76,7 +67,7 @@ namespace rke
 
         editor_setting_panel_.set_hovering_handle(hovering.get());
         editor_setting_panel_.set_selected_handle(selected.get());
-        editor_setting_panel_.load_from(file::find_editor_dir() / u8"settings" / u8"editor.yaml");
+        editor_setting_panel_.load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
 
         auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa") };
 
@@ -99,34 +90,40 @@ namespace rke
             { entity_right_click_popup_content(scene); });
 
     // WindowSetting
-        window_setting_panel_.set_context(get_owner());
+        window_setting_panel_.set_context(reinterpret_cast<Window*>(owner_));
 
     // ContentBrowser
-        content_browser_panel_.set_folder_icon
-            (app.asset_path(Path(u8"icons") / u8"folder.png"));
-        content_browser_panel_.set_image_icon
-            (app.asset_path(Path(u8"icons") / u8"image.png" ));
-        content_browser_panel_.set_file_icon
-            (app.asset_path(Path(u8"icons") / u8"file.png"  ));
-        content_browser_panel_.load_from
-            (file::find_editor_dir() / u8"settings" / u8"content-browser.yaml");
+        Path assets_dir{ file::assets_dir() };
+        content_browser_panel_.set_folder_icon(assets_dir / u8"icons" / u8"folder.png");
+        content_browser_panel_.set_image_icon (assets_dir / u8"icons" / u8"image.png" );
+        content_browser_panel_.set_file_icon  (assets_dir / u8"icons" / u8"file.png"  );
+        content_browser_panel_.load_from(file::editor_dir() / u8"settings" / u8"content-browser.yaml");
 
     // Toolbar
         toolbar_.emplace_icon_button(u8"Play",
-            Texture2D::create(app.asset_path(Path(u8"icons") / u8"play.png"),
-                Texture::FiltFormat::Linear, Texture::WrapFormat::Clamp2Edge, false),
+            Texture2D::create (
+                assets_dir / u8"icons" / u8"play.png",
+                Texture::FiltFormat::Linear,
+                Texture::WrapFormat::Clamp2Edge, false
+            ),
             [this](IconButton*) { on_runtime_start(); },
             [this]() { return current_scene_ && editing(); });
 
         toolbar_.emplace_icon_button(u8"Stop",
-            Texture2D::create(app.asset_path(Path(u8"icons") / u8"stop.png"),
-                Texture::FiltFormat::Linear, Texture::WrapFormat::Clamp2Edge, false),
+            Texture2D::create (
+                assets_dir / u8"icons" / u8"stop.png",
+                Texture::FiltFormat::Linear,
+                Texture::WrapFormat::Clamp2Edge, false
+            ),
             [this](IconButton*) { on_runtime_stop(); },
             [this]() { return current_scene_ && playing(); });
 
         toolbar_.emplace_icon_button(u8"Reload Scripts",
-            Texture2D::create(app.asset_path(Path(u8"icons") / u8"refresh.png"),
-                Texture::FiltFormat::Linear, Texture::WrapFormat::Clamp2Edge, false),
+            Texture2D::create (
+                assets_dir / u8"icons" / u8"refresh.png",
+                Texture::FiltFormat::Linear,
+                Texture::WrapFormat::Clamp2Edge, false
+            ),
             [this](IconButton*) {
                 auto project{ Project::get_active_project() };
                 project->scripts_hot_reloading();
@@ -141,15 +138,16 @@ namespace rke
         main_viewport_.set_in_viewport_callback([this](Viewport* self)
         {
         #ifndef RKE_SHIPPING
-            Application::get().get_imgui_layer()
-                ->set_main_viewport_hovered(self->is_hovered());
-            Application::get().get_imgui_layer()
-                ->set_main_viewport_focused(self->is_focused());
+            app().get_imgui_layer()->set_main_viewport_hovered(self->is_hovered());
+            app().get_imgui_layer()->set_main_viewport_focused(self->is_focused());
         #endif
-            if(current_scene_ && self->is_focused() && editing()) {
-                Gizmo::on_render(current_scene_->get_selected_entity(),
-                                 editor_setting_panel_.get_gizmo_mode(),
-                                 editor_cam_, mouse_blocked());
+            if(current_scene_ && self->is_focused() && editing())
+            {
+                Gizmo::on_render (
+                    current_scene_->get_selected_entity(),
+                    editor_setting_panel_.get_gizmo_mode(),
+                    editor_cam_, mouse_blocked()
+                );
             }
 
             if((!current_scene_ || editing()) && ImGui::BeginDragDropTarget())
@@ -160,8 +158,7 @@ namespace rke
                     String scene_path{ reinterpret_cast<const char8*>(payload->Data) };
                     if(Project::get_active_project() && scene_path.ends_with(u8".rkscene"))
                     {
-                        Ref<Scene> active_scene
-                            { Project::get_active_project()->load_scene(scene_path) };
+                        Ref<Scene> active_scene{ Project::get_active_project()->load_scene(scene_path) };
                         update_current_scene(active_scene); // can be nullptr
                     }
                 }
@@ -185,7 +182,7 @@ namespace rke
 
     // PanelRegistry
         panel_registry_.set_switches_load_from
-            (file::find_editor_dir() / u8"settings" / u8"panel-switches.yaml");
+            (file::editor_dir() / u8"settings" / u8"panel-switches.yaml");
         panel_registry_.register_panel(&application_panel_	  );
         panel_registry_.register_panel(&window_setting_panel_ );
         panel_registry_.register_panel(&scene_hierarchy_panel_);
@@ -216,7 +213,7 @@ namespace rke
 
         if(Project::get_active_project())
             Project::get_active_project()->clear_active_scene();
-        Project::release_active();
+        Project::clear_active();
     }
 
     void EditorLayer::on_update(float dt)
@@ -340,7 +337,7 @@ namespace rke
             project_creating_modal_.popup();
             to_create_new_proj_ = false;
         }
-        project_creating_modal_.on_render(get_owner());
+        project_creating_modal_.on_render(reinterpret_cast<Window*>(owner_));
     }
 
     void EditorLayer::on_runtime_start()
@@ -454,7 +451,7 @@ namespace rke
             if(ctrl) { new_project(); return true; }
             return false;
         case Key::O:
-            if(ctrl) { open_project(e.get_window_title()); return true; }
+            if(ctrl) { open_project(e.get_window_name()); return true; }
             return false;
         case Key::S:
             if(ctrl) { save_project(); return true; }

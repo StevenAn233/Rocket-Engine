@@ -53,8 +53,10 @@ export namespace rke
             std::string_view sv{ s };
             return write_file_impl(path, sv.data(), sv.size(), true);
         }
+
         inline bool write_file_string(const Path& path, const char8* content)
             { return write_file_string(path, reinterpret_cast<const char*>(content)); }
+
         inline bool write_file_string(const Path& path, const String& content)
             { return write_file_string(path, content.raw()); }
 
@@ -63,9 +65,9 @@ export namespace rke
 
         RKE_API Path unify_path(String generic);
 
-        RKE_API Path get_executable_dir();
-        RKE_API Path find_assets_dir();
-        RKE_API Path find_editor_dir();
-        RKE_API Path get_shader_cache_dir();
+        RKE_API Path executable_dir();
+        RKE_API Path assets_dir();
+        RKE_API Path editor_dir();
+        RKE_API Path shader_cache_dir();
     }
 }

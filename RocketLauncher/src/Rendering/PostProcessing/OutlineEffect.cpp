@@ -12,8 +12,7 @@ namespace rke
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         outline_fbo_ = FrameBuffer::create
             ({ .attachment_spec{{ Texture::Format::R8, 0.0f }} });
-        shader_ = Shader::create(Application::get()
-            .asset_path(Path(u8"shaders") / u8"composite.rkshdr"));
+        shader_ = Shader::create(file::assets_dir() / u8"shaders" / u8"composite.rkshdr");
     }
 
     bool OutlineEffect::apply(const Texture2D* source, FrameBuffer* destination)

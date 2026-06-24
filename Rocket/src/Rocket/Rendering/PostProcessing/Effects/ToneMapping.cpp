@@ -5,15 +5,14 @@ import BindingPoint;
 import Buffers;
 import AssetsManager;
 import RenderCommand;
-import Application;
+import FileUtils;
 
 namespace rke
 {
     ToneMapping::ToneMapping(String name) : PostProcessEffect(std::move(name))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
-        shader_ = Shader::create(Application::get()
-            .asset_path(Path(u8"shaders") / u8"tone_mapping.rkshdr"));
+        shader_ = Shader::create(file::assets_dir() / u8"shaders" / u8"tone_mapping.rkshdr");
     }
 
     bool ToneMapping::apply(const Texture2D* source, FrameBuffer* destination)

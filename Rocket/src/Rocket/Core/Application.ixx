@@ -6,7 +6,8 @@
 export module Application;
 
 import Window;
-import WindowLibrary;
+import WindowsLib;
+import String;
 import Path;
 import Event;
 import Font;
@@ -15,7 +16,7 @@ import ImGuiLayer;
 
 export namespace rke
 {
-    class RKE_API Application // Singleton
+    class RKE_API Application
     {
     public:
         friend struct std::default_delete<Application>;
@@ -25,43 +26,30 @@ export namespace rke
         Application(Application&&) = delete;
         Application& operator=(Application&&) = delete;
 
-        static Application& get();
-
         void run();
         void on_event(Event& e); // for glfw(input) callbacks
 
-        const Path& get_engine_assets_dir() const
-            { return engine_assets_dir_; }
-        Path asset_path(const Path& relative) const
-            { return engine_assets_dir_ / relative; }
-
-        Window* create_window(const Window::WindowProps& props);
-        const Window* get_window(const String& title) const
-            { return (*windows_)[title]; }
-        Window* get_window_mut(const String& title)
-            { return (*windows_)[title]; }
-        WindowLibrary* get_window_lib() const { return windows_.get(); }
+        WindowsLib& get_windows_lib() const { return *(windows_.get()); }
+        Window* create_window(Window::WindowProps props);
+        const Window* get_window(const String& name) const { return (*windows_)[name]; }
+        Window* get_window_mut(const String& name) { return (*windows_)[name]; }
 
         void remove_window(const String& window_title);
         bool single_window() const { return windows_->size() == 1; }
 
-    #ifndef RKE_SHIPPING
         ImGuiLayer* get_imgui_layer() { return imgui_layer_; }
-    #endif
     protected:
         Application();
-        virtual ~Application();
+        virtual ~Application() {};
     protected:
-        Path engine_assets_dir_{};
-    #ifndef RKE_SHIPPING
-        ImGuiLayer* imgui_layer_{}; // Only one ImGuiLayer surpported!
-    #endif
+        ImGuiLayer* imgui_layer_{};
     private:
         bool on_window_closed(WindowClosedEvent& e);
-        // maybe should move to WindowLibrary
+        // maybe should move to WindowsLib
     private:
-        Scope<WindowLibrary> windows_{};
+        Scope<WindowsLib> windows_{};
     };
 
-    inline void enter(Scope<Application> app) { app->run(); }
+    RKE_API Application& app();
+    RKE_API void execute(Scope<Application> app);
 }

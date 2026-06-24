@@ -1,0 +1,54 @@
+﻿module;
+
+#include <unordered_map>
+#include <memory>
+
+export module WindowsLib:Base;
+
+import Types;
+import Window;
+import HeapManager;
+import String;
+
+export namespace rke
+{
+    class WindowsLib
+    {
+    public:
+        friend struct std::default_delete<WindowsLib>;
+
+        using WindowsMap = std::unordered_map<String, Scope<Window>>;
+
+        WindowsLib(const WindowsLib&) = delete;
+        WindowsLib& operator=(const WindowsLib&) = delete;
+        WindowsLib(WindowsLib&&) = delete;
+        WindowsLib& operator=(WindowsLib&&) = delete;
+
+        inline WindowsMap::iterator begin() { return windows_.begin(); }
+        inline WindowsMap::iterator end() { return windows_.end(); }
+        
+        inline Size size() const { return windows_.size(); }
+        inline bool is_empty() const { return windows_.empty(); }
+        inline bool exists(const String& name) const
+            { return windows_.find(name) != windows_.end(); }
+        inline void remove(const String& name)
+            { if(exists(name)) windows_[name]->should_close(true); }
+
+        Window* add(Scope<Window> window);
+        Window* operator[](const String& name);
+        const Window* operator[](const String& name) const;
+
+        virtual void refresh() = 0;
+        virtual Window* load(Window::WindowProps props) = 0;
+        virtual NativeWindow get_current_context() const = 0;
+        virtual NativeWindow get_master_context () const = 0;
+        virtual void make_master_context_current() = 0;
+
+        static Scope<WindowsLib> create();
+    protected:
+        WindowsLib() = default;
+        virtual ~WindowsLib() = default;
+    protected:
+        WindowsMap windows_{};
+    };
+}

@@ -7,9 +7,6 @@ module Input;
 namespace {
     using namespace rke;
 
-    static bool s_block_mouse	{ false };
-    static bool s_block_keyboard{ false };
-
     constexpr int rke_to_glfw_mouse(Mouse code)
     {
         switch(code)
@@ -157,44 +154,49 @@ namespace {
 
 namespace rke
 {
+    bool Input::s_block_mouse_	 { false };
+    bool Input::s_block_keyboard_{ false };
+
     void Input::transition_input_state(bool block_mouse, bool block_keyboard)
     {
-        s_block_mouse	 = block_mouse;
-        s_block_keyboard = block_keyboard;
+        s_block_mouse_	  = block_mouse;
+        s_block_keyboard_ = block_keyboard;
     }
 
     constexpr bool Input::is_key_pressed(Key key)
     {
-        if(s_block_keyboard) return false;
+        if(s_block_keyboard_) return false;
         int state{ glfwGetKey(glfwGetCurrentContext(), rke_to_glfw_key(key)) };
         return (state == GLFW_PRESS || state == GLFW_REPEAT);
     }
 
     constexpr bool Input::is_mouse_button_pressed(Mouse button)
     {
-        if(s_block_mouse) return false;
+        if(s_block_mouse_) return false;
         int state{ glfwGetMouseButton
             (glfwGetCurrentContext(), rke_to_glfw_mouse(button)) };
         return (state == GLFW_PRESS);
     }
 
-    std::pair<float, float> Input::get_mouse_pos_in_window()
+    glm::vec2 Input::get_mouse_pos_in_window()
     {
         double x{}, y{};
         glfwGetCursorPos(glfwGetCurrentContext(), &x, &y);
         // relative coords to the LEFT-UP of the WHOLE window!!!
-        return { (float)x, (float)y };
+        return { static_cast<float>(x), static_cast<float>(y) };
     }
 
     float Input::get_mouse_x_in_window()
     {
-        auto [x, y]{ get_mouse_pos_in_window() };
-        return x;
+        double x{};
+        glfwGetCursorPos(glfwGetCurrentContext(), &x, nullptr);
+        return static_cast<float>(x);
     }
 
     float Input::get_mouse_y_in_window()
     {
-        auto [x, y]{ get_mouse_pos_in_window() };
-        return y;
+        double y{};
+        glfwGetCursorPos(glfwGetCurrentContext(), nullptr, &y);
+        return static_cast<float>(y);
     }
 }

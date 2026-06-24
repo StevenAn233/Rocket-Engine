@@ -11,7 +11,6 @@ import :OpenGL;
 
 import Log;
 import FileUtils;
-import Application;
 
 namespace {
     using namespace rke;
@@ -199,8 +198,8 @@ namespace rke
         {
             Path cached_path{};
             try {
-                const Path& assets_dir{ Application::get().get_engine_assets_dir() };
-                Path cache_directory{ file::get_shader_cache_dir() / u8"vulkan" };
+                const Path& assets_dir{ file::assets_dir() };
+                Path cache_directory{ file::shader_cache_dir() / u8"vulkan" };
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
                 cached_path = cache_directory /
                     (source.first.filename().string() + u8".cached_vulkan");
@@ -251,11 +250,9 @@ namespace rke
             Path cached_path{}, original_path{};
             try {
                 original_path = paths.at(stage);
-                const Path& assets_dir{ Application::get().get_engine_assets_dir() };
-                Path cache_directory{ file::get_shader_cache_dir() / u8"opengl" };
+                Path cache_directory{ file::shader_cache_dir() / u8"opengl" };
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
-                cached_path = cache_directory /
-                    (original_path.filename().string() + u8".cached_opengl");
+                cached_path = cache_directory / (original_path.filename().string() + u8".cached_opengl");
             } catch(std::exception& e)
                 { CORE_ASSERT(false, u8"glShader: Exception '{}'.", e.what()); }
 

@@ -218,7 +218,7 @@ namespace rke::file
         return true;
     }
 
-    Path get_executable_dir()
+    Path executable_dir()
     {
         WCHAR path[MAX_PATH]{};
         GetModuleFileNameW(NULL, path, MAX_PATH);

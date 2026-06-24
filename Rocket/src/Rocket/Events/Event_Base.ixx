@@ -47,15 +47,15 @@ export namespace rke
 
         virtual ~Event() = default;
 
-        virtual EventType  get_event_type()	    const = 0;
-        virtual StringView get_name()		    const = 0;
-        virtual int		   get_category_flags() const = 0;
+        virtual StringView get_name() const = 0;
+        virtual int	get_category_flags() const = 0;
+        virtual EventType get_event_type() const = 0;
 
         virtual String to_string() const { return get_name(); }
         // when dynamically binding(reference or pointer of base class),
         // virtual function won't be inline(though it is called to be inline)
 
-        StringView get_window_title() const { return window_title_; }
+        StringView get_window_name() const { return window_name_; }
         bool is_in_category(EventCategory category) const
         {
             return get_category_flags() & category;
@@ -64,9 +64,9 @@ export namespace rke
         }
         bool handled() const { return handled_; } // For Application::on_event()
     protected:
-        Event(StringView window_title) : window_title_(window_title) {}
+        Event(StringView window_name) : window_name_(window_name) {}
     protected:
         bool handled_{ false }; // For Dispatcher Using
-        StringView window_title_;
+        StringView window_name_;
     };
 }

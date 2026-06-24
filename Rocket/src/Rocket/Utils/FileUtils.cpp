@@ -11,9 +11,9 @@ namespace rke::file
         return Path(generic);
     }
 
-    Path find_assets_dir()
+    Path assets_dir()
     {
-        auto exe_dir{ get_executable_dir() };
+        auto exe_dir{ executable_dir() };
         auto assets_dir{ exe_dir / u8".." / u8".." / u8"assets" };
         if(assets_dir.exists() && fs::is_directory(assets_dir))
             return fs::canonical(assets_dir); // absolute
@@ -21,19 +21,19 @@ namespace rke::file
         return {};
     }
 
-    Path find_editor_dir()
+    Path editor_dir()
     {
-        auto exe_dir{ get_executable_dir() };
-        auto editor_dir{ exe_dir / u8".." / u8".." / u8"editor"};
+        auto exe_dir{ executable_dir() };
+        auto editor_dir{ exe_dir / u8".." / u8".." / u8"editor" };
         if(editor_dir.exists() && fs::is_directory(editor_dir))
             return fs::canonical(editor_dir); // absolute
         CORE_ERROR(u8"WindowsFileUtils: Editor dir not found!");
         return {};
     }
 
-    Path get_shader_cache_dir()
+    Path shader_cache_dir()
     {
-        Path build_dir{ find_assets_dir().parent_path() / u8"bin" };
+        Path build_dir{ assets_dir().parent_path() / u8"bin" };
         if(!build_dir.exists()) fs::create_directory(build_dir);
         Path shader_cache_dir{ build_dir / u8"shaders" };
         if(!shader_cache_dir.exists()) fs::create_directory(shader_cache_dir);

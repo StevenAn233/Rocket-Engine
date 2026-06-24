@@ -65,6 +65,6 @@ namespace rke
             color::grey, zoned_time, get_prefix(type),
             str::extract_filename(StringView(str::to_char8(loc.file_name()))),
             loc.line(), loc.column(), get_color(level),
-            e.get_window_title(), e.to_string(), color::reset);
+            e.get_window_name(), e.to_string(), color::reset);
     }
 }

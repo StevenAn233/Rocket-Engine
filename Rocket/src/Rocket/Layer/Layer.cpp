@@ -9,16 +9,11 @@ import Input;
 
 namespace rke
 {
-    Layer::Layer(String window_title, String name)
-        : debug_name_ (std::move(name))
-        , owner_title_(std::move(window_title)) {}
-
-    void Layer::on_attach()
-        { owner_ = Application::get().get_window_mut(owner_title_); }
-    void Layer::on_detach() {}
-
     void Layer::on_update(float dt)
-        { Input::transition_input_state(mouse_blocked(), keyboard_blocked()); }
+    {
+        Input::transition_input_state
+            (mouse_blocked(), keyboard_blocked());
+    }
 
     void Layer::on_event(Event& e)
     {
@@ -36,23 +31,21 @@ namespace rke
             ([this](NewSceneEvent& e) { return on_new_scene(e); });
     }
 
-    const String& Layer::get_name() const { return debug_name_; }
+    const String& Layer::get_owner_name()
+    {
+        CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
+        return reinterpret_cast<Window*>(owner_)->get_name();
+    }
 
     bool Layer::mouse_blocked() const
     {
         CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return layer_index_ < owner_->get_mouse_blocking_index();
+        return layer_index_ < reinterpret_cast<Window*>(owner_)->get_mouse_blocking_index();
     }
 
     bool Layer::keyboard_blocked() const
     {
         CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return layer_index_ < owner_->get_keyboard_blocking_index();
-    }
-
-    Window* Layer::get_owner()
-    {
-        CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return owner_;
+        return layer_index_ < reinterpret_cast<Window*>(owner_)->get_keyboard_blocking_index();
     }
 }

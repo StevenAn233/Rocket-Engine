@@ -7,57 +7,20 @@ import Project;
 import Instrumentor;
 import DeltaTime;
 import Renderer2D;
-import Renderer;
 import EventDispatcher;
 import PlatformSupport;
 import FileUtils;
 
-namespace rke
-{
-    static Application* s_instance{ nullptr };
+namespace rke {
+    Application::Application() { windows_ = WindowsLib::create(); }
 
-    Application::Application()
+    Window* Application::create_window(Window::WindowProps props)
     {
-        CORE_ASSERT(!s_instance, u8"Application: Instance already existed!");
-        s_instance = this;
-
-        engine_assets_dir_ = file::find_assets_dir();
-        CORE_ASSERT(engine_assets_dir_.exists(), u8"Application: "
-            u8"Can't locate engine assets directory '{}'!", engine_assets_dir_);
-
-        windows_ = WindowLibrary::create();
-
-        Project::init_file_templates(asset_path(u8"proj-templates"));
-        DeltaTime::update();
-        DeltaTime::update();
-
-        PlatformSupport::init();
-        Renderer2D::init();
-        Renderer::init();
-    }
-
-    Application::~Application()
-    {
-        Renderer::shutdown();
-        Renderer2D::shutdown();
-        PlatformSupport::shutdown();
-        s_instance = nullptr;
-    }
-
-    Application& Application::get()
-    {
-        CORE_ASSERT(s_instance, u8"Application: Instance haven't been created!");
-        return *s_instance;
-    }
-
-    Window* Application::create_window(const Window::WindowProps& props)
-    {
-        windows_->load(props);
-        Window* window{ (*windows_)[props.title] };
+        Window* window{ windows_->load(std::move(props)) };
         window->set_event_callback([this](Event& e) { on_event(e); });
-
+        
         window->make_context_current();
-        Renderer2D::register_context();
+        Renderer2D::register_context(window->get_native_window().val());
         return window;
     }
 
@@ -70,7 +33,7 @@ namespace rke
 
         if(e.handled()) return; // maybe useless...
 
-        for(auto& [title, window] : windows_->get_mut())
+        for(auto& [_, window] : *windows_)
             window->on_event(e);
     }
 
@@ -81,19 +44,14 @@ namespace rke
             RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");
 
             DeltaTime::update();
-
-            for(auto& [title, window] : windows_->get_mut())
+            for(auto& [_, window] : *windows_)
             {
-            #ifndef RKE_SHIPPING
                 if(imgui_layer_) imgui_layer_->begin_render();
-            #endif
                 Renderer2D::reset_stats();
                 window->on_update(DeltaTime::get());
                 window->on_render();
                 window->on_imgui_render();
-            #ifndef RKE_SHIPPING
                 if(imgui_layer_) imgui_layer_->end_render();
-            #endif
             }
             windows_->refresh();
         }
@@ -109,11 +67,42 @@ namespace rke
     bool Application::on_window_closed(rke::WindowClosedEvent& e)
     {
         CORE_INFO(e);
-        remove_window(e.get_window_title());
-    #ifndef RKE_SHIPPING
+        remove_window(e.get_window_name());
         if(!imgui_layer_ || !imgui_layer_->valid())
             imgui_layer_ = nullptr;
-    #endif
         return true;
+    }
+}
+
+namespace {
+    using namespace rke;
+    static Scope<Application> s_instance{};
+}
+
+namespace rke
+{
+    Application& app()
+    {
+        CORE_ASSERT(s_instance, u8"Rocket: Instance haven't been created!");
+        return *s_instance;
+    }
+
+    void execute(Scope<Application> instance)
+    {
+        CORE_ASSERT(!s_instance, u8"Rocket: Instance already existed!");
+        s_instance = std::move(instance);
+
+        Project::init_file_templates(file::assets_dir() / u8"proj-templates");
+        DeltaTime::update();
+        DeltaTime::update();
+
+        PlatformSupport::init();
+        Renderer2D::init();
+
+        s_instance->run();
+
+        Renderer2D::shutdown();
+        PlatformSupport::shutdown();
+        s_instance.reset();
     }
 }

@@ -9,13 +9,10 @@
 module ImGuiLayer;
 
 import Log;
-import Input;
-import Application;
-import RenderCommand;
-import FileUtils;
-import MathUtils;
-import Style;
 import String;
+import FileUtils;
+import Style;
+import Window;
 
 namespace {
     using namespace rke;
@@ -34,20 +31,11 @@ namespace {
         ImGui_ImplOpenGL3_RenderDrawData(viewport->DrawData);
     }
 
-    static ImGuiLayer* instance_{};
     static String s_imgui_ini_path{};
 }
 
 namespace rke
 {
-    ImGuiLayer::ImGuiLayer(String window_title, String name, StyleConfig config)
-        : Layer(std::move(window_title), std::move(name))
-        , style_config_(std::move(config))
-    {
-        CORE_ASSERT(!instance_, u8"glfwImGuiLayer: Only one ImGuiLayer supported!");
-        instance_ = this;
-    }
-
     void ImGuiLayer::on_event(Event& e)
     {
         if(!valid_) return;
@@ -59,7 +47,6 @@ namespace rke
 
     void ImGuiLayer::on_attach()
     {
-        Layer::on_attach();
         valid_ = true;
 
     // Setup ImGui context
@@ -71,7 +58,7 @@ namespace rke
         io().ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
         if(s_imgui_ini_path.empty()) {
-            Path temp{ file::find_editor_dir() / u8"settings" / u8"imgui.ini" };
+            Path temp{ file::editor_dir() / u8"settings" / u8"imgui.ini" };
             CORE_ASSERT(temp.exists(), u8"glfwImGuiLayer: Editor path doesn't exist!");
             s_imgui_ini_path = temp.string();
         }
@@ -97,7 +84,7 @@ namespace rke
         float font_size_base{ style_config_.font_size };
         float high_res_font_size{ font_size_base * 2.0f };
 
-        Path font_path{ Application::get().asset_path(style_config_.font_path) };
+        Path font_path{ file::assets_dir() / style_config_.font_path };
         CORE_ASSERT(font_path.exists(),
             u8"glfwImGuiLayer: Font path '{}' not found!", font_path);
 
@@ -108,7 +95,7 @@ namespace rke
         ImGui::GetStyle().FontSizeBase = font_size_base;
 
     // Setup DPI scaling
-        io().ConfigDpiScaleFonts	 = true;
+        io().ConfigDpiScaleFonts = true;
         io().ConfigDpiScaleViewports = true;
 
     // Setup platform/renderer backends
@@ -143,7 +130,7 @@ namespace rke
         return io().WantCaptureKeyboard;
     }
 
-    void ImGuiLayer::begin_render()
+    void ImGuiLayer::begin_render() const
     {
         if(!valid_) return;
         ImGui_ImplOpenGL3_NewFrame();
@@ -152,7 +139,7 @@ namespace rke
         ImGuizmo::BeginFrame();
     }
 
-    void ImGuiLayer::end_render()
+    void ImGuiLayer::end_render() const
     {
         if(!valid_) return;
 

@@ -2,9 +2,12 @@
 module LayerStack;
 
 import Log;
+import Layer;
 
 namespace rke
 {
+    LayerStack::~LayerStack() { for(auto& layer : layers_) layer->on_detach(); }
+
     void LayerStack::push_layer(Scope<Layer> layer)
     {
         layer->on_attach();
@@ -13,28 +16,28 @@ namespace rke
         insert_index_++;
     }
 
-    void LayerStack::push_overlay(Scope<Layer> overlay)
-    {
-        overlay->on_attach();
-        overlay->layer_index_ = Size();
-        layers_.push_back(std::move(overlay));
-    }
-
     Scope<Layer> LayerStack::pop_layer(Layer* layer)
     {
         auto central{ layers_.begin() + insert_index_ };
         auto it{ std::find_if(layers_.begin(), central,
             [layer](const Scope<Layer>& item) { return item.get() == layer; }) };
-        if(it != central /*Layer is found*/)
+        if(it != central /* Layer is found */)
         {
-            (*it)->on_detach();
+            it->get()->on_detach();
             Scope<Layer> temp{ std::move(*it) };
             layers_.erase(it);
             insert_index_--;
-            return temp; // ROV
+            return temp;
         }
-        else CORE_WARN(u8"LayerStack: layer not found!");
+        else CORE_WARN(u8"LayerStack: Layer not found!");
         return nullptr;
+    }
+
+    void LayerStack::push_overlay(Scope<Layer> overlay)
+    {
+        overlay->on_attach();
+        overlay->layer_index_ = this->size();
+        layers_.push_back(std::move(overlay));
     }
 
     Scope<Layer> LayerStack::pop_overlay(Layer* overlay)
@@ -42,12 +45,12 @@ namespace rke
         auto central{ layers_.begin() + insert_index_ };
         auto it{ std::find_if(central, layers_.end(),
             [overlay](const Scope<Layer>& item) { return item.get() == overlay; }) };
-        if(it != layers_.end() /*Overlay is found*/)
+        if(it != layers_.end() /* Overlay is found */)
         {
-            (*it)->on_detach();
+            it->get()->on_detach();
             Scope<Layer> temp{ std::move(*it) };
             layers_.erase(it);
-            return temp; // ROV
+            return temp;
         }
         else CORE_WARN(u8"LayerStack: overlay not found!");
         return nullptr;

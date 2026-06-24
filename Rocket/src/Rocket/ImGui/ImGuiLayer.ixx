@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <utility>
 #include "rke_macros.h"
 
 export module ImGuiLayer;
@@ -22,21 +23,23 @@ export namespace rke
             float font_size{};
         };
 
-        ImGuiLayer(String window_title, String name, StyleConfig config);
+        ImGuiLayer(String name, void* owner, StyleConfig config)
+            : Layer(std::move(name), owner)
+            , style_config_(std::move(config)) {}
 
         void on_event(Event& e) override;
         void on_attach() override;
         void on_detach() override;
 
-        bool should_block_mouse   () override;
+        bool should_block_mouse() override;
         bool should_block_keyboard() override;
 
-        void begin_render();
-        void end_render  ();
-        void set_main_viewport_hovered(bool judge) { main_viewport_hovered_ = judge; }
-        void set_main_viewport_focused(bool judge) { main_viewport_focused_ = judge; }
+        void begin_render() const;
+        void end_render() const;
+        inline void set_main_viewport_hovered(bool judge) { main_viewport_hovered_ = judge; }
+        inline void set_main_viewport_focused(bool judge) { main_viewport_focused_ = judge; }
 
-        bool valid() const { return valid_; }
+        inline bool valid() const { return valid_; }
     private:
         StyleConfig style_config_{};
 

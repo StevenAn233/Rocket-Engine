@@ -317,5 +317,5 @@ namespace rke
         return s_active_project->save();
     }
 
-    void Project::release_active() { s_active_project.release(); }
+    void Project::clear_active() { s_active_project.reset(); }
 }

@@ -25,7 +25,8 @@ export namespace rke
     class EditorLayer : public Layer
     {
     public:
-        EditorLayer(String window_title, String name);
+        EditorLayer(String name, void* owner)
+            : Layer(std::move(name), owner) {}
 
         void on_attach() override;
         void on_detach() override;
@@ -34,10 +35,10 @@ export namespace rke
         void on_render() override;
         void on_imgui_render() override;
 
-        bool should_block_mouse   () override { return true; }
+        bool should_block_mouse() override { return true; }
         bool should_block_keyboard() override { return true; }
     private:
-        void new_project ();
+        void new_project();
         void open_project(const Window* window);
         void open_project(const Path& rkproj_path);
         void save_project();

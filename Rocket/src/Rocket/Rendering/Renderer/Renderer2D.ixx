@@ -21,7 +21,7 @@ export namespace rke
         static void init();
         static void shutdown();
 
-        static void register_context();
+        static void register_context(uintptr handle);
 
         static RKE_API void begin_camera(const glm::mat4& view_projection);
 

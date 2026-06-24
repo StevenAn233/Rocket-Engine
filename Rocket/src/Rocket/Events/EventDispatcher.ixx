@@ -14,15 +14,15 @@ export namespace rke
     public:
         EventDispatcher(Event& event) : event_(event) {}
 
-        template<typename E, typename Callback>
+        template<typename E, typename Func>
         requires std::derived_from<E, Event>
-              && std::same_as<std::invoke_result_t<Callback, E&>, bool>
-        bool dispatch(Callback&& callback)
+              && std::same_as<std::invoke_result_t<Func, E&>, bool>
+        bool dispatch(Func&& callback)
         {
             if(event_.get_event_type() == E::get_static_type())
             {
                 event_.handled_ |= std::invoke
-                    (std::forward<Callback>(callback), static_cast<E&>(event_));
+                    (std::forward<Func>(callback), static_cast<E&>(event_));
                 return true;
             }
             return false;

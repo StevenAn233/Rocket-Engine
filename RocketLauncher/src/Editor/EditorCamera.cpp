@@ -40,10 +40,7 @@ namespace rke
 
     void EditorCamera::on_update(float dt)
     {
-        glm::vec2 mouse {
-            Input::get_mouse_pos_in_window().first,
-            Input::get_mouse_pos_in_window().second
-        };
+        glm::vec2 mouse{ Input::get_mouse_pos_in_window() };
         glm::vec2 delta{ (mouse - last_mouse_pos_) * 0.003f };
         last_mouse_pos_ = mouse;
 
