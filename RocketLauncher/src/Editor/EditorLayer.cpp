@@ -103,8 +103,7 @@ namespace rke
             Texture2D::create (
                 assets_dir / u8"icons" / u8"play.png",
                 Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false
-            ),
+                Texture::WrapFormat::Clamp2Edge, false),
             [this](IconButton*) { on_runtime_start(); },
             [this]() { return current_scene_ && editing(); });
 
@@ -112,8 +111,7 @@ namespace rke
             Texture2D::create (
                 assets_dir / u8"icons" / u8"stop.png",
                 Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false
-            ),
+                Texture::WrapFormat::Clamp2Edge, false),
             [this](IconButton*) { on_runtime_stop(); },
             [this]() { return current_scene_ && playing(); });
 
@@ -121,8 +119,7 @@ namespace rke
             Texture2D::create (
                 assets_dir / u8"icons" / u8"refresh.png",
                 Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false
-            ),
+                Texture::WrapFormat::Clamp2Edge, false),
             [this](IconButton*) {
                 auto project{ Project::get_active_project() };
                 project->scripts_hot_reloading();

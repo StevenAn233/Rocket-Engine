@@ -17,8 +17,8 @@ namespace rke
             std::unreachable();
         case RendererAPI::GraphicAPI::OpenGL:
             return create_ref<glTexture2D>(w, h, format, filt);
-        //case GraphicAPI::Vulkan:
-        //case GraphicAPI::DirectX:
+        // case GraphicAPI::Vulkan:
+        // case GraphicAPI::DirectX:
         default:
             CORE_ASSERT(false, u8"Renderer: unknown graphic api!");
             std::unreachable();
@@ -35,8 +35,8 @@ namespace rke
             std::unreachable();
         case RendererAPI::GraphicAPI::OpenGL:
             return create_ref<glTexture2D>(filepath, filt, wrap, srgb);
-        //case GraphicAPI::Vulkan:
-        //case GraphicAPI::DirectX:
+        // case GraphicAPI::Vulkan:
+        // case GraphicAPI::DirectX:
         default:
             CORE_ASSERT(false, u8"Renderer: unknown graphic api!");
             std::unreachable();
@@ -53,8 +53,8 @@ namespace rke
             std::unreachable();
         case RendererAPI::GraphicAPI::OpenGL:
             return create_ref<glTexture2D>(renderer_id, w, h, format);
-        //case GraphicAPI::Vulkan:
-        //case GraphicAPI::DirectX:
+        // case GraphicAPI::Vulkan:
+        // case GraphicAPI::DirectX:
         default:
             CORE_ASSERT(false, u8"Renderer: unknown graphic api!");
             std::unreachable();

@@ -20,7 +20,7 @@ namespace rke
     // ---
 
         if(next_render_target_id_) {
-            ImGui::Image(std::bit_cast<void*>(static_cast<uint64>(next_render_target_id_)),
+            ImGui::Image(ImTextureRef(static_cast<ImTextureID>(next_render_target_id_)),
                 viewport_size_, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
         } else {
             ImVec2 cursor_pos{ ImGui::GetCursorScreenPos() };

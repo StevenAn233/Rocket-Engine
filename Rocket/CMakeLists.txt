@@ -1,7 +1,7 @@
 add_library(Rocket SHARED CMakeLists.txt)
 
 set(IMGUI_DIR vendor/imgui)
-set(IMGUIZMO_DIR vendor/imguizmo)
+set(IMGUIZMO_DIR vendor/imguizmo/src)
 
 set(IMGUI_SOURCES
   ${IMGUI_DIR}/imgui.cpp
@@ -13,9 +13,13 @@ set(IMGUI_SOURCES
   ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp # temp
 )
 
+set(IMGUIZMO_SOURCES
+  ${IMGUIZMO_DIR}/ImGuizmo.cpp
+)
+
 set_source_files_properties (
   ${IMGUI_SOURCES}
-  "${IMGUIZMO_DIR}/ImGuizmo.cpp"
+  ${IMGUIZMO_SOURCES}
   PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 )
 
@@ -88,18 +92,17 @@ target_sources(Rocket
     FILE_SET backends_modules
     TYPE CXX_MODULES
     BASE_DIRS src/Backends
-      FILES ${ROCKET_BACKENDS_MODULES}
+    FILES ${ROCKET_BACKENDS_MODULES}
   PRIVATE
     ${IMGUI_SOURCES}
-    "${IMGUIZMO_DIR}/ImGuizmo.cpp"
-
+    ${IMGUIZMO_SOURCES}
     ${ROCKET_SOURCES}
     ${ROCKET_BACKENDS_SOURCES}
 )
 
-target_compile_definitions(Rocket 
-  PRIVATE 
-    RKE_BUILD_DLL 
+target_compile_definitions(Rocket
+  PRIVATE
+    RKE_BUILD_DLL
     "IMGUI_IMPL_API="
     RKE_DEPENDENCY_GLFW
     IMGUI_DEFINE_MATH_OPERATORS
@@ -146,14 +149,14 @@ target_precompile_headers(Rocket PRIVATE "include/rke_pch.h")
 find_path(GLM_INCLUDE_DIR NAMES glm/glm.hpp)
 if(GLM_INCLUDE_DIR)
   message(STATUS "Found GLM headers at: ${GLM_INCLUDE_DIR}")
-  install(DIRECTORY "${GLM_INCLUDE_DIR}/glm" 
+  install(DIRECTORY "${GLM_INCLUDE_DIR}/glm"
           DESTINATION "include")
 endif()
 
 find_path(ENTT_INCLUDE_DIR NAMES entt/entt.hpp)
 if(ENTT_INCLUDE_DIR)
   message(STATUS "Found EnTT headers at: ${ENTT_INCLUDE_DIR}")
-  install(DIRECTORY "${ENTT_INCLUDE_DIR}/entt" 
+  install(DIRECTORY "${ENTT_INCLUDE_DIR}/entt"
           DESTINATION "include")
 endif()
 
@@ -161,7 +164,7 @@ install(TARGETS Rocket
   EXPORT RocketTargets
     LIBRARY DESTINATION "lib/${ROCKET_OUTPUT_NAME}"
     ARCHIVE DESTINATION "lib/${ROCKET_OUTPUT_NAME}"
-    
+
     FILE_SET rocket_modules   DESTINATION "modules"
     FILE_SET rocket_headers   DESTINATION "include/Rocket"
     FILE_SET imgui_headers    DESTINATION "include/imgui"
@@ -173,7 +176,7 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}"
   FILES
     ${ROCKET_HEADERS}
     ${ROCKET_MODULES}
-    ${ROCKET_SOURCES} 
+    ${ROCKET_SOURCES}
     ${ROCKET_BACKENDS_SOURCES}
     ${ROCKET_BACKENDS_MODULES}
     if(WIN32)
@@ -191,5 +194,5 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}"
     "${IMGUIZMO_DIR}/ImGuizmo.h"
 
     ${IMGUI_SOURCES}
-    ${IMGUIZMO_DIR}/ImGuizmo.cpp
+    ${IMGUIZMO_SOURCES}
 )

@@ -10,7 +10,7 @@ export namespace rke
     public:
         friend class Toolbar;
 
-        IconButton(String name, String id, Ref<Texture2D> icon,
+        IconButton(String name, String str_id, Ref<Texture2D> icon,
                    std::function<void(IconButton*)> on_click,
                    std::function<bool()> is_enabled, bool visible);
 
@@ -19,7 +19,7 @@ export namespace rke
         void render(float size); // only square supported now
     private:
         String name_{};
-        String id_{};
+        String str_id_{};
 
         Ref<Texture2D> icon_{};
 

@@ -16,22 +16,14 @@ import Window;
 
 namespace {
     using namespace rke;
-
     static inline ImGuiIO& io() { return ImGui::GetIO(); }
-
-    static void render_window_callback(ImGuiViewport* viewport, void*)
-    {
-        if(!(viewport->Flags & ImGuiViewportFlags_NoRendererClear))
-        {
-            static constexpr ImVec4 clear_color(0.0f, 0.0f, 0.0f, 1.0f);
-            glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        }
-
-        ImGui_ImplOpenGL3_RenderDrawData(viewport->DrawData);
-    }
-
     static String s_imgui_ini_path{};
+
+    static void ImGui_ImplOpenGL3_DisableBindSampler(const ImDrawList*, const ImDrawCmd*)
+    {
+        ImGui_ImplOpenGL3_RenderState* render_state{ ImGui_ImplOpenGL3_GetRenderState() };
+        render_state->UseBindSampler = false;
+    };
 }
 
 namespace rke
@@ -100,10 +92,7 @@ namespace rke
 
     // Setup platform/renderer backends
         ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
-        ImGui_ImplOpenGL3_Init("#version 460");
-
-        ImGuiPlatformIO& platform_io{ ImGui::GetPlatformIO() };
-        platform_io.Renderer_RenderWindow = render_window_callback;
+        ImGui_ImplOpenGL3_Init("#version 430 core");
     }
 
     void ImGuiLayer::on_detach()
@@ -145,6 +134,8 @@ namespace rke
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // Issue: glBindSample(...) called here ^^^, which doesn't support mipmap;
+        // Causing RocketLauncher::Toolbar icons rendered terribly.
 
         if(io().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {

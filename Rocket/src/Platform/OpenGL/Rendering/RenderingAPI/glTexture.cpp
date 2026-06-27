@@ -81,8 +81,8 @@ namespace rke
         auto gl_format{ format_to_gl_enum(format) };
         internal_format_ = gl_format.internal_format;
         data_format_ = gl_format.data_format;
-        pixel_type_	 = gl_format.pixel_type;
-        channels_    = gl_format.channels;
+        pixel_type_	= gl_format.pixel_type;
+        channels_ = gl_format.channels;
 
         glCreateTextures(GL_TEXTURE_2D, 1, &renderer_id_);
         glTextureStorage2D(renderer_id_, 1, internal_format_, width_, height_);
@@ -146,20 +146,18 @@ namespace rke
             break;
         case 1:
             internal_format_ = GL_R8;
-            data_format_     = GL_RED;
+            data_format_ = GL_RED;
             break;
         default:
-            CORE_ASSERT(false, u8"glTexture: Format no supported!");
+            CORE_ASSERT(false, u8"glTexture: Format not supported!");
             break;
         }
         // GL_RGBA: 4 bytes(4 * sizeof(unsigned char))
         // GL_RGB : 3 bytes(3 * sizeof(unsigned char))...
 
         GLsizei levels{ 1 };
-        if(filt == FiltFormat::Linear) {
-            levels = static_cast<GLsizei>
-                (std::floor(std::log2(std::max(width_, height_)))) + 1;
-        }
+        if(filt == FiltFormat::Linear)
+            levels += static_cast<GLsizei>(std::floor(std::log2(std::max(width_, height_))));
 
         glCreateTextures(GL_TEXTURE_2D, 1, &renderer_id_);
         glTextureStorage2D(renderer_id_, levels, internal_format_, width_, height_);
@@ -167,6 +165,10 @@ namespace rke
         if(filt == FiltFormat::Linear) {
             glTextureParameteri(renderer_id_, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTextureParameteri(renderer_id_, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            GLfloat max_aniso{};
+            glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &max_aniso);
+            glTextureParameterf(renderer_id_, GL_TEXTURE_MAX_ANISOTROPY, max_aniso);
         } else {
             glTextureParameteri(renderer_id_, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTextureParameteri(renderer_id_, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -175,10 +177,9 @@ namespace rke
         glTextureParameteri(renderer_id_, GL_TEXTURE_WRAP_S, wrap_format_to_gl_enum(wrap));
         glTextureParameteri(renderer_id_, GL_TEXTURE_WRAP_T, wrap_format_to_gl_enum(wrap));
 
-        glTextureSubImage2D (
-            renderer_id_, 0/*level*/, 0, 0, width_, height_,
-            data_format_, GL_UNSIGNED_BYTE, data
-        );
+        glTextureSubImage2D(renderer_id_,
+            0, 0, 0, width_, height_,
+            data_format_, GL_UNSIGNED_BYTE, data);
         if(levels > 1) glGenerateTextureMipmap(renderer_id_);
 
         stbi_image_free(data);
@@ -189,21 +190,22 @@ namespace rke
     {
         auto gl_format{ format_to_gl_enum(format) };
         internal_format_ = gl_format.internal_format;
-        data_format_	 = gl_format.data_format;
-        pixel_type_		 = gl_format.pixel_type;
-        channels_		 = gl_format.channels;
+        data_format_ = gl_format.data_format;
+        pixel_type_	= gl_format.pixel_type;
+        channels_ = gl_format.channels;
     }
 
-    glTexture2D::~glTexture2D() {
-        if(owns_texture_) glDeleteTextures(1, &renderer_id_);
+    glTexture2D::~glTexture2D()
+    {
+        if(owns_texture_)
+            glDeleteTextures(1, &renderer_id_);
     }
 
     void glTexture2D::set_data(void* data, uint32 size)
     {
-        glTextureSubImage2D (
-            renderer_id_, 0, 0, 0, width_, height_,
-            data_format_, pixel_type_, data
-        );
+        glTextureSubImage2D(renderer_id_,
+            0, 0, 0, width_, height_,
+            data_format_, pixel_type_, data);
     }
 
     void glTexture2D::bind(BindingPoint point) const

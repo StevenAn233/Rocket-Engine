@@ -3,13 +3,11 @@ module Toolbar;
 
 namespace rke
 {
-    IconButton::IconButton(String name, String id, Ref<Texture2D> icon,
+    IconButton::IconButton(String name, String str_id, Ref<Texture2D> icon,
                            std::function<void(IconButton*)> on_click,
                            std::function<bool()> is_enabled, bool visible)
-        : name_(std::move(name))
-        , id_(std::move(id)), icon_(icon)
-        , on_click_(std::move(on_click))
-        , is_enabled_(std::move(is_enabled))
+        : name_(std::move(name)), str_id_(std::move(str_id)), icon_(std::move(icon))
+        , on_click_(std::move(on_click)), is_enabled_(std::move(is_enabled))
         , visible_(visible) {}
 
     void IconButton::render(float size)
@@ -20,8 +18,8 @@ namespace rke
         if(visible_ || !now_disabled)
         {
             if(now_disabled) ImGui::BeginDisabled();
-            if(ImGui::ImageButton(id_.raw(),
-                static_cast<ImTextureID>(icon_->get_renderer_id()),
+            if(ImGui::ImageButton(str_id_.raw(),
+                ImTextureRef(static_cast<ImTextureID>(icon_->get_renderer_id())),
                 { size, size }, { 0.0f, 1.0f }, { 1.0f, 0.0f },
                 { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }
             ))	{ if(on_click_) on_click_(this); }
@@ -34,7 +32,7 @@ namespace rke
 
     void Toolbar::on_imgui_render()
     {
-        static constexpr ImGuiWindowFlags TOOLBAR_FLAGS
+        constexpr ImGuiWindowFlags TOOLBAR_FLAGS
         {   ImGuiWindowFlags_NoDecoration
           | ImGuiWindowFlags_NoScrollbar
           | ImGuiWindowFlags_NoScrollWithMouse
@@ -45,11 +43,9 @@ namespace rke
         ImVec4 active_col { colors[ImGuiCol_ButtonActive ] };
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.000f, 0.000f, 0.000f, 0.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-            ImVec4(hovered_col.x, hovered_col.y, hovered_col.z, 0.5f)
-        );
+            ImVec4(hovered_col.x, hovered_col.y, hovered_col.z, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,
-            ImVec4(active_col.x, active_col.y, active_col.z, 0.5f)
-        );
+            ImVec4(active_col.x, active_col.y, active_col.z, 0.5f));
 
         ImVec2 def_window_padding{ ImGui::GetStyle().WindowPadding };
         ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0.0f, 0.0f));
@@ -87,7 +83,7 @@ namespace rke
         Size count{ icon_buttons_.size() + 1 };
         icon_buttons_.emplace_back(std::move(name),
             String::format(u8"##{}@icon_button@{}", get_name(), count),
-            icon, std::move(on_click),
+            std::move(icon), std::move(on_click),
             is_enabled ? std::move(is_enabled) : []() { return true; },
             visible);
     }
