@@ -46,12 +46,10 @@ namespace rke {
             DeltaTime::update();
             for(auto& [_, window] : (*windows_))
             {
-                if(imgui_layer_) imgui_layer_->begin_render();
                 Renderer2D::reset_stats();
                 window->on_update(DeltaTime::get());
                 window->on_render();
                 window->on_imgui_render();
-                if(imgui_layer_) imgui_layer_->end_render();
             }
             windows_->refresh();
         }

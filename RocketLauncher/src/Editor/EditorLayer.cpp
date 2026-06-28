@@ -9,6 +9,8 @@ namespace rke
 {
     void EditorLayer::on_attach()
     {
+        imgui::init(get_owner());
+
         Scene::set_on_entity_selected([this](Entity entity)
             { editor_setting_panel_.get_selected()->set_target(entity); });
 
@@ -133,17 +135,15 @@ namespace rke
     // Viewports
         main_viewport_.set_in_viewport_callback([this](Viewport* self)
         {
-        #ifndef RKE_SHIPPING
             app().get_imgui_layer()->set_main_viewport_hovered(self->is_hovered());
             app().get_imgui_layer()->set_main_viewport_focused(self->is_focused());
-        #endif
+        
             if(current_scene_ && self->is_focused() && editing())
             {
                 Gizmo::on_render (
                     current_scene_->get_selected_entity(),
                     editor_setting_panel_.get_gizmo_mode(),
-                    editor_cam_, mouse_blocked()
-                );
+                    editor_cam_, mouse_blocked());
             }
 
             if((!current_scene_ || editing()) && ImGui::BeginDragDropTarget())
@@ -210,6 +210,8 @@ namespace rke
         if(Project::get_active_project())
             Project::get_active_project()->clear_active_scene();
         Project::clear_active();
+
+        imgui::shutdown();
     }
 
     void EditorLayer::on_update(float dt)
@@ -324,16 +326,18 @@ namespace rke
     {
         RKE_PROFILE_FUNCTION();
 
-        dockspace_.on_imgui_render();
+        imgui::begin_render();
 
+        dockspace_.on_imgui_render();
         panel_registry_.on_imgui_render();
-        
         if(to_create_new_proj_)
         {
             project_creating_modal_.popup();
             to_create_new_proj_ = false;
         }
         project_creating_modal_.on_render(get_owner());
+
+        imgui::end_render();
     }
 
     void EditorLayer::on_runtime_start()

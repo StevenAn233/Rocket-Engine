@@ -1,12 +1,9 @@
 ﻿module;
+module ImGuiStyle;
 
-#include <imgui.h>
-
-export module Style;
-
-export namespace rke::style
+namespace rke::imgui::style
 {
-    inline void imgui_darktheme()
+    void darktheme()
     {
         ImGui::StyleColorsDark();
 

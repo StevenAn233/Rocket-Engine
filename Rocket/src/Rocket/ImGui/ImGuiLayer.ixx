@@ -40,3 +40,12 @@ export namespace rke
         bool valid_{ false };
     };
 }
+
+export namespace rke::imgui
+{
+    RKE_API void init(Window* window);
+    RKE_API void shutdown();
+
+    RKE_API void begin_render();
+    RKE_API void end_render();
+}

@@ -351,8 +351,8 @@ namespace rke
     void glfwWindow::on_render()
     {
         if(minimized()) return;
-        for(const auto& layer : layer_stack_)
-            layer->on_render();
+        for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
+            it->get()->on_render();
     }
 
     void glfwWindow::on_imgui_render()
