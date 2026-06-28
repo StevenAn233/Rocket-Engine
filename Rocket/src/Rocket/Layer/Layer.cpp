@@ -17,8 +17,7 @@ namespace rke
 
     void Layer::on_event(Event& e)
     {
-        EventDispatcher dispatcher(e);
-
+        EventDispatcher dispatcher{ e };
         dispatcher.dispatch<KeyPressedEvent>
             ([this](KeyPressedEvent& e) { return on_key_pressed(e); });
         dispatcher.dispatch<MouseButtonPressedEvent>

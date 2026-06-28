@@ -27,13 +27,13 @@ namespace rke {
     void Application::on_event(Event& e)
     {
         // check window resized or closed FIRST
-        EventDispatcher dispatcher(e);
+        EventDispatcher dispatcher{ e };
         dispatcher.dispatch<WindowClosedEvent>
             ([this](WindowClosedEvent& e) { return on_window_closed(e); });
 
         if(e.handled()) return; // maybe useless...
 
-        for(auto& [_, window] : *windows_)
+        for(auto& [_, window] : (*windows_))
             window->on_event(e);
     }
 
@@ -44,7 +44,7 @@ namespace rke {
             RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");
 
             DeltaTime::update();
-            for(auto& [_, window] : *windows_)
+            for(auto& [_, window] : (*windows_))
             {
                 if(imgui_layer_) imgui_layer_->begin_render();
                 Renderer2D::reset_stats();

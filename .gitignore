@@ -9,9 +9,6 @@
 
 !/assets/
 !/assets/**
-!/editor/
-!/editor/config/
-!/editor/config/**
 
 !/Rocket/
 !/Rocket/**

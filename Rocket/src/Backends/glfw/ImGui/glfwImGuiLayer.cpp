@@ -13,17 +13,12 @@ import String;
 import FileUtils;
 import Style;
 import Window;
+import ConfigProxy;
 
 namespace {
     using namespace rke;
     static inline ImGuiIO& io() { return ImGui::GetIO(); }
     static String s_imgui_ini_path{};
-
-    static void ImGui_ImplOpenGL3_DisableBindSampler(const ImDrawList*, const ImDrawCmd*)
-    {
-        ImGui_ImplOpenGL3_RenderState* render_state{ ImGui_ImplOpenGL3_GetRenderState() };
-        render_state->UseBindSampler = false;
-    };
 }
 
 namespace rke
@@ -73,16 +68,26 @@ namespace rke
     // Setup fonts
         io().Fonts->Clear();
 
-        float font_size_base{ style_config_.font_size };
-        float high_res_font_size{ font_size_base * 2.0f };
+        Path config_path{ file::editor_dir() / u8"config" / u8"style.conf" };
+        auto reader{ ConfigReader::create(config_path) };
+        auto font_data{ reader ? reader->get_child(u8"Font") : nullptr };
+        Path font_path{};
+        float font_size_base{};
+        if(font_data) {
+            font_path = file::unify_path(font_data->get_at(u8"Path", String()));
+            font_size_base = font_data->get_at(u8"Size", 16.0f);
+        }
 
-        Path font_path{ file::assets_dir() / style_config_.font_path };
-        CORE_ASSERT(font_path.exists(),
-            u8"glfwImGuiLayer: Font path '{}' not found!", font_path);
-
-        ImFont* font{ io().Fonts->AddFontFromFileTTF
-            (font_path.string().raw(), high_res_font_size) };
-        CORE_ASSERT(font, u8"glfwImGuiLayer: Fail to load font!");
+        
+        if(font_path.exists()) {
+            float high_res_font_size{ font_size_base * 2.0f };
+            ImFont* font{ io().Fonts->AddFontFromFileTTF
+                (font_path.string().raw(), high_res_font_size) };
+            CORE_ASSERT(font, u8"glfwImGuiLayer: Fail to load font!");
+        } else {
+            CORE_WARN(u8"glfwImGuiLayer: Font path '{}' not found!"
+                u8" Using default one.", font_path);
+        }
 
         ImGui::GetStyle().FontSizeBase = font_size_base;
 
@@ -91,7 +96,8 @@ namespace rke
         io().ConfigDpiScaleViewports = true;
 
     // Setup platform/renderer backends
-        ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
+        ImGui_ImplGlfw_InitForOpenGL(std::bit_cast<GLFWwindow*>
+            (reinterpret_cast<Window*>(owner_)->get_native_window().get()), true);
         ImGui_ImplOpenGL3_Init("#version 430 core");
     }
 
@@ -139,10 +145,11 @@ namespace rke
 
         if(io().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-            GLFWwindow* backup_current_context{ glfwGetCurrentContext() };
+            GLFWwindow* cached{ std::bit_cast<GLFWwindow*>
+                (reinterpret_cast<Window*>(owner_)->get_native_window().get()) };
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current_context);
+            glfwMakeContextCurrent(cached);
         }
     }
 }

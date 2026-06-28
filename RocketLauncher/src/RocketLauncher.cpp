@@ -18,17 +18,7 @@ namespace rke
             Window* main_window{ create_window(std::move(props)) };
 
         #ifndef RKE_SHIPPING
-            ImGuiLayer::StyleConfig config{};
-            Path config_path{ file::editor_dir() / u8"config" / u8"style.conf" };
-
-            auto cr{ ConfigReader::create(config_path) };
-            auto font_data{ cr ? cr->get_child(u8"Font") : nullptr };
-            if(font_data) {
-                config.font_path = file::unify_path(font_data->get_at(u8"Path", String()));
-                config.font_size = font_data->get_at(u8"Size", 1.0f);
-            }
-
-            auto imgui_layer{ create_scope<ImGuiLayer>(u8"ImGuiLayer", main_window, config) };
+            auto imgui_layer{ create_scope<ImGuiLayer>(u8"ImGuiLayer", main_window) };
             imgui_layer_ = imgui_layer.get();
             main_window->push_overlay(std::move(imgui_layer));
 

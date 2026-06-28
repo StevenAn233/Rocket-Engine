@@ -18,15 +18,8 @@ export namespace rke
     class RKE_API ImGuiLayer : public Layer
     {
     public:
-        struct StyleConfig
-        {
-            Path  font_path{};
-            float font_size{};
-        };
-
-        ImGuiLayer(String name, Window* owner, StyleConfig config)
-            : Layer(std::move(name), owner)
-            , style_config_(std::move(config)) {}
+        ImGuiLayer(String name, Window* owner)
+            : Layer(std::move(name), owner) {}
 
         void on_event(Event& e) override;
         void on_attach() override;
@@ -42,8 +35,6 @@ export namespace rke
 
         inline bool valid() const { return valid_; }
     private:
-        StyleConfig style_config_{};
-
         bool main_viewport_hovered_{ false };
         bool main_viewport_focused_{ false };
         bool valid_{ false };
