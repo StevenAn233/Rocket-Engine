@@ -22,7 +22,7 @@ export namespace rke
 
         SceneSerializer(Ref<Scene> scene);
         SceneSerializer(const SceneSerializer&) = delete;
-        SceneSerializer(SceneSerializer&& ____) = delete;
+        SceneSerializer(SceneSerializer&&) = delete;
 
         bool serialize  (const Path& filepath);
         bool deserialize(const Path& filepath);

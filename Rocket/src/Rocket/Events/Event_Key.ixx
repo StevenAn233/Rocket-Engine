@@ -23,8 +23,8 @@ export namespace rke
                 static_cast<char>(code_point_));
         }
 
-        EVENT_CLASS_TYPE(CharTyped)
-        EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput)
+        EVENT_CLASS_TYPE(CharTyped);
+        EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput);
     private:
         uint8 code_point_;
     };
@@ -33,8 +33,8 @@ export namespace rke
     {
     public:
         Key get_key() const { return key_; }
-
-        EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput)
+        
+        EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput);
     protected:
         KeyEvent(StringView name, Key key) : Event(name), key_(key) {}
     protected:
@@ -54,7 +54,7 @@ export namespace rke
                 get_name(), key_to_string(key_), is_held_);
         }
 
-        EVENT_CLASS_TYPE(KeyPressed)
+        EVENT_CLASS_TYPE(KeyPressed);
     private:
         bool is_held_;
     };
@@ -70,6 +70,6 @@ export namespace rke
                 get_name(), key_to_string(key_));
         }
 
-        EVENT_CLASS_TYPE(KeyReleased)
+        EVENT_CLASS_TYPE(KeyReleased);
     };
 }

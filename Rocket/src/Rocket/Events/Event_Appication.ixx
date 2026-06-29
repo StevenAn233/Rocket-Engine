@@ -14,7 +14,7 @@ export namespace rke
     class RKE_API WindowEvent : public Event
     {
     public:
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
+        EVENT_CLASS_CATEGORY(EventCategoryApplication);
     protected:
         WindowEvent(StringView name) : Event(name) {}
     };
@@ -34,7 +34,7 @@ export namespace rke
                 get_name(), width_, height_);
         }
 
-        EVENT_CLASS_TYPE(WindowResized)
+        EVENT_CLASS_TYPE(WindowResized);
     private:
         uint32 width_, height_;
     };
@@ -48,7 +48,7 @@ export namespace rke
 
         String to_string() const override { return get_name(); }
 
-        EVENT_CLASS_TYPE(WindowClosed)
+        EVENT_CLASS_TYPE(WindowClosed);
     };
 
     class RKE_API AppTickedEvent : public Event
@@ -56,8 +56,8 @@ export namespace rke
     public:
         AppTickedEvent(StringView name) : Event(name) {}
 
-        EVENT_CLASS_TYPE(AppTicked)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
+        EVENT_CLASS_TYPE(AppTicked);
+        EVENT_CLASS_CATEGORY(EventCategoryApplication);
     };
 
     class RKE_API AppUpdatedEvent : public Event
@@ -65,8 +65,8 @@ export namespace rke
     public:
         AppUpdatedEvent(StringView name) : Event(name) {}
 
-        EVENT_CLASS_TYPE(AppUpdated)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
+        EVENT_CLASS_TYPE(AppUpdated);
+        EVENT_CLASS_CATEGORY(EventCategoryApplication);
     };
 
     class RKE_API AppRenderedEvent : public Event
@@ -74,16 +74,7 @@ export namespace rke
     public:
         AppRenderedEvent(StringView name) : Event(name) {}
 
-        EVENT_CLASS_TYPE(AppRendered)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
-    };
-
-    class RKE_API NewSceneEvent : public Event
-    {
-    public:
-        NewSceneEvent(StringView name) : Event(name) {}
-
-        EVENT_CLASS_TYPE(NewScene)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
+        EVENT_CLASS_TYPE(AppRendered);
+        EVENT_CLASS_CATEGORY(EventCategoryApplication);
     };
 }

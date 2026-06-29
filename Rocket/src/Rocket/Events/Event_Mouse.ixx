@@ -25,8 +25,8 @@ export namespace rke
                 get_name(), x_coord_, y_coord_);
         }
 
-        EVENT_CLASS_TYPE(MouseMoved)
-        EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
+        EVENT_CLASS_TYPE(MouseMoved);
+        EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput);
     private:
         float x_coord_, y_coord_;
     };
@@ -46,8 +46,8 @@ export namespace rke
                 get_name(), x_offset_, y_offset_);
         }
 
-        EVENT_CLASS_TYPE(MouseScrolled)
-        EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
+        EVENT_CLASS_TYPE(MouseScrolled);
+        EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput);
     private:
         float x_offset_, y_offset_;
     };
@@ -59,7 +59,7 @@ export namespace rke
 
         EVENT_CLASS_CATEGORY(EventCategoryInput |
                              EventCategoryMouse |
-                             EventCategoryMouseButton)
+                             EventCategoryMouseButton);
     protected:
         MouseButtonEvent(StringView name, Mouse button)
             : Event(name), button_(button) {}
@@ -79,7 +79,7 @@ export namespace rke
                 mouse_button_to_string(button_));
         }
 
-        EVENT_CLASS_TYPE(MouseButtonPressed)
+        EVENT_CLASS_TYPE(MouseButtonPressed);
     };
 
     class RKE_API MouseButtonReleasedEvent : public MouseButtonEvent
@@ -94,6 +94,6 @@ export namespace rke
                 mouse_button_to_string(button_));
         }
 
-        EVENT_CLASS_TYPE(MouseButtonReleased)
+        EVENT_CLASS_TYPE(MouseButtonReleased);
     };
 }

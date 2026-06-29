@@ -6,67 +6,53 @@ export module Event:Base;
 
 import Types;
 import String;
+import MathUtils;
 
 export namespace rke
 {
-    enum class EventType
-    {
-        TypeNull = 0,
-
-        // Application Event
-        WindowClosed, WindowResized,
-        WindowFocusedLostFocusMoved,
-        AppTicked, AppUpdated, AppRendered,
-        NewScene,
-
-        // Key Event
-        KeyPressed, KeyReleased, CharTyped,
-
-        // Mouse Event
-        MouseButtonPressed, MouseButtonReleased,
-        MouseMoved, MouseScrolled
-    };
-
-    consteval uint32 bit(int x) { return (1U << x); }
-
-    enum EventCategory
+    enum EventCategory : uint32
     {							/* flags */
         EventCategoryNull		 = 0,
-        EventCategoryApplication = bit(0),
-        EventCategoryInput		 = bit(1),
-        EventCategoryKeyboard	 = bit(2),
-        EventCategoryMouse		 = bit(3),
-        EventCategoryMouseButton = bit(4)
+        EventCategoryApplication = math::bit(0),
+        EventCategoryInput		 = math::bit(1),
+        EventCategoryKeyboard	 = math::bit(2),
+        EventCategoryMouse		 = math::bit(3),
+        EventCategoryMouseButton = math::bit(4),
+        EventCategoryScene       = math::bit(5),
+        EventCategoryClient      = math::bit(6)
     };
 
-    class RKE_API Event /* Abstract(Base) */
+    class RKE_API Event
     {
     public:
         friend class EventDispatcher;
         friend class ImGuiLayer;
 
+        static consteval uint64 gen_type_id(const char8* c_str)
+        {
+            uint64 hash{ 0xcbf29ce484222325ull };
+            for(Size i{}; c_str[i]; i++) {
+                hash ^= static_cast<uint64_t>(c_str[i]);
+                hash *= 0x100000001b3ull;
+            }
+            return hash;
+        }
+
         virtual ~Event() = default;
 
         virtual StringView get_name() const = 0;
-        virtual int	get_category_flags() const = 0;
-        virtual EventType get_event_type() const = 0;
-
+        virtual uint32 get_category_flags() const = 0;
+        virtual uint64 get_type_id() const = 0;
         virtual String to_string() const { return get_name(); }
-        // when dynamically binding(reference or pointer of base class),
-        // virtual function won't be inline(though it is called to be inline)
 
-        StringView get_window_name() const { return window_name_; }
-        bool is_in_category(EventCategory category) const
-        {
-            return get_category_flags() & category;
-            // bit-with: see if categorys are the same
-            // (if event is in the category)
-        }
-        bool handled() const { return handled_; } // For Application::on_event()
+        inline bool belongs_to(EventCategory category) const
+            { return !!(get_category_flags() & category); }
+        inline StringView get_window_name() const { return window_name_; }
+        inline bool handled() const { return handled_; }
     protected:
         Event(StringView window_name) : window_name_(window_name) {}
     protected:
-        bool handled_{ false }; // For Dispatcher Using
+        bool handled_{ false }; // For EventDispatcher
         StringView window_name_;
     };
 }

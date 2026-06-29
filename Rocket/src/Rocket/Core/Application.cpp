@@ -17,14 +17,14 @@ namespace rke {
     Window* Application::create_window(Scope<Window::Props> props)
     {
         Window* window{ windows_->load(std::move(props)) };
-        window->set_event_callback([this](Event& e) { on_event(e); });
+        window->set_event_callback([this](Event& e) { send_event(e); });
         
         window->make_context_current();
         Renderer2D::register_context(window->get_native_window().val());
         return window;
     }
 
-    void Application::on_event(Event& e)
+    void Application::send_event(Event& e)
     {
         // check window resized or closed FIRST
         EventDispatcher dispatcher{ e };

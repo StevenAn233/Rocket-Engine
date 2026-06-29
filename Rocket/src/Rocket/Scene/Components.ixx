@@ -66,7 +66,24 @@ export namespace rke
     };
 // ---
 
-// Rendering(Confilct! Can only own one of them at most!)
+// Rendering(Can only own one of them at most!)
+    struct RKE_API Sprite // TO REMOVE
+    {
+        AssetUUID uuid;
+        AssetHandle tex_handle{};
+
+        float tiling_factor{ 1.0f };
+        glm::vec2 cell_pixels{ 1.0f, 1.0f };
+        glm::vec2 cell_coords{ 0.0f, 0.0f }; // left-bottom (0, 0)
+        glm::vec2 cell_counts{ 1.0f, 1.0f };
+
+        Sprite() : uuid(0) {};
+        Sprite(AssetUUID id) : uuid(id) {}
+
+        bool has_asset() const { return !uuid.empty(); }
+        bool is_loaded() const { return tex_handle != 0; }
+    };
+
     struct RKE_API SpriteComponent
     {
         enum class BlendingMode : uint32
@@ -76,31 +93,14 @@ export namespace rke
             Transparent
         };
 
-        struct RKE_API TextureAsset
-        {
-            AssetUUID uuid{ 0 };
-            AssetHandle handle{ 0 };
-
-            float tiling_factor{ 1.0f };
-            glm::vec2 cell_pixels{ 1.0f, 1.0f };
-            glm::vec2 cell_coords{ 0.0f, 0.0f }; // left-bottom (0, 0)
-            glm::vec2 cell_counts{ 1.0f, 1.0f };
-
-            TextureAsset() = default;
-            TextureAsset(AssetUUID id) : uuid(id) {}
-
-            bool has_asset() const { return !uuid.empty(); }
-            bool is_loaded() const { return  handle != 0;  }
-        };
-
-        TextureAsset texture{};
+        Sprite sprite{};
 
         glm::vec4 color{ 1.0f };
         BlendingMode blending_mode{ BlendingMode::Opaque };
         int rendering_layer{ 0 };
 
         SpriteComponent() = default;
-        SpriteComponent(AssetUUID uuid) : texture(uuid) {}
+        SpriteComponent(AssetUUID uuid) : sprite(uuid) {}
         SpriteComponent(const SpriteComponent&) = default;
     };
 

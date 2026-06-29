@@ -60,13 +60,13 @@ namespace {
 
             const auto& sc{ entity.get<SpriteComponent>() };
             writer->write(u8"Color"  , ConfigValue(sc.color));
-            writer->write(u8"Texture", ConfigValue(sc.texture.uuid.value()));
-            if(sc.texture.has_asset()) {
+            writer->write(u8"Texture", ConfigValue(sc.sprite.uuid.value()));
+            if(sc.sprite.has_asset()) {
                 writer->begin_map(u8"Settings");
-                writer->write(u8"Tiling Factor", ConfigValue(sc.texture.tiling_factor));
-                writer->write(u8"Cell Pixels"  , ConfigValue(sc.texture.cell_pixels  ));
-                writer->write(u8"Cell Coords"  , ConfigValue(sc.texture.cell_coords  ));
-                writer->write(u8"Cell Counts"  , ConfigValue(sc.texture.cell_counts  ));
+                writer->write(u8"Tiling Factor", ConfigValue(sc.sprite.tiling_factor));
+                writer->write(u8"Cell Pixels"  , ConfigValue(sc.sprite.cell_pixels  ));
+                writer->write(u8"Cell Coords"  , ConfigValue(sc.sprite.cell_coords  ));
+                writer->write(u8"Cell Counts"  , ConfigValue(sc.sprite.cell_counts  ));
                 writer->end_map();
             }
             writer->write(u8"Blending Mode", static_cast<uint32>(sc.blending_mode));
@@ -146,11 +146,11 @@ namespace {
             auto& sc{ entity.emplace<SpriteComponent>
                 (AssetUUID(sc_reader->get_at(u8"Texture", 0ui64)))};
             Scope<ConfigReader> tex_config{ sc_reader->get_child(u8"Settings") };
-            if(sc.texture.has_asset() && tex_config) {
-                sc.texture.tiling_factor = tex_config->get_at(u8"Tiling Factor", 1.0f);
-                sc.texture.cell_pixels   = tex_config->get_at(u8"Cell Pixels", glm::vec2(1.0f));
-                sc.texture.cell_coords   = tex_config->get_at(u8"Cell Coords", glm::vec2(0.0f));
-                sc.texture.cell_counts   = tex_config->get_at(u8"Cell Counts", glm::vec2(1.0f));
+            if(sc.sprite.has_asset() && tex_config) {
+                sc.sprite.tiling_factor = tex_config->get_at(u8"Tiling Factor", 1.0f);
+                sc.sprite.cell_pixels   = tex_config->get_at(u8"Cell Pixels", glm::vec2(1.0f));
+                sc.sprite.cell_coords   = tex_config->get_at(u8"Cell Coords", glm::vec2(0.0f));
+                sc.sprite.cell_counts   = tex_config->get_at(u8"Cell Counts", glm::vec2(1.0f));
             }
             sc.color = sc_reader->get_at(u8"Color", glm::vec4(1.0f));
             sc.blending_mode = static_cast<SpriteComponent::BlendingMode>

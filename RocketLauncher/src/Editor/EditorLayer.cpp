@@ -46,12 +46,18 @@ namespace rke
                     app().remove_window(get_owner_name());
                 ImGui::EndMenu();
             }
-            if(ImGui::BeginMenu("File")) {
+            if(ImGui::BeginMenu("Project")) {
                 bool is_play{ scene_state_ == SceneState::Play };
                 bool no_project{ !Project::get_active_project() };
                 if(ImGui::MenuItem("New Project..." , "Ctrl+N", false, !is_play)) new_project();
                 if(ImGui::MenuItem("Open Project...", "Ctrl+O", false, !is_play)) open_project(get_owner());
                 if(ImGui::MenuItem("Save Project", "Ctrl+S", false, !is_play && !no_project)) save_project();
+                if(ImGui::MenuItem("Reload scripts...", nullptr, false, !is_play))
+                {
+                    auto project{ Project::get_active_project() };
+                    project->scripts_hot_reloading();
+                    update_current_scene(project->get_active_scene());  
+                };
                 ImGui::EndMenu();
             }
             if(ImGui::BeginMenu("Panels")) {
@@ -116,21 +122,6 @@ namespace rke
                 Texture::WrapFormat::Clamp2Edge, false),
             [this](IconButton*) { on_runtime_stop(); },
             [this]() { return current_scene_ && playing(); });
-
-        toolbar_.emplace_icon_button(u8"Reload Scripts",
-            Texture2D::create (
-                assets_dir / u8"icons" / u8"refresh.png",
-                Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false),
-            [this](IconButton*) {
-                auto project{ Project::get_active_project() };
-                project->scripts_hot_reloading();
-                update_current_scene(project->get_active_scene());
-            },
-            [this]() {
-                return Project::get_active_project()
-                    && current_scene_ && !current_scene_->in_runtime();
-            });
 
     // Viewports
         main_viewport_.set_in_viewport_callback([this](Viewport* self)

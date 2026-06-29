@@ -9,7 +9,7 @@ import Event;
 
 export namespace rke
 {
-    class RKE_API EventDispatcher // Accessible to handled_(protected)
+    class RKE_API EventDispatcher
     {
     public:
         EventDispatcher(Event& event) : event_(event) {}
@@ -19,7 +19,7 @@ export namespace rke
               && std::same_as<std::invoke_result_t<Func, E&>, bool>
         bool dispatch(Func&& callback)
         {
-            if(event_.get_event_type() == E::get_static_type())
+            if(event_.get_type_id() == E::type_id())
             {
                 event_.handled_ |= std::invoke
                     (std::forward<Func>(callback), static_cast<E&>(event_));

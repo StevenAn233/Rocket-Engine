@@ -1,16 +1,6 @@
 ﻿module;
 module MathUtils;
 
-namespace {
-    static constexpr std::array<glm::vec2, 4> s_default_uv
-    {
-        glm::vec2(1.0f, 1.0f),
-        glm::vec2(0.0f, 1.0f),
-        glm::vec2(0.0f, 0.0f),
-        glm::vec2(1.0f, 0.0f)
-    };
-}
-
 namespace rke::math
 {
     std::array<glm::vec2, 4> calc_uv(glm::vec2 min, glm::vec2 max)
@@ -21,21 +11,6 @@ namespace rke::math
             glm::vec2(min.x, min.y),
             glm::vec2(max.x, min.y)
         };
-    }
-
-    std::array<glm::vec2, 4> calc_uv(Texture2D* texture,
-        glm::vec2 coords, glm::vec2 cell_size, glm::vec2 cells)
-    {
-        if(!texture) return s_default_uv;
-        glm::vec2 min {
-            (coords.x * cell_size.x) / texture->get_width (),
-            (coords.y * cell_size.y) / texture->get_height()
-        };
-        glm::vec2 max {
-            ((coords.x + cells.x) * cell_size.x) / texture->get_width (),
-            ((coords.y + cells.y) * cell_size.y) / texture->get_height()
-        };
-        return calc_uv(min, max);
     }
 
     ImVec4 srgb_to_linear(ImVec4 color, float gamma)

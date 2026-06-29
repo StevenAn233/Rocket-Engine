@@ -25,9 +25,9 @@ namespace rke
     void ImGuiLayer::on_event(Event& e)
     {
         if(!valid_) return;
-        if(e.is_in_category(EventCategoryMouse))
+        if(e.belongs_to(EventCategoryMouse))
             e.handled_ |= should_block_mouse();
-        if(e.is_in_category(EventCategoryKeyboard))
+        if(e.belongs_to(EventCategoryKeyboard))
             e.handled_ |= should_block_keyboard();
     }
 

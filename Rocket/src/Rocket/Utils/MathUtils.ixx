@@ -7,14 +7,13 @@
 
 export module MathUtils;
 
-import HeapManager;
-import Texture;
+import Types;
 
 export namespace rke::math
 {
+    consteval uint32 bit(int x) { return (1U << x); }
+
     RKE_API std::array<glm::vec2, 4> calc_uv(glm::vec2 min, glm::vec2 max);
-    RKE_API std::array<glm::vec2, 4> calc_uv(Texture2D* texture,
-        glm::vec2 coords, glm::vec2 cell_size, glm::vec2 cells = { 1, 1 });
 
     RKE_API ImVec4    srgb_to_linear(ImVec4    color, float gamma = 2.2f);
     RKE_API glm::vec4 srgb_to_linear(glm::vec4 color, float gamma = 2.2f);

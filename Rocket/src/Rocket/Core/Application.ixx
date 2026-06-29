@@ -27,7 +27,7 @@ export namespace rke
         Application& operator=(Application&&) = delete;
 
         void run();
-        void on_event(Event& e); // for glfw(input) callbacks
+        void send_event(Event& e);
 
         WindowsLib& get_windows_lib() const { return *(windows_.get()); }
         Window* create_window(Scope<Window::Props> props);

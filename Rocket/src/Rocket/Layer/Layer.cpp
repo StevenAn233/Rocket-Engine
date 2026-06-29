@@ -18,16 +18,16 @@ namespace rke
     void Layer::on_event(Event& e)
     {
         EventDispatcher dispatcher{ e };
-        dispatcher.dispatch<KeyPressedEvent>
-            ([this](KeyPressedEvent& e) { return on_key_pressed(e); });
-        dispatcher.dispatch<MouseButtonPressedEvent>
-            ([this](MouseButtonPressedEvent& e) { return on_mouse_button_pressed(e); });
-        dispatcher.dispatch<MouseScrolledEvent>
-            ([this](MouseScrolledEvent& e) { return on_mouse_scrolled(e); });
         dispatcher.dispatch<ViewportResizedEvent>
             ([this](ViewportResizedEvent& e) { return on_viewport_resized(e); });
-        dispatcher.dispatch<NewSceneEvent>
-            ([this](NewSceneEvent& e) { return on_new_scene(e); });
+        if(e.belongs_to(EventCategoryInput)) {
+            dispatcher.dispatch<KeyPressedEvent>
+                ([this](KeyPressedEvent& e) { return on_key_pressed(e); });
+            dispatcher.dispatch<MouseButtonPressedEvent>
+                ([this](MouseButtonPressedEvent& e) { return on_mouse_button_pressed(e); });
+            dispatcher.dispatch<MouseScrolledEvent>
+                ([this](MouseScrolledEvent& e) { return on_mouse_scrolled(e); });
+        }
     }
 
     const String& Layer::get_owner_name()

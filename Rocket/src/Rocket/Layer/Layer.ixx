@@ -48,7 +48,6 @@ export namespace rke
         virtual bool on_mouse_button_pressed(MouseButtonPressedEvent& e) { return should_block_mouse(); }
         virtual bool on_mouse_scrolled(MouseScrolledEvent& e) { return should_block_mouse(); }
         virtual bool on_viewport_resized(ViewportResizedEvent& e) { return false; } // do not block
-        virtual bool on_new_scene(NewSceneEvent& e) { return false; } // do not block
     protected:
         void* owner_{};
         String debug_name_;

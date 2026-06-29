@@ -147,13 +147,25 @@ namespace rke
         {
             const auto& sc{ scene->registry_->
                 get<SpriteComponent>(static_cast<entt::entity>(renderable.entity)) };
-            const auto& ta{ sc.texture }; // texture asset
-            auto* tex{ AssetsManager::get_asset<Texture2D>(ta.handle) };
+            const auto& sprite{ sc.sprite }; // texture asset
+            auto* tex{ AssetsManager::get_asset<Texture2D>(sprite.tex_handle) };
             Renderer2D::draw_quad ({
                 .position{ tc.position }, .rotation{ tc.rotation },
                 .size{ tc.size.x, tc.size.y }, .color { sc.color },
-                .uv_coords{ math::calc_uv(tex, ta.cell_coords, ta.cell_pixels, ta.cell_counts) },
-                .tiling_factor{ ta.tiling_factor }, .texture{ tex },
+                .uv_coords{ tex ? tex->calc_uv
+                (
+                    sprite.cell_coords,
+                    sprite.cell_pixels,
+                    sprite.cell_counts
+                ) :
+                std::array<glm::vec2, 4>
+                {
+                    glm::vec2(1.0f, 1.0f),
+                    glm::vec2(0.0f, 1.0f),
+                    glm::vec2(0.0f, 0.0f),
+                    glm::vec2(1.0f, 0.0f)
+                }},
+                .tiling_factor{ sprite.tiling_factor }, .texture{ tex },
                 .entity_id{ static_cast<int>(renderable.entity) } // EDITOR ONLY
             });
         }
@@ -185,15 +197,16 @@ namespace rke
             if(should_cull(tc.position, glm::vec2(tc.size), planes)) continue;
 
             auto& sc{ view.get<SpriteComponent>(entity) };
-            auto& ta{ sc.texture }; // texture asset
-            if(ta.has_asset() && !ta.is_loaded()) {
-                ta.handle = AssetsManager::load_asset(ta.uuid);
-                if(auto* tex{ AssetsManager::get_asset<Texture2D>(ta.handle) })
-                    ta.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
+            auto& sprite{ sc.sprite }; // texture asset
+            if(sprite.has_asset() && !sprite.is_loaded()) {
+                sprite.tex_handle = AssetsManager::load_asset(sprite.uuid);
+                if(auto* tex{ AssetsManager::get_asset<Texture2D>(sprite.tex_handle) })
+                    sprite.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
                 else {
                     CORE_ERROR(u8"SceneRenderer: UUID '{}' invalid! "
-                        u8"It's been reset to 0!", ta.uuid.value());
-                    ta.uuid = { 0 }; // uuid been reset here!
+                        u8"It's been reset to 0!", sprite.uuid.value());
+                    sprite.uuid = UUID(0); // uuid been reset here!
+                    sprite.tex_handle = 0;
                 }
             }
 

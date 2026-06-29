@@ -1,5 +1,7 @@
 ﻿module;
 
+#include <array>
+#include <glm/glm.hpp>
 #include "rke_macros.h"
 
 export module Texture:Base;
@@ -10,6 +12,7 @@ import String;
 import Path;
 import HeapManager;
 import BindingPoint;
+import MathUtils;
 
 export namespace rke
 {
@@ -23,8 +26,8 @@ export namespace rke
             SRGB8, SRGB8_ALPHA8,
             R32I, DEPTH24_STENCIL8
         };
-        enum class FiltFormat : uint32 { Linear		= 0, Nearest };
-        enum class WrapFormat : uint32 { Clamp2Edge = 0, Repeat  };
+        enum class FiltFormat : uint32 { Linear	= 0, Nearest };
+        enum class WrapFormat : uint32 { Clamp2Edge = 0, Repeat };
 
         Texture(const Texture&) = delete;
         Texture& operator=(const Texture&) = delete;
@@ -59,6 +62,20 @@ export namespace rke
                 case WrapFormat::Clamp2Edge: return u8"clamp_to_edge";
                 default: return u8"clamp_to_edge";
             }
+        }
+
+        inline std::array<glm::vec2, 4> calc_uv(glm::vec2 coords,
+            glm::vec2 cell_size, glm::vec2 cells = { 1, 1 }) const
+        {
+            glm::vec2 min {
+                (coords.x * cell_size.x) / get_width(),
+                (coords.y * cell_size.y) / get_height()
+            };
+            glm::vec2 max {
+                ((coords.x + cells.x) * cell_size.x) / get_width(),
+                ((coords.y + cells.y) * cell_size.y) / get_height()
+            };
+            return math::calc_uv(min, max);
         }
     protected:
         Texture() = default;
