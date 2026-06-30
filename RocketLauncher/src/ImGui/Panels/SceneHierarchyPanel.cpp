@@ -248,7 +248,7 @@ namespace rke
             auto& sc{ ent.get_mut<SpriteComponent>() };
 
         // Texture
-            bool no_texture{ !sc.sprite.has_asset() };
+            bool no_texture{ !sc.sprite.has_texture() };
             constexpr ImGuiTreeNodeFlags tree_flags
             {   ImGuiTreeNodeFlags_SpanFullWidth
               | ImGuiTreeNodeFlags_AllowOverlap 
@@ -265,7 +265,7 @@ namespace rke
 
             float available_width{ ImGui::GetContentRegionAvail().x };
             String display_name{ no_texture ? u8"<No Texture>" :
-                AssetsManager::get_asset_path(sc.sprite.uuid).filename().string() };
+                AssetsManager::get_asset_path(sc.sprite.tex_uuid).filename().string() };
 
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
             if(ImGui::Button(display_name.raw(), ImVec2(available_width, 0.0f)))
@@ -288,9 +288,9 @@ namespace rke
             ImGui::Columns(1);
         // ---
 
-            if(tex_opened && sc.sprite.is_loaded())
+            if(tex_opened && sc.sprite.is_texture_loaded())
             {
-                AssetSettings settings{ AssetsManager::get_asset_settings(sc.sprite.uuid) };
+                AssetSettings settings{ AssetsManager::get_asset_settings(sc.sprite.tex_uuid) };
                 auto* tex_settings{ std::get_if<TextureSettings>(&settings) };
                 CORE_ASSERT(tex_settings, u8"SceneHierarchyPanel: Texture setting format incorrect!");
                 layout::two_columns_table(u8"Filter", [&]()
@@ -303,7 +303,7 @@ namespace rke
                     {
                         tex_settings->filt = static_cast<Texture::FiltFormat>(option);
                         sc.sprite = Sprite(AssetsManager::
-                            get_or_create_sub_uuid(sc.sprite.uuid, *tex_settings));
+                            get_or_create_sub_uuid(sc.sprite.tex_uuid, *tex_settings));
                         context_->mark_modified();
                     }
                 });
@@ -319,7 +319,7 @@ namespace rke
                     {
                         tex_settings->wrap = static_cast<Texture::WrapFormat>(option);
                         sc.sprite = Sprite(AssetsManager::
-                            get_or_create_sub_uuid(sc.sprite.uuid, *tex_settings));
+                            get_or_create_sub_uuid(sc.sprite.tex_uuid, *tex_settings));
                         context_->mark_modified();
                     }
                 });

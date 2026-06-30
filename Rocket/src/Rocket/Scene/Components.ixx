@@ -69,7 +69,7 @@ export namespace rke
 // Rendering(Can only own one of them at most!)
     struct RKE_API Sprite // TO REMOVE
     {
-        AssetUUID uuid;
+        AssetUUID tex_uuid;
         AssetHandle tex_handle{};
 
         float tiling_factor{ 1.0f };
@@ -77,11 +77,11 @@ export namespace rke
         glm::vec2 cell_coords{ 0.0f, 0.0f }; // left-bottom (0, 0)
         glm::vec2 cell_counts{ 1.0f, 1.0f };
 
-        Sprite() : uuid(0) {};
-        Sprite(AssetUUID id) : uuid(id) {}
+        Sprite() : tex_uuid(0) {};
+        Sprite(AssetUUID id) : tex_uuid(id) {}
 
-        bool has_asset() const { return !uuid.empty(); }
-        bool is_loaded() const { return tex_handle != 0; }
+        bool has_texture() const { return !tex_uuid.empty(); }
+        bool is_texture_loaded() const { return tex_handle != 0; }
     };
 
     struct RKE_API SpriteComponent

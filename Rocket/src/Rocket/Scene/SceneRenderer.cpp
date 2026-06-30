@@ -198,14 +198,14 @@ namespace rke
 
             auto& sc{ view.get<SpriteComponent>(entity) };
             auto& sprite{ sc.sprite }; // texture asset
-            if(sprite.has_asset() && !sprite.is_loaded()) {
-                sprite.tex_handle = AssetsManager::load_asset(sprite.uuid);
+            if(sprite.has_texture() && !sprite.is_texture_loaded()) {
+                sprite.tex_handle = AssetsManager::load_asset(sprite.tex_uuid);
                 if(auto* tex{ AssetsManager::get_asset<Texture2D>(sprite.tex_handle) })
                     sprite.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
                 else {
                     CORE_ERROR(u8"SceneRenderer: UUID '{}' invalid! "
-                        u8"It's been reset to 0!", sprite.uuid.value());
-                    sprite.uuid = UUID(0); // uuid been reset here!
+                        u8"It's been reset to 0!", sprite.tex_uuid.value());
+                    sprite.tex_uuid = UUID(0); // uuid been reset here!
                     sprite.tex_handle = 0;
                 }
             }
