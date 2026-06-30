@@ -29,15 +29,13 @@ export namespace rke
         void run();
         void send_event(Event& e);
 
-        WindowsLib& get_windows_lib() const { return *(windows_.get()); }
         Window* create_window(Scope<Window::Props> props);
-        const Window* get_window(const String& name) const { return (*windows_)[name]; }
-        Window* get_window_mut(const String& name) { return (*windows_)[name]; }
-
         void remove_window(const String& window_title);
-        bool single_window() const { return windows_->size() == 1; }
 
-        ImGuiLayer* get_imgui_layer() { return imgui_layer_; }
+        inline WindowsLib& get_windows_lib() const { return *(windows_lib_.get()); }
+        inline const Window* get_window(const String& name) const { return (*windows_lib_)[name]; }
+        inline Window* get_window_mut(const String& name) { return (*windows_lib_)[name]; }
+        inline ImGuiLayer* get_imgui_layer() { return imgui_layer_; }
     protected:
         Application();
         virtual ~Application() {};
@@ -47,7 +45,7 @@ export namespace rke
         bool on_window_closed(WindowClosedEvent& e);
         // maybe should move to WindowsLib
     private:
-        Scope<WindowsLib> windows_{};
+        Scope<WindowsLib> windows_lib_{};
     };
 
     RKE_API Application& app();

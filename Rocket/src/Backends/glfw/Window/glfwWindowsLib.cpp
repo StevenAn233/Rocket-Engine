@@ -31,7 +31,7 @@ namespace rke
 
     glfwWindowsLib::~glfwWindowsLib()
     {
-        windows_.clear();
+        map_.clear();
         if(master_context_) glfwDestroyWindow
             (reinterpret_cast<GLFWwindow*>(master_context_));
         glfwTerminate();
@@ -40,7 +40,7 @@ namespace rke
 
     void glfwWindowsLib::refresh()
     {
-        std::erase_if(windows_, [](auto& pair)
+        std::erase_if(map_, [](auto& pair)
         {
             auto& [_, window]{ pair };
             if(window->should_close()) return true;

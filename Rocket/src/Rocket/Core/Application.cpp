@@ -12,11 +12,32 @@ import PlatformSupport;
 import FileUtils;
 
 namespace rke {
-    Application::Application() { windows_ = WindowsLib::create(); }
+    Application::Application() { windows_lib_ = WindowsLib::create(); }
+
+    void Application::run()
+    {
+        while(!windows_lib_->empty())
+        {
+            RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");
+            DeltaTime::update();
+            windows_lib_->update_all(DeltaTime::get());
+            windows_lib_->render_all();
+            windows_lib_->refresh();
+        }
+    }
+
+    void Application::send_event(Event& e)
+    {
+        EventDispatcher dispatcher{ e };
+        dispatcher.dispatch<WindowClosedEvent>
+            ([this](WindowClosedEvent& e) { return on_window_closed(e); });
+        if(e.handled()) return;
+        windows_lib_->on_event(e);
+    }
 
     Window* Application::create_window(Scope<Window::Props> props)
     {
-        Window* window{ windows_->load(std::move(props)) };
+        Window* window{ windows_lib_->load(std::move(props)) };
         window->set_event_callback([this](Event& e) { send_event(e); });
         
         window->make_context_current();
@@ -24,42 +45,11 @@ namespace rke {
         return window;
     }
 
-    void Application::send_event(Event& e)
-    {
-        // check window resized or closed FIRST
-        EventDispatcher dispatcher{ e };
-        dispatcher.dispatch<WindowClosedEvent>
-            ([this](WindowClosedEvent& e) { return on_window_closed(e); });
-
-        if(e.handled()) return; // maybe useless...
-
-        for(auto& [_, window] : (*windows_))
-            window->on_event(e);
-    }
-
-    void Application::run()
-    {
-        while(!windows_->is_empty())
-        {
-            RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");
-
-            DeltaTime::update();
-            for(auto& [_, window] : (*windows_))
-            {
-                Renderer2D::reset_stats();
-                window->on_update(DeltaTime::get());
-                window->on_render();
-                window->on_imgui_render();
-            }
-            windows_->refresh();
-        }
-    }
-
     void Application::remove_window(const String& window_title)
     {
-        CORE_ASSERT(windows_->exists(window_title),
+        CORE_ASSERT(windows_lib_->exists(window_title),
             u8"Application: You didn't push this window to WindowsLib?");
-        windows_->remove(window_title);
+        windows_lib_->remove(window_title);
     }
 
     bool Application::on_window_closed(rke::WindowClosedEvent& e)

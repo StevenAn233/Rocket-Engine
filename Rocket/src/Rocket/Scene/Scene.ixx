@@ -71,6 +71,8 @@ export namespace rke
         const Scene* owner_scene_{ nullptr }; // doesn't own the scene
     };
 
+    enum class SceneState : uint32 { Edit = 0, Play };
+
     class RKE_API Scene
     {
     public:

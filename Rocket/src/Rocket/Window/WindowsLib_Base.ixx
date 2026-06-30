@@ -9,6 +9,7 @@ import Types;
 import Window;
 import HeapManager;
 import String;
+import Event;
 
 export namespace rke
 {
@@ -24,15 +25,16 @@ export namespace rke
         WindowsLib(WindowsLib&&) = delete;
         WindowsLib& operator=(WindowsLib&&) = delete;
 
-        inline WindowsMap::iterator begin() { return windows_.begin(); }
-        inline WindowsMap::iterator end() { return windows_.end(); }
+        void on_event(Event& e);
+        void update_all(float dt);
+        void render_all();
         
-        inline Size size() const { return windows_.size(); }
-        inline bool is_empty() const { return windows_.empty(); }
+        inline Size size () const { return map_.size (); }
+        inline bool empty() const { return map_.empty(); }
         inline bool exists(const String& name) const
-            { return windows_.find(name) != windows_.end(); }
+            { return map_.find(name) != map_.end(); }
         inline void remove(const String& name)
-            { if(exists(name)) windows_[name]->should_close(true); }
+            { if(exists(name)) map_[name]->should_close(true); }
 
         Window* add(Scope<Window> window);
         Window* operator[](const String& name);
@@ -49,6 +51,6 @@ export namespace rke
         WindowsLib() = default;
         virtual ~WindowsLib() = default;
     protected:
-        WindowsMap windows_{};
+        WindowsMap map_{};
     };
 }

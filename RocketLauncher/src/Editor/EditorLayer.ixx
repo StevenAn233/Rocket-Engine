@@ -16,10 +16,6 @@ import Viewport;
 import Toolbar;
 import DockSpace;
 
-namespace rke {
-    enum class SceneState : uint32 { Edit = 0, Play };
-}
-
 export namespace rke
 {
     class EditorLayer : public Layer
