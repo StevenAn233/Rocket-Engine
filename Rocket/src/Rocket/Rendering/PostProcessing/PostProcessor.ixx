@@ -21,8 +21,8 @@ export namespace rke
     {
     public:
         PostProcessor(glm::vec4 clear_color);
-        PostProcessor(const PostProcessor& ) = delete;
-        PostProcessor(PostProcessor&& ____ ) = delete;
+        PostProcessor(const PostProcessor&) = delete;
+        PostProcessor(PostProcessor&&) = delete;
 
         void add_effect(Scope<PostProcessEffect> effect);
         PostProcessEffect* get_effect(const String& name);

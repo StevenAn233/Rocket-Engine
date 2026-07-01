@@ -9,7 +9,7 @@ export namespace rke
     {
     public:
         ApplicationPanel(String name) : Panel(std::move(name)) {}
-
+        
         void on_imgui_render() override;
     };
 
@@ -49,9 +49,7 @@ export namespace rke
                 // show green "ACTIVE"
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "ACTIVE");
 
-                ImGui::Text("Duration: %.2f s",
-                    Instrumentor::get().get_session_duration_s()
-                );
+                ImGui::Text("Duration: %.2f s", Instrumentor::get().get_session_duration_s());
             } else {
                 if(ImGui::SmallButton("Begin"))
                 {

@@ -30,9 +30,7 @@ export import Layer;
 export import ImGuiLayer;
 export import Panel;
 export import Modal;
-
 export import PanelRegistry;
-export import PanelSwitches;
 
 export import Gravity2D;
 export import PhysicsLayers;

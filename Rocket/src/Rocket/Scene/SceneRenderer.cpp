@@ -74,6 +74,9 @@ namespace rke
         return post_processor_.process(scene_fbo_->get_texture(0));
     }
 
+    void SceneRenderer::add_effect(Scope<PostProcessEffect> effect)
+        { post_processor_.add_effect(std::move(effect)); }
+
     const Texture2D* SceneRenderer::on_render_runtime(const Scene* scene)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
@@ -137,6 +140,12 @@ namespace rke
         return -1;
     }
 
+    void SceneRenderer::clean_up()
+    {
+        scene_fbo_->clear_pbo();
+        scene_fbo_->clear();
+        post_processor_.clean_up();
+    }
 // private
     void SceneRenderer::draw_renderable(const Scene* scene, const Renderable& renderable)
     {

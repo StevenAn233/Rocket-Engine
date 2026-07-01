@@ -168,18 +168,16 @@ namespace rke
         });
 
     // PanelRegistry
-        panel_registry_.set_switches_load_from
-            (file::editor_dir() / u8"settings" / u8"panel-switches.yaml");
-        panel_registry_.register_panel(&application_panel_	  );
-        panel_registry_.register_panel(&window_setting_panel_ );
-        panel_registry_.register_panel(&scene_hierarchy_panel_);
-        panel_registry_.register_panel(&editor_setting_panel_ );
-        panel_registry_.register_panel(&content_browser_panel_);
-        panel_registry_.register_panel(&project_setting_panel_);
-        panel_registry_.register_panel(&main_viewport_, false);
-        panel_registry_.register_panel(&cam_viewport_ , true,
-            [this]() { return scene_state_ == SceneState::Edit; });
-        panel_registry_.register_panel(&toolbar_, false);
+        panel_registry_.push({ .handle = &application_panel_ });
+        panel_registry_.push({ .handle = &window_setting_panel_});
+        panel_registry_.push({ .handle = &editor_setting_panel_ });
+        panel_registry_.push({ .handle = &scene_hierarchy_panel_ });
+        panel_registry_.push({ .handle = &content_browser_panel_ });
+        panel_registry_.push({ .handle = &project_setting_panel_ });
+        panel_registry_.push({ .handle = &main_viewport_, .with_switch = false });
+        panel_registry_.push({ .handle = &cam_viewport_ , .with_switch = true,
+            .cond_callback = [this]() { return scene_state_ == SceneState::Edit; } });
+        panel_registry_.push({ .handle = &toolbar_, .with_switch = false });
 
     // Modal(s)
         project_creating_modal_.set_project_created_callback
@@ -197,6 +195,8 @@ namespace rke
     {
         if(playing()) on_runtime_stop();
         update_current_scene(nullptr);
+
+        panel_registry_.pop(9);
 
         if(Project::get_active_project())
             Project::get_active_project()->clear_active_scene();
@@ -308,9 +308,9 @@ namespace rke
         }
 
         if(main_output_) main_viewport_.
-            set_next_render_target(main_output_->get_renderer_id());
+            set_render_target(main_output_->get_renderer_id());
         if(cam_output_ ) cam_viewport_.
-            set_next_render_target(cam_output_ ->get_renderer_id());
+            set_render_target(cam_output_ ->get_renderer_id());
     }
 
     void EditorLayer::on_imgui_render()
@@ -320,7 +320,7 @@ namespace rke
         imgui::begin_render();
 
         dockspace_.on_imgui_render();
-        panel_registry_.on_imgui_render();
+        panel_registry_.render_all();
         if(to_create_new_proj_)
         {
             project_creating_modal_.popup();

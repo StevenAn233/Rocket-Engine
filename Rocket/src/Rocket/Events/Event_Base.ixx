@@ -19,7 +19,8 @@ export namespace rke
         EventCategoryMouse		 = math::bit(3),
         EventCategoryMouseButton = math::bit(4),
         EventCategoryScene       = math::bit(5),
-        EventCategoryClient      = math::bit(6)
+        EventCategoryEditor      = math::bit(6),
+        EventCategoryClient      = math::bit(7)
     };
 
     class RKE_API Event

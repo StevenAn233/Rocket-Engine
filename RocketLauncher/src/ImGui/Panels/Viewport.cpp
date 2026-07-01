@@ -19,8 +19,8 @@ namespace rke
         is_focused_ = ImGui::IsWindowFocused();
     // ---
 
-        if(next_render_target_id_) {
-            ImGui::Image(ImTextureRef(static_cast<ImTextureID>(next_render_target_id_)),
+        if(render_target_id_) {
+            ImGui::Image(ImTextureRef(static_cast<ImTextureID>(render_target_id_)),
                 viewport_size_, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
         } else {
             ImVec2 cursor_pos{ ImGui::GetCursorScreenPos() };
@@ -42,14 +42,11 @@ namespace rke
                 ImGui::InvisibleButton("##EmptyViewport", viewport_size_);
             }
         }
-        next_render_target_id_ = 0;
+        render_target_id_ = 0;
 
         ImGui::PopStyleVar();
         if(in_viewport_callback_) in_viewport_callback_(this);
 
         ImGui::End();
-    }
-
-    void Viewport::set_in_viewport_callback(std::function<void(Viewport*)> callback)
-        { in_viewport_callback_ = std::move(callback); }
+    }   
 }

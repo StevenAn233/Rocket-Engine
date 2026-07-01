@@ -23,31 +23,23 @@ export namespace rke
     class RKE_API SceneRenderer
     {
     public:
-        SceneRenderer(glm::vec4 col =
-            math::srgb_to_linear(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)));
+        SceneRenderer(glm::vec4 clear_col);
         SceneRenderer(const SceneRenderer&) = delete;
-        SceneRenderer(SceneRenderer&& ____) = delete;
+        SceneRenderer(SceneRenderer&&) = delete;
 
-        void add_effect(Scope<PostProcessEffect> effect)
-            { post_processor_.add_effect(std::move(effect)); }
+        inline void set_samples(uint32 samples) { scene_fbo_->set_samples(samples); }
+        inline void set_cam_demo_target(Entity entity) { cam_demo_target_ = entity; }
+        inline Entity get_cam_demo_target() const { return cam_demo_target_; }
+        inline void cam_demo_validation_check() { cam_demo_target_.invalidate_if_unavailable(); }
 
+        void add_effect(Scope<PostProcessEffect> effect);
         const Texture2D* on_render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
         const Texture2D* on_render_runtime(const Scene* scene); // uses master camera(in the scene)
         const Texture2D* cam_demo_render  (const Scene* scene, Entity cam_demo);
         void on_viewport_resized(uint32 w, uint32 h);
 
         int get_hovering_id(int mouse_x, int mouse_y);
-        void clean_up() { // on_scene_changed
-            scene_fbo_->clear_pbo();
-            scene_fbo_->clear();
-            post_processor_.clean_up();
-        }
-
-        void set_samples(uint32 samples) { scene_fbo_->set_samples(samples); }
-
-        void set_cam_demo_target(Entity entity) { cam_demo_target_ = entity; }
-        Entity get_cam_demo_target() const { return cam_demo_target_; }
-        void cam_demo_validation_check() { cam_demo_target_.invalidate_if_unavailable(); }
+        void clean_up();
     private:
         struct Renderable
         {

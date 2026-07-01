@@ -1,8 +1,4 @@
 ﻿module;
-
-#include <chrono>
-#include <print>
-
 module Log;
 
 namespace {
