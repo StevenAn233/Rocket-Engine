@@ -6,7 +6,7 @@ export module ScriptEngine;
 
 import Types;
 import Scene;
-import Event;
+import MouseEvent;
 import String;
 
 export namespace rke

@@ -75,7 +75,7 @@ namespace rke
         ImGuiIO& io{ ImGui::GetIO() };
         if(io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
         {
-            ImGuiID dockspace_id{ ImGui::GetID("MyDockSpace") };
+            ImGuiID dockspace_id{ ImGui::GetID(name_.raw()) };
             ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags_, nullptr);
         }
         ImGui::PopStyleVar(3);

@@ -35,21 +35,21 @@ namespace rke {
         windows_lib_->on_event(e);
     }
 
-    Window* Application::create_window(Scope<Window::Props> props)
+    Window& Application::create_window(Scope<Window::Props> props)
     {
-        Window* window{ windows_lib_->load(std::move(props)) };
-        window->set_event_callback([this](Event& e) { send_event(e); });
+        Window& window{ windows_lib_->load(std::move(props)) };
+        window.set_event_callback([this](Event& e) { send_event(e); });
         
-        window->make_context_current();
-        Renderer2D::register_context(window->get_native_window().val());
+        window.make_context_current();
+        Renderer2D::register_context(window.get_native_window().val());
         return window;
     }
 
-    void Application::remove_window(const String& window_title)
+    void Application::remove_window(const String& name)
     {
-        CORE_ASSERT(windows_lib_->exists(window_title),
-            u8"Application: You didn't push this window to WindowsLib?");
-        windows_lib_->remove(window_title);
+        CORE_ASSERT(windows_lib_->exists(name),
+            u8"Application: Window name '{}' not found!", name);
+        windows_lib_->remove(name);
     }
 
     bool Application::on_window_closed(rke::WindowClosedEvent& e)

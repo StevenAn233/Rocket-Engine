@@ -19,6 +19,11 @@ export import ConfigProxy;
 
 export import Event;
 export import EventDispatcher;
+export import ApplicationEvent;
+export import KeyEvent;
+export import MouseEvent;
+// export import SceneEvent;
+// export import ProjectEvent;
 
 export import Input;
 export import Keys;

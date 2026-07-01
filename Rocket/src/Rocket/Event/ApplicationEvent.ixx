@@ -3,9 +3,9 @@
 #include "rke_macros.h"
 #include "Events/event_macros.h"
 
-export module Event:Application;
+export module ApplicationEvent;
 
-import :Base;
+import Event;
 import Types;
 import String;
 

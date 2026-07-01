@@ -3,9 +3,9 @@
 #include "rke_macros.h"
 #include "Events/event_macros.h"
 
-export module Event:Mouse;
+export module MouseEvent;
 
-import :Base;
+import Event;
 import MouseButtons;
 
 export namespace rke

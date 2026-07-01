@@ -14,6 +14,9 @@ import Instrumentor;
 import FileUtils;
 import Layer;
 import Event;
+import KeyEvent;
+import MouseEvent;
+import ApplicationEvent;
 
 namespace {
     using namespace rke;

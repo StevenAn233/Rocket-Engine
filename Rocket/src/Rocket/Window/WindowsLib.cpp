@@ -30,24 +30,24 @@ namespace rke
         }
     }
 
-    Window* WindowsLib::add(Scope<Window> window)
+    Window& WindowsLib::add(Scope<Window> window)
     {
-        CORE_ASSERT(!exists(window->get_name()), u8"WindowsLib: Name already exists!");
-        Window* ret{ window.get() };
-        map_[window->get_name()] = std::move(window);
-        return ret;
+        const String& name{ window->get_name() };
+        CORE_ASSERT(!exists(name), u8"WindowsLib: Name already exists!");
+        map_.emplace(name, std::move(window));
+        return (*this)[name];
     }
 
-    Window* WindowsLib::operator[](const String& name)
+    Window& WindowsLib::operator[](const String& name)
     {
         CORE_ASSERT(exists(name), u8"WindowsLib: Window '{}' not found!", name);
-        return map_.at(name).get(); // not const
+        return *(map_.at(name).get());
     }
 
-    const Window* WindowsLib::operator[](const String& name) const
+    const Window& WindowsLib::operator[](const String& name) const
     {
         CORE_ASSERT(exists(name), u8"WindowsLib: Window '{}' not found!", name);
-        return map_.at(name).get(); // const
+        return *(map_.at(name).get());
     }
 }
 

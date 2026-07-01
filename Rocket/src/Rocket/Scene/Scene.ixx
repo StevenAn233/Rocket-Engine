@@ -11,6 +11,8 @@ import UUID;
 import Types;
 import String;
 import Event;
+import MouseEvent;
+import ApplicationEvent;
 import HeapManager;
 import Components;
 import PhysicsLayers;

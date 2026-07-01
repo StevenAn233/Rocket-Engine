@@ -10,6 +10,7 @@ import WindowsLib;
 import String;
 import Path;
 import Event;
+import ApplicationEvent;
 import Font;
 import HeapManager;
 import ImGuiLayer;
@@ -29,12 +30,12 @@ export namespace rke
         void run();
         void send_event(Event& e);
 
-        Window* create_window(Scope<Window::Props> props);
-        void remove_window(const String& window_title);
+        Window& create_window(Scope<Window::Props> props);
+        void remove_window(const String& name);
 
         inline WindowsLib& get_windows_lib() const { return *(windows_lib_.get()); }
-        inline const Window* get_window(const String& name) const { return (*windows_lib_)[name]; }
-        inline Window* get_window_mut(const String& name) { return (*windows_lib_)[name]; }
+        inline const Window& get_window(const String& name) const { return (*windows_lib_)[name]; }
+        inline Window& get_window_mut(const String& name) { return (*windows_lib_)[name]; }
         inline ImGuiLayer* get_imgui_layer() { return imgui_layer_; }
     protected:
         Application();

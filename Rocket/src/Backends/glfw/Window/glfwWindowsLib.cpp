@@ -50,7 +50,7 @@ namespace rke
         glfwPollEvents();
     }
 
-    Window* glfwWindowsLib::load(Scope<Window::Props> props)
+    Window& glfwWindowsLib::load(Scope<Window::Props> props)
     {
         Scope<Window> window{ Window::create
             (std::move(props), NativeWindow(master_context_)) };

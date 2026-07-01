@@ -5,7 +5,7 @@
 export module Script;
 
 import Scene;
-import Event;
+import MouseEvent;
 
 export namespace rke
 {

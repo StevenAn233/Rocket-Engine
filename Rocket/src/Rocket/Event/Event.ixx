@@ -1,8 +1,10 @@
-﻿module;
+﻿// Event system if for one-key-triggered operation(e.g. esc to open menu)
+// Input system is for continuous operation(e.g. moving)
+module;
 
 #include "rke_macros.h"
 
-export module Event:Base;
+export module Event;
 
 import Types;
 import String;
@@ -11,16 +13,19 @@ import MathUtils;
 export namespace rke
 {
     enum EventCategory : uint32
-    {							/* flags */
+    {							   /* flags */
         EventCategoryNull		 = 0,
+
         EventCategoryApplication = math::bit(0),
         EventCategoryInput		 = math::bit(1),
         EventCategoryKeyboard	 = math::bit(2),
         EventCategoryMouse		 = math::bit(3),
         EventCategoryMouseButton = math::bit(4),
-        EventCategoryScene       = math::bit(5),
-        EventCategoryEditor      = math::bit(6),
-        EventCategoryClient      = math::bit(7)
+
+        EventCategoryProject     = math::bit(5),
+        EventCategoryScene       = math::bit(6),
+        EventCategoryEditor      = math::bit(7),
+        EventCategoryClient      = math::bit(8)
     };
 
     class RKE_API Event
@@ -33,7 +38,7 @@ export namespace rke
         {
             uint64 hash{ 0xcbf29ce484222325ull };
             for(Size i{}; c_str[i]; i++) {
-                hash ^= static_cast<uint64_t>(c_str[i]);
+                hash ^= static_cast<uint64>(c_str[i]);
                 hash *= 0x100000001b3ull;
             }
             return hash;

@@ -31,17 +31,16 @@ export namespace rke
         
         inline Size size () const { return map_.size (); }
         inline bool empty() const { return map_.empty(); }
-        inline bool exists(const String& name) const
-            { return map_.find(name) != map_.end(); }
+        inline bool exists(const String& name) const { return map_.contains(name); }
         inline void remove(const String& name)
             { if(exists(name)) map_[name]->should_close(true); }
 
-        Window* add(Scope<Window> window);
-        Window* operator[](const String& name);
-        const Window* operator[](const String& name) const;
+        Window& add(Scope<Window> window);
+        Window& operator[](const String& name);
+        const Window& operator[](const String& name) const;
 
         virtual void refresh() = 0;
-        virtual Window* load(Scope<Window::Props> props) = 0;
+        virtual Window& load(Scope<Window::Props> props) = 0;
         virtual NativeWindow get_current_context() const = 0;
         virtual NativeWindow get_master_context () const = 0;
         virtual void make_master_context_current() = 0;

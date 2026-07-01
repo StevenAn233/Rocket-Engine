@@ -8,6 +8,9 @@ export module Layer;
 import Types;
 import String;
 import Event;
+import KeyEvent;
+import MouseEvent;
+import ApplicationEvent;
 
 export namespace rke
 {
