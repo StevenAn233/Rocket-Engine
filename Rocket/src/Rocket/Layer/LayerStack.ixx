@@ -25,6 +25,8 @@ export namespace rke
         void push_overlay(Scope<Layer> overlay);  // put layer to the second-half
         Scope<Layer> pop_overlay(Layer* overlay); // pop specified second-half-layer
 
+        inline Layer& top_most() { return *(layers_.back().get()); }
+
         inline std::vector<Scope<Layer>>::iterator begin() { return layers_.begin(); }
         inline std::vector<Scope<Layer>>::iterator end() { return layers_.end(); }
         inline std::vector<Scope<Layer>>::reverse_iterator rbegin() { return layers_.rbegin(); }

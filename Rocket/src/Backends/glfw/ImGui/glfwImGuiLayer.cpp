@@ -116,7 +116,7 @@ namespace rke::imgui
 
     // Setup platform/renderer backends
         ImGui_ImplGlfw_InitForOpenGL(std::bit_cast
-            <GLFWwindow*>(window->get_native_window().get()), true);
+            <GLFWwindow*>(window->get_context().get()), true);
         ImGui_ImplOpenGL3_Init("#version 430 core");
     }
 

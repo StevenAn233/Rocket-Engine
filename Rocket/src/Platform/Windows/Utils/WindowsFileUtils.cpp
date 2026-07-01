@@ -73,7 +73,7 @@ namespace rke
         ZeroMemory(&ofn,  sizeof(OPENFILENAME));
         ofn.lStructSize = sizeof(OPENFILENAME);
         ofn.hwndOwner   = glfwGetWin32Window
-            (window->get_native_window().as<GLFWwindow>());
+            (window->get_context().as<GLFWwindow>());
         ofn.lpstrFile = sz_file;
         ofn.nMaxFile  = sizeof(sz_file);
         if(GetCurrentDirectoryW(256, current_dir))
@@ -98,7 +98,7 @@ namespace rke
         ZeroMemory(&ofn,  sizeof(OPENFILENAMEW));
         ofn.lStructSize = sizeof(OPENFILENAMEW);
         ofn.hwndOwner   = glfwGetWin32Window
-            (window->get_native_window().as<GLFWwindow>());
+            (window->get_context().as<GLFWwindow>());
         
         ofn.lpstrFile = sz_file;
         ofn.nMaxFile = sizeof(sz_file);
@@ -143,7 +143,7 @@ namespace rke
         }
 
         hr = p_file_dialog->Show(glfwGetWin32Window
-            (window->get_native_window().as<GLFWwindow>()));
+            (window->get_context().as<GLFWwindow>()));
 
         if(SUCCEEDED(hr))
         {

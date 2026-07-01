@@ -41,7 +41,7 @@ namespace rke
         float get_vsync_extent() const override { return data_.vsync_extent; }
         float& get_vsync_extent_mut() override  { return data_.vsync_extent; }
 
-        NativeWindow get_native_window() const override
+        NativeWindow get_context() const override
             { return static_cast<NativeWindow>(handle_); }
         bool minimized() const override { return data_.minimized; }
 

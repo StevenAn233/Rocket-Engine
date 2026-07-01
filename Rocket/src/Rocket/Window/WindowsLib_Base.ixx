@@ -16,6 +16,7 @@ export namespace rke
     class WindowsLib
     {
     public:
+        friend class Application;
         friend struct std::default_delete<WindowsLib>;
 
         using WindowsMap = std::unordered_map<String, Scope<Window>>;
@@ -25,6 +26,16 @@ export namespace rke
         WindowsLib(WindowsLib&&) = delete;
         WindowsLib& operator=(WindowsLib&&) = delete;
 
+        virtual void refresh() = 0;
+        virtual NativeWindow get_current_context() const = 0;
+        virtual NativeWindow get_master_context () const = 0;
+        virtual void make_master_context_current() = 0;
+
+        static Scope<WindowsLib> create();
+    protected:
+        Window& add(Scope<Window> window);
+        virtual Window& load(Scope<Window::Props> props) = 0;
+    private:
         void on_event(Event& e);
         void update_all(float dt);
         void render_all();
@@ -35,17 +46,8 @@ export namespace rke
         inline void remove(const String& name)
             { if(exists(name)) map_[name]->should_close(true); }
 
-        Window& add(Scope<Window> window);
         Window& operator[](const String& name);
         const Window& operator[](const String& name) const;
-
-        virtual void refresh() = 0;
-        virtual Window& load(Scope<Window::Props> props) = 0;
-        virtual NativeWindow get_current_context() const = 0;
-        virtual NativeWindow get_master_context () const = 0;
-        virtual void make_master_context_current() = 0;
-
-        static Scope<WindowsLib> create();
     protected:
         WindowsLib() = default;
         virtual ~WindowsLib() = default;

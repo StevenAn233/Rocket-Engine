@@ -41,7 +41,7 @@ namespace rke {
         window.set_event_callback([this](Event& e) { send_event(e); });
         
         window.make_context_current();
-        Renderer2D::register_context(window.get_native_window().val());
+        Renderer2D::register_context(window.get_context().val());
         return window;
     }
 

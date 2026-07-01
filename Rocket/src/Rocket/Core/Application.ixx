@@ -33,9 +33,10 @@ export namespace rke
         Window& create_window(Scope<Window::Props> props);
         void remove_window(const String& name);
 
-        inline WindowsLib& get_windows_lib() const { return *(windows_lib_.get()); }
-        inline const Window& get_window(const String& name) const { return (*windows_lib_)[name]; }
-        inline Window& get_window_mut(const String& name) { return (*windows_lib_)[name]; }
+        WindowsLib& get_windows_lib() { return *(windows_lib_.get()); }
+        Window& get_window(const String& name) { return (*windows_lib_)[name]; }
+        const Window& get_window(const String& name) const { return (*windows_lib_)[name]; }
+
         inline ImGuiLayer* get_imgui_layer() { return imgui_layer_; }
     protected:
         Application();
