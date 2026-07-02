@@ -3,15 +3,26 @@ module WindowsLib;
 
 import Log;
 import HeapManager;
-import Window;
-import Renderer2D;
+import EventDispatcher;
+import ApplicationEvent;
 
 namespace rke
 {
     void WindowsLib::on_event(Event& e)
     {
+        EventDispatcher dispatcher{ e };
+        dispatcher.dispatch<WindowClosedEvent>
+            ([this](WindowClosedEvent& e) { return on_window_closed(e); });
+        if(e.handled()) return;
         for(auto& [_, window] : map_)
             window->on_event(e);
+    }
+
+    bool WindowsLib::on_window_closed(rke::WindowClosedEvent& e)
+    {
+        CORE_INFO(e);
+        remove(e.get_window_name());
+        return true;
     }
 
     void WindowsLib::update_all(float dt)
@@ -24,18 +35,24 @@ namespace rke
     {
         for(auto& [_, window] : map_)
         {
-            Renderer2D::reset_stats();
             window->on_render();
             window->on_imgui_render();
         }
     }
 
-    Window& WindowsLib::add(Scope<Window> window)
+    Window& WindowsLib::load(String name, Scope<Window::Props> props)
     {
-        const String& name{ window->get_name() };
-        CORE_ASSERT(!exists(name), u8"WindowsLib: Name already exists!");
-        map_.emplace(name, std::move(window));
-        return (*this)[name];
+        Scope<Window> window{ Window::create(std::move(name),
+            std::move(props), main_context_) };
+        return add(std::move(window));
+    }
+
+    Window& WindowsLib::load_main(Scope<Window::Props> props)
+    {
+        Scope<Window> window{ Window::create
+            (u8"main", std::move(props), NativeWindow()) };
+        main_context_ = window->get_context();
+        return add(std::move(window));
     }
 
     Window& WindowsLib::operator[](const String& name)
@@ -49,14 +66,23 @@ namespace rke
         CORE_ASSERT(exists(name), u8"WindowsLib: Window '{}' not found!", name);
         return *(map_.at(name).get());
     }
-}
 
-#ifdef RKE_DEPENDENCY_GLFW
-import :glfw;
+    void WindowsLib::remove_main()
+    {
+        for(auto& [_, window] : map_)
+            { window->should_close(true); }
+        main_context_ = NativeWindow();
+    }
 
-namespace rke
-{
-    Scope<WindowsLib> WindowsLib::create()
-        { return create_scope<glfwWindowsLib>(); }
+    Window& WindowsLib::add(Scope<Window> window)
+    {
+        if(load_callback_) {
+            WindowsLib::make_context_current(window->get_context());
+            load_callback_(*(window.get()));
+        }
+        const String& name{ window->get_name() };
+        CORE_ASSERT(!exists(name), u8"WindowsLib: Name already exists!");
+        map_.emplace(name, std::move(window));
+        return (*this)[name];
+    }
 }
-#endif

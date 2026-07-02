@@ -43,7 +43,7 @@ namespace rke
         {
             if(ImGui::BeginMenu("Window")) {
                 if(ImGui::MenuItem("Close", "Alt+F4"))
-                    app().remove_window(get_owner_name());
+                    app().get_windows_lib().remove_main();
                 ImGui::EndMenu();
             }
             if(ImGui::BeginMenu("Project")) {

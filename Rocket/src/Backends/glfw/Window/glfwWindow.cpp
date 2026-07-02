@@ -14,7 +14,8 @@ import RenderCommand;
 import RenderBackend;
 import Instrumentor;
 import FileUtils;
-import Layer;
+import Application;
+import WindowsLib;
 import Event;
 import KeyEvent;
 import MouseEvent;
@@ -215,10 +216,8 @@ namespace rke
         if(props.icon_path.exists())
         {
             int width{}, height{}, channels{};
-            stbi_uc* pixels{ stbi_load (
-                props.icon_path.string().raw(),
-                &width, &height, &channels, 4
-            )};
+            stbi_uc* pixels{ stbi_load(props.icon_path.string().raw(),
+                                       &width, &height, &channels, 4) };
             CORE_ASSERT(pixels, u8"glfwWindow: Failed to load window icon!");
 
             GLFWimage images[1]{};
@@ -254,7 +253,7 @@ namespace rke
             else data.minimized = false;
 
             WindowResizedEvent e{ data.name, data.props.width, data.props.height };
-            if(data.event_callback) data.event_callback(e);
+            app().send_event(e);
         });
 
         glfwSetWindowCloseCallback(context_.as<GLFWwindow>(),
@@ -263,7 +262,7 @@ namespace rke
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
             WindowClosedEvent e{ data.name };
-            if(data.event_callback) data.event_callback(e);
+            app().send_event(e);
         });
 
         glfwSetKeyCallback(context_.as<GLFWwindow>(),
@@ -275,15 +274,15 @@ namespace rke
             {
             case GLFW_PRESS: {
                 KeyPressedEvent e{ data.name, glfw_to_rke_key(key) };
-                if(data.event_callback) data.event_callback(e);
+                app().send_event(e);
             } break;
             case GLFW_REPEAT: {
                 KeyPressedEvent e{ data.name, glfw_to_rke_key(key), true };
-                if(data.event_callback) data.event_callback(e);
+                app().send_event(e);
             } break;
             case GLFW_RELEASE: {
-                KeyReleasedEvent event{ data.name, glfw_to_rke_key(key) };
-                if(data.event_callback) data.event_callback(event);
+                KeyReleasedEvent e{ data.name, glfw_to_rke_key(key) };
+                app().send_event(e);
             } break;
             }
         });
@@ -294,7 +293,7 @@ namespace rke
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
             CharTypedEvent e{ data.name, codepoint };
-            if(data.event_callback) data.event_callback(e);
+            app().send_event(e);
         });
 
         glfwSetMouseButtonCallback(context_.as<GLFWwindow>(),
@@ -305,12 +304,14 @@ namespace rke
             switch(action)
             {
             case GLFW_PRESS: {
-                MouseButtonPressedEvent e{ data.name, glfw_to_rke_mouse(button) };
-                if(data.event_callback) data.event_callback(e);
+                MouseButtonPressedEvent e
+                    { data.name, glfw_to_rke_mouse(button) };
+                app().send_event(e);
             } break;
             case GLFW_RELEASE: {
-                MouseButtonReleasedEvent e{ data.name, glfw_to_rke_mouse(button) };
-                if(data.event_callback) data.event_callback(e);
+                MouseButtonReleasedEvent e
+                    { data.name, glfw_to_rke_mouse(button) };
+                app().send_event(e);
             } break;
             }
         });
@@ -323,7 +324,7 @@ namespace rke
             MouseScrolledEvent e{ data.name,
                 static_cast<float>(x_offset),
                 static_cast<float>(y_offset)};
-            if(data.event_callback) data.event_callback(e);
+            app().send_event(e);
         });
 
         glfwSetCursorPosCallback(context_.as<GLFWwindow>(),
@@ -334,7 +335,7 @@ namespace rke
             MouseMovedEvent e{ data.name,
                 static_cast<float>(x_coord),
                 static_cast<float>(y_coord)};
-            if(data.event_callback) data.event_callback(e);
+            app().send_event(e);
         });
     }
 
@@ -344,30 +345,6 @@ namespace rke
         glfwDestroyWindow(context_.as<GLFWwindow>());
     }
 
-    void glfwWindow::make_context_current()
-    {
-        switch(RenderBackend::get_graphics_api())
-        {
-        case GraphicsAPI::OpenGL:
-            glfwMakeContextCurrent(context_.as<GLFWwindow>());
-            break;
-        default:
-            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
-        }
-    }
-
-    void glfwWindow::swap_buffers() // OpenGL only
-    {
-        switch(RenderBackend::get_graphics_api())
-        {
-        case GraphicsAPI::OpenGL:
-            glfwSwapBuffers(context_.as<GLFWwindow>());
-            break;
-        default:
-            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
-        }
-    }
-
     std::pair<int, int> glfwWindow::get_window_pos() const
     {
         int x{}, y{};
@@ -375,12 +352,13 @@ namespace rke
         return { x, y };
     }
 
-    void glfwWindow::update_vsync() // OpenGL only
+    void glfwWindow::update_vsync()
     {
         switch(RenderBackend::get_graphics_api())
         {
-        case GraphicsAPI::OpenGL:
-            make_context_current();
+        case GraphicsAPI::OpenGL: {
+            NativeWindow curr_ctx{ WindowsLib::get_current_context() };
+            WindowsLib::make_context_current(get_context());
             if(data_.vsync_extent > 1.0f)
             {
                 CORE_WARN(u8"glfwWindow: V-sync extent can only be between 0.0 to 1.0.");
@@ -394,7 +372,8 @@ namespace rke
                 data_.vsync_extent = 0.0f;
             }
             else glfwSwapInterval(static_cast<int>(1.0f / data_.vsync_extent) + 0.5f);
-            break;
+            WindowsLib::make_context_current(curr_ctx);
+        } break;
         default:
             CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
         }

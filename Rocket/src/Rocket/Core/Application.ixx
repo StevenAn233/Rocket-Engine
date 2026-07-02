@@ -30,24 +30,19 @@ export namespace rke
         void run();
         void send_event(Event& e);
 
-        Window& create_window(String name, Scope<Window::Props> props);
-        void remove_window(const String& name);
-
-        WindowsLib& get_windows_lib() { return *(windows_lib_.get()); }
-        Window& get_window(const String& name) { return (*windows_lib_)[name]; }
-        const Window& get_window(const String& name) const { return (*windows_lib_)[name]; }
-
+        WindowsLib& get_windows_lib() { return windows_lib_; }
+    // TO REMOVE
         inline ImGuiLayer* get_imgui_layer() { return imgui_layer_; }
     protected:
         Application();
         virtual ~Application() {};
     protected:
+    // TO REMOVE
         ImGuiLayer* imgui_layer_{};
     private:
-        bool on_window_closed(WindowClosedEvent& e);
-        // maybe should move to WindowsLib
+        static void on_window_loaded(Window& window);
     private:
-        Scope<WindowsLib> windows_lib_{};
+        WindowsLib windows_lib_;
     };
 
     RKE_API Application& app();

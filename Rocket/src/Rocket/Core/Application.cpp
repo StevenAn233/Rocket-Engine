@@ -12,54 +12,28 @@ import PlatformSupport;
 import FileUtils;
 
 namespace rke {
-    Application::Application() { windows_lib_ = WindowsLib::create(); }
+    Application::Application() : windows_lib_(on_window_loaded) {}
 
     void Application::run()
     {
-        while(!windows_lib_->empty())
+        while(!windows_lib_.empty())
         {
             RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");
+
             DeltaTime::update();
-            windows_lib_->update_all(DeltaTime::get());
-            windows_lib_->render_all();
-            windows_lib_->refresh();
+            windows_lib_.update_all(DeltaTime::get());
+
+            Renderer2D::reset_stats();
+            windows_lib_.render_all();
+
+            windows_lib_.refresh();
         }
     }
 
-    void Application::send_event(Event& e)
-    {
-        EventDispatcher dispatcher{ e };
-        dispatcher.dispatch<WindowClosedEvent>
-            ([this](WindowClosedEvent& e) { return on_window_closed(e); });
-        if(e.handled()) return;
-        windows_lib_->on_event(e);
-    }
+    void Application::send_event(Event& e) { windows_lib_.on_event(e); }
 
-    Window& Application::create_window(String name, Scope<Window::Props> props)
-    {
-        Window& window{ windows_lib_->load(std::move(name), std::move(props)) };
-        window.set_event_callback([this](Event& e) { send_event(e); });
-        
-        window.make_context_current();
-        Renderer2D::register_context(window.get_context().val());
-        return window;
-    }
-
-    void Application::remove_window(const String& name)
-    {
-        CORE_ASSERT(windows_lib_->exists(name),
-            u8"Application: Window name '{}' not found!", name);
-        windows_lib_->remove(name);
-    }
-
-    bool Application::on_window_closed(rke::WindowClosedEvent& e)
-    {
-        CORE_INFO(e);
-        remove_window(e.get_window_name());
-        if(!imgui_layer_ || !imgui_layer_->valid())
-            imgui_layer_ = nullptr;
-        return true;
-    }
+    void Application::on_window_loaded(Window& window)
+        { Renderer2D::register_context(window.get_context()); }
 }
 
 namespace {

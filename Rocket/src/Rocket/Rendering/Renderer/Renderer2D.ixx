@@ -12,6 +12,7 @@ import Camera;
 import HeapManager;
 import Texture;
 import String;
+import NativeWindow;
 
 export namespace rke
 {
@@ -21,7 +22,7 @@ export namespace rke
         static void init();
         static void shutdown();
 
-        static void register_context(uintptr handle);
+        static void register_context(NativeWindow context);
 
         static RKE_API void begin_camera(const glm::mat4& view_projection);
 

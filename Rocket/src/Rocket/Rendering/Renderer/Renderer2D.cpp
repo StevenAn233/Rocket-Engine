@@ -99,10 +99,10 @@ namespace rke {
 
     void Renderer2D::shutdown() {}
 
-    void Renderer2D::register_context(uintptr handle)
+    void Renderer2D::register_context(NativeWindow context)
     {
-        CORE_ASSERT(handle, u8"Renderer2D: Cannot register a null context!");
-        if(s_data.context_data.count(handle)) return;
+        CORE_ASSERT(context.val(), u8"Renderer2D: Cannot register a null context!");
+        if(s_data.context_data.count(context.val())) return;
 
         Scope<PerContextData> data{ create_scope<PerContextData>() };
         data->vao = VertexArray ::create();
@@ -144,7 +144,7 @@ namespace rke {
         delete[] indices; // per-context
         data->vao->set_ibo(data->ibo);
 
-        s_data.context_data[handle] = std::move(data);
+        s_data.context_data[context.val()] = std::move(data);
         CORE_INFO(u8"Renderer2D: Registered new context and created vao.");
     }
 

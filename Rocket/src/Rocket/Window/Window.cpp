@@ -1,6 +1,8 @@
 ﻿module;
 module Window;
 
+import WindowsLib;
+
 namespace rke
 {
     void Window::check_layer_blocking()
@@ -17,6 +19,9 @@ namespace rke
                 { keyboard_blocking_layer_index_ = layer.get_index(); return; }
         }
     }
+
+    void Window::make_context_current() const
+        { WindowsLib::make_context_current(get_context()); }
 
     void Window::on_event(Event& e)
     {

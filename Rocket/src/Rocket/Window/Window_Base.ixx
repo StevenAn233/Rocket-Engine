@@ -14,18 +14,15 @@ import String;
 import Path;
 import Layer;
 import LayerStack;
-
-export import NativeWindow;
+import NativeWindow;
 
 export namespace rke
 {
     class Window
     {
     public:
-        friend class Application;
+        friend class WindowsLib;
         friend struct std::default_delete<Window>;
-
-        using EventCallbackFunc = std::function<void(Event&)>;
 
         struct Props
         {
@@ -69,21 +66,15 @@ export namespace rke
         inline void should_close(bool judge) { should_close_ = judge; }
         inline bool should_close() const { return should_close_; }
 
-        void on_event(Event& e);
-        void on_update(float dt);
-        void on_render();
-        void on_imgui_render();
+        void make_context_current() const;
 
     // context related
-        virtual void make_context_current() = 0;
-        virtual void swap_buffers() = 0;
         virtual std::pair<int, int> get_window_pos() const = 0;
 
     // data related
         virtual float get_vsync_extent() const = 0;
         virtual float& get_vsync_extent_mut() = 0;
         virtual bool minimized() const = 0;
-        virtual void set_event_callback(EventCallbackFunc callback) = 0;
         virtual void update_vsync() = 0;
 
         static Scope<Window> create(String name, Scope<Props> props, NativeWindow context);
@@ -91,6 +82,11 @@ export namespace rke
         Window(String name, Scope<Props> props)
             : name_(std::move(name)), props_(std::move(props)) {};
         virtual ~Window() = default;
+    private:
+        void on_event(Event& e);
+        void on_update(float dt);
+        void on_render();
+        void on_imgui_render();
     protected:
         Scope<Props> props_;
         NativeWindow context_{};
