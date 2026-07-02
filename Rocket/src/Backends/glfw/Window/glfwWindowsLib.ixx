@@ -12,12 +12,15 @@ namespace rke
         ~glfwWindowsLib() override;
 
         void refresh() override;
+
+    // TO REMOVE
         NativeWindow get_current_context() const override;
         NativeWindow get_master_context () const override;
         void make_master_context_current() override;
     private:
-        Window& load(Scope<Window::Props> props) override;
+        Window& load(String name, Scope<Window::Props> props) override;
     private:
+    // TO REMOVE
         void* master_context_{};
     };
 }

@@ -9,7 +9,6 @@ import :Base;
 
 import Types;
 import LayerStack;
-import Context;
 import FrameBuffer;
 
 namespace rke
@@ -17,52 +16,30 @@ namespace rke
     class glfwWindow : public Window
     {
     public:
-        glfwWindow(Scope<Props> pprops, NativeWindow shared_handle);
+        glfwWindow(String name, Scope<Props> window_props, NativeWindow shared);
         ~glfwWindow() override;
 
+    // context related
+        void make_context_current() override;
         void swap_buffers() override;
-
-        void on_event (Event& e) override;
-        void on_update(float dt) override;
-        void on_render() override;
-
-        void on_imgui_render() override;
-        // have some problems with vsync setting
-        // might need to put windows in multiple threads
-
         std::pair<int, int> get_window_pos() const override;
-        int get_mouse_blocking_index() const override { return mouse_blocking_layer_index_; }
-        int get_keyboard_blocking_index() const override { return keyboard_blocking_layer_index_; }
 
-        void set_event_callback(EventCallbackFunc callback) override
-            { data_.event_callback = std::move(callback); }
-
-        void update_vsync() override;
+    // data related
         float get_vsync_extent() const override { return data_.vsync_extent; }
         float& get_vsync_extent_mut() override  { return data_.vsync_extent; }
-
-        NativeWindow get_context() const override
-            { return static_cast<NativeWindow>(handle_); }
+        void set_event_callback(EventCallbackFunc callback) override
+            { data_.event_callback = std::move(callback); }
         bool minimized() const override { return data_.minimized; }
-
-        void make_context_current() override;
-        void check_layer_blocking() override;
+        void update_vsync() override;
     private:
-        GLFWwindow* handle_{};
-        Scope<Context> context_{};
-
-        Size mouse_blocking_layer_index_{};
-        Size keyboard_blocking_layer_index_{};
-
         // For glfwSetWindowUserPointer(only expose necessary data)
         struct WindowData
         {
+            const String& name;
             Props& props;
             bool minimized{ false };
             float vsync_extent{ 1.0f };
             EventCallbackFunc event_callback{};
-        };
-
-        WindowData data_;
+        } data_;
     };
 }

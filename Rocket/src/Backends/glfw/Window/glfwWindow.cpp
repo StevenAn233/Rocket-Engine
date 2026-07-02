@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <GLAD/glad.h> // TO REMOVE
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
 
@@ -168,27 +169,37 @@ namespace {
 
 namespace rke
 {
-    glfwWindow::glfwWindow(Scope<Props> pprops, NativeWindow shared_handle)
-        : Window(std::move(pprops)), data_({ *props_ })
+    glfwWindow::glfwWindow(String name, Scope<Props> window_props, NativeWindow shared)
+        : Window(std::move(name), std::move(window_props))
+        , data_({ get_name(), *props_})
     {
         Props& props{ data_.props };
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_SAMPLES, 4);			   // IMPORTANT
         glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_FALSE); // Manually applied in ToneMapping
         glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_FALSE);
-        handle_ = glfwCreateWindow (
-            static_cast<int>(props.width ),
-            static_cast<int>(props.height),
-            props.title.raw(), nullptr,
-            shared_handle.as<GLFWwindow>()
-        );
-        CORE_ASSERT(handle_, u8"glfwWindow: Failed to create window '{}'!", props.title);
-        glfwSetWindowPos(handle_, props.x_coord, props.y_coord);
-        glfwShowWindow(handle_);
+        context_ = NativeWindow(glfwCreateWindow(props.width, props.height,
+            props.title.raw(), nullptr, shared.as<GLFWwindow>()));
+        CORE_ASSERT(context_, u8"glfwWindow: Failed to create window '{}'!", props.title);
+        glfwSetWindowPos(context_.as<GLFWwindow>(), props.x_coord, props.y_coord);
+        glfwShowWindow(context_.as<GLFWwindow>());
 
     // set OpenGL context
-        context_ = Context::create(NativeWindow(handle_));
-        context_->init();
+        make_context_current();
+        int succeeded{ gladLoadGLLoader(GLADloadproc(glfwGetProcAddress)) };
+        CORE_ASSERT(succeeded, u8"glad: Failed to initialize GLAD!");
+
+        CORE_INFO(u8R"(glContext: Context created
+     -- OpenGL vendor  : {}
+     -- OpenGL renderer: {}
+     -- OpenGL version : {})",
+            (const char*)glGetString(GL_VENDOR  ),
+            (const char*)glGetString(GL_RENDERER),
+            (const char*)glGetString(GL_VERSION));
+
+        RenderCommand::enable_blend();
+        RenderCommand::disable_srgb(); // manually applied in ToneMapping
+        RenderCommand::enable_depth_test();
 
     // set window icon(after glfwCreateWindow)
         if(props.icon_path.exists())
@@ -205,7 +216,7 @@ namespace rke
             images[0].height = height;
             images[0].pixels = pixels;
 
-            glfwSetWindowIcon(handle_, 1, images);
+            glfwSetWindowIcon(context_.as<GLFWwindow>(), 1, images);
         }
         else if(!props.icon_path.empty())
             CORE_ERROR(u8"glfwWidnow: Icon path '{}' doesn't exist!", props.icon_path);
@@ -214,7 +225,7 @@ namespace rke
         data_.vsync_extent = 1.0f;
         update_vsync();
 
-        glfwSetWindowUserPointer(handle_, &data_);
+        glfwSetWindowUserPointer(context_.as<GLFWwindow>(), &data_);
     /*------------------------------Set GLFW Callbacks------------------------------*/
     /*-----------GLFW Callbacks will be called automatically as you input-----------*/
 
@@ -222,30 +233,30 @@ namespace rke
         // and datas will be processed by [event_callback] function to for example,
         // make movements, change field of view, rotate perspective, etc.
 
-        glfwSetWindowSizeCallback(handle_, [](GLFWwindow* window, int width, int height)
+        glfwSetWindowSizeCallback(context_.as<GLFWwindow>(),
+        [](GLFWwindow* window, int width, int height)
         {
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
-            data.props.width  = width;
-            data.props.height = height;
+            data.props.width = static_cast<uint32>(width);
+            data.props.height = static_cast<uint32>(height);
             if(data.props.width == 0 || data.props.height == 0) data.minimized = true;
             else data.minimized = false;
 
-            WindowResizedEvent e{ data.props.name,
-                static_cast<uint32>(width ),
-                static_cast<uint32>(height)};
+            WindowResizedEvent e{ data.name, data.props.width, data.props.height };
             if(data.event_callback) data.event_callback(e);
         });
 
-        glfwSetWindowCloseCallback(handle_, [](GLFWwindow* window)
+        glfwSetWindowCloseCallback(context_.as<GLFWwindow>(),
+        [](GLFWwindow* window)
         {
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
-            WindowClosedEvent e{ data.props.name };
+            WindowClosedEvent e{ data.name };
             if(data.event_callback) data.event_callback(e);
         });
 
-        glfwSetKeyCallback(handle_,
+        glfwSetKeyCallback(context_.as<GLFWwindow>(),
         [](GLFWwindow* window, int key, int scancode, int action, int mods)
         {
             auto& data{ *reinterpret_cast<WindowData*>
@@ -253,29 +264,30 @@ namespace rke
             switch(action)
             {
             case GLFW_PRESS: {
-                KeyPressedEvent e{ data.props.name, glfw_to_rke_key(key) };
+                KeyPressedEvent e{ data.name, glfw_to_rke_key(key) };
                 if(data.event_callback) data.event_callback(e);
             } break;
             case GLFW_REPEAT: {
-                KeyPressedEvent e{ data.props.name, glfw_to_rke_key(key), true };
+                KeyPressedEvent e{ data.name, glfw_to_rke_key(key), true };
                 if(data.event_callback) data.event_callback(e);
             } break;
             case GLFW_RELEASE: {
-                KeyReleasedEvent event{ data.props.name, glfw_to_rke_key(key) };
+                KeyReleasedEvent event{ data.name, glfw_to_rke_key(key) };
                 if(data.event_callback) data.event_callback(event);
             } break;
             }
         });
 
-        glfwSetCharCallback(handle_, [](GLFWwindow* window, uint32 codepoint)
+        glfwSetCharCallback(context_.as<GLFWwindow>(),
+        [](GLFWwindow* window, uint32 codepoint)
         {
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
-            CharTypedEvent e{ data.props.name, codepoint };
+            CharTypedEvent e{ data.name, codepoint };
             if(data.event_callback) data.event_callback(e);
         });
 
-        glfwSetMouseButtonCallback(handle_,
+        glfwSetMouseButtonCallback(context_.as<GLFWwindow>(),
         [](GLFWwindow* window, int button, int action, int mods)
         {
             auto& data{ *reinterpret_cast<WindowData*>
@@ -283,33 +295,33 @@ namespace rke
             switch(action)
             {
             case GLFW_PRESS: {
-                MouseButtonPressedEvent e{ data.props.name, glfw_to_rke_mouse(button) };
+                MouseButtonPressedEvent e{ data.name, glfw_to_rke_mouse(button) };
                 if(data.event_callback) data.event_callback(e);
             } break;
             case GLFW_RELEASE: {
-                MouseButtonReleasedEvent e{ data.props.name, glfw_to_rke_mouse(button) };
+                MouseButtonReleasedEvent e{ data.name, glfw_to_rke_mouse(button) };
                 if(data.event_callback) data.event_callback(e);
             } break;
             }
         });
 
-        glfwSetScrollCallback(handle_,
+        glfwSetScrollCallback(context_.as<GLFWwindow>(),
         [](GLFWwindow* window, double x_offset, double y_offset)
         {
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
-            MouseScrolledEvent e{ data.props.name,
+            MouseScrolledEvent e{ data.name,
                 static_cast<float>(x_offset),
                 static_cast<float>(y_offset)};
             if(data.event_callback) data.event_callback(e);
         });
 
-        glfwSetCursorPosCallback(handle_,
+        glfwSetCursorPosCallback(context_.as<GLFWwindow>(),
         [](GLFWwindow* window, double x_coord, double y_coord)
         {
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
-            MouseMovedEvent e{ data.props.name,
+            MouseMovedEvent e{ data.name,
                 static_cast<float>(x_coord),
                 static_cast<float>(y_coord)};
             if(data.event_callback) data.event_callback(e);
@@ -318,57 +330,23 @@ namespace rke
 
     glfwWindow::~glfwWindow()
     {
-        glfwSetWindowShouldClose(handle_, 1);
-        glfwDestroyWindow(handle_);
+        glfwSetWindowShouldClose(context_.as<GLFWwindow>(), 1);
+        glfwDestroyWindow(context_.as<GLFWwindow>());
     }
+
+    void glfwWindow::make_context_current()
+        { glfwMakeContextCurrent(context_.as<GLFWwindow>()); }
 
     void glfwWindow::swap_buffers()
     {
         RKE_PROFILE_FUNCTION();
-        context_->swap_buffers();
-    }
-
-    void glfwWindow::on_event(Event& e)
-    {
-        if(props_->name != e.get_window_name()) return;
-        for(auto it{ layer_stack_.rbegin() }; it != layer_stack_.rend(); ++it)
-        {
-            if(e.handled()) return;
-            it->get()->on_event(e);
-            // if upper layer(overlays first) has handled event
-            // then break(do not let other layers deal with it)
-        }
-    }
-
-    void glfwWindow::on_update(float dt)
-    {
-        check_layer_blocking();
-        make_context_current();
-
-        RenderCommand::set_viewport(0, 0, get_width(), get_height());
-
-        for(const auto& layer : layer_stack_)
-            layer->on_update(dt);
-    }
-
-    void glfwWindow::on_render()
-    {
-        if(minimized()) return;
-        for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
-            it->get()->on_render();
-    }
-
-    void glfwWindow::on_imgui_render()
-    {
-        RKE_PROFILE_FUNCTION();
-        for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
-            it->get()->on_imgui_render();
+        glfwSwapBuffers(context_.as<GLFWwindow>());
     }
 
     std::pair<int, int> glfwWindow::get_window_pos() const
     {
         int x{}, y{};
-        glfwGetWindowPos(handle_, &x, &y);
+        glfwGetWindowPos(context_.as<GLFWwindow>(), &x, &y);
         return { x, y };
     }
 
@@ -388,28 +366,5 @@ namespace rke
             data_.vsync_extent = 0.0f;
         }
         else glfwSwapInterval(static_cast<int>(1.0f / data_.vsync_extent) + 0.5f);
-    }
-
-    void glfwWindow::make_context_current() { glfwMakeContextCurrent(handle_); }
-
-    void glfwWindow::check_layer_blocking()
-    {
-        RKE_PROFILE_FUNCTION();
-
-        mouse_blocking_layer_index_	= 0;
-        keyboard_blocking_layer_index_ = 0;
-
-        for(auto it{ layer_stack_.rbegin() }; it != layer_stack_.rend(); ++it)
-        {
-            Layer& layer{ *(it->get()) };
-            if(layer.should_block_mouse()) {
-                mouse_blocking_layer_index_ = layer.get_index();
-                return;
-            }
-            if(layer.should_block_keyboard()) {
-                keyboard_blocking_layer_index_ = layer.get_index();
-                return;
-            }
-        }
     }
 }

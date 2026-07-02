@@ -8,11 +8,10 @@ namespace rke
     public:
         RocketLauncher() : Application()
         {
-            Window& main_window{ create_window
-            (
+            Window& main_window{ create_window(u8"main",
                 create_scope<Window::Props>(Window::Props
                 {
-                    .name{ u8"main" }, .title{ u8"Rocket" },
+                    .title{ u8"Rocket" },
                     .icon_path{ file::assets_dir() / u8"icons" / u8"RKE.png" },
                     .width{ 2450 }, .height{ 1300 },
                     .x_coord{ 50 }, .y_coord{ 100 }

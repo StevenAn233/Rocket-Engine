@@ -1,8 +1,4 @@
-﻿module;
-
-#include <bit>
-
-export module NativeWindow;
+﻿export module NativeWindow;
 
 import Types;
 
@@ -11,19 +7,17 @@ export namespace rke
     class NativeWindow
     {
     public:
-        NativeWindow() = default;
-        template<typename T>
-        explicit NativeWindow(T* ptr) : handle_(static_cast<void*>(ptr)) {}
+        explicit NativeWindow(void* window = nullptr) : ctx_(window) {}
 
         template<typename T>
-        T* as() const { return static_cast<T*>(handle_); }
+        T* as() const { return static_cast<T*>(ctx_); }
 
-        void* get() const { return handle_; }
-        uintptr val() const { return std::bit_cast<uintptr>(handle_); }
+        inline void* get() const { return ctx_; }
+        inline uintptr val() const { return reinterpret_cast<uintptr>(ctx_); }
         
-        explicit operator bool() const { return handle_ != nullptr; }
-        bool operator==(const NativeWindow& other) const { return handle_ == other.handle_; }
+        explicit operator bool() const { return ctx_ != nullptr; }
+        bool operator==(const NativeWindow& other) const { return ctx_ == other.ctx_; }
     private:
-        void* handle_{ nullptr };
+        void* ctx_;
     };
 }

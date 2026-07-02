@@ -29,7 +29,6 @@ export namespace rke
 
         struct Props
         {
-            String name;
             String title{ u8"Rocket Engine" };
             Path icon_path{};
 
@@ -45,13 +44,20 @@ export namespace rke
         Window(Window&&) = delete;
         Window& operator=(Window&&) = delete;
 
+        inline const String& get_name() const { return name_; }
+        inline NativeWindow get_context() const { return context_; }
         inline uint32 get_width() const { return props_->width; }
         inline uint32 get_height() const { return props_->height; }
-        inline const String& get_name() const { return props_->name; }
         inline StringView get_title() const { return props_->title; }
         inline const Path& get_icon_path() const { return props_->icon_path; }
 
-         inline void push_layer(Scope<Layer> layer)
+        inline Size get_mouse_blocking_index() const
+            { return mouse_blocking_layer_index_; }
+        inline Size get_keyboard_blocking_index() const
+            { return keyboard_blocking_layer_index_; }
+        void check_layer_blocking();
+
+        inline void push_layer(Scope<Layer> layer)
             { layer_stack_.push_layer(std::move(layer)); }
         inline Scope<Layer> pop_layer(Layer* layer)
             { return layer_stack_.pop_layer(layer); }
@@ -63,38 +69,36 @@ export namespace rke
         inline void should_close(bool judge) { should_close_ = judge; }
         inline bool should_close() const { return should_close_; }
 
-        virtual void on_event (Event& e) = 0;
-        virtual void on_update(float dt) = 0;
-        virtual void on_render() = 0;
+        void on_event(Event& e);
+        void on_update(float dt);
+        void on_render();
+        void on_imgui_render();
 
-        virtual void on_imgui_render() = 0;
-
+    // context related
+        virtual void make_context_current() = 0;
         virtual void swap_buffers() = 0;
-
         virtual std::pair<int, int> get_window_pos() const = 0;
-        virtual int get_mouse_blocking_index() const = 0;
-        virtual int get_keyboard_blocking_index() const = 0;
 
+    // data related
+        virtual float get_vsync_extent() const = 0;
+        virtual float& get_vsync_extent_mut() = 0;
+        virtual bool minimized() const = 0;
         virtual void set_event_callback(EventCallbackFunc callback) = 0;
         virtual void update_vsync() = 0;
 
-        virtual float  get_vsync_extent() const = 0;
-        virtual float& get_vsync_extent_mut() = 0;
-
-        virtual NativeWindow get_context() const = 0;
-        virtual bool minimized() const = 0;
-
-        virtual void make_context_current() = 0;
-        virtual void check_layer_blocking() = 0;
-
-        static Scope<Window> create(Scope<Props> props, NativeWindow handle);
+        static Scope<Window> create(String name, Scope<Props> props, NativeWindow context);
     protected:
-        Window(Scope<Props> props) : props_(std::move(props)) {};
+        Window(String name, Scope<Props> props)
+            : name_(std::move(name)), props_(std::move(props)) {};
         virtual ~Window() = default;
     protected:
         Scope<Props> props_;
-        LayerStack layer_stack_{};
+        NativeWindow context_{};
     private:
+        String name_;
+        LayerStack layer_stack_{};
+        Size mouse_blocking_layer_index_{};
+        Size keyboard_blocking_layer_index_{};
         bool should_close_{ false };
     };
 }

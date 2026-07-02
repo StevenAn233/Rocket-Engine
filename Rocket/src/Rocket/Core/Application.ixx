@@ -30,7 +30,7 @@ export namespace rke
         void run();
         void send_event(Event& e);
 
-        Window& create_window(Scope<Window::Props> props);
+        Window& create_window(String name, Scope<Window::Props> props);
         void remove_window(const String& name);
 
         WindowsLib& get_windows_lib() { return *(windows_lib_.get()); }

@@ -27,6 +27,8 @@ export namespace rke
         WindowsLib& operator=(WindowsLib&&) = delete;
 
         virtual void refresh() = 0;
+
+    // TO REMOVE
         virtual NativeWindow get_current_context() const = 0;
         virtual NativeWindow get_master_context () const = 0;
         virtual void make_master_context_current() = 0;
@@ -34,7 +36,8 @@ export namespace rke
         static Scope<WindowsLib> create();
     protected:
         Window& add(Scope<Window> window);
-        virtual Window& load(Scope<Window::Props> props) = 0;
+        virtual Window& load(String name, Scope<Window::Props> props) = 0;
+        // virtual Window& create_main() = 0;
     private:
         void on_event(Event& e);
         void update_all(float dt);
@@ -46,12 +49,16 @@ export namespace rke
         inline void remove(const String& name)
             { if(exists(name)) map_[name]->should_close(true); }
 
+    // getters
         Window& operator[](const String& name);
         const Window& operator[](const String& name) const;
+        inline Window& get_main() { return operator[](u8"main"); }
+        inline const Window& get_main() const { return operator[](u8"main"); }
     protected:
         WindowsLib() = default;
         virtual ~WindowsLib() = default;
     protected:
         WindowsMap map_{};
+        NativeWindow main_context_{};
     };
 }

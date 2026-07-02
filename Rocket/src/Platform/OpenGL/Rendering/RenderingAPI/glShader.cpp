@@ -117,7 +117,9 @@ namespace rke
         compile_or_get_opengl_spirv(gl_paths);
         create_program();
     }
-    glShader::~glShader() {
+
+    glShader::~glShader()
+    {
         opengl_spirv_.clear();
         vulkan_spirv_.clear();
         glDeleteProgram(renderer_id_);
@@ -202,7 +204,7 @@ namespace rke
                 Path cache_directory{ file::shader_cache_dir() / u8"vulkan" };
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
                 cached_path = cache_directory /
-                    (source.first.filename().string() + u8".cached_vulkan");
+                    (source.first.filename().string() + u8".vulkan.spirv");
             } catch(const std::exception& e)
                 { CORE_ASSERT(false, u8"glShader: Exception '{}'.", e.what()); }
 
@@ -252,7 +254,7 @@ namespace rke
                 original_path = paths.at(stage);
                 Path cache_directory{ file::shader_cache_dir() / u8"opengl" };
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
-                cached_path = cache_directory / (original_path.filename().string() + u8".cached_opengl");
+                cached_path = cache_directory / (original_path.filename().string() + u8".opengl.spirv");
             } catch(std::exception& e)
                 { CORE_ASSERT(false, u8"glShader: Exception '{}'.", e.what()); }
 
