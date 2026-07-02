@@ -27,24 +27,24 @@ file(GLOB_RECURSE ROCKET_HEADERS "include/*.h")
 file(GLOB_RECURSE ROCKET_SOURCES "src/Rocket/*.cpp")
 file(GLOB_RECURSE ROCKET_MODULES "src/Rocket/*.ixx")
 
-file(GLOB_RECURSE ROCKET_BACKENDS_SOURCES "src/Backends/*.cpp")
-file(GLOB_RECURSE ROCKET_BACKENDS_MODULES "src/Backends/*.ixx")
+file(GLOB_RECURSE ROCKET_THIRD_PARTY_SOURCES "src/Backends/Third-party/*.cpp")
+file(GLOB_RECURSE ROCKET_THIRD_PARTY_MODULES "src/Backends/Third-party/*.ixx")
 
 set_source_files_properties (
   ${ROCKET_MODULES}
-  ${ROCKET_BACKENDS_MODULES}
+  ${ROCKET_THIRD_PARTY_MODULES}
   PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 )
 
 target_link_libraries(Rocket
   PRIVATE
-  # Platform(Graphics API)
+  # Graphics API
     glad::glad
     Vulkan::Vulkan
     unofficial::shaderc::shaderc
     spirv-cross-core
     spirv-cross-glsl
-  # Backends
+  # Third-party
     glfw
     box2d::box2d
     yaml-cpp::yaml-cpp
@@ -92,12 +92,12 @@ target_sources(Rocket
     FILE_SET backends_modules
     TYPE CXX_MODULES
     BASE_DIRS src/Backends
-    FILES ${ROCKET_BACKENDS_MODULES}
+    FILES ${ROCKET_THIRD_PARTY_MODULES}
   PRIVATE
     ${IMGUI_SOURCES}
     ${IMGUIZMO_SOURCES}
     ${ROCKET_SOURCES}
-    ${ROCKET_BACKENDS_SOURCES}
+    ${ROCKET_THIRD_PARTY_SOURCES}
 )
 
 target_compile_definitions(Rocket
@@ -109,18 +109,18 @@ target_compile_definitions(Rocket
 )
 
 if(WIN32)
-  file(GLOB_RECURSE ROCKET_OPENGL_SOURCES "src/Platform/OpenGL/*.cpp")
-  file(GLOB_RECURSE ROCKET_OPENGL_MODULES "src/Platform/OpenGL/*.ixx")
-  file(GLOB_RECURSE ROCKET_WINDOWS_SOURCES "src/Platform/Windows/*.cpp")
+  file(GLOB_RECURSE ROCKET_OPENGL_SOURCES "src/Backends/GraphicsAPI/OpenGL/*.cpp")
+  file(GLOB_RECURSE ROCKET_OPENGL_MODULES "src/Backends/GraphicsAPI/OpenGL/*.ixx")
+  file(GLOB_RECURSE ROCKET_WINDOWS_SOURCES "src/Backends/OS/Windows/*.cpp")
 
   set_source_files_properties(${ROCKET_OPENGL_MODULES}
     PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
   target_sources(Rocket
     PRIVATE
-      FILE_SET platform_modules
+      FILE_SET opengl_modules
       TYPE CXX_MODULES
-      BASE_DIRS src/Platform
+      BASE_DIRS src/Backends/GraphicsAPI/OpenGL
       FILES ${ROCKET_OPENGL_MODULES}
     PRIVATE
       ${ROCKET_OPENGL_SOURCES}
