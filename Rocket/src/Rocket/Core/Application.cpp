@@ -16,6 +16,7 @@ namespace rke {
 
     void Application::run()
     {
+        CORE_ASSERT(windows_lib_.main_window_, u8"Application: Main window empty!");
         while(!windows_lib_.empty())
         {
             RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");

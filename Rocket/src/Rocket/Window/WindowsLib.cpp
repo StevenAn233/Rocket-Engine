@@ -21,7 +21,8 @@ namespace rke
     bool WindowsLib::on_window_closed(rke::WindowClosedEvent& e)
     {
         CORE_INFO(e);
-        remove(e.get_window_name());
+        String temp_str{ e.get_window_name() };
+        remove(temp_str);
         return true;
     }
 
@@ -43,7 +44,7 @@ namespace rke
     Window& WindowsLib::load(String name, Scope<Window::Props> props)
     {
         Scope<Window> window{ Window::create(std::move(name),
-            std::move(props), main_context_) };
+            std::move(props), main_window_->get_context()) };
         return add(std::move(window));
     }
 
@@ -51,7 +52,7 @@ namespace rke
     {
         Scope<Window> window{ Window::create
             (u8"main", std::move(props), NativeWindow()) };
-        main_context_ = window->get_context();
+        main_window_ = window.get();
         return add(std::move(window));
     }
 
@@ -67,11 +68,17 @@ namespace rke
         return *(map_.at(name).get());
     }
 
+    void WindowsLib::remove(const String& name)
+    {
+        if(name == u8"main") remove_main();
+        else if(exists(name)) map_[name]->should_close(true);
+    }
+
     void WindowsLib::remove_main()
     {
         for(auto& [_, window] : map_)
             { window->should_close(true); }
-        main_context_ = NativeWindow();
+        main_window_ = nullptr;
     }
 
     Window& WindowsLib::add(Scope<Window> window)

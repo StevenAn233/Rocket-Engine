@@ -37,17 +37,17 @@ export namespace rke
         Window& load(String name, Scope<Window::Props> props);
         Window& load_main(Scope<Window::Props> props);
 
+        void remove(const String& name);
+        void remove_main();
+
         Window& operator[](const String& name);
         const Window& operator[](const String& name) const;
-        inline Window& get_main() { return operator[](u8"main"); }
-        inline const Window& get_main() const { return operator[](u8"main"); }
+        inline Window& get_main() { return *main_window_; }
+        inline const Window& get_main() const { return *main_window_; }
 
         inline Size size () const { return map_.size (); }
         inline bool empty() const { return map_.empty(); }
         inline bool exists(const String& name) const { return map_.contains(name); }
-        inline void remove(const String& name)
-            { if(exists(name)) map_[name]->should_close(true); }
-        void remove_main();
     private:
         WindowsLib(std::function<void(Window&)> callback);
         ~WindowsLib();
@@ -60,7 +60,7 @@ export namespace rke
         Window& add(Scope<Window> window);
     private:
         WindowsMap map_{};
-        NativeWindow main_context_{};
+        Window* main_window_{};
         std::function<void(Window&)> load_callback_;
     };
 }
