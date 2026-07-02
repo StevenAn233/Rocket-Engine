@@ -5,7 +5,7 @@ import :OpenGL;
 
 import Log;
 import HeapManager;
-import RendererAPI;
+import RenderBackend;
 
 namespace rke
 {
@@ -17,18 +17,13 @@ namespace rke
 
     Scope<RenderCommand> RenderCommand::create()
     {
-        switch(RendererAPI::get_graphic_api())
+        switch(RenderBackend::get_graphics_api())
         {
-        case RendererAPI::GraphicAPI::None:
-            CORE_ASSERT(false, u8"Renderer: No graphic api support!");
-            std::unreachable();
-        case RendererAPI::GraphicAPI::OpenGL:
+        case GraphicsAPI::OpenGL:
             return create_scope<glRenderCommand>();
-    //  case GraphicAPI::Vulkan:
-    //  case GraphicAPI::DirectX:
         default:
-            CORE_ASSERT(false, u8"Renderer: Unknown graphic api!");
-            std::unreachable();
+            CORE_ASSERT(false, u8"RenderCommand: Other graphics api(s) not supported!");
         }
+        return nullptr;
     }
 }

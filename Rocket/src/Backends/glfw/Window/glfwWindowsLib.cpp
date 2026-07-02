@@ -15,6 +15,12 @@ namespace {
 
 namespace rke
 {
+    NativeWindow WindowsLib::get_current_context()
+        { return NativeWindow(glfwGetCurrentContext()); }
+
+    void WindowsLib::make_context_current(NativeWindow context)
+        { glfwMakeContextCurrent(context.as<GLFWwindow>()); }
+
     glfwWindowsLib::glfwWindowsLib()
     {
         CORE_ASSERT(glfwInit(), u8"glfw: Failed to initialize GLFW!");
@@ -57,8 +63,6 @@ namespace rke
         return add(std::move(window));
     }
 
-    NativeWindow glfwWindowsLib::get_current_context() const
-        { return NativeWindow(glfwGetCurrentContext()); }
     NativeWindow glfwWindowsLib::get_master_context() const
         { return NativeWindow(master_context_); }
 

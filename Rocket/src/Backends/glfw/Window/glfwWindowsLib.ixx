@@ -14,7 +14,6 @@ namespace rke
         void refresh() override;
 
     // TO REMOVE
-        NativeWindow get_current_context() const override;
         NativeWindow get_master_context () const override;
         void make_master_context_current() override;
     private:

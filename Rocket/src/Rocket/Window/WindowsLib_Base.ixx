@@ -26,10 +26,12 @@ export namespace rke
         WindowsLib(WindowsLib&&) = delete;
         WindowsLib& operator=(WindowsLib&&) = delete;
 
+        static NativeWindow get_current_context();
+        static void make_context_current(NativeWindow context);
+
         virtual void refresh() = 0;
 
     // TO REMOVE
-        virtual NativeWindow get_current_context() const = 0;
         virtual NativeWindow get_master_context () const = 0;
         virtual void make_master_context_current() = 0;
 

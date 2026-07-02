@@ -3,7 +3,7 @@ module Shader;
 import :OpenGL;
 
 import Log;
-import RendererAPI;
+import RenderBackend;
 import FileUtils;
 import ConfigProxy;
 
@@ -33,18 +33,12 @@ namespace rke
         if(reader->has_key(u8"TessEvaluation")) paths[ShaderStage::TessEvaluation] =
             base_dir / file::unify_path(reader->get_at(u8"TessEvaluation", String{}));
         
-        switch(RendererAPI::get_graphic_api())
+        switch(RenderBackend::get_graphics_api())
         {
-        case RendererAPI::GraphicAPI::OpenGL:
+        case GraphicsAPI::OpenGL:
             return create_ref<glShader>(name, paths);
-    //	case RendererAPI::GraphicAPI::Vulkan: ...
-    //	case RendererAPI::GraphicAPI::DirectX: ...
-        case RendererAPI::GraphicAPI::None:
-            CORE_ASSERT(false, u8"Renderer: no graphic api support!");
-            std::unreachable();
         default:
-            CORE_ASSERT(false, u8"Renderer: unknown graphic api!");
-            std::unreachable();
+            CORE_ASSERT(false, u8"Shader: Other graphics api(s) not supported!");
         }
         return nullptr;
     }

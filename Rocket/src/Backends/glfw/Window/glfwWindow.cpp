@@ -11,6 +11,7 @@ import Log;
 import Keys;
 import MouseButtons;
 import RenderCommand;
+import RenderBackend;
 import Instrumentor;
 import FileUtils;
 import Layer;
@@ -184,12 +185,20 @@ namespace rke
         glfwSetWindowPos(context_.as<GLFWwindow>(), props.x_coord, props.y_coord);
         glfwShowWindow(context_.as<GLFWwindow>());
 
-    // set OpenGL context
+    // set OpenGL context(TO REMOVE)
         make_context_current();
-        int succeeded{ gladLoadGLLoader(GLADloadproc(glfwGetProcAddress)) };
-        CORE_ASSERT(succeeded, u8"glad: Failed to initialize GLAD!");
 
-        CORE_INFO(u8R"(glContext: Context created
+        switch(RenderBackend::get_graphics_api())
+        {
+        case GraphicsAPI::OpenGL: {
+            int succeeded{ gladLoadGLLoader(GLADloadproc(glfwGetProcAddress)) };
+            CORE_ASSERT(succeeded, u8"glad: Failed to initialize GLAD!");
+        } break;
+        default:
+            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
+        }
+
+        CORE_INFO(u8R"(OpenGL Context created
      -- OpenGL vendor  : {}
      -- OpenGL renderer: {}
      -- OpenGL version : {})",
@@ -200,6 +209,7 @@ namespace rke
         RenderCommand::enable_blend();
         RenderCommand::disable_srgb(); // manually applied in ToneMapping
         RenderCommand::enable_depth_test();
+    // TO REMOVE
 
     // set window icon(after glfwCreateWindow)
         if(props.icon_path.exists())
@@ -335,12 +345,27 @@ namespace rke
     }
 
     void glfwWindow::make_context_current()
-        { glfwMakeContextCurrent(context_.as<GLFWwindow>()); }
-
-    void glfwWindow::swap_buffers()
     {
-        RKE_PROFILE_FUNCTION();
-        glfwSwapBuffers(context_.as<GLFWwindow>());
+        switch(RenderBackend::get_graphics_api())
+        {
+        case GraphicsAPI::OpenGL:
+            glfwMakeContextCurrent(context_.as<GLFWwindow>());
+            break;
+        default:
+            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
+        }
+    }
+
+    void glfwWindow::swap_buffers() // OpenGL only
+    {
+        switch(RenderBackend::get_graphics_api())
+        {
+        case GraphicsAPI::OpenGL:
+            glfwSwapBuffers(context_.as<GLFWwindow>());
+            break;
+        default:
+            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
+        }
     }
 
     std::pair<int, int> glfwWindow::get_window_pos() const
@@ -350,21 +375,28 @@ namespace rke
         return { x, y };
     }
 
-    void glfwWindow::update_vsync()
+    void glfwWindow::update_vsync() // OpenGL only
     {
-        make_context_current();
-        if(data_.vsync_extent > 1.0f)
+        switch(RenderBackend::get_graphics_api())
         {
-            CORE_WARN(u8"glfwWindow: V-sync extent can only be between 0.0 to 1.0.");
-            CORE_INFO(u8"glfwWindow: V-sync already set to 1.0(on).");
-            glfwSwapInterval(1);
-            data_.vsync_extent = 1.0f;
+        case GraphicsAPI::OpenGL:
+            make_context_current();
+            if(data_.vsync_extent > 1.0f)
+            {
+                CORE_WARN(u8"glfwWindow: V-sync extent can only be between 0.0 to 1.0.");
+                CORE_INFO(u8"glfwWindow: V-sync already set to 1.0(on).");
+                glfwSwapInterval(1);
+                data_.vsync_extent = 1.0f;
+            }
+            else if(std::abs(data_.vsync_extent) < 0.0001f)
+            {
+                glfwSwapInterval(0);
+                data_.vsync_extent = 0.0f;
+            }
+            else glfwSwapInterval(static_cast<int>(1.0f / data_.vsync_extent) + 0.5f);
+            break;
+        default:
+            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
         }
-        else if(std::abs(data_.vsync_extent) < 0.0001f)
-        {
-            glfwSwapInterval(0);
-            data_.vsync_extent = 0.0f;
-        }
-        else glfwSwapInterval(static_cast<int>(1.0f / data_.vsync_extent) + 0.5f);
     }
 }

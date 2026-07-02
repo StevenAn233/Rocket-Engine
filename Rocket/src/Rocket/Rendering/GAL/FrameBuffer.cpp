@@ -2,7 +2,7 @@
 module FrameBuffer;
 import :OpenGL;
 
-import RendererAPI;
+import RenderBackend;
 import HeapManager;
 import Log;
 
@@ -10,18 +10,13 @@ namespace rke
 {
     Ref<FrameBuffer> FrameBuffer::create(FrameBuffer::Specification spec)
     {
-        switch(RendererAPI::get_graphic_api())
+        switch(RenderBackend::get_graphics_api())
         {
-        case RendererAPI::GraphicAPI::None:
-            CORE_ASSERT(false, u8"Renderer: no graphic api support!");
-            std::unreachable();
-        case RendererAPI::GraphicAPI::OpenGL:
+        case GraphicsAPI::OpenGL:
             return create_ref<glFrameBuffer>(spec);
-        //case GraphicAPI::Vulkan:
-        //case GraphicAPI::DirectX:
         default:
-            CORE_ASSERT(false, u8"Renderer: unknown graphic api!");
-            std::unreachable();
+            CORE_ASSERT(false, u8"FrameBuffer: Other graphics api(s) not supported!");
         }
+        return nullptr;
     }
 }
