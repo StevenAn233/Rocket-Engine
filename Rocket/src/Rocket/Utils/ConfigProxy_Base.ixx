@@ -55,21 +55,21 @@ export namespace rke
 
         using MapCallback = std::function<void(String, Scope<ConfigReader>)>;
         using SeqCallback = std::function<void(Scope<ConfigReader>)>;
-        virtual void for_each_map(const MapCallback& callback) const = 0;
-        virtual void for_each_arr(const SeqCallback& callback) const = 0;
+        virtual void for_each(const MapCallback& callback) const = 0;
+        virtual void for_each(const SeqCallback& callback) const = 0;
 
         template<typename T>
-        T get_at(StringView key, T def) const { return std::get<T>(read(key, ConfigValue(def))); }
+        T get_at(StringView key, T ref) const { return std::get<T>(read(key, ConfigValue(ref))); }
         template<typename T>
-        T get_at(Size index, T def) const { return std::get<T>(read(index, ConfigValue(def))); }
+        T get_at(Size index, T ref) const { return std::get<T>(read(index, ConfigValue(ref))); }
         template<typename T>
-        T as(T def) const { return std::get<T>(read_this(ConfigValue(def))); }
+        T as(T ref) const { return std::get<T>(read_this(ConfigValue(ref))); }
 
         static Scope<ConfigReader> create(const Path& path);
     protected:
-        virtual ConfigValue read(StringView key, const ConfigValue& def) const = 0;
-        virtual ConfigValue read(Size index, const ConfigValue& def) const = 0;
-        virtual ConfigValue read_this(const ConfigValue& def) const = 0;
+        virtual ConfigValue read(StringView key, const ConfigValue& ref) const = 0;
+        virtual ConfigValue read(Size index, const ConfigValue& ref) const = 0;
+        virtual ConfigValue read_this(const ConfigValue& ref) const = 0;
     };
 
     class RKE_API ConfigDocument
@@ -81,21 +81,31 @@ export namespace rke
         virtual bool is_map() const = 0;
         virtual bool is_array() const = 0;
 
-        // only for arrays
-        virtual void push_back(const ConfigValue& value) = 0;
-        virtual Scope<ConfigDocument> push_map() = 0;
-        virtual Scope<ConfigDocument> push_array() = 0;
-        virtual void set(Size index, const ConfigValue& value) = 0;
+        /* array */ virtual void push_back(const ConfigValue& value) = 0;
+        /* array */ virtual Scope<ConfigDocument> push_map() = 0;
+        /* array */ virtual Scope<ConfigDocument> push_array() = 0;
+        /* array */ virtual void set(Size index, const ConfigValue& value) = 0;
+        /* array */ virtual Scope<ConfigDocument> get_child(Size index) = 0;
 
-        virtual void write(StringView key, const ConfigValue& value) = 0;
-
-        virtual Scope<ConfigDocument> get_child(StringView key) = 0;
-        virtual Scope<ConfigDocument> get_child(Size index) = 0;
-
+        // will create a map if doesn't exist
+        /* map */ virtual Scope<ConfigDocument> get_child(StringView key) = 0;
+        /* map */ virtual void write(StringView key, const ConfigValue& value) = 0;
+        
         virtual void push_to_file(const Path& path) = 0;
+
+        template<typename T>
+        T get_at(StringView key, T ref) const { return std::get<T>(read(key, ConfigValue(ref))); }
+        template<typename T>
+        T get_at(Size index, T ref) const { return std::get<T>(read(index, ConfigValue(ref))); }
+        template<typename T>
+        T as(T ref) const { return std::get<T>(read_this(ConfigValue(ref))); }
 
         static Scope<ConfigDocument> create(const Path& path);
         static Scope<ConfigDocument> create_map();
         static Scope<ConfigDocument> create_array();
+    protected:
+        virtual ConfigValue read(StringView key, const ConfigValue& ref) const = 0;
+        virtual ConfigValue read(Size index, const ConfigValue& ref) const = 0;
+        virtual ConfigValue read_this(const ConfigValue& ref) const = 0;
     };
 }

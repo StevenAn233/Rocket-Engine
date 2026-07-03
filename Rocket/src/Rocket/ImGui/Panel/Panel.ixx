@@ -16,18 +16,27 @@ export namespace rke
 
         virtual ~Panel() = default;
 
-        virtual void on_imgui_render() = 0;
-        inline void render() { if(on()) on_imgui_render(); }
+        virtual void on_imgui_render() { refresh_state(); }
 
         inline const String& get_name() const { return name_; }
         inline bool on() const { return on_; }
+        inline bool hidden() const { return hidden_; }
 
-        inline void turn_on () { on_ = true;  }
-        inline void turn_off() { on_ = false; }
+        inline void hide() { hidden_ = true;  }
+        inline void show() { hidden_ = false; }
+
+        bool is_hovered() const { return is_hovered_; }
+        bool is_focused() const { return is_focused_; }
     protected:
         Panel(String name) : name_(std::move(name)) {}
     private:
+        inline void render() { if(on_ && !hidden_) on_imgui_render(); }
+        void refresh_state();
+    private:
         String name_;
         bool on_{ true };
+        bool hidden_{ false };
+        bool is_hovered_{ false };
+        bool is_focused_{ false };
     };
 }

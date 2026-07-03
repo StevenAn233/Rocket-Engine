@@ -11,7 +11,7 @@ import FileUtils;
 namespace {
     using namespace rke;
 
-    static ConfigValue read_impl(const YAML::Node& nd, const ConfigValue& def)
+    static ConfigValue read_impl(const YAML::Node& nd, const ConfigValue& ref)
     {
         return std::visit([&nd]<typename T>(T&& val)-> ConfigValue
         {
@@ -21,7 +21,7 @@ namespace {
                 CORE_ERROR(u8"YamlConfigReader: {}!", e.what());
                 return ConfigValue(val);
             }
-        }, def);
+        }, ref);
     }
 }
 
@@ -210,6 +210,7 @@ namespace rke
         YAML::Node sub_node{ node_[name.raw_unsafe()] };
         return sub_node ? create_scope<YamlConfigReader>(sub_node) : nullptr;
     }
+
     Scope<ConfigReader> YamlConfigReader::get_child(Size index) const
     {
         if(!is_array()) {
@@ -222,50 +223,48 @@ namespace rke
         return nullptr;
     }
 
-    void YamlConfigReader::for_each_map(const MapCallback& callback) const
+    void YamlConfigReader::for_each(const MapCallback& callback) const
     {
-        if(!node_.IsMap() || !callback) {
-            CORE_ERROR(u8"YamlConfigReader: Not a map or callback null!");
-            return;
-        }
-        for(auto it{ node_.begin() }; it != node_.end(); ++it) {
+        if(!node_.IsMap())
+            { CORE_ERROR(u8"YamlConfigReader: Not a map!"); return; }
+        for(auto it{ node_.begin() }; it != node_.end(); ++it)
+        {
             String key_str{ it->first.as<String>() };
-            callback(std::move(key_str), create_scope<YamlConfigReader>(it->second));
+            std::invoke(callback, std::move(key_str),
+                        create_scope<YamlConfigReader>(it->second));
         }
     }
 
-    void YamlConfigReader::for_each_arr(const SeqCallback& callback) const
+    void YamlConfigReader::for_each(const SeqCallback& callback) const
     {
-        if(!node_.IsSequence() || !callback) {
-            CORE_ERROR(u8"YamlConfigReader: Not an array or callback null!");
-            return;
-        }
+        if(!node_.IsSequence())
+            { CORE_ERROR(u8"YamlConfigReader: Not an array!"); return; }
         for(Size i{}; i < node_.size(); ++i)
-            callback(create_scope<YamlConfigReader>(node_[i]));
+            std::invoke(callback, create_scope<YamlConfigReader>(node_[i]));
     }
 
-    ConfigValue YamlConfigReader::read(StringView key, const ConfigValue& def) const
+    ConfigValue YamlConfigReader::read(StringView key, const ConfigValue& ref) const
     {
         YAML::Node sub_node{ node_[key.raw_unsafe()] };
         if(!sub_node) {
             CORE_ERROR(u8"YamlConfigReader: Got nothing from key '{}'!", key);
-            return ConfigValue(def);
+            return ConfigValue(ref);
         }
-        return read_impl(sub_node, def);
+        return read_impl(sub_node, ref);
     }
 
-    ConfigValue YamlConfigReader::read(Size index, const ConfigValue& def) const
+    ConfigValue YamlConfigReader::read(Size index, const ConfigValue& ref) const
     {
         if(index >= node_.size()) {
             CORE_ERROR(u8"YamlConfigReader: Out of bound!");
-            return ConfigValue(def);
+            return ConfigValue(ref);
         }
         YAML::Node sub_node{ node_[index] };
-        return sub_node ? read_impl(sub_node, def) : ConfigValue(def);
+        return sub_node ? read_impl(sub_node, ref) : ConfigValue(ref);
     }
 
-    ConfigValue YamlConfigReader::read_this(const ConfigValue& def) const
-        { return read_impl(node_, def); }
+    ConfigValue YamlConfigReader::read_this(const ConfigValue& ref) const
+        { return read_impl(node_, ref); }
 
 // YamlConfigDucument
     YamlConfigDocument::YamlConfigDocument(const Path& path)
@@ -348,7 +347,6 @@ namespace rke
         }
         return create_scope<YamlConfigDocument>(node_[key.raw_unsafe()]);
     }
-    // will create a node(pair) if doesn't exist
 
     Scope<ConfigDocument> YamlConfigDocument::get_child(Size index)
     {
@@ -367,4 +365,27 @@ namespace rke
         YAML::Emitter out{}; out << node_;
         file::write_file_string(path, out.c_str());
     }
+
+    ConfigValue YamlConfigDocument::read(StringView key, const ConfigValue& ref) const
+    {
+        YAML::Node sub_node{ node_[key.raw_unsafe()] };
+        if(!sub_node) {
+            CORE_ERROR(u8"YamlConfigReader: Got nothing from key '{}'!", key);
+            return ConfigValue(ref);
+        }
+        return read_impl(sub_node, ref);
+    }
+
+    ConfigValue YamlConfigDocument::read(Size index, const ConfigValue& ref) const
+    {
+        if(index >= node_.size()) {
+            CORE_ERROR(u8"YamlConfigReader: Out of bound!");
+            return ConfigValue(ref);
+        }
+        YAML::Node sub_node{ node_[index] };
+        return sub_node ? read_impl(sub_node, ref) : ConfigValue(ref);
+    }
+
+    ConfigValue YamlConfigDocument::read_this(const ConfigValue& ref) const
+        { return read_impl(node_, ref); }
 }

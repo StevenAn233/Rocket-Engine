@@ -6,7 +6,8 @@ import Layer;
 
 namespace rke
 {
-    LayerStack::~LayerStack() { for(auto& layer : layers_) layer->on_detach(); }
+    LayerStack::~LayerStack()
+        { while(!layers_.empty()) pop_back(); }
 
     void LayerStack::push_layer(Scope<Layer> layer)
     {
@@ -16,23 +17,6 @@ namespace rke
         insert_index_++;
     }
 
-    Scope<Layer> LayerStack::pop_layer(Layer* layer)
-    {
-        auto central{ layers_.begin() + insert_index_ };
-        auto it{ std::find_if(layers_.begin(), central,
-            [layer](const Scope<Layer>& item) { return item.get() == layer; }) };
-        if(it != central /* Layer is found */)
-        {
-            it->get()->on_detach();
-            Scope<Layer> temp{ std::move(*it) };
-            layers_.erase(it);
-            insert_index_--;
-            return temp;
-        }
-        else CORE_WARN(u8"LayerStack: Layer not found!");
-        return nullptr;
-    }
-
     void LayerStack::push_overlay(Scope<Layer> overlay)
     {
         overlay->on_attach();
@@ -40,19 +24,36 @@ namespace rke
         layers_.push_back(std::move(overlay));
     }
 
-    Scope<Layer> LayerStack::pop_overlay(Layer* overlay)
+    Scope<Layer> LayerStack::pop_layer()
     {
-        auto central{ layers_.begin() + insert_index_ };
-        auto it{ std::find_if(central, layers_.end(),
-            [overlay](const Scope<Layer>& item) { return item.get() == overlay; }) };
-        if(it != layers_.end() /* Overlay is found */)
-        {
-            it->get()->on_detach();
-            Scope<Layer> temp{ std::move(*it) };
-            layers_.erase(it);
-            return temp;
+        if(!insert_index_) {
+            CORE_ERROR(u8"LayerStack: Layers empty!");
+            return nullptr;
         }
-        else CORE_WARN(u8"LayerStack: overlay not found!");
-        return nullptr;
+        auto it{ layers_.end() + insert_index_ - 1 };
+        it->get()->on_detach();
+        Scope<Layer> temp{ std::move(*it) };
+        layers_.erase(it);
+        return temp;
     }
+
+    Scope<Layer> LayerStack::pop_overlay()
+    {
+        if(size() == insert_index_) {
+            CORE_ERROR(u8"LayerStack: OverLays empty!");
+            return nullptr;
+        }
+        return pop_back();
+    }
+
+    Scope<Layer> LayerStack::pop_back()
+    {
+        auto it{ layers_.end() - 1 };
+        it->get()->on_detach();
+        Scope<Layer> temp{ std::move(*it) };
+        layers_.erase(it);
+        return temp;
+    }
+
+    Layer& LayerStack::back() { return *(layers_.back().get()); }
 }

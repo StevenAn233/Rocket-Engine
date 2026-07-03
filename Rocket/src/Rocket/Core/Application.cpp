@@ -10,14 +10,33 @@ import Renderer2D;
 import EventDispatcher;
 import PlatformSupport;
 import FileUtils;
+import Layer;
+import DockSpaceLayer;
+import HeapManager;
 
-namespace rke {
+import ImGuiLayer;
+
+namespace rke
+{
     Application::Application() : windows_lib_(on_window_loaded) {}
+
+    void Application::init()
+    {
+        windows_lib_.on_attach();
+        Window& main_window{ windows_lib_.get_main() };
+        imgui::init(main_window.get_context());
+        DockSpaceLayer* ptr = new DockSpaceLayer
+        {
+            u8"Dockspace Layer", windows_lib_.main_window_,
+            file::editor_dir() / u8"settings" / u8"dockspace.yaml"
+        };
+        main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ptr)));
+        get_dockspace().get_panel_registry().register_panel({ &panel_ });
+    }
 
     void Application::run()
     {
-        CORE_ASSERT(windows_lib_.main_window_, u8"Application: Main window empty!");
-        while(!windows_lib_.empty())
+        while(windows_lib_.valid())
         {
             RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");
 
@@ -31,19 +50,37 @@ namespace rke {
         }
     }
 
+    void Application::shutdown()
+    {
+        imgui::shutdown();
+        windows_lib_.on_detach();
+    }
+
     void Application::send_event(Event& e) { windows_lib_.on_event(e); }
+
+    DockSpace& Application::get_dockspace()
+    {
+        return static_cast<DockSpaceLayer&>
+            (windows_lib_.get_main().layer_stack_.back())
+        .dockspace_;
+    }
 
     void Application::on_window_loaded(Window& window)
         { Renderer2D::register_context(window.get_context()); }
 }
 
-namespace {
-    using namespace rke;
-    static Scope<Application> s_instance{};
-}
-
 namespace rke
 {
+    static Scope<Application> s_instance{};
+
+    static void register_instance(Scope<Application> instance)
+    {
+        CORE_ASSERT(!s_instance, u8"Rocket: Instance already existed!");
+        s_instance = std::move(instance);
+    }
+
+    static void unregister_instance() { s_instance.reset(); }
+
     Application& app()
     {
         CORE_ASSERT(s_instance, u8"Rocket: Instance haven't been created!");
@@ -52,8 +89,7 @@ namespace rke
 
     void execute(Scope<Application> instance)
     {
-        CORE_ASSERT(!s_instance, u8"Rocket: Instance already existed!");
-        s_instance = std::move(instance);
+        register_instance(std::move(instance));
 
         Project::init_file_templates(file::assets_dir() / u8"proj-templates");
         DeltaTime::update();
@@ -62,10 +98,13 @@ namespace rke
         PlatformSupport::init();
         Renderer2D::init();
 
-        s_instance->run();
+        app().init();
+        app().run();
+        app().shutdown();
 
         Renderer2D::shutdown();
         PlatformSupport::shutdown();
-        s_instance.reset();
+
+        unregister_instance();
     }
 }

@@ -49,12 +49,6 @@ namespace rke
         for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
             it->get()->on_render();
     }
-
-    void Window::on_imgui_render()
-    {
-        for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
-            it->get()->on_imgui_render();
-    }
 }
 
 #ifdef RKE_DEPENDENCY_GLFW

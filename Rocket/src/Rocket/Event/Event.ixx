@@ -32,7 +32,7 @@ export namespace rke
     {
     public:
         friend class EventDispatcher;
-        friend class ImGuiLayer;
+        friend class DockSpaceLayer;
 
         static consteval uint64 gen_type_id(const char8* c_str)
         {

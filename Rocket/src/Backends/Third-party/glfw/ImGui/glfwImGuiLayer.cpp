@@ -12,45 +12,11 @@ import Log;
 import String;
 import FileUtils;
 import ImGuiStyle;
-import Window;
 import ConfigProxy;
 
 namespace {
     using namespace rke;
     static inline ImGuiIO& io() { return ImGui::GetIO(); }
-}
-
-namespace rke
-{
-    void ImGuiLayer::on_event(Event& e)
-    {
-        if(!valid_) return;
-        if(e.belongs_to(EventCategoryMouse))
-            e.handled_ |= should_block_mouse();
-        if(e.belongs_to(EventCategoryKeyboard))
-            e.handled_ |= should_block_keyboard();
-    }
-
-    void ImGuiLayer::on_attach() { valid_ = true;  }
-    void ImGuiLayer::on_detach() { valid_ = false; }
-
-    bool ImGuiLayer::should_block_mouse()
-    {
-        if(!valid_) return false;
-        if(main_viewport_hovered_) return false;
-        return io().WantCaptureMouse;
-    }
-
-    bool ImGuiLayer::should_block_keyboard()
-    {
-        if(!valid_) return false;
-        if(io().WantTextInput) return true;
-        if(main_viewport_focused_) return false;
-        return io().WantCaptureKeyboard;
-    }
-
-    void ImGuiLayer::begin_render() const {}
-    void ImGuiLayer::end_render() const {}
 }
 
 namespace rke::imgui
@@ -63,7 +29,7 @@ namespace rke::imgui
         return s_ini_path;
     }
 
-    void init(Window* window)
+    void init(NativeWindow context)
     {
     // Setup ImGui context
         IMGUI_CHECKVERSION();
@@ -115,8 +81,8 @@ namespace rke::imgui
         io().ConfigDpiScaleViewports = true;
 
     // Setup platform/renderer backends
-        ImGui_ImplGlfw_InitForOpenGL(std::bit_cast
-            <GLFWwindow*>(window->get_context().get()), true);
+        ImGui_ImplGlfw_InitForOpenGL
+            (reinterpret_cast<GLFWwindow*>(context.get()), true);
         ImGui_ImplOpenGL3_Init("#version 430 core");
     }
 

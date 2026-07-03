@@ -21,8 +21,8 @@ namespace rke
     bool WindowsLib::on_window_closed(rke::WindowClosedEvent& e)
     {
         CORE_INFO(e);
-        String temp_str{ e.get_window_name() };
-        remove(temp_str);
+        String name{ e.get_window_name() };
+        remove(name);
         return true;
     }
 
@@ -35,14 +35,12 @@ namespace rke
     void WindowsLib::render_all()
     {
         for(auto& [_, window] : map_)
-        {
             window->on_render();
-            window->on_imgui_render();
-        }
     }
 
     Window& WindowsLib::load(String name, Scope<Window::Props> props)
     {
+        CORE_ASSERT(main_window_, u8"WindowsLib: Main window empty!");
         Scope<Window> window{ Window::create(std::move(name),
             std::move(props), main_window_->get_context()) };
         return add(std::move(window));
@@ -54,18 +52,6 @@ namespace rke
             (u8"main", std::move(props), NativeWindow()) };
         main_window_ = window.get();
         return add(std::move(window));
-    }
-
-    Window& WindowsLib::operator[](const String& name)
-    {
-        CORE_ASSERT(exists(name), u8"WindowsLib: Window '{}' not found!", name);
-        return *(map_.at(name).get());
-    }
-
-    const Window& WindowsLib::operator[](const String& name) const
-    {
-        CORE_ASSERT(exists(name), u8"WindowsLib: Window '{}' not found!", name);
-        return *(map_.at(name).get());
     }
 
     void WindowsLib::remove(const String& name)
@@ -81,6 +67,18 @@ namespace rke
         main_window_ = nullptr;
     }
 
+    Window& WindowsLib::operator[](const String& name)
+    {
+        CORE_ASSERT(exists(name), u8"WindowsLib: Window '{}' not found!", name);
+        return *(map_.at(name).get());
+    }
+
+    const Window& WindowsLib::operator[](const String& name) const
+    {
+        CORE_ASSERT(exists(name), u8"WindowsLib: Window '{}' not found!", name);
+        return *(map_.at(name).get());
+    }
+
     Window& WindowsLib::add(Scope<Window> window)
     {
         if(load_callback_) {
@@ -91,5 +89,15 @@ namespace rke
         CORE_ASSERT(!exists(name), u8"WindowsLib: Name already exists!");
         map_.emplace(name, std::move(window));
         return (*this)[name];
+    }
+
+    void WindowsLib::on_attach()
+    {
+        CORE_ASSERT(main_window_, u8"Application: Main window empty!");
+    }
+
+    void WindowsLib::on_detach()
+    {
+        map_.clear();
     }
 }

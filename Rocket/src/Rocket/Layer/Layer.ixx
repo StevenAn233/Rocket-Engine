@@ -23,21 +23,18 @@ export namespace rke
             : debug_name_(std::move(name)), owner_(owner) {}
         Layer(const Layer&) = delete;
         Layer(Layer&&) = delete;
-        virtual ~Layer() {}
+        virtual ~Layer() = default;
 
         virtual void on_attach() {};
         virtual void on_detach() {};
 
         virtual void on_update(float dt);
-
+        virtual void on_event(Event& e);
         virtual void on_render() {}
-        virtual void on_imgui_render() {}
 
         virtual bool should_block_mouse() { return false; }
         virtual bool should_block_keyboard() { return false; }
         // depends on THIS layer
-
-        virtual void on_event(Event& e);
 
         inline StringView get_debug_name() const { return debug_name_; }
         const String& get_owner_name();
@@ -52,7 +49,7 @@ export namespace rke
         virtual bool on_mouse_scrolled(MouseScrolledEvent& e) { return should_block_mouse(); }
         virtual bool on_viewport_resized(ViewportResizedEvent& e) { return false; } // do not block
     protected:
-        void* owner_{};
+        void* owner_;
         String debug_name_;
         Size layer_index_{};
     };

@@ -9,8 +9,6 @@ namespace rke
 {
     void EditorLayer::on_attach()
     {
-        imgui::init(get_owner());
-
         Scene::set_on_entity_selected([this](Entity entity)
             { editor_setting_panel_.get_selected()->set_target(entity); });
 
@@ -35,35 +33,6 @@ namespace rke
                 UUID id{ reader->get_at(u8"Cam Demo Target", 0ui64) };
                 cam_renderer_.set_cam_demo_target(scene->get_entity(id));
             } else cam_renderer_.set_cam_demo_target({});
-        });
-
-    // DockSpace
-        dockspace_.load_from(file::editor_dir() / u8"settings" / u8"dockspace.yaml");
-        dockspace_.set_menubar_callback([this]()
-        {
-            if(ImGui::BeginMenu("Window")) {
-                if(ImGui::MenuItem("Close", "Alt+F4"))
-                    app().get_windows_lib().remove_main();
-                ImGui::EndMenu();
-            }
-            if(ImGui::BeginMenu("Project")) {
-                bool is_play{ scene_state_ == SceneState::Play };
-                bool no_project{ !Project::get_active_project() };
-                if(ImGui::MenuItem("New Project..." , "Ctrl+N", false, !is_play)) new_project();
-                if(ImGui::MenuItem("Open Project...", "Ctrl+O", false, !is_play)) open_project(get_owner());
-                if(ImGui::MenuItem("Save Project", "Ctrl+S", false, !is_play && !no_project)) save_project();
-                if(ImGui::MenuItem("Reload scripts...", nullptr, false, !is_play))
-                {
-                    auto project{ Project::get_active_project() };
-                    project->scripts_hot_reloading();
-                    update_current_scene(project->get_active_scene());  
-                };
-                ImGui::EndMenu();
-            }
-            if(ImGui::BeginMenu("Panels")) {
-                panel_registry_.render_switches_menubar();
-                ImGui::EndMenu();
-            }
         });
 
     // Post-Processing Effects
@@ -126,9 +95,6 @@ namespace rke
     // Viewports
         main_viewport_.set_in_viewport_callback([this](Viewport* self)
         {
-            app().get_imgui_layer()->set_main_viewport_hovered(self->is_hovered());
-            app().get_imgui_layer()->set_main_viewport_focused(self->is_focused());
-        
             if(current_scene_ && self->is_focused() && editing())
             {
                 Gizmo::on_render (
@@ -168,16 +134,16 @@ namespace rke
         });
 
     // PanelRegistry
-        panel_registry_.push({ .handle = &application_panel_ });
-        panel_registry_.push({ .handle = &window_setting_panel_});
-        panel_registry_.push({ .handle = &editor_setting_panel_ });
-        panel_registry_.push({ .handle = &scene_hierarchy_panel_ });
-        panel_registry_.push({ .handle = &content_browser_panel_ });
-        panel_registry_.push({ .handle = &project_setting_panel_ });
-        panel_registry_.push({ .handle = &main_viewport_, .with_switch = false });
-        panel_registry_.push({ .handle = &cam_viewport_ , .with_switch = true,
-            .cond_callback = [this]() { return scene_state_ == SceneState::Edit; } });
-        panel_registry_.push({ .handle = &toolbar_, .with_switch = false });
+        auto& reg{ app().get_dockspace().get_panel_registry() };
+        reg.register_panel({ .handle = &window_setting_panel_});
+        reg.register_panel({ .handle = &editor_setting_panel_ });
+        reg.register_panel({ .handle = &scene_hierarchy_panel_ });
+        reg.register_panel({ .handle = &content_browser_panel_ });
+        reg.register_panel({ .handle = &project_setting_panel_ });
+        reg.register_panel({ .handle = &main_viewport_, .always_on = true,
+            .block_when_hovered = true, .block_when_focused = true });
+        reg.register_panel({ .handle = &cam_viewport_ });
+        reg.register_panel({ .handle = &toolbar_, .always_on = true });
 
     // Modal(s)
         project_creating_modal_.set_project_created_callback
@@ -196,13 +162,9 @@ namespace rke
         if(playing()) on_runtime_stop();
         update_current_scene(nullptr);
 
-        panel_registry_.pop(9);
-
         if(Project::get_active_project())
             Project::get_active_project()->clear_active_scene();
         Project::clear_active();
-
-        imgui::shutdown();
     }
 
     void EditorLayer::on_update(float dt)
@@ -313,23 +275,15 @@ namespace rke
             set_render_target(cam_output_ ->get_renderer_id());
     }
 
-    void EditorLayer::on_imgui_render()
-    {
-        RKE_PROFILE_FUNCTION();
-
-        imgui::begin_render();
-
-        dockspace_.on_imgui_render();
-        panel_registry_.render_all();
-        if(to_create_new_proj_)
-        {
-            project_creating_modal_.popup();
-            to_create_new_proj_ = false;
-        }
-        project_creating_modal_.on_render(get_owner());
-
-        imgui::end_render();
-    }
+//  void EditorLayer::on_imgui_render()
+//  {
+//      if(to_create_new_proj_)
+//      {
+//          project_creating_modal_.popup();
+//          to_create_new_proj_ = false;
+//      }
+//      project_creating_modal_.on_render(get_owner());
+//  }
 
     void EditorLayer::on_runtime_start()
     {
@@ -349,6 +303,7 @@ namespace rke
         current_scene_->on_runtime_start();
 
         scene_state_ = SceneState::Play;
+        cam_viewport_.hide();
     }
 
     void EditorLayer::on_runtime_stop()
@@ -360,6 +315,7 @@ namespace rke
             return;
         }
         scene_state_ = SceneState::Edit;
+        cam_viewport_.show();
 
         UUID last_selected{ current_scene_->get_selected_entity().get_uuid() };
         current_scene_->on_runtime_stop();

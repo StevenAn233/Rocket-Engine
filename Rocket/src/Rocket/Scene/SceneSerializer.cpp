@@ -253,7 +253,7 @@ namespace rke
         }
         // When you traverse a Sequence, each time you get a Node.
         // When you traverse a Map, each time you get a pair<Node, Node>.
-        entities->for_each_arr([this](Scope<ConfigReader> entity)
+        entities->for_each([this](Scope<ConfigReader> entity)
             { deserialize_entity(entity.get(), scene_.get()); });
 
         if(reader->has_key(u8"Selected Entity")) {

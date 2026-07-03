@@ -13,7 +13,8 @@ import Event;
 import ApplicationEvent;
 import Font;
 import HeapManager;
-import ImGuiLayer;
+import ApplicationPanel;
+import DockSpace;
 
 export namespace rke
 {
@@ -27,22 +28,22 @@ export namespace rke
         Application(Application&&) = delete;
         Application& operator=(Application&&) = delete;
 
+        virtual void init();
+        virtual void shutdown();
         void run();
+        
         void send_event(Event& e);
 
         WindowsLib& get_windows_lib() { return windows_lib_; }
-    // TO REMOVE
-        inline ImGuiLayer* get_imgui_layer() { return imgui_layer_; }
+        DockSpace& get_dockspace();
     protected:
         Application();
         virtual ~Application() {};
-    protected:
-    // TO REMOVE
-        ImGuiLayer* imgui_layer_{};
     private:
         static void on_window_loaded(Window& window);
     private:
         WindowsLib windows_lib_;
+        ApplicationPanel panel_{ u8"Application" };
     };
 
     RKE_API Application& app();

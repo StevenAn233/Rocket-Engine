@@ -8,15 +8,13 @@ namespace rke
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::Begin(get_name().raw());
 
+        Panel::on_imgui_render();
     // MUST be between viewport begin/end
         viewport_size_ = ImGui::GetContentRegionAvail();
 
         viewport_mouse_.x = ImGui::GetMousePos().x - ImGui::GetWindowPos().x;
         viewport_mouse_.y = viewport_size_.y
             - (ImGui::GetMousePos().y - ImGui::GetWindowPos().y);
-
-        is_hovered_ = ImGui::IsWindowHovered();
-        is_focused_ = ImGui::IsWindowFocused();
     // ---
 
         if(render_target_id_) {

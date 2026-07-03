@@ -20,12 +20,13 @@ export namespace rke
         LayerStack& operator=(const LayerStack&) = delete;
         ~LayerStack();
 
-        void push_layer(Scope<Layer> layer);      // put layer to the first-half
-        Scope<Layer> pop_layer(Layer* layer);     // pop specified first-half-layer
-        void push_overlay(Scope<Layer> overlay);  // put layer to the second-half
-        Scope<Layer> pop_overlay(Layer* overlay); // pop specified second-half-layer
+        void push_layer(Scope<Layer> layer);     // put layer to the first-half
+        void push_overlay(Scope<Layer> overlay); // put layer to the second-half
+        Scope<Layer> pop_layer();   // pop specified first-half-layer
+        Scope<Layer> pop_overlay(); // pop specified second-half-layer
+        Scope<Layer> pop_back();
 
-        inline Layer& top_most() { return *(layers_.back().get()); }
+        Layer& back();
 
         inline std::vector<Scope<Layer>>::iterator begin() { return layers_.begin(); }
         inline std::vector<Scope<Layer>>::iterator end() { return layers_.end(); }
@@ -39,7 +40,9 @@ export namespace rke
 
         Size size() const { return layers_.size(); }
     private:
+        
+    private:
         std::vector<Scope<Layer>> layers_{};
-        uint32 insert_index_{};
+        Size insert_index_{};
     };
 }

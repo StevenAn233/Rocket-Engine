@@ -158,7 +158,7 @@ namespace rke
                 if(sub_assets_reader && sub_assets_reader->is_array())
                 {
                     std::vector<AssetUUID>& sub_uuids{ s_asset_families[uuid] };
-                    sub_assets_reader->for_each_arr([&](Scope<ConfigReader> sub_asset)
+                    sub_assets_reader->for_each([&](Scope<ConfigReader> sub_asset)
                     {
                         AssetUUID sub_uuid{ sub_asset->get_at(u8"UUID", 0ui64) };
                         if(sub_uuid.empty()) return;

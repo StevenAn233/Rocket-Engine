@@ -21,22 +21,17 @@ export namespace rke
             if(!on()) return glm::vec2(0.0f);
             return glm::vec2(viewport_size_.x, viewport_size_.y);
         }
+
         inline glm::vec2 get_viewport_mouse()
         {
             if(!on()) return glm::vec2(0.0f);
             return glm::vec2(viewport_mouse_.x, viewport_mouse_.y);
         }
-
-        bool is_hovered() const { return is_hovered_; }
-        bool is_focused() const { return is_focused_; }
     private:
         uint32 render_target_id_{};
 
         ImVec2 viewport_size_ { 0.0f, 0.0f };
         ImVec2 viewport_mouse_{ 0.0f, 0.0f };
-
-        bool is_hovered_{ false };
-        bool is_focused_{ false };
 
         std::function<void(Viewport*)> in_viewport_callback_{};
     };

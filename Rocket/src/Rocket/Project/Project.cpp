@@ -283,17 +283,16 @@ namespace rke
             CORE_ERROR(u8"Project: 'Config' not found in '{}'!", path);
         else {
             Scope<ConfigReader> layers{ config_reader->get_child(u8"Physics Layers") };
-            if(layers) {
-                layers->for_each_map([&config](String name, Scope<ConfigReader> layer)
-                {
-                    int idx{ std::stoi(name.raw()) };
-                    if(idx >= 16) return;
-                    config.physics_layers.set_name(static_cast<uint8>(idx),
-                        layer->get_at(u8"Name", PhysicsLayers::get_default_name()));
-                    config.physics_layers.set_mask(static_cast<uint8>(idx),
-                        layer->get_at(u8"Mask", PhysicsLayers::get_default_mask()));
-                });
-            }
+            if(layers) layers->for_each
+            ([&config](String name, Scope<ConfigReader> layer)
+            {
+                int idx{ std::stoi(name.raw()) };
+                if(idx >= 16) return;
+                config.physics_layers.set_name(static_cast<uint8>(idx),
+                    layer->get_at(u8"Name", PhysicsLayers::get_default_name()));
+                config.physics_layers.set_mask(static_cast<uint8>(idx),
+                    layer->get_at(u8"Mask", PhysicsLayers::get_default_mask()));
+            });
             uint8 showed_layers{ static_cast<uint8>
                 (config_reader->get_at(u8"Showed Layers", 1ui32)) };
             config.physics_layers.set_showed_layer_count(showed_layers);

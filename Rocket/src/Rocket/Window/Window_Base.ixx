@@ -21,6 +21,7 @@ export namespace rke
     class Window
     {
     public:
+        friend class Application;
         friend class WindowsLib;
         friend struct std::default_delete<Window>;
 
@@ -56,12 +57,14 @@ export namespace rke
 
         inline void push_layer(Scope<Layer> layer)
             { layer_stack_.push_layer(std::move(layer)); }
-        inline Scope<Layer> pop_layer(Layer* layer)
-            { return layer_stack_.pop_layer(layer); }
         inline void push_overlay(Scope<Layer> overlay)
             { layer_stack_.push_overlay(std::move(overlay)); }
-        inline Scope<Layer> pop_overlay(Layer* overlay)
-            { return layer_stack_.pop_overlay(overlay); }
+        inline Scope<Layer> pop_layer()
+            { return layer_stack_.pop_layer(); }
+        inline Scope<Layer> pop_overlay()
+            { return layer_stack_.pop_overlay(); }
+        inline Scope<Layer> pop_back()
+            { return layer_stack_.pop_back(); }
 
         inline void should_close(bool judge) { should_close_ = judge; }
         inline bool should_close() const { return should_close_; }
@@ -86,7 +89,6 @@ export namespace rke
         void on_event(Event& e);
         void on_update(float dt);
         void on_render();
-        void on_imgui_render();
     protected:
         Scope<Props> props_;
         NativeWindow context_{};

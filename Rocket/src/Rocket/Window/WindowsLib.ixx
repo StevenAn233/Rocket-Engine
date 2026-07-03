@@ -32,18 +32,16 @@ export namespace rke
         static NativeWindow get_current_context();
         static void make_context_current(NativeWindow context);
 
-        void refresh();
-
-        Window& load(String name, Scope<Window::Props> props);
         Window& load_main(Scope<Window::Props> props);
-
-        void remove(const String& name);
         void remove_main();
 
+        Window& load(String name, Scope<Window::Props> props);
+        void remove(const String& name);
+        
         Window& operator[](const String& name);
         const Window& operator[](const String& name) const;
-        inline Window& get_main() { return *main_window_; }
-        inline const Window& get_main() const { return *main_window_; }
+        Window& get_main() { return *main_window_; }
+        const Window& get_main() const { return *main_window_; }
 
         inline Size size () const { return map_.size (); }
         inline bool empty() const { return map_.empty(); }
@@ -51,6 +49,12 @@ export namespace rke
     private:
         WindowsLib(std::function<void(Window&)> callback);
         ~WindowsLib();
+
+    // for Application
+        void on_attach();
+        void on_detach();
+        void refresh();
+        inline bool valid() { return !map_.empty(); }
 
         void on_event(Event& e);
         bool on_window_closed(rke::WindowClosedEvent& e);

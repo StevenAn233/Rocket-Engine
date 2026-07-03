@@ -21,7 +21,7 @@ set(CMAKE_INSTALL_PREFIX "${RKE_SDK_DIR}")
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
-# Platform(Graphics API)
+# Graphics API
 if(WIN32)
   find_package(glad CONFIG REQUIRED) # opengl
 endif()
@@ -30,7 +30,7 @@ find_package(unofficial-shaderc CONFIG REQUIRED)
 find_package(spirv_cross_core CONFIG REQUIRED)
 find_package(spirv_cross_glsl CONFIG REQUIRED)
 
-# Backends
+# Third-party
 find_package(glfw3 CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 find_package(box2d CONFIG REQUIRED)

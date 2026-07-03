@@ -48,18 +48,17 @@ namespace rke
 
     WindowsLib::~WindowsLib()
     {
-        map_.clear();
         glfwTerminate();
         CORE_INFO(u8"glfwWindowsLib: GLFW terminated.");
     }
 
     void WindowsLib::refresh()
     {
-        std::erase_if(map_, [](auto& pair)
+        std::erase_if(map_, [this](auto& pair)
         {
             Window& window{ *(pair.second.get()) };
             if(window.should_close()) return true;
-
+             
             switch(RenderBackend::get_graphics_api())
             {
             case GraphicsAPI::OpenGL:

@@ -8,8 +8,7 @@ namespace rke
     public:
         RocketLauncher() : Application()
         {
-            Window& main_window{ get_windows_lib().load_main
-            (
+            get_windows_lib().load_main (
                 create_scope<Window::Props>(Window::Props
                 {
                     .title{ u8"Rocket" },
@@ -17,16 +16,18 @@ namespace rke
                     .width{ 2450 }, .height{ 1300 },
                     .x_coord{ 50 }, .y_coord{ 100 }
                 })
-            )};
+            );
+        }
 
-            auto imgui_layer{ create_scope<ImGuiLayer>(u8"ImGuiLayer", &main_window) };
-            imgui_layer_ = imgui_layer.get();
-            main_window.push_overlay(std::move(imgui_layer));
+        ~RocketLauncher() override {}
 
+        void init() override
+        {
+            Application::init();
+            Window& main_window{ get_windows_lib().get_main() };
             auto editor_layer{ create_scope<EditorLayer>(u8"EditorLayer", &main_window) };
             main_window.push_layer(std::move(editor_layer));
         }
-        ~RocketLauncher() override { imgui_layer_ = nullptr; }
     };
 }
 

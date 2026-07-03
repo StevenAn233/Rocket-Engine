@@ -45,12 +45,12 @@ namespace rke
         Scope<ConfigReader> get_child(StringView name) const override;
         Scope<ConfigReader> get_child(Size index) const override;
 
-        void for_each_map(const MapCallback& callback) const override;
-        void for_each_arr(const SeqCallback& callback) const override;
+        void for_each(const MapCallback& callback) const override;
+        void for_each(const SeqCallback& callback) const override;
     protected:
-        ConfigValue read(StringView key, const ConfigValue& def) const override;
-        ConfigValue read(Size index, const ConfigValue& def) const override;
-        ConfigValue read_this(const ConfigValue& def) const override;
+        ConfigValue read(StringView key, const ConfigValue& ref) const override;
+        ConfigValue read(Size index, const ConfigValue& ref) const override;
+        ConfigValue read_this(const ConfigValue& ref) const override;
     private:
         YAML::Node node_{};
     };
@@ -77,6 +77,10 @@ namespace rke
         Scope<ConfigDocument> get_child(Size index) override;
 
         void push_to_file(const Path& path) override;
+    protected:
+        ConfigValue read(StringView key, const ConfigValue& ref) const override;
+        ConfigValue read(Size index, const ConfigValue& ref) const override;
+        ConfigValue read_this(const ConfigValue& ref) const override;
     private:
         YAML::Node node_{};
     };

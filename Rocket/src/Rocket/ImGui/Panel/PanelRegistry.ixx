@@ -1,45 +1,49 @@
 ﻿module;
 
 #include <vector>
-#include <functional>
 #include <unordered_map>
 #include "rke_macros.h"
 
 export module PanelRegistry;
 
+import String;
 import Types;
 import Path;
 import Panel;
 import HeapManager;
+import ConfigProxy;
 
 export namespace rke
 {
     class RKE_API PanelRegistry
     {
     public:
+        friend class DockSpace;
+
         struct Attrib
         {
             Panel* handle;
-            bool with_switch{ true };
-            std::function<bool()> cond_callback{};
+            bool always_on{ false };
+            bool block_when_hovered{ true };
+            bool block_when_focused{ true };
         };
 
-        PanelRegistry(Path config_path);
+        PanelRegistry() = default;
+        ~PanelRegistry() = default;
 
         PanelRegistry(const PanelRegistry&) = delete;
         PanelRegistry& operator=(const PanelRegistry&) = delete;
         PanelRegistry(PanelRegistry&&) = delete;
         PanelRegistry& operator=(PanelRegistry&&) = delete;
 
-        ~PanelRegistry();
+        void register_panel(Attrib attrib);
+    private:
+        void serialize_to(ConfigDocument& proxy);
+        void deserialize_from(ConfigReader& reader);
 
-        void push(Attrib attrib);
-        void pop(Size count = 1);
-    
         void render_all();
         void render_switches_menubar();
     private:
-        Path filepath_;
         std::unordered_map<String, bool> config_{};
         std::vector<Attrib> attribs_{};
     };

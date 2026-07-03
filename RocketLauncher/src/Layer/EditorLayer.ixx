@@ -2,10 +2,8 @@
 export module EditorLayer;
 
 import rke;
-import DockSpace;
 import Toolbar;
 import Viewport;
-import ApplicationPanel;
 import EditorSettingPanel;
 import WindowSettingPanel;
 import SceneHierarchyPanel;
@@ -28,7 +26,6 @@ export namespace rke
 
         void on_update(float dt) override;
         void on_render() override;
-        void on_imgui_render() override;
 
         bool should_block_mouse() override { return true; }
         bool should_block_keyboard() override { return true; }
@@ -68,22 +65,17 @@ export namespace rke
         const Texture2D* main_output_{};
         const Texture2D* cam_output_ {};
 
-    // DockSpace
-        DockSpace dockspace_{ u8"DockSpace" };
     // Modals
         ProjectCreatingModal project_creating_modal_{ u8"Create New Project" };
     // Panels
         Toolbar toolbar_{ u8"Toolbar" };
         Viewport main_viewport_{ u8"Main Viewport" };
         Viewport cam_viewport_{ u8"Camera Viewport" };
-        ApplicationPanel application_panel_{ u8"Application" };
         WindowSettingPanel window_setting_panel_{ u8"Window Settings" };
         EditorSettingPanel editor_setting_panel_ { u8"Editor Settings" };
         SceneHierarchyPanel scene_hierarchy_panel_{ u8"Scene Hierarchy" };
         ContentBrowserPanel content_browser_panel_{ u8"Content Browser" };
         ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };
-    // Panel Registry
-        PanelRegistry panel_registry_{ file::editor_dir() / u8"settings" / u8"panel-switches.yaml" };
 
         bool to_create_new_proj_{ false };
         bool in_main_viewport_dragging_{ false };

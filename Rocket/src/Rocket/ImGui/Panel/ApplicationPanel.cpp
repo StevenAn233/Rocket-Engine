@@ -1,6 +1,9 @@
 ﻿module;
 module ApplicationPanel;
 
+import Instrumentor;
+import Renderer2D;
+
 namespace rke
 {
     void ApplicationPanel::on_imgui_render()
@@ -8,6 +11,8 @@ namespace rke
         RKE_PROFILE_FUNCTION();
 
         ImGui::Begin("Application");
+        Panel::on_imgui_render();
+
         bool opened{ ImGui::BeginTabBar("##application_tabbar") };
         if(!opened) return;
 
@@ -26,9 +31,9 @@ namespace rke
     #if RKE_ENABLE_PROFILE
         if(ImGui::BeginTabItem("Profiler Controls"))
         {
-            if(Instrumentor::get().is_session_running()) {
-                if(ImGui::SmallButton("Stop"))
-                {
+            if(Instrumentor::get().is_session_running())
+            {
+                if(ImGui::SmallButton("Stop")) {
                     if(Instrumentor::get().is_session_running())
                         RKE_PROFILE_END_SESSION();
                 }
