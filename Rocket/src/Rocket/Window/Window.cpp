@@ -30,8 +30,6 @@ namespace rke
         {
             if(e.handled()) return;
             it->get()->on_event(e);
-            // if upper layer(overlays first) has handled event
-            // then break(do not let other layers deal with it)
         }
     }
 
@@ -57,10 +55,10 @@ import :glfw;
 namespace rke
 {
     Scope<Window> Window::create(String name,
-        Scope<Props> props, NativeWindow handle)
+        Scope<Props> props, NativeWindow context)
     {
         return create_scope<glfwWindow>
-            (std::move(name), std::move(props), handle);
+            (std::move(name), std::move(props), context);
     }
 }
 #endif

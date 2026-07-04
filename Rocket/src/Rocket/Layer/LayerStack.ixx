@@ -40,8 +40,6 @@ export namespace rke
 
         Size size() const { return layers_.size(); }
     private:
-        
-    private:
         std::vector<Scope<Layer>> layers_{};
         Size insert_index_{};
     };

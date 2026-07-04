@@ -141,7 +141,8 @@ namespace rke
         reg.register_panel({ .handle = &content_browser_panel_ });
         reg.register_panel({ .handle = &project_setting_panel_ });
         reg.register_panel({ .handle = &main_viewport_, .always_on = true,
-            .block_when_hovered = true, .block_when_focused = true });
+            .dont_block_when_hovered = true,
+            .dont_block_when_focused = true });
         reg.register_panel({ .handle = &cam_viewport_ });
         reg.register_panel({ .handle = &toolbar_, .always_on = true });
 

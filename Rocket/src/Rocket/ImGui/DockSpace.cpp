@@ -157,8 +157,8 @@ namespace rke
     {
         for(auto& attrib : panel_registry_.attribs_)
         {
-            if(attrib.block_when_hovered &&
-               attrib.handle->is_hovered()) return true;
+            if(attrib.dont_block_when_hovered &&
+               attrib.handle->is_hovered()) return false;
         }
         return ImGui::GetIO().WantCaptureMouse;
     }
@@ -168,8 +168,8 @@ namespace rke
         if(ImGui::GetIO().WantTextInput) return true;
         for(auto& attrib : panel_registry_.attribs_)
         {
-            if(attrib.block_when_focused &&
-               attrib.handle->is_focused()) return true;
+            if(!attrib.dont_block_when_focused &&
+               attrib.handle->is_focused()) return false;
         }
         return ImGui::GetIO().WantCaptureKeyboard;
     }

@@ -26,9 +26,12 @@ namespace rke
             u8"Dockspace Layer", windows_lib_.main_window_,
             file::editor_dir() / u8"settings" / u8"dockspace.yaml"
         };
+        dockspace_handle_ = &(ptr->dockspace_);
         main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ptr)));
         get_dockspace().get_panel_registry().register_panel({ &panel_ });
     }
+
+    void Application::shutdown() { dockspace_handle_ = nullptr; }
 
     void Application::run()
     {
@@ -46,15 +49,13 @@ namespace rke
         }
     }
 
-    void Application::shutdown() {}
-
     void Application::send_event(Event& e) { windows_lib_.on_event(e); }
 
     DockSpace& Application::get_dockspace()
     {
-        return static_cast<DockSpaceLayer&>
-            (windows_lib_.get_main().layer_stack_.back())
-        .dockspace_;
+        CORE_ASSERT(dockspace_handle_,
+            u8"Application: Dockspace not created!");
+        return *dockspace_handle_;
     }
 
     void Application::on_window_loaded(Window& window)

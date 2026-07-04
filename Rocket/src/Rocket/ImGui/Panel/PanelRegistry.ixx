@@ -24,8 +24,8 @@ export namespace rke
         {
             Panel* handle;
             bool always_on{ false };
-            bool block_when_hovered{ true };
-            bool block_when_focused{ true };
+            bool dont_block_when_hovered{ false };
+            bool dont_block_when_focused{ false };
         };
 
         PanelRegistry() = default;

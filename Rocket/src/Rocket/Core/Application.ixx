@@ -43,6 +43,7 @@ export namespace rke
         static void on_window_loaded(Window& window);
     private:
         WindowsLib windows_lib_;
+        DockSpace* dockspace_handle_{};
         ApplicationPanel panel_{ u8"Application" };
     };
 

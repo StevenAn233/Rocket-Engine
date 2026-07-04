@@ -8,7 +8,8 @@ namespace rke
     public:
         RocketLauncher() : Application()
         {
-            get_windows_lib().load_main (
+            get_windows_lib().load_main
+            (
                 create_scope<Window::Props>(Window::Props
                 {
                     .title{ u8"Rocket" },

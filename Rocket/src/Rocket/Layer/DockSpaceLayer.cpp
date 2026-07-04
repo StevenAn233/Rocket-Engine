@@ -15,7 +15,7 @@ namespace rke
         EventDispatcher dispacher{ e };
         if(e.belongs_to(EventCategoryMouse))
             dispacher.mark_completed_if(should_block_mouse());
-        if(e.belongs_to(EventCategoryKeyboard))
+        else if(e.belongs_to(EventCategoryKeyboard))
             dispacher.mark_completed_if(should_block_keyboard());
     }
 
