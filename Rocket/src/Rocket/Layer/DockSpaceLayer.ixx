@@ -10,6 +10,7 @@ import Path;
 import Layer;
 import DockSpace;
 import Event;
+import Window;
 
 export namespace rke
 {
@@ -18,7 +19,7 @@ export namespace rke
     public:
         friend class Application;
 
-        DockSpaceLayer(String name, void* owner, Path config_path);
+        DockSpaceLayer(String name, Window* owner, Path config_path);
         ~DockSpaceLayer() override = default;
 
         void on_event(Event& e) override;

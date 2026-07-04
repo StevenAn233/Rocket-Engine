@@ -14,17 +14,13 @@ import Layer;
 import DockSpaceLayer;
 import HeapManager;
 
-import ImGuiLayer;
-
 namespace rke
 {
     Application::Application() : windows_lib_(on_window_loaded) {}
 
     void Application::init()
     {
-        windows_lib_.on_attach();
         Window& main_window{ windows_lib_.get_main() };
-        imgui::init(main_window.get_context());
         DockSpaceLayer* ptr = new DockSpaceLayer
         {
             u8"Dockspace Layer", windows_lib_.main_window_,
@@ -50,11 +46,7 @@ namespace rke
         }
     }
 
-    void Application::shutdown()
-    {
-        imgui::shutdown();
-        windows_lib_.on_detach();
-    }
+    void Application::shutdown() {}
 
     void Application::send_event(Event& e) { windows_lib_.on_event(e); }
 

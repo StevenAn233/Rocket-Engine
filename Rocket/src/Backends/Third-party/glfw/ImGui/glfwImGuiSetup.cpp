@@ -6,7 +6,7 @@
 
 #include <GLFW/glfw3.h>
 
-module ImGuiLayer;
+module ImGuiSetup;
 
 import Log;
 import String;

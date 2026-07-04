@@ -90,14 +90,4 @@ namespace rke
         map_.emplace(name, std::move(window));
         return (*this)[name];
     }
-
-    void WindowsLib::on_attach()
-    {
-        CORE_ASSERT(main_window_, u8"Application: Main window empty!");
-    }
-
-    void WindowsLib::on_detach()
-    {
-        map_.clear();
-    }
 }

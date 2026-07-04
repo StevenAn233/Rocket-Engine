@@ -51,8 +51,6 @@ export namespace rke
         ~WindowsLib();
 
     // for Application
-        void on_attach();
-        void on_detach();
         void refresh();
         inline bool valid() { return !map_.empty(); }
 

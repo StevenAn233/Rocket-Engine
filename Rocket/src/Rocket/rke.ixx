@@ -32,7 +32,6 @@ export import MouseButtons;
 export import Window;
 export import Layer;
 
-export import ImGuiLayer;
 export import Panel;
 export import Modal;
 export import PanelRegistry;

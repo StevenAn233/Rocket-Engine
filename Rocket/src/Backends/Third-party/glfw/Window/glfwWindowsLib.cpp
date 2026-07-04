@@ -58,7 +58,7 @@ namespace rke
         {
             Window& window{ *(pair.second.get()) };
             if(window.should_close()) return true;
-             
+
             switch(RenderBackend::get_graphics_api())
             {
             case GraphicsAPI::OpenGL:

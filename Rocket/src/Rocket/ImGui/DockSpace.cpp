@@ -6,14 +6,16 @@ import FileUtils;
 import ConfigProxy;
 import Application;
 import Project;
-import ImGuiLayer;
+import ImGuiSetup;
 
 namespace rke
 {
-    DockSpace::DockSpace(String name, Path config_path)
+    DockSpace::DockSpace(String name, Path config_path, NativeWindow context)
         : name_(std::move(name))
         , config_path_(std::move(config_path))
     {
+        imgui::init(context);
+
         if(!config_path_.exists())
             { CORE_WARN(u8"DockSpace: File \'{}\' not found!", config_path_); return; }
         auto reader{ ConfigReader::create(config_path_) };
@@ -36,6 +38,8 @@ namespace rke
         proxy->write(u8"DockSpace Flags", static_cast<int>(flags_));
         panel_registry_.serialize_to(*(proxy.get()));
         proxy->push_to_file(config_path_);
+
+        imgui::shutdown();
     }
 
     void DockSpace::render(glm::vec2 offset, glm::vec2 scale)

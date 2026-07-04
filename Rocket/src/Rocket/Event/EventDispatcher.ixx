@@ -27,6 +27,8 @@ export namespace rke
             }
             return false;
         }
+
+        void mark_completed_if(bool cond) { event_.handled_ |= cond; }
     private:
         Event& event_;
     };

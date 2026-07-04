@@ -10,6 +10,7 @@ export module DockSpace;
 import String;
 import Path;
 import PanelRegistry;
+import NativeWindow;
 
 export namespace rke
 {
@@ -18,7 +19,7 @@ export namespace rke
     public:
         friend class DockSpaceLayer;
 
-        DockSpace(String name, Path config_path);
+        DockSpace(String name, Path config_path, NativeWindow context);
         ~DockSpace();
 
         void render(glm::vec2 offset, glm::vec2 scale);
