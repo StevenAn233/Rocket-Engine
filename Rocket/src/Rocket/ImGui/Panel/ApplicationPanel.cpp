@@ -11,7 +11,6 @@ namespace rke
         RKE_PROFILE_FUNCTION();
 
         ImGui::Begin("Application");
-        Panel::on_imgui_render();
 
         bool opened{ ImGui::BeginTabBar("##application_tabbar") };
         if(!opened) return;

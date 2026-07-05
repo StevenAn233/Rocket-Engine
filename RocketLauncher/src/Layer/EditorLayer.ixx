@@ -79,8 +79,5 @@ export namespace rke
 
         bool to_create_new_proj_{ false };
         bool in_main_viewport_dragging_{ false };
-
-        glm::vec2 last_vp_size_{};
-        glm::vec2 last_cd_size_{};
     };
 }

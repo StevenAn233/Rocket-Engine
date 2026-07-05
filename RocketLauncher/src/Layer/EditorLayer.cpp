@@ -174,13 +174,10 @@ namespace rke
 
         Layer::on_update(dt);
 
-        glm::vec2 vp_size{ main_viewport_.get_viewport_size() };
-        glm::vec2 cd_size{ cam_viewport_ .get_viewport_size() };
-
-        if(last_vp_size_.x != vp_size.x || last_vp_size_.y != vp_size.y)
+        if(main_viewport_.resized())
         {
-            auto w{ static_cast<uint32>(vp_size.x) };
-            auto h{ static_cast<uint32>(vp_size.y) };
+            auto w{ static_cast<uint32>(main_viewport_.get_size().x) };
+            auto h{ static_cast<uint32>(main_viewport_.get_size().y) };
 
             editor_cam_.set_viewport(w, h);
             if(current_scene_) current_scene_->set_viewport(w, h);
@@ -188,17 +185,13 @@ namespace rke
             main_renderer_.on_viewport_resized(w, h);
             editor_setting_panel_ .on_viewport_resized(w, h);
             project_setting_panel_.on_viewport_resized(w, h);
-
-            last_vp_size_ = vp_size;
         }
-        if(last_cd_size_.x != cd_size.x || last_cd_size_.y != cd_size.y)
+        if(cam_viewport_.resized())
         {
-            auto w{ static_cast<uint32>(cd_size.x) };
-            auto h{ static_cast<uint32>(cd_size.y) };
+            auto w{ static_cast<uint32>(cam_viewport_.get_size().x) };
+            auto h{ static_cast<uint32>(cam_viewport_.get_size().y) };
 
             cam_renderer_.on_viewport_resized(w, h);
-
-            last_cd_size_ = cd_size;
         }
 
         if(!current_scene_) return;
@@ -243,7 +236,7 @@ namespace rke
             if(current_scene_&& main_viewport_.is_hovered() &&
              !(Gizmo::is_over() && current_scene_->get_selected_entity().valid()))
             {
-                glm::vec2 vp_mouse{ main_viewport_.get_viewport_mouse() };
+                glm::vec2 vp_mouse{ main_viewport_.get_mouse_pos() };
                 hovering_id_ = main_renderer_.get_hovering_id(vp_mouse.x, vp_mouse.y);
             }
             else hovering_id_ = -1;
@@ -253,13 +246,14 @@ namespace rke
                 editor_setting_panel_.get_hovering()->set_target(target);
             }
 
-            if(current_scene_ && last_cd_size_.x > 0 && last_cd_size_.y > 0)
+            if(current_scene_ && cam_viewport_.visible())
             {
                 // switch to cam demo viewport size
-                current_scene_->set_viewport(last_cd_size_.x, last_cd_size_.y);
+                auto size{ cam_viewport_.get_size() };
+                current_scene_->set_viewport(size.x, size.y);
                 cam_output_ = cam_renderer_.cam_demo_render
                     (current_scene_.get(), current_scene_->get_selected_entity());
-                current_scene_->set_viewport(last_vp_size_.x, last_vp_size_.y);
+                current_scene_->set_viewport(size.x, size.y);
             }
             else cam_output_ = nullptr;
             break;
@@ -445,8 +439,8 @@ namespace rke
     {
         current_scene_ = scene;
         scene_hierarchy_panel_.set_context(current_scene_.get());
-        if(current_scene_) current_scene_->
-            set_viewport(last_vp_size_.x, last_vp_size_.y);
+        auto size{ main_viewport_.get_size() };
+        if(current_scene_) current_scene_->set_viewport(size.x, size.y);
 
     // clean-up
         hovering_id_ = -1;
