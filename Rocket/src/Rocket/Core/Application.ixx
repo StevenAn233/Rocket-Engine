@@ -15,6 +15,7 @@ import Font;
 import HeapManager;
 import ApplicationPanel;
 import DockSpace;
+import DockSpaceLayer;
 
 export namespace rke
 {
@@ -43,7 +44,7 @@ export namespace rke
         static void on_window_loaded(Window& window);
     private:
         WindowsLib windows_lib_;
-        DockSpace* dockspace_handle_{};
+        DockSpace* ds_handle_{};
         ApplicationPanel panel_{ u8"Application" };
     };
 

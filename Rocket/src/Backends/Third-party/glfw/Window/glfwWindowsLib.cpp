@@ -54,6 +54,14 @@ namespace rke
 
     void WindowsLib::refresh()
     {
+        if(!main_window_) return;
+        if(main_window_->should_close())
+        {
+            map_.erase(u8"main"); // PanelRegistry Serialization Here
+            main_window_ = nullptr;
+            map_.clear();
+            return;
+        }
         std::erase_if(map_, [this](auto& pair)
         {
             Window& window{ *(pair.second.get()) };

@@ -10,20 +10,16 @@ namespace rke
 {
     void WindowsLib::on_event(Event& e)
     {
-        EventDispatcher dispatcher{ e };
-        dispatcher.dispatch<WindowClosedEvent>
-            ([this](WindowClosedEvent& e) { return on_window_closed(e); });
+        EventDispatcher(e).dispatch<WindowClosedEvent>
+        ([this](WindowClosedEvent& e)
+        {
+            CORE_INFO(e);
+            remove(e.get_window_name());
+            return true;
+        });
         if(e.handled()) return;
         for(auto& [_, window] : map_)
             window->on_event(e);
-    }
-
-    bool WindowsLib::on_window_closed(rke::WindowClosedEvent& e)
-    {
-        CORE_INFO(e);
-        String name{ e.get_window_name() };
-        remove(name);
-        return true;
     }
 
     void WindowsLib::update_all(float dt)
@@ -64,7 +60,6 @@ namespace rke
     {
         for(auto& [_, window] : map_)
             { window->should_close(true); }
-        main_window_ = nullptr;
     }
 
     Window& WindowsLib::operator[](const String& name)

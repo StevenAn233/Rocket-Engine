@@ -7,6 +7,7 @@ import ConfigProxy;
 import Application;
 import Project;
 import ImGuiSetup;
+import ApplicationEvent;
 
 namespace rke
 {
@@ -97,7 +98,10 @@ namespace rke
             if(ImGui::BeginMenu("Window"))
             {
                 if(ImGui::MenuItem("Close", "Alt+F4"))
-                    app().get_windows_lib().remove_main();
+                {
+                    WindowClosedEvent e{ u8"main" };
+                    app().send_event(e);
+                }
                 ImGui::EndMenu();
             }
             if(ImGui::BeginMenu("Docking"))

@@ -13,7 +13,6 @@ import NativeWindow;
 import HeapManager;
 import String;
 import Event;
-import ApplicationEvent;
 
 export namespace rke
 {
@@ -50,13 +49,14 @@ export namespace rke
         WindowsLib(std::function<void(Window&)> callback);
         ~WindowsLib();
 
-    // for Application
         void refresh();
-        inline bool valid() { return !map_.empty(); }
+        inline bool valid() const
+        {
+            if(!main_window_) return false;
+            return !main_window_->should_close();
+        }
 
         void on_event(Event& e);
-        bool on_window_closed(rke::WindowClosedEvent& e);
-        
         void update_all(float dt);
         void render_all();
         Window& add(Scope<Window> window);
