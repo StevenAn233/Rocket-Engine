@@ -10,7 +10,6 @@ import WindowsLib;
 import String;
 import Path;
 import Event;
-import ApplicationEvent;
 import Font;
 import HeapManager;
 import ApplicationPanel;

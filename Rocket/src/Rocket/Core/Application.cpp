@@ -7,7 +7,6 @@ import Project;
 import Instrumentor;
 import DeltaTime;
 import Renderer2D;
-import EventDispatcher;
 import PlatformSupport;
 import FileUtils;
 import Layer;
