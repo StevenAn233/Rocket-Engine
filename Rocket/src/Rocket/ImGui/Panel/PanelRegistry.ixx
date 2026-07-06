@@ -36,6 +36,7 @@ export namespace rke
         PanelRegistry& operator=(PanelRegistry&&) = delete;
 
         void register_panel(Panel* handle, Attrib attrib = {});
+        void unregister_panel(Panel* handle);
     private:
         void serialize_to(ConfigDocument& proxy);
         void deserialize_from(ConfigReader& reader);

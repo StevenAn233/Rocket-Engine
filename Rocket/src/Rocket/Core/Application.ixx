@@ -13,7 +13,8 @@ import Event;
 import Font;
 import HeapManager;
 import ApplicationPanel;
-import DockSpace;
+import Panel;
+import PanelRegistry;
 
 export namespace rke
 {
@@ -34,7 +35,9 @@ export namespace rke
         void send_event(Event& e);
 
         WindowsLib& get_windows_lib() { return windows_lib_; }
-        DockSpace& get_dockspace();
+
+        void register_panel(Panel* handle, PanelRegistry::Attrib attrib = {});
+        void unregister_panel(Panel* handle);
     protected:
         Application();
         virtual ~Application() {};
@@ -42,7 +45,7 @@ export namespace rke
         static void on_window_loaded(Window& window);
     private:
         WindowsLib windows_lib_;
-        DockSpace* ds_handle_{};
+        PanelRegistry* panel_reg_{};
         ApplicationPanel panel_{ u8"Application" };
     };
 

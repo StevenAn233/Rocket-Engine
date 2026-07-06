@@ -2,7 +2,6 @@
 module Application;
 
 import Log;
-import String;
 import Project;
 import Instrumentor;
 import DeltaTime;
@@ -10,8 +9,10 @@ import Renderer2D;
 import PlatformSupport;
 import FileUtils;
 import Layer;
+import DockSpace;
 import DockSpaceLayer;
-import HeapManager;
+import EventDispatcher;
+import ApplicationEvent;
 
 namespace rke
 {
@@ -25,12 +26,12 @@ namespace rke
             u8"Dockspace Layer", windows_lib_.main_window_,
             file::editor_dir() / u8"settings" / u8"dockspace.yaml"
         };
-        ds_handle_ = &(ds_layer->dockspace_);
+        panel_reg_ = &(ds_layer->dockspace_.get_panel_registry());
         main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ds_layer)));
-        get_dockspace().get_panel_registry().register_panel(&panel_);
+        register_panel(&panel_);
     }
 
-    void Application::shutdown() { ds_handle_ = nullptr; }
+    void Application::shutdown() {}
 
     void Application::run()
     {
@@ -48,14 +49,31 @@ namespace rke
         }
     }
 
-    void Application::send_event(Event& e) { windows_lib_.on_event(e); }
-
-    DockSpace& Application::get_dockspace()
+    void Application::send_event(Event& e)
     {
-        CORE_ASSERT(ds_handle_, u8"Application: Dockspace not created!");
-        return *ds_handle_;
+        EventDispatcher(e).dispatch<WindowClosedEvent>
+        ([this](WindowClosedEvent& e)
+        {
+            if(e.get_window_name() == u8"main")
+                panel_reg_ = nullptr;
+            return false;
+        });
+        windows_lib_.on_event(e);
     }
 
+    void Application::register_panel(Panel* handle, PanelRegistry::Attrib attrib)
+    {
+        if(!panel_reg_) return;
+        panel_reg_->register_panel(handle, attrib);
+    }
+
+    void Application::unregister_panel(Panel* handle)
+    {
+        if(!panel_reg_) return;
+        panel_reg_->unregister_panel(handle);
+    }
+
+// callbacks
     void Application::on_window_loaded(Window& window)
         { Renderer2D::register_context(window.get_context()); }
 }

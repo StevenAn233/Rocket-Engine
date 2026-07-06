@@ -134,20 +134,19 @@ namespace rke
         });
 
     // PanelRegistry
-        auto& reg{ app().get_dockspace().get_panel_registry() };
-        reg.register_panel(&window_setting_panel_);
-        reg.register_panel(&editor_setting_panel_);
-        reg.register_panel(&scene_hierarchy_panel_);
-        reg.register_panel(&content_browser_panel_);
-        reg.register_panel(&project_setting_panel_);
-        reg.register_panel(&main_viewport_,
+        app().register_panel(&window_setting_panel_);
+        app().register_panel(&editor_setting_panel_);
+        app().register_panel(&scene_hierarchy_panel_);
+        app().register_panel(&content_browser_panel_);
+        app().register_panel(&project_setting_panel_);
+        app().register_panel(&main_viewport_,
         {
             .always_on = true,
             .dont_block_when_hovered = true,
             .dont_block_when_focused = true
         });
-        reg.register_panel(&cam_viewport_);
-        reg.register_panel(&toolbar_, { .always_on = true });
+        app().register_panel(&cam_viewport_);
+        app().register_panel(&toolbar_, { .always_on = true });
 
     // Modal(s)
         project_creating_modal_.set_project_created_callback
@@ -165,6 +164,15 @@ namespace rke
     {
         if(playing()) on_runtime_stop();
         update_current_scene(nullptr);
+
+        app().unregister_panel(&window_setting_panel_);
+        app().unregister_panel(&editor_setting_panel_);
+        app().unregister_panel(&scene_hierarchy_panel_);
+        app().unregister_panel(&content_browser_panel_);
+        app().unregister_panel(&project_setting_panel_);
+        app().unregister_panel(&main_viewport_);
+        app().unregister_panel(&cam_viewport_);
+        app().unregister_panel(&toolbar_);
 
         if(Project::get_active_project())
             Project::get_active_project()->clear_active_scene();

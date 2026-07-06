@@ -19,6 +19,15 @@ namespace rke
         attribs_.emplace(handle, attrib);
     }
 
+    void PanelRegistry::unregister_panel(Panel* handle)
+    {
+        if(attribs_.contains(handle))
+        {
+            config_[handle->get_name()] = handle->on();
+            attribs_.erase(handle);
+        }
+    }
+
     void PanelRegistry::serialize_to(ConfigDocument& proxy)
     {
         for(auto& [handle, _] : attribs_)
