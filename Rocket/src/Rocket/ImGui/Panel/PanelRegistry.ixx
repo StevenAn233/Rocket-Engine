@@ -1,6 +1,6 @@
 ﻿module;
 
-#include <vector>
+#include <map>
 #include <unordered_map>
 #include "rke_macros.h"
 
@@ -22,7 +22,6 @@ export namespace rke
 
         struct Attrib
         {
-            Panel* handle;
             bool always_on{ false };
             bool dont_block_when_hovered{ false };
             bool dont_block_when_focused{ false };
@@ -36,7 +35,7 @@ export namespace rke
         PanelRegistry(PanelRegistry&&) = delete;
         PanelRegistry& operator=(PanelRegistry&&) = delete;
 
-        void register_panel(Attrib attrib);
+        void register_panel(Panel* handle, Attrib attrib = {});
     private:
         void serialize_to(ConfigDocument& proxy);
         void deserialize_from(ConfigReader& reader);
@@ -45,6 +44,6 @@ export namespace rke
         void render_switches_menubar();
     private:
         std::unordered_map<String, bool> config_{};
-        std::vector<Attrib> attribs_{};
+        std::map<Panel*, Attrib> attribs_{};
     };
 }

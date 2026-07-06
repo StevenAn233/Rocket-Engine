@@ -20,8 +20,11 @@ export namespace rke
     {
     public:
         friend class Application;
-
+        
         using WindowsMap = std::unordered_map<String, Scope<Window>>;
+
+        WindowsLib(std::function<void(Window&)> callback);
+        ~WindowsLib();
 
         WindowsLib(const WindowsLib&) = delete;
         WindowsLib& operator=(const WindowsLib&) = delete;
@@ -46,9 +49,6 @@ export namespace rke
         inline bool empty() const { return map_.empty(); }
         inline bool exists(const String& name) const { return map_.contains(name); }
     private:
-        WindowsLib(std::function<void(Window&)> callback);
-        ~WindowsLib();
-
         void refresh();
         inline bool valid() const
         {

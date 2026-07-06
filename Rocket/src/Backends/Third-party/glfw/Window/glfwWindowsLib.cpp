@@ -55,12 +55,13 @@ namespace rke
     void WindowsLib::refresh()
     {
         if(!main_window_) return;
+        glfwPollEvents();
         if(main_window_->should_close())
         {
-            map_.erase(u8"main"); // PanelRegistry Serialization Here
+            map_.erase(u8"main");
             main_window_ = nullptr;
-            map_.clear();
-            return;
+            for(auto& [_, window] : map_)
+                window->should_close(true);
         }
         std::erase_if(map_, [this](auto& pair)
         {
@@ -77,6 +78,5 @@ namespace rke
             }
             return false;
         });
-        glfwPollEvents();
     }
 }

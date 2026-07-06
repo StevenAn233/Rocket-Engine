@@ -15,6 +15,7 @@ export namespace rke
     public:
         friend class PanelRegistry;
 
+        Panel(String name) : name_(std::move(name)) {}
         virtual ~Panel() = default;
 
         void refresh_state();
@@ -38,17 +39,13 @@ export namespace rke
 
         inline bool resized() const { return resized_; }
         inline bool relocated() const { return relocated_; }
-    protected:
-        Panel(String name) : name_(std::move(name)) {}
-    private:
-        inline void render() { if(on_ && !hidden_) on_imgui_render(); }
     private:
         String name_;
         
-        glm::vec2 size_{};
-        glm::vec2 abs_pos_{};
-        glm::vec2 abs_mouse_pos_{};
-        glm::vec2 mouse_pos_{};
+        glm::vec2 size_{ 0.0f };
+        glm::vec2 abs_pos_{ 0.0f };
+        glm::vec2 abs_mouse_pos_{ 0.0f };
+        glm::vec2 mouse_pos_{ 0.0f };
         bool resized_{ false };
         bool relocated_{ false };
 

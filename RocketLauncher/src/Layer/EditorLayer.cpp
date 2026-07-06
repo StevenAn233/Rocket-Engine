@@ -135,16 +135,19 @@ namespace rke
 
     // PanelRegistry
         auto& reg{ app().get_dockspace().get_panel_registry() };
-        reg.register_panel({ .handle = &window_setting_panel_});
-        reg.register_panel({ .handle = &editor_setting_panel_ });
-        reg.register_panel({ .handle = &scene_hierarchy_panel_ });
-        reg.register_panel({ .handle = &content_browser_panel_ });
-        reg.register_panel({ .handle = &project_setting_panel_ });
-        reg.register_panel({ .handle = &main_viewport_, .always_on = true,
+        reg.register_panel(&window_setting_panel_);
+        reg.register_panel(&editor_setting_panel_);
+        reg.register_panel(&scene_hierarchy_panel_);
+        reg.register_panel(&content_browser_panel_);
+        reg.register_panel(&project_setting_panel_);
+        reg.register_panel(&main_viewport_,
+        {
+            .always_on = true,
             .dont_block_when_hovered = true,
-            .dont_block_when_focused = true });
-        reg.register_panel({ .handle = &cam_viewport_ });
-        reg.register_panel({ .handle = &toolbar_, .always_on = true });
+            .dont_block_when_focused = true
+        });
+        reg.register_panel(&cam_viewport_);
+        reg.register_panel(&toolbar_, { .always_on = true });
 
     // Modal(s)
         project_creating_modal_.set_project_created_callback

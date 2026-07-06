@@ -159,10 +159,10 @@ namespace rke
 
     bool DockSpace::mouse_blocking() const
     {
-        for(auto& attrib : panel_registry_.attribs_)
+        for(const auto& [handle, attrib] : panel_registry_.attribs_)
         {
             if(attrib.dont_block_when_hovered &&
-               attrib.handle->is_hovered()) return false;
+               handle->is_hovered()) return false;
         }
         return ImGui::GetIO().WantCaptureMouse;
     }
@@ -170,10 +170,10 @@ namespace rke
     bool DockSpace::keyboard_blocking() const
     {
         if(ImGui::GetIO().WantTextInput) return true;
-        for(auto& attrib : panel_registry_.attribs_)
+        for(const auto& [handle, attrib] : panel_registry_.attribs_)
         {
             if(!attrib.dont_block_when_focused &&
-               attrib.handle->is_focused()) return false;
+               handle->is_focused()) return false;
         }
         return ImGui::GetIO().WantCaptureKeyboard;
     }

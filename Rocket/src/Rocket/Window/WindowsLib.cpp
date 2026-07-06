@@ -51,16 +51,9 @@ namespace rke
     }
 
     void WindowsLib::remove(const String& name)
-    {
-        if(name == u8"main") remove_main();
-        else if(exists(name)) map_[name]->should_close(true);
-    }
+        { if(exists(name)) map_[name]->should_close(true); }
 
-    void WindowsLib::remove_main()
-    {
-        for(auto& [_, window] : map_)
-            { window->should_close(true); }
-    }
+    void WindowsLib::remove_main() { remove(u8"main"); }
 
     Window& WindowsLib::operator[](const String& name)
     {

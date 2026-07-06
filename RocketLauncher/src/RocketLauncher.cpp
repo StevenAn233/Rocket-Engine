@@ -29,6 +29,8 @@ namespace rke
             auto editor_layer{ create_scope<EditorLayer>(u8"EditorLayer", &main_window) };
             main_window.push_layer(std::move(editor_layer));
         }
+
+        void shutdown() override { Application::shutdown(); }
     };
 }
 

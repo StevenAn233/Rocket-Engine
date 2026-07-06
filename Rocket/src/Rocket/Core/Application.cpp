@@ -27,7 +27,7 @@ namespace rke
         };
         ds_handle_ = &(ds_layer->dockspace_);
         main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ds_layer)));
-        get_dockspace().get_panel_registry().register_panel({ &panel_ });
+        get_dockspace().get_panel_registry().register_panel(&panel_);
     }
 
     void Application::shutdown() { ds_handle_ = nullptr; }

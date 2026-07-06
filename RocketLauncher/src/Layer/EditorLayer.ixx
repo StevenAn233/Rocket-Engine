@@ -10,7 +10,6 @@ import SceneHierarchyPanel;
 import ContentBrowserPanel;
 import ProjectSettingPanel;
 import ProjectCreatingModal;
-
 import EditorCamera;
 
 export namespace rke
