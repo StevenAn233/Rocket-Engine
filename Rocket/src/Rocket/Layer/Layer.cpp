@@ -17,10 +17,9 @@ namespace rke
 
     void Layer::on_event(Event& e)
     {
-        EventDispatcher dispatcher{ e };
-        dispatcher.dispatch<ViewportResizedEvent>
-            ([this](ViewportResizedEvent& e) { return on_viewport_resized(e); });
-        if(e.belongs_to(EventCategoryInput)) {
+        if(e.belongs_to(EventCategoryInput))
+        {
+            EventDispatcher dispatcher{ e };
             dispatcher.dispatch<KeyPressedEvent>
                 ([this](KeyPressedEvent& e) { return on_key_pressed(e); });
             dispatcher.dispatch<MouseButtonPressedEvent>

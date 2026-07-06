@@ -221,7 +221,7 @@ namespace rke {
     }
 
     void Scene::on_mouse_scrolled_runtime(MouseScrolledEvent& e)
-        { if(in_runtime_) ScriptEngine::on_mouse_scrolled(e); }
+        { if(in_runtime()) ScriptEngine::on_mouse_scrolled(e); }
 
     void Scene::set_camera_master(Entity entity)
     {

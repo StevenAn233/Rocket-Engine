@@ -39,8 +39,6 @@ export namespace rke
         uint32 width_, height_;
     };
 
-    using ViewportResizedEvent = WindowResizedEvent;
-
     class RKE_API WindowClosedEvent : public WindowEvent
     {
     public:

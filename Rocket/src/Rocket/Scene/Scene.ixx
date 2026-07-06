@@ -124,8 +124,6 @@ export namespace rke
         void on_runtime_stop ();
 
         void on_mouse_scrolled_runtime(MouseScrolledEvent& e);
-        void on_viewport_resized_runtime(ViewportResizedEvent& e)
-            { set_viewport(e.get_width(), e.get_height()); }
 
         void set_camera_master(Entity entity);
         void set_viewport(uint32 width, uint32 height);
