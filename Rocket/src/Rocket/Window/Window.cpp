@@ -37,15 +37,15 @@ namespace rke
     {
         check_layer_blocking();
         make_context_current();
-        for(const auto& layer : layer_stack_)
-            layer->on_update(dt);
+        for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
+            it->get()->on_update(dt);
     }
 
     void Window::on_render()
     {
         if(minimized()) return;
-        for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
-            it->get()->on_render();
+        for(const auto& layer : layer_stack_)
+            layer->on_render();
     }
 }
 

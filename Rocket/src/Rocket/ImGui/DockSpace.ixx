@@ -23,7 +23,7 @@ export namespace rke
         ~DockSpace();
 
         void render(glm::vec2 offset, glm::vec2 scale);
-        PanelRegistry& get_panel_registry() { return panel_registry_; }
+        inline PanelRegistry& get_panel_registry() { return panel_registry_; }
     private:
         bool mouse_blocking() const;
         bool keyboard_blocking() const;
