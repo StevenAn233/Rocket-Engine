@@ -21,11 +21,11 @@ namespace rke
     void Application::init()
     {
         Window& main_window{ windows_lib_.get_main() };
-        DockSpaceLayer* ds_layer = new DockSpaceLayer
+        DockSpaceLayer* ds_layer{ new DockSpaceLayer
         {
             u8"Dockspace Layer", windows_lib_.main_window_,
             file::editor_dir() / u8"settings" / u8"dockspace.yaml"
-        };
+        }};
         panel_reg_ = &(ds_layer->dockspace_.get_panel_registry());
         main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ds_layer)));
         register_panel(&panel_);
@@ -55,7 +55,10 @@ namespace rke
         ([this](WindowClosedEvent& e)
         {
             if(e.get_window_name() == u8"main")
+            {
+                unregister_panel(&panel_);
                 panel_reg_ = nullptr;
+            }
             return false;
         });
         windows_lib_.on_event(e);

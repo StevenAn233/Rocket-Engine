@@ -10,8 +10,8 @@ namespace rke
 
         refresh_state();
 
-        if(render_target_id_) {
-            ImGui::Image(ImTextureRef(static_cast<ImTextureID>(render_target_id_)),
+        if(const Texture2D* target{ getter_ ? getter_() : nullptr }) {
+            ImGui::Image(ImTextureRef(static_cast<ImTextureID>(target->get_renderer_id())),
                 std::bit_cast<ImVec2>(get_size()), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
         } else {
             ImVec2 cursor_pos{ ImGui::GetCursorScreenPos() };
@@ -22,21 +22,19 @@ namespace rke
             if(get_size().x > 0 && get_size().y > 0)
             {
                 ImGui::SetWindowFontScale(2.0f / ImGui::GetIO().FontGlobalScale);
-                const char* text{ "No Scene Loaded" };
+                const char* text{ "No Target" };
                 ImVec2 text_size{ ImGui::CalcTextSize(text) };
                 ImVec2 text_pos { cursor_pos.x + (get_size().x - text_size.x) * 0.5f,
-                                  cursor_pos.y + (get_size().y - text_size.y) * 0.5f};
+                                  cursor_pos.y + (get_size().y - text_size.y) * 0.5f };
                 ImGui::GetWindowDrawList()->AddText(text_pos, IM_COL32(100, 100, 100, 255), text);
                 ImGui::SetWindowFontScale(1.0f);
-
                 ImGui::InvisibleButton("##EmptyViewport", std::bit_cast<ImVec2>(get_size()));
             }
         }
-        render_target_id_ = 0; // TO REMOVE
 
-        ImGui::PopStyleVar();
-        if(in_viewport_callback_) in_viewport_callback_(this);
+        if(callback_) callback_(this);
 
         ImGui::End();
+        ImGui::PopStyleVar();
     }   
 }

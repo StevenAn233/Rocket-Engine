@@ -93,16 +93,17 @@ namespace rke
             [this]() { return current_scene_ && playing(); });
 
     // Viewports
-        main_viewport_.set_in_viewport_callback([this](Viewport* self)
+        main_viewport_.set_viewport_callback([this](Viewport* self)
         {
-            if(current_scene_ && self->is_focused() && editing())
+        // Gizmo
+            if(current_scene_ && editing() && self->is_focused())
             {
                 Gizmo::on_render (
                     current_scene_->get_selected_entity(),
                     editor_setting_panel_.get_gizmo_mode(),
                     editor_cam_, mouse_blocked());
             }
-
+        // Drag Drop
             if((!current_scene_ || editing()) && ImGui::BeginDragDropTarget())
             {
                 in_main_viewport_dragging_ = true;
@@ -118,7 +119,7 @@ namespace rke
                 ImGui::EndDragDropTarget();
             }
             else in_main_viewport_dragging_ = false;
-
+        // Entity Pop-up
             static bool in_popup{ false };
             if(!current_scene_ || (hovering_id_ == -1 && !in_popup)) return;
             if(ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
@@ -132,6 +133,8 @@ namespace rke
             }
             else in_popup = false;
         });
+        main_viewport_.set_target_getter([this]() { return main_output_; });
+        cam_viewport_ .set_target_getter([this]() { return cam_output_;  });
 
     // PanelRegistry
         app().register_panel(&window_setting_panel_);
@@ -274,11 +277,6 @@ namespace rke
             break;
         default: break;
         }
-
-        if(main_output_) main_viewport_.
-            set_render_target(main_output_->get_renderer_id());
-        if(cam_output_ ) cam_viewport_.
-            set_render_target(cam_output_ ->get_renderer_id());
     }
 
 //  void EditorLayer::on_imgui_render()
