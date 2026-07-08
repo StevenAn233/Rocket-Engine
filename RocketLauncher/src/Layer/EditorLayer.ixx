@@ -66,7 +66,11 @@ export namespace rke
         const Texture2D* cam_output_ {};
 
     // Modals
-        ProjectCreatingModal project_creating_modal_{ u8"Create New Project" };
+        ProjectCreatingModal project_creating_modal_
+        {
+            u8"Create New Project",
+            reinterpret_cast<Window*>(owner_)
+        };
     // Panels
         Toolbar toolbar_{ u8"Toolbar" };
         Viewport main_viewport_{ u8"Main Viewport" };

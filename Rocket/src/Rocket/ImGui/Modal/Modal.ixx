@@ -12,10 +12,16 @@ export namespace rke
     class RKE_API Modal
     {
     public:
-        const String& get_title() const { return title_; }
-    protected:
         Modal(String title) : title_(std::move(title)) {}
-    private:
+        virtual ~Modal() = default;
+
+        virtual void on_imgui_render() = 0;
+
+        void popup();
+        inline const String& get_title() const { return title_; }
+        inline bool in_use() const { return in_use_; }
+    protected:
         String title_;
+        bool in_use_{ false };
     };
 }

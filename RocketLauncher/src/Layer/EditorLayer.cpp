@@ -154,7 +154,10 @@ namespace rke
     // Modal(s)
         project_creating_modal_.set_project_created_callback
         ([this](const Path& rkproj_path)
-            { update_current_scene({}); open_project(rkproj_path); });
+        {
+            update_current_scene({});
+            open_project(rkproj_path);
+        });
 
     // Load last project(after editor_setting_panel_.load_from(...))
         const Path& last_proj_path{ editor_setting_panel_.get_last_proj_path() };

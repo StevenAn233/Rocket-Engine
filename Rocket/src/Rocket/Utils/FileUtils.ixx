@@ -66,6 +66,7 @@ export namespace rke
         RKE_API Path unify_path(String generic);
 
         RKE_API Path executable_dir();
+        RKE_API Path root_dir();
         RKE_API Path assets_dir();
         RKE_API Path editor_dir();
         RKE_API Path shader_cache_dir();
