@@ -182,6 +182,102 @@ namespace rke
         Project::clear_active();
     }
 
+    void EditorLayer::on_event(Event& e)
+    {
+        if(e.handled()) return;
+        EventDispatcher dispatcher{ e };
+        dispatcher.dispatch<KeyPressedEvent>([this]
+            (KeyPressedEvent& e) { return on_key_pressed(e); });
+        dispatcher.dispatch<MouseScrolledEvent>([this]
+            (MouseScrolledEvent& e) { return on_mouse_scrolled(e); });
+        dispatcher.dispatch<MouseButtonPressedEvent>([this]
+            (MouseButtonPressedEvent& e) { return on_mouse_button_pressed(e); });
+    }
+
+    bool EditorLayer::on_key_pressed(KeyPressedEvent& e)
+    {
+        if(e.is_held()) return false;
+
+        switch(e.get_key()) // function keys
+        {
+        case Key::F5:
+            switch(scene_state_)
+            {
+            case SceneState::Edit:
+                if(current_scene_) on_runtime_start();
+                return true;
+            case SceneState::Play:
+                if(current_scene_) on_runtime_stop();
+                return true;
+            }
+            return false;
+        default: break;
+        }
+
+        if(scene_state_ == SceneState::Play) return false;
+
+        bool ctrl{  Input::is_key_pressed(Key::RightControl)
+                 || Input::is_key_pressed(Key::LeftControl)};
+        bool shift{ Input::is_key_pressed(Key::RightShift  )
+                 || Input::is_key_pressed(Key::LeftShift  )};
+
+        switch(e.get_key())
+        {
+        case Key::Num1:
+            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Translate);
+            return true;
+        case Key::Num2:
+            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Rotate);
+            return true;
+        case Key::Num3:
+            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Scale);
+            return true;
+        case Key::N:
+            if(ctrl) { new_project(); return true; }
+            return false;
+        case Key::O:
+            if(ctrl) { open_project(e.get_window_name()); return true; }
+            return false;
+        case Key::S:
+            if(ctrl) { save_project(); return true; }
+            return false;
+        case Key::Keypad5:
+            editor_cam_.reset(); return true;
+        case Key::Delete:
+            if(current_scene_) current_scene_->destroy_selected_entity();
+            return true;
+        }
+        return false;
+    }
+
+    bool EditorLayer::on_mouse_scrolled(MouseScrolledEvent& e)
+    {
+        if(current_scene_ && scene_state_ == SceneState::Play)
+        {
+            current_scene_->on_mouse_scrolled_runtime(e);
+            return true;
+        }
+        return editor_cam_.on_mouse_scrolled(e);
+    }
+
+    bool EditorLayer::on_mouse_button_pressed(MouseButtonPressedEvent& e)
+    {
+        if(!current_scene_) return false;
+        if(scene_state_ == SceneState::Play) return false;
+        if(!main_viewport_.is_focused()) return true;
+        // Just select main-viewport, do not set selected-entity
+
+        bool is_gizmo_over{ Gizmo::is_over() &&
+            current_scene_->get_selected_entity().valid()};
+        if(is_gizmo_over || Gizmo::is_using()) return false;
+
+        if(e.get_mouse_button() == Mouse::Left) {
+            current_scene_->set_selected_entity(hovering_id_);
+            return true;
+        }
+        return false;
+    }
+
     void EditorLayer::on_update(float dt)
     {
         RKE_PROFILE_FUNCTION();
@@ -359,90 +455,6 @@ namespace rke
     }
 
     void EditorLayer::save_project() { Project::save_active(); }
-
-    bool EditorLayer::on_key_pressed(KeyPressedEvent& e)
-    {
-        if(e.is_held()) return false;
-
-        switch(e.get_key()) // function keys
-        {
-        case Key::F5:
-            switch(scene_state_)
-            {
-            case SceneState::Edit:
-                if(current_scene_) on_runtime_start();
-                return true;
-            case SceneState::Play:
-                if(current_scene_) on_runtime_stop();
-                return true;
-            }
-            return false;
-        default: break;
-        }
-
-        if(scene_state_ == SceneState::Play) return false;
-
-        bool ctrl{  Input::is_key_pressed(Key::RightControl)
-                 || Input::is_key_pressed(Key::LeftControl)};
-        bool shift{ Input::is_key_pressed(Key::RightShift  )
-                 || Input::is_key_pressed(Key::LeftShift  )};
-
-        switch(e.get_key())
-        {
-        case Key::Num1:
-            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Translate);
-            return true;
-        case Key::Num2:
-            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Rotate);
-            return true;
-        case Key::Num3:
-            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Scale);
-            return true;
-        case Key::N:
-            if(ctrl) { new_project(); return true; }
-            return false;
-        case Key::O:
-            if(ctrl) { open_project(e.get_window_name()); return true; }
-            return false;
-        case Key::S:
-            if(ctrl) { save_project(); return true; }
-            return false;
-        case Key::Keypad5:
-            editor_cam_.reset(); return true;
-        case Key::Delete:
-            if(current_scene_) current_scene_->destroy_selected_entity();
-            return true;
-        }
-        return false;
-    }
-
-    bool EditorLayer::on_mouse_scrolled(MouseScrolledEvent& e)
-    {
-        if(current_scene_ && scene_state_ == SceneState::Play)
-        {
-            current_scene_->on_mouse_scrolled_runtime(e);
-            return true;
-        }
-        return editor_cam_.on_mouse_scrolled(e);
-    }
-
-    bool EditorLayer::on_mouse_button_pressed(MouseButtonPressedEvent& e)
-    {
-        if(!current_scene_) return false;
-        if(scene_state_ == SceneState::Play) return false;
-        if(!main_viewport_.is_focused()) return true;
-        // Just select main-viewport, do not set selected-entity
-
-        bool is_gizmo_over{ Gizmo::is_over() &&
-            current_scene_->get_selected_entity().valid()};
-        if(is_gizmo_over || Gizmo::is_using()) return false;
-
-        if(e.get_mouse_button() == Mouse::Left) {
-            current_scene_->set_selected_entity(hovering_id_);
-            return true;
-        }
-        return false;
-    }
 
     void EditorLayer::update_current_scene(Ref<Scene> scene)
     {

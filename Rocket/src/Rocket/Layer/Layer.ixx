@@ -28,12 +28,12 @@ export namespace rke
         virtual void on_attach() {};
         virtual void on_detach() {};
 
+        virtual void on_event(Event& e) = 0;
         virtual void on_update(float dt);
-        virtual void on_event(Event& e);
         virtual void on_render() {}
 
-        virtual bool should_block_mouse() { return false; }
-        virtual bool should_block_keyboard() { return false; }
+        virtual bool should_block_mouse() = 0;
+        virtual bool should_block_keyboard() = 0;
         // depends on THIS layer
 
         inline StringView get_debug_name() const { return debug_name_; }
@@ -43,10 +43,6 @@ export namespace rke
         bool mouse_blocked() const;
         bool keyboard_blocked() const;
         // depends on FORMER layers
-
-        virtual bool on_key_pressed(KeyPressedEvent& e) { return should_block_keyboard(); }
-        virtual bool on_mouse_button_pressed(MouseButtonPressedEvent& e) { return should_block_mouse(); }
-        virtual bool on_mouse_scrolled(MouseScrolledEvent& e) { return should_block_mouse(); }
     protected:
         void* owner_;
         String debug_name_;

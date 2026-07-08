@@ -12,6 +12,7 @@ namespace rke
 
     void DockSpaceLayer::on_event(Event& e)
     {
+        if(e.handled()) return;
         EventDispatcher dispacher{ e };
         if(e.belongs_to(EventCategoryMouse))
             dispacher.mark_completed_if(should_block_mouse());

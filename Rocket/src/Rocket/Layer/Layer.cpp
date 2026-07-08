@@ -15,20 +15,6 @@ namespace rke
             (mouse_blocked(), keyboard_blocked());
     }
 
-    void Layer::on_event(Event& e)
-    {
-        if(e.belongs_to(EventCategoryInput))
-        {
-            EventDispatcher dispatcher{ e };
-            dispatcher.dispatch<KeyPressedEvent>
-                ([this](KeyPressedEvent& e) { return on_key_pressed(e); });
-            dispatcher.dispatch<MouseButtonPressedEvent>
-                ([this](MouseButtonPressedEvent& e) { return on_mouse_button_pressed(e); });
-            dispatcher.dispatch<MouseScrolledEvent>
-                ([this](MouseScrolledEvent& e) { return on_mouse_scrolled(e); });
-        }
-    }
-
     const String& Layer::get_owner_name()
     {
         CORE_ASSERT(owner_, u8"Layer: Owner window empty!");

@@ -23,6 +23,7 @@ export namespace rke
         void on_attach() override;
         void on_detach() override;
 
+        void on_event(Event& e) override;
         void on_update(float dt) override;
         void on_render() override;
 
@@ -37,13 +38,13 @@ export namespace rke
         void on_runtime_start();
         void on_runtime_stop();
 
-        bool on_key_pressed(KeyPressedEvent& e) override;
-        bool on_mouse_scrolled(MouseScrolledEvent& e) override;
-        bool on_mouse_button_pressed(MouseButtonPressedEvent& e) override;
-
         void update_current_scene(Ref<Scene> scene);
-
         void entity_right_click_popup_content(Scene* scene);
+
+    // for on_event
+        bool on_key_pressed(KeyPressedEvent& e);
+        bool on_mouse_scrolled(MouseScrolledEvent& e);
+        bool on_mouse_button_pressed(MouseButtonPressedEvent& e);
     private:
         Window* get_owner();
         bool editing() const { return scene_state_ == SceneState::Edit; }
