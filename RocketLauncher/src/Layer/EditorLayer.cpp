@@ -65,9 +65,6 @@ namespace rke
         scene_hierarchy_panel_.set_on_entity_node_render([this](Scene* scene)
             { entity_right_click_popup_content(scene); });
 
-    // WindowSetting
-        window_setting_panel_.set_context(get_owner());
-
     // ContentBrowser
         Path assets_dir{ file::assets_dir() };
         content_browser_panel_.set_folder_icon(assets_dir / u8"icons" / u8"folder.png");
@@ -145,7 +142,6 @@ namespace rke
         });
 
     // PanelRegistry
-        app().register_panel(&window_setting_panel_);
         app().register_panel(&editor_setting_panel_);
         app().register_panel(&scene_hierarchy_panel_);
         app().register_panel(&content_browser_panel_);
@@ -182,7 +178,6 @@ namespace rke
         if(playing()) on_runtime_stop();
         update_current_scene(nullptr);
 
-        app().unregister_panel(&window_setting_panel_);
         app().unregister_panel(&editor_setting_panel_);
         app().unregister_panel(&scene_hierarchy_panel_);
         app().unregister_panel(&content_browser_panel_);

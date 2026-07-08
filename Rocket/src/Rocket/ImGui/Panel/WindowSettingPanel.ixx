@@ -7,18 +7,18 @@ export module WindowSettingPanel;
 
 import String;
 import Panel;
-import Window;
 
 export namespace rke
 {
-    class RKE_API WindowSettingPanel : public Panel
+    class WindowSettingPanel : public Panel
     {
     public:
+        friend class Window;
         WindowSettingPanel(String name) : Panel(std::move(name)) {}
-
-        void set_context(Window* window) { context_ = window; }
-        void on_imgui_render() override;
     private:
-        Window* context_{};
+        void on_imgui_render() override;
+        void set_context(void* window) { context_ = window; }
+    private:
+        void* context_{};
     };
 }

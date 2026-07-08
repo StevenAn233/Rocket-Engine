@@ -6,20 +6,7 @@ namespace rke
     class RocketLauncher : public Application
     {
     public:
-        RocketLauncher() : Application()
-        {
-            get_windows_lib().load_main
-            (
-                create_scope<Window::Props>(Window::Props
-                {
-                    .title{ u8"Rocket" },
-                    .icon_path{ file::assets_dir() / u8"icons" / u8"RKE.png" },
-                    .width{ 2450 }, .height{ 1300 },
-                    .x_coord{ 50 }, .y_coord{ 100 }
-                })
-            );
-        }
-
+        RocketLauncher() : Application() {}
         ~RocketLauncher() override {}
 
         void init() override

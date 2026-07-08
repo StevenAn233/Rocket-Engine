@@ -13,7 +13,8 @@ export namespace rke
     {
     public:
         ApplicationPanel(String name)
-            : Panel(std::move(name)) {}  
+            : Panel(std::move(name)) {}
+    private:
         void on_imgui_render() override;
     };
 }

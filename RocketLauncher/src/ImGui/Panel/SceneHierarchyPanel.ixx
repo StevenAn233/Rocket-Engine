@@ -13,15 +13,9 @@ export namespace rke
         SceneHierarchyPanel(String name);
 
         void set_context(Scene* context)
-        {
-            context_ = context;
-            is_scene_selected_ = false;
-        }
-
+            { context_ = context; is_scene_selected_ = false; }
         void set_on_entity_node_render(EntityNodeCallback callback)
             { on_entity_node_render_ = std::move(callback); }
-
-        void on_imgui_render() override;
 
         template<typename Component, StringLiteral Str, typename Callback>
         requires std::invocable<Callback, Entity>
@@ -87,6 +81,8 @@ export namespace rke
             }
         }
     private:
+        void on_imgui_render() override;
+
         void draw_entity_node(Entity entity, Entity selected);
         void draw_entity_popup();
 

@@ -5,7 +5,6 @@ import rke;
 import Toolbar;
 import Viewport;
 import EditorSettingPanel;
-import WindowSettingPanel;
 import SceneHierarchyPanel;
 import ContentBrowserPanel;
 import ProjectSettingPanel;
@@ -71,7 +70,6 @@ export namespace rke
         Toolbar toolbar_{ u8"Toolbar" };
         Viewport main_viewport_{ u8"Main Viewport" };
         Viewport cam_viewport_{ u8"Camera Viewport" };
-        WindowSettingPanel window_setting_panel_{ u8"Window Settings" };
         EditorSettingPanel editor_setting_panel_ { u8"Editor Settings" };
         SceneHierarchyPanel scene_hierarchy_panel_{ u8"Scene Hierarchy" };
         ContentBrowserPanel content_browser_panel_{ u8"Content Browser" };

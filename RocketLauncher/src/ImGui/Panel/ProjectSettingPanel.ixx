@@ -11,8 +11,6 @@ export namespace rke
     public:
         ProjectSettingPanel(String name) : Panel(std::move(name)) {}
 
-        void on_imgui_render() override;
-
         void set_on_samples_setting(std::function<void(uint32)> callback)
             { on_samples_setting_ = std::move(callback); }
         void set_fxaa_handle(FXAAEffect* handle) { fxaa_ = handle; }
@@ -20,6 +18,8 @@ export namespace rke
 
         void on_viewport_resized(uint32 w, uint32 h);
     private:
+        void on_imgui_render() override;
+
         void draw_layer_collision_matrix(PhysicsLayers& layers);
         void apply_aa_setting(int aa_opt);
     private:

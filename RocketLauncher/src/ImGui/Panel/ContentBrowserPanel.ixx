@@ -12,17 +12,16 @@ export namespace rke
         ~ContentBrowserPanel();
 
         bool set_context(const Path& context);
-        void on_imgui_render() override;
-
         void set_folder_icon(const Path& filepath);
         void set_image_icon (const Path& filepath);
         void set_file_icon  (const Path& filepath);
 
         void load_from(Path filepath);
     private:
+        void on_imgui_render() override;
+
         Ref<Texture2D> get_file_icon(const String& file_name);
-        void scale_icon(float extent = 1.0f)
-            { thumbnail_scale_ *= std::sqrt(extent); }
+        void scale_icon(float extent = 1.0f) { thumbnail_scale_ *= std::sqrt(extent); }
     private:
         Path filepath_{}; // for save
 

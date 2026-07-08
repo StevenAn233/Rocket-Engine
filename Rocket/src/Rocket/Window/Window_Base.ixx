@@ -15,6 +15,7 @@ import Path;
 import Layer;
 import LayerStack;
 import NativeWindow;
+import WindowSettingPanel;
 
 export namespace rke
 {
@@ -82,9 +83,8 @@ export namespace rke
 
         static Scope<Window> create(String name, Scope<Props> props, NativeWindow context);
     protected:
-        Window(String name, Scope<Props> props)
-            : name_(std::move(name)), props_(std::move(props)) {};
-        virtual ~Window() = default;
+        Window(String name, Scope<Props> props);
+        virtual ~Window();
     private:
         void on_event(Event& e);
         void on_update(float dt);
@@ -98,5 +98,6 @@ export namespace rke
         Size mouse_blocking_layer_index_{};
         Size keyboard_blocking_layer_index_{};
         bool should_close_{ false };
+        WindowSettingPanel setting_panel_{ name_ };
     };
 }

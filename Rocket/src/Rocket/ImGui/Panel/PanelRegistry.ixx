@@ -1,7 +1,6 @@
 ﻿module;
 
 #include <map>
-#include <unordered_map>
 #include "rke_macros.h"
 
 export module PanelRegistry;
@@ -44,7 +43,7 @@ export namespace rke
         void render_all();
         void render_switches_menubar();
     private:
-        std::unordered_map<String, bool> config_{};
+        std::map<String, bool> config_{};
         std::map<Panel*, Attrib> attribs_{};
     };
 }

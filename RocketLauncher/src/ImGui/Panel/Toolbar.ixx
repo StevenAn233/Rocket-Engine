@@ -33,12 +33,13 @@ export namespace rke
     public:
         Toolbar(String name) : Panel(std::move(name)) {}
 
-        void on_imgui_render() override;
         void emplace_icon_button(String name,
             Ref<Texture2D> icon,
             std::function<void(IconButton*)> on_click,
             std::function<bool()> is_enabled = nullptr,
             bool visible = true);
+    private:
+        void on_imgui_render() override;
     private:
         std::vector<IconButton> icon_buttons_{};
     };

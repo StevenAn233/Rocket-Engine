@@ -2,9 +2,19 @@
 module Window;
 
 import WindowsLib;
+import Application;
 
 namespace rke
 {
+    Window::Window(String name, Scope<Props> props)
+        : name_(std::move(name)), props_(std::move(props))
+    {
+        setting_panel_.set_context(this);
+        app().register_panel(&setting_panel_);
+    }
+
+    Window::~Window() { app().unregister_panel(&setting_panel_); }
+
     void Window::check_layer_blocking()
     {
         mouse_blocking_layer_index_	= 0;

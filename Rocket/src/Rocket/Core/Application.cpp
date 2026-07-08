@@ -20,7 +20,22 @@ namespace rke
 
     void Application::init()
     {
-        Window& main_window{ windows_lib_.get_main() };
+        Window& main_window{ get_windows_lib().load_main
+        (
+            create_scope<Window::Props>(Window::Props
+            {
+                .title{ u8"Rocket" },
+                .icon_path{ file::assets_dir() / u8"icons" / u8"RKE.png" },
+                .width{ 2450 }, .height{ 1300 },
+                .x_coord{ 50 }, .y_coord{ 100 }
+            })
+        )};
+
+        DeltaTime::update();
+        DeltaTime::update();
+        PlatformSupport::init();
+        Renderer2D::init();
+
         DockSpaceLayer* ds_layer{ new DockSpaceLayer
         {
             u8"Dockspace Layer", windows_lib_.main_window_,
@@ -30,9 +45,14 @@ namespace rke
         modal_reg_ = &(ds_layer->dockspace_.get_modal_registry());
         main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ds_layer)));
         register_panel(&panel_);
+        register_panel(&main_window.setting_panel_);
     }
 
-    void Application::shutdown() {}
+    void Application::shutdown()
+    {
+        Renderer2D::shutdown();
+        PlatformSupport::shutdown();
+    }
 
     void Application::run()
     {
@@ -57,6 +77,7 @@ namespace rke
         {
             if(e.get_window_name() == u8"main")
             {
+                unregister_panel(&windows_lib_.get_main().setting_panel_);
                 unregister_panel(&panel_);
                 panel_reg_ = nullptr;
                 modal_reg_ = nullptr;
@@ -116,20 +137,11 @@ namespace rke
     void execute(Scope<Application> instance)
     {
         register_instance(std::move(instance));
-
         Project::init_file_templates(file::assets_dir() / u8"proj-templates");
-        DeltaTime::update();
-        DeltaTime::update();
-
-        PlatformSupport::init();
-        Renderer2D::init();
-
+        
         app().init();
         app().run();
         app().shutdown();
-
-        Renderer2D::shutdown();
-        PlatformSupport::shutdown();
 
         unregister_instance();
     }

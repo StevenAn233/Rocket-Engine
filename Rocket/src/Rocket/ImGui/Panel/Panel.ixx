@@ -19,8 +19,7 @@ export namespace rke
         virtual ~Panel() = default;
 
         void refresh_state();
-        virtual void on_imgui_render() = 0;
-
+        
         inline const String& get_name() const { return name_; }
         inline bool on() const { return on_; }
         inline bool hidden() const { return hidden_; }
@@ -39,6 +38,8 @@ export namespace rke
 
         inline bool resized() const { return resized_; }
         inline bool relocated() const { return relocated_; }
+    private:
+        virtual void on_imgui_render() = 0;
     private:
         String name_;
         
