@@ -371,7 +371,8 @@ namespace rke
                 editor_setting_panel_.get_hovering()->set_target(target);
             }
 
-            if(current_scene_ && cam_viewport_.visible())
+            if(current_scene_ && cam_viewport_.on() &&
+              !cam_viewport_.hidden() && cam_viewport_.visible())
             {
                 // switch to cam demo viewport size
                 auto size{ cam_viewport_.get_size() };

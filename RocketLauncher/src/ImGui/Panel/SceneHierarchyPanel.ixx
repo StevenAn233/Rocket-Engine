@@ -2,7 +2,6 @@
 export module SceneHierarchyPanel;
 
 import rke;
-import Layout;
 
 export namespace rke
 {
@@ -11,7 +10,7 @@ export namespace rke
     public:
         using EntityNodeCallback = std::function<void(Scene*)>;
 
-        SceneHierarchyPanel(String name) : Panel(std::move(name)) {}
+        SceneHierarchyPanel(String name);
 
         void set_context(Scene* context)
         {
@@ -24,15 +23,15 @@ export namespace rke
 
         void on_imgui_render() override;
 
-        template<typename Component, typename Callback>
+        template<typename Component, StringLiteral Str, typename Callback>
         requires std::invocable<Callback, Entity>
-        void check_then_draw(Entity entity, StringView name, Callback&& callback)
+        inline void check_then_draw(Entity entity, Callback&& callback)
         {
             if(!entity.has<Component>()) return;
             constexpr auto type_id{ entt::type_hash<Component>::value() };
 
             bool to_delete{ false };
-            layout::tree_node_branch(name, [&]()
+            layout::tree_node_branch<Str>([&]()
             {
                 if(!ImGui::BeginPopupContextItem()) goto invoking;
                 
@@ -96,7 +95,6 @@ export namespace rke
         void add_components_popup(Entity selected);
     private:
         Scene* context_{};
-
         bool is_scene_selected_{ false };
         EntityNodeCallback on_entity_node_render_{};
     };

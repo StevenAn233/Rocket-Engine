@@ -58,8 +58,8 @@ namespace rke
     void OutlineEffect::on_imgui_render()
     {
         float outline_thickness{ uniforms_.thickness };
-        if(layout::drag_float_control(u8"Thickness",
-           outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
+        if(layout::drag_float_control<u8"Thickness">
+            (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
             { set_thickness(outline_thickness); }
         // change color...
     }

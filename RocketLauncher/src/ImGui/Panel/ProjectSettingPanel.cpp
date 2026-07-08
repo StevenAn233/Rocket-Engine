@@ -4,8 +4,6 @@
 
 module ProjectSettingPanel;
 
-import Layout;
-
 namespace {
     void add_text_vertical(ImDrawList* draw_list, const char* text, ImVec2 pos, ImU32 text_color)
     {
@@ -37,7 +35,7 @@ namespace rke
         {
             if(ImGui::BeginTabItem("Config"))
             {
-                layout::tree_node_branch(u8"Name", [this]()
+                layout::tree_node_branch<u8"Name">([this]()
                 {
                     const String& name{ Project::get_active_project()->get_name() };
                     char buffer[256]{};
@@ -55,7 +53,7 @@ namespace rke
             }
             if(ImGui::BeginTabItem("Render"))
             {
-                layout::tree_node_branch(u8"Anti-Aliasing", [&]()
+                layout::tree_node_branch<u8"Anti-Aliasing">([&]()
                 {
                     constexpr const char* items[]
                         { "Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA", "FXAA" };

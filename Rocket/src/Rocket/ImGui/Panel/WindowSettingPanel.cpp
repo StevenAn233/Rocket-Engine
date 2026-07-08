@@ -1,29 +1,17 @@
 ﻿module;
-export module WindowSettingPanel;
-
-import rke;
+module WindowSettingPanel;
 
 import Layout;
+import DeltaTime;
 
-export namespace rke
+namespace rke
 {
-    class WindowSettingPanel : public Panel
-    {
-    public:
-        WindowSettingPanel(String name) : Panel(std::move(name)) {}
-
-        void set_context(Window* window) { context_ = window; }
-        void on_imgui_render() override;
-    private:
-        Window* context_{};
-    };
-
     void WindowSettingPanel::on_imgui_render()
     {
         ImGui::PushID(get_name().raw());
         ImGui::Begin (get_name().raw());
 
-        layout::tree_node_branch(u8"V-Sync", [&]()
+        layout::tree_node_branch<u8"V-Sync">([&]()
         {
             float panel_w{ ImGui::GetContentRegionAvail().x };
             ImGui::SetNextItemWidth(panel_w - 10.0f);
@@ -37,9 +25,8 @@ export namespace rke
             }
         });
 
-        layout::tree_node_branch(u8"FPS", [&]() {
-            ImGui::Text("Global: %d", DeltaTime::get_slow_fps()); // TEMP
-        });
+        layout::tree_node_branch<u8"FPS">([&]()
+            { ImGui::Text("Global: %d", DeltaTime::get_slow_fps()); });
 
         ImGui::End();
         ImGui::PopID();

@@ -1,4 +1,5 @@
-﻿export module OutlineEffect;
+﻿module;
+export module OutlineEffect;
 
 import rke;
 
@@ -28,7 +29,7 @@ export namespace rke
         void set_color(glm::vec4 color);
         void set_thickness(float thickness);
     private:
-        Ref<FrameBuffer> outline_fbo_{}; // has its ownership
+        Ref<FrameBuffer> outline_fbo_{};
         Uniforms uniforms_{};
         Entity target_{};
     };

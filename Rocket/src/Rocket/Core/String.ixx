@@ -5,6 +5,7 @@
 #include <string_view>
 #include <format>
 
+#include <algorithm>
 #include <functional>
 #include "rke_macros.h"
 
@@ -14,6 +15,14 @@ import Types;
 
 export namespace rke
 {
+    template<Size N>
+    struct StringLiteral
+    {
+        char8 data[N];
+        consteval StringLiteral(const char8 (&str)[N])
+            { std::copy_n(str, N, data); }
+    };
+
     class RKE_API StringView final
     {
     public:
@@ -104,7 +113,7 @@ export namespace rke
         constexpr String(std::u8string&& s) : u8string_(std::move(s)) {}
         template<Size N>
         constexpr String(const char8 (&str)[N]) : u8string_(str, N - 1) {}
-        constexpr String(const char8* s, Size len)  : u8string_(s, len) {}
+        constexpr String(const char8* s, Size len) : u8string_(s, len) {}
         constexpr String(StringView sv) : u8string_(sv.data(), sv.size()) {}
         explicit constexpr String(const char8* s) : u8string_(s) {}
 

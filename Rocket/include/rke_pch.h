@@ -32,6 +32,7 @@
 
 #include <tuple>
 #include <concepts>
+#include <type_traits>
 
 #include <thread>
 #include <mutex>

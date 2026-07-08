@@ -3,6 +3,9 @@ module SceneHierarchyPanel;
 
 namespace rke
 {
+    SceneHierarchyPanel::SceneHierarchyPanel(String name)
+        : Panel(std::move(name)) {}
+    
     void SceneHierarchyPanel::on_imgui_render()
     {
         if(!context_) {
@@ -113,7 +116,7 @@ namespace rke
     {
         CORE_ASSERT(context_, u8"SceneHierarchy: No scene context set!");
 
-        layout::tree_node_branch(u8"Name", [this]()
+        layout::tree_node_branch<u8"Name">([this]()
         {
             const String& name{ context_->get_name() };
             char buffer[256]{};
@@ -123,77 +126,101 @@ namespace rke
                 context_->set_name(String(str::to_char8(buffer)));   
         });
 
-        layout::tree_node_branch(u8"Physics", [this]()
+        layout::tree_node_branch<u8"Physics">([this]()
         {
             static glm::vec2 recover{ Gravity2D::get_default() };
-            context_->mark_modified_if(layout::drag_float2_control(u8"Gravity",
-                context_->get_gravity_mut(), 0.01f, recover));
+            context_->mark_modified_if (
+                layout::drag_float2_control<u8"Gravity">
+                    (context_->get_gravity_mut(), 0.01f, recover));
         });
     }
 
     void SceneHierarchyPanel::draw_components(Entity entity)
     {
         CORE_ASSERT(context_, u8"SceneHierarchy: No scene context set!");
-        check_then_draw<TagComponent>(entity, u8"Tag", [this](Entity ent)
+        
+        check_then_draw<TagComponent, u8"Tag">(entity, [this](Entity ent)
         {
-            ImGui::PushID(static_cast<int>(ent.get_handle()) + 1);
             String& tag{ ent.get_mut<TagComponent>().tag };
             char buffer[256]{};
-            strncpy(buffer, tag.raw(), sizeof(buffer) - 1);
+            std::memcpy(buffer, tag.raw(), tag.length());
             buffer[sizeof(buffer) - 1] = '\0';
             if(ImGui::InputText("##tag", buffer, sizeof(buffer)))
             {
                 tag = String(str::to_char8(buffer), strlen(buffer));
                 context_->mark_modified();
             }
-            ImGui::PopID();
         });
 
-        check_then_draw<TransformComponent>(entity, u8"Transform", [&](Entity ent)
+        check_then_draw<TransformComponent, u8"Transform">(entity, [&](Entity ent)
         {
             auto& transform_com{ ent.get_mut<TransformComponent>() };
             bool has_sprite{ ent.has<SpriteComponent>() };
             bool has_camera{ ent.has<CameraComponent>() };
 
-            if(transform_com.locked) { context_->mark_modified_if(
-                layout::drag_float3_control(u8"Position",
-                    transform_com.position, 0.0f, glm::vec3(0.0f),
-                    std::nullopt, std::nullopt, std::nullopt)
-            );} else { context_->mark_modified_if(
-                layout::drag_float3_control(u8"Position",
-                    transform_com.position, 0.1f, glm::vec3(0.0f),
-                    glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f))
-            );}
+            if(transform_com.locked) {
+                context_->mark_modified_if (
+                    layout::drag_float3_control<u8"Position">
+                    (
+                        transform_com.position, 0.0f, glm::vec3(0.0f),
+                        std::nullopt, std::nullopt, std::nullopt
+                    ));
+            } else {
+                context_->mark_modified_if (
+                    layout::drag_float3_control<u8"Position">
+                    (
+                        transform_com.position, 0.1f, glm::vec3(0.0f),
+                        glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
+                    ));
+            }
 
-            if(transform_com.locked) { context_->mark_modified_if(
-                layout::drag_float3_control(u8"Rotition",
-                    transform_com.rotation, 0.0f, glm::vec3(0.0f),
-                    std::nullopt, std::nullopt, std::nullopt)
-            );} else { context_->mark_modified_if(
-                layout::drag_float3_control(u8"Rotation",
-                    transform_com.rotation, 0.5f, glm::vec3(0.0f),
-                    glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f))
-            );}
+            if(transform_com.locked) {
+                context_->mark_modified_if (
+                    layout::drag_float3_control<u8"Rotition">
+                    (
+                        transform_com.rotation, 0.0f, glm::vec3(0.0f),
+                        std::nullopt, std::nullopt, std::nullopt
+                    ));
+            } else {
+                context_->mark_modified_if (
+                    layout::drag_float3_control<u8"Rotation">
+                    (
+                        transform_com.rotation, 0.5f, glm::vec3(0.0f),
+                        glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
+                    ));
+            }
 
-            if(transform_com.locked || ent.has<CameraComponent>()) {
-                context_->mark_modified_if(layout::drag_float3_control(
-                    u8"Size", transform_com.size, 0.0f, glm::vec3(1.0f),
-                    std::nullopt, std::nullopt, std::nullopt));
-            } else if(ent.has<SpriteComponent>()) {
-                context_->mark_modified_if(layout::drag_float3_control(
-                    u8"Size", transform_com.size, 0.1f, glm::vec3(1.0f, 1.0f, 0.0f),
-                    glm::vec2(0.0f), glm::vec2(0.0f), std::nullopt));
-            } else { context_->mark_modified_if(
-                layout::drag_float3_control(u8"Size",
-                     transform_com.size, 0.1f, glm::vec3(1.0f)));
+            if(transform_com.locked || ent.has<CameraComponent>())
+            {
+                context_->mark_modified_if (
+                    layout::drag_float3_control<u8"Size">
+                    (
+                        transform_com.size, 0.0f, glm::vec3(1.0f),
+                        std::nullopt, std::nullopt, std::nullopt
+                    ));
+            }
+            else if(ent.has<SpriteComponent>())
+            {
+                context_->mark_modified_if (
+                    layout::drag_float3_control<u8"Size">
+                    (
+                        transform_com.size, 0.1f, glm::vec3(1.0f, 1.0f, 0.0f),
+                        glm::vec2(0.0f), glm::vec2(0.0f), std::nullopt
+                    ));
+            }
+            else
+            {
+                context_->mark_modified_if (
+                    layout::drag_float3_control<u8"Size">
+                        (transform_com.size, 0.1f, glm::vec3(1.0f)));
             }
         });
 
-        check_then_draw<CameraComponent>(entity, u8"Camera", [&](Entity ent)
+        check_then_draw<CameraComponent, u8"Camera">(entity, [&](Entity ent)
         {
             auto& camera{ ent.get_mut<CameraComponent>().camera };
 
-            layout::two_columns_table(u8"Projection", [&]()
+            layout::two_columns_table<u8"Projection">([&]()
             {
                 constexpr const char* type_strs[]{ "Perspective", "Orthographic" };
                 const char* current_type_str{ type_strs[camera.get_current_type_int()] };
@@ -216,34 +243,34 @@ namespace rke
             if(camera.get_current_type() == SceneCamera::Type::Orthographic)
             {
                 float current_size{ camera.get_orthographic_size() };
-                if(layout::drag_float_control(u8"OrthoSize", current_size, 0.1f, 10.0f))
+                if(layout::drag_float_control<u8"OrthoSize">(current_size, 0.1f, 10.0f))
                     { camera.set_orthographic_size(current_size); context_->mark_modified(); }
 
                 float current_near{ camera.get_orthographic_near_clip() };
-                if(layout::drag_float_control(u8"NearClip", current_near, 0.1f, -10.0f))
+                if(layout::drag_float_control<u8"NearClip">(current_near, 0.1f, -10.0f))
                     { camera.set_orthographic_near_clip(current_near); context_->mark_modified(); }
 
                 float current_far{ camera.get_orthographic_far_clip() };
-                if(layout::drag_float_control(u8"FarClip", current_far, 0.1f, 10.0f))
+                if(layout::drag_float_control<u8"FarClip">(current_far, 0.1f, 10.0f))
                     { camera.set_orthographic_far_clip(current_far); context_->mark_modified(); }
             }
             else if(camera.get_current_type() == SceneCamera::Type::Perspective)
             {
                 float current_fov{ camera.get_perspective_vertical_fov() };
-                if(layout::drag_float_control(u8"Vert-Fov", current_fov, 0.5f, 45.0f))
+                if(layout::drag_float_control<u8"Vert-Fov">(current_fov, 0.5f, 45.0f))
                     { camera.set_perspective_vertical_fov(current_fov); context_->mark_modified(); }
 
                 float current_near{ camera.get_perspective_near_clip() };
-                if(layout::drag_float_control(u8"NearClip", current_near, 0.01f, 0.01f))
+                if(layout::drag_float_control<u8"NearClip">(current_near, 0.01f, 0.01f))
                     { camera.set_perspective_near_clip(current_near); context_->mark_modified(); }
 
                 float current_far{ camera.get_perspective_far_clip() };
-                if(layout::drag_float_control(u8"FarClip", current_far, 1.0f, 100.0f))
+                if(layout::drag_float_control<u8"FarClip">(current_far, 1.0f, 100.0f))
                     { camera.set_perspective_far_clip(current_far); context_->mark_modified(); }
             }
         });
 
-        check_then_draw<SpriteComponent>(entity, u8"Sprite", [this](Entity ent)
+        check_then_draw<SpriteComponent, u8"Sprite">(entity, [this](Entity ent)
         {
             auto& sc{ ent.get_mut<SpriteComponent>() };
 
@@ -293,7 +320,7 @@ namespace rke
                 AssetSettings settings{ AssetsManager::get_asset_settings(sc.sprite.tex_uuid) };
                 auto* tex_settings{ std::get_if<TextureSettings>(&settings) };
                 CORE_ASSERT(tex_settings, u8"SceneHierarchyPanel: Texture setting format incorrect!");
-                layout::two_columns_table(u8"Filter", [&]()
+                layout::two_columns_table<u8"Filter">([&]()
                 {
                     static constexpr const char* items[]{ "Linear", "Nearest" };
                     int option{ static_cast<int>(tex_settings->filt) };
@@ -308,7 +335,7 @@ namespace rke
                     }
                 });
 
-                layout::two_columns_table(u8"Wrapping", [&]()
+                layout::two_columns_table<u8"Wrapping">([&]()
                 {
                     static constexpr const char* items[]{ "Clamp to Edge", "Repeat" };
                     int option{ static_cast<int>(tex_settings->wrap) };
@@ -325,25 +352,32 @@ namespace rke
                 });
 
                 auto tex{ AssetsManager::get_asset<Texture2D>(sc.sprite.tex_handle) };
-                context_->mark_modified_if(layout::drag_float_control(u8"Tiling",
-                    sc.sprite.tiling_factor, 0.5f, 1.0f, glm::vec2(0.0f, 100.0f)));
-                context_->mark_modified_if(layout::drag_float2_control(
-                    u8"Cell Pixels", sc.sprite.cell_pixels, 1.0f, {
-                        tex ? static_cast<float>(tex->get_width ()) : 1.0f,
-                        tex ? static_cast<float>(tex->get_height()) : 1.0f
-                    },
-                    glm::vec2(1.0f, 4096.0f), glm::vec2(1.0f, 4096.0f), u8"%.0f"));
-                context_->mark_modified_if(layout::drag_float2_control(
-                    u8"Cell Coords", sc.sprite.cell_coords, 1.0f, { 0.0f, 0.0f },
-                    glm::vec2(0.0f, 100.0f), glm::vec2(0.0f, 100.0f), u8"%.0f"));
-                context_->mark_modified_if(layout::drag_float2_control(
-                    u8"Cell Counts", sc.sprite.cell_counts, 1.0f, { 1.0f, 1.0f },
-                    glm::vec2(1.0f, 100.0f), glm::vec2(1.0f, 100.0f), u8"%.0f"));
+                context_->mark_modified_if(layout::drag_float_control<u8"Tiling">
+                    (sc.sprite.tiling_factor, 0.5f, 1.0f, glm::vec2(0.0f, 100.0f)));
+                context_->mark_modified_if (
+                    layout::drag_float2_control<u8"Cell Pixels"> (
+                        sc.sprite.cell_pixels, 1.0f,
+                        {
+                            tex ? static_cast<float>(tex->get_width ()) : 1.0f,
+                            tex ? static_cast<float>(tex->get_height()) : 1.0f
+                        },
+                        glm::vec2(1.0f, 4096.0f), glm::vec2(1.0f, 4096.0f), u8"%.0f"
+                    ));
+                context_->mark_modified_if (
+                    layout::drag_float2_control<u8"Cell Coords"> (
+                        sc.sprite.cell_coords, 1.0f, { 0.0f, 0.0f },
+                        glm::vec2(0.0f, 100.0f), glm::vec2(0.0f, 100.0f), u8"%.0f"
+                    ));
+                context_->mark_modified_if (
+                    layout::drag_float2_control<u8"Cell Counts"> (
+                        sc.sprite.cell_counts, 1.0f, { 1.0f, 1.0f },
+                        glm::vec2(1.0f, 100.0f), glm::vec2(1.0f, 100.0f), u8"%.0f"
+                    ));
             }
             if(tex_opened) ImGui::TreePop();
             ImGui::PopID();
 
-            layout::two_columns_table(u8"Color", [&]()
+            layout::two_columns_table<u8"Color">([&]()
             {
                 float available_width{ ImGui::GetContentRegionAvail().x };
                 ImGui::SetNextItemWidth(available_width);
@@ -356,7 +390,7 @@ namespace rke
                     ("##color", glm::value_ptr(sc.color), COLOR_EDIT_FLAGS));
             });
 
-            layout::two_columns_table(u8"Blending Mode", [&]()
+            layout::two_columns_table<u8"Blending Mode">([&]()
             {
                 constexpr const char* items[]{ "Opaque", "Cutout", "Transparent" };
                 int option{ static_cast<int>(sc.blending_mode) };
@@ -370,7 +404,7 @@ namespace rke
                 }
             });
 
-            layout::two_columns_table(u8"Render Layer", [&, this]()
+            layout::two_columns_table<u8"Render Layer">([&, this]()
             {
                 float available_width{ ImGui::GetContentRegionAvail().x };
                 ImGui::SetNextItemWidth(available_width);
@@ -379,11 +413,11 @@ namespace rke
             });
         });
 
-        check_then_draw<Rigidbody2DComponent>(entity, u8"Rigidbody 2D", [this](Entity ent)
+        check_then_draw<Rigidbody2DComponent, u8"Rigidbody 2D">(entity, [this](Entity ent)
         {
             auto& rbc{ ent.get_mut<Rigidbody2DComponent>() };
 
-            layout::two_columns_table(u8"Body Type", [&]()
+            layout::two_columns_table<u8"Body Type">([&]()
             {
                 constexpr const char* items[]{ "Static", "Dynamic", "Kinematic" };
                 int option{ static_cast<int>(rbc.type) };
@@ -401,11 +435,11 @@ namespace rke
                 ("Rotation Fixed", &rbc.rotation_fixed));
         });
 
-        check_then_draw<BoxCollider2DComponent>(entity, u8"Box Collider 2D", [this](Entity ent)
+        check_then_draw<BoxCollider2DComponent, u8"Box Collider 2D">(entity, [this](Entity ent)
         {
             auto& bcc{ ent.get_mut<BoxCollider2DComponent>() };
 
-            layout::two_columns_table(u8"Physics Layer", [&]()
+            layout::two_columns_table<u8"Physics Layer">([&]()
             {
                 float available_width{ ImGui::GetContentRegionAvail().x };
                 ImGui::SetNextItemWidth(available_width);
@@ -428,23 +462,30 @@ namespace rke
                 }
             });
 
-            context_->mark_modified_if(layout::drag_float2_control(
-                u8"Offset", bcc.offset, 0.01f, glm::vec2(0.0f, 0.0f),
-                glm::vec2(-1.0f, 1.0f), glm::vec2(-1.0f, 1.0f)));
+            context_->mark_modified_if (
+                layout::drag_float2_control<u8"Offset"> (
+                    bcc.offset, 0.01f, glm::vec2(0.0f, 0.0f),
+                    glm::vec2(-1.0f, 1.0f), glm::vec2(-1.0f, 1.0f)
+                ));
 
-            context_->mark_modified_if(layout::drag_float2_control(
-                u8"Size", bcc.size, 0.01f, glm::vec2(0.5f, 0.5f),
-                glm::vec2(0.01f, 1.0f), glm::vec2(0.01f, 1.0f)));
+            context_->mark_modified_if (
+                layout::drag_float2_control<u8"Size"> (
+                    bcc.size, 0.01f, glm::vec2(0.5f, 0.5f),
+                    glm::vec2(0.01f, 1.0f), glm::vec2(0.01f, 1.0f)
+                ));
 
-            context_->mark_modified_if(layout::drag_float_control(
-                u8"Density", bcc.density, 0.10f, 1.0f, glm::vec2(0.0f, 100.0f)));
-            context_->mark_modified_if(layout::drag_float_control(
-                u8"Friction", bcc.friction, 0.01f, 0.5f, glm::vec2(0.0f, 2.0f)));
-            context_->mark_modified_if(layout::drag_float_control(
-                u8"Restitution", bcc.restitution, 0.01f, 0.0f, glm::vec2(0.0f, 1.0f)));
+            context_->mark_modified_if (
+                layout::drag_float_control<u8"Density">
+                    (bcc.density, 0.10f, 1.0f, glm::vec2(0.0f, 100.0f)));
+            context_->mark_modified_if (
+                layout::drag_float_control<u8"Friction">
+                    (bcc.friction, 0.01f, 0.5f, glm::vec2(0.0f, 2.0f)));
+            context_->mark_modified_if (
+                layout::drag_float_control<u8"Restitution">
+                    (bcc.restitution, 0.01f, 0.0f, glm::vec2(0.0f, 1.0f)));
         });
 
-        check_then_draw<NativeScriptComponent>(entity, u8"Native Script", [this](Entity ent)
+        check_then_draw<NativeScriptComponent, u8"Native Script">(entity, [this](Entity ent)
         {
             auto& nsc{ ent.get_mut<NativeScriptComponent>() };
             const auto& script_registry{ ScriptRegistry::get() };

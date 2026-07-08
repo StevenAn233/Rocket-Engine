@@ -1,8 +1,6 @@
 ﻿module;
 module EditorSettingPanel;
 
-import Layout;
-
 namespace rke
 {
     EditorSettingPanel::~EditorSettingPanel()
@@ -44,7 +42,7 @@ namespace rke
         {
             if(ImGui::BeginTabItem("Viewport"))
             {
-                layout::tree_node_branch(u8"Gizmo", [&]()
+                layout::tree_node_branch<u8"Gizmo">([&]()
                 {
                     if(ImGui::RadioButton("Translate", gizmo_mode_ == Gizmo::Mode::Translate))
                         gizmo_mode_ = Gizmo::Mode::Translate;
@@ -56,13 +54,13 @@ namespace rke
                         gizmo_mode_ = Gizmo::Mode::Scale;
                 });
                 
-                layout::tree_node_branch(u8"Selected Outline", [&]()
+                layout::tree_node_branch<u8"Selected Outline">([&]()
                 {
                     selected_->on_imgui_render();
                     ImGui::Checkbox("Enabled", &selected_enabled_editor_);
                 });
 
-                layout::tree_node_branch(u8"Hovering Outline", [&]()
+                layout::tree_node_branch<u8"Hovering Outline">([&]()
                 {
                     hovering_->on_imgui_render();
                     ImGui::Checkbox("Enabled", &hovering_enabled_editor_);
@@ -72,11 +70,11 @@ namespace rke
             }
             if(ImGui::BeginTabItem("Style"))
             {
-                layout::tree_node_branch(u8"Font", [&]()
+                layout::tree_node_branch<u8"Font">([&]()
                 {
-                    if(layout::drag_float_control
-                    (u8"Scale", font_scale_, 0.01f, 1.0f, glm::vec2(0.5f, 2.0f), u8"%.2f"))
-                        ImGui::GetIO().FontGlobalScale = font_scale_;
+                    if(layout::drag_float_control<u8"Scale">
+                        (font_scale_, 0.01f, 1.0f, glm::vec2(0.5f, 2.0f), u8"%.2f")
+                    ) ImGui::GetIO().FontGlobalScale = font_scale_;
                 });
                 ImGui::EndTabItem();
             }
