@@ -13,10 +13,10 @@ export namespace rke
 
         ProjectCreatingModal(String title, const Window* context);
 
-        void on_imgui_render() override;
         void set_project_created_callback(ProjectCreatedCallback callback)
             { on_project_created_ = std::move(callback); }
     private:
+        void on_imgui_render() override;
         void copy_to_buffer(const String& path);
     private:
         const Window* context_;

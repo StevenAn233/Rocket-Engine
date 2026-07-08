@@ -27,6 +27,7 @@ namespace rke
             file::editor_dir() / u8"settings" / u8"dockspace.yaml"
         }};
         panel_reg_ = &(ds_layer->dockspace_.get_panel_registry());
+        modal_reg_ = &(ds_layer->dockspace_.get_modal_registry());
         main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ds_layer)));
         register_panel(&panel_);
     }
@@ -58,6 +59,7 @@ namespace rke
             {
                 unregister_panel(&panel_);
                 panel_reg_ = nullptr;
+                modal_reg_ = nullptr;
             }
             return false;
         });
@@ -74,6 +76,18 @@ namespace rke
     {
         if(!panel_reg_) return;
         panel_reg_->unregister_panel(handle);
+    }
+
+    void Application::register_modal(Modal* handle, ModalRegistry::Attrib attrib)
+    {
+        if(!modal_reg_) return;
+        modal_reg_->register_modal(handle, attrib);
+    }
+
+    void Application::unregister_modal(Modal* handle)
+    {
+        if(!modal_reg_) return;
+        modal_reg_->unregister_modal(handle);
     }
 
 // callbacks

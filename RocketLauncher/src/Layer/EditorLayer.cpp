@@ -136,6 +136,14 @@ namespace rke
         main_viewport_.set_target_getter([this]() { return main_output_; });
         cam_viewport_ .set_target_getter([this]() { return cam_output_;  });
 
+    // Modal
+        project_creating_modal_.set_project_created_callback
+        ([this](const Path& rkproj_path)
+        {
+            update_current_scene({});
+            open_project(rkproj_path);
+        });
+
     // PanelRegistry
         app().register_panel(&window_setting_panel_);
         app().register_panel(&editor_setting_panel_);
@@ -151,13 +159,16 @@ namespace rke
         app().register_panel(&cam_viewport_);
         app().register_panel(&toolbar_, { .always_on = true });
 
-    // Modal(s)
-        project_creating_modal_.set_project_created_callback
-        ([this](const Path& rkproj_path)
-        {
-            update_current_scene({});
-            open_project(rkproj_path);
-        });
+    // ModalRegistry
+        app().register_modal(&project_creating_modal_,
+        {[this]() -> bool {
+            if(to_create_new_proj_)
+            {
+                to_create_new_proj_ = false;
+                return true;
+            }
+            return false;
+        }});
 
     // Load last project(after editor_setting_panel_.load_from(...))
         const Path& last_proj_path{ editor_setting_panel_.get_last_proj_path() };
@@ -200,6 +211,7 @@ namespace rke
     bool EditorLayer::on_key_pressed(KeyPressedEvent& e)
     {
         if(e.is_held()) return false;
+        if(!main_viewport_.is_focused()) return false;
 
         switch(e.get_key()) // function keys
         {
@@ -255,6 +267,7 @@ namespace rke
 
     bool EditorLayer::on_mouse_scrolled(MouseScrolledEvent& e)
     {
+        if(!main_viewport_.is_hovered()) return false;
         if(current_scene_ && scene_state_ == SceneState::Play)
         {
             current_scene_->on_mouse_scrolled_runtime(e);
@@ -265,13 +278,12 @@ namespace rke
 
     bool EditorLayer::on_mouse_button_pressed(MouseButtonPressedEvent& e)
     {
+        if(!main_viewport_.is_hovered()) return false;
         if(!current_scene_) return false;
         if(scene_state_ == SceneState::Play) return false;
-        if(!main_viewport_.is_focused()) return true;
-        // Just select main-viewport, do not set selected-entity
 
         bool is_gizmo_over{ Gizmo::is_over() &&
-            current_scene_->get_selected_entity().valid()};
+            current_scene_->get_selected_entity().valid() };
         if(is_gizmo_over || Gizmo::is_using()) return false;
 
         if(e.get_mouse_button() == Mouse::Left) {
@@ -312,7 +324,7 @@ namespace rke
         bool hovering_enabled{ !Gizmo::is_using()
             && editor_setting_panel_.hovering_enabled_editor()
             && !in_main_viewport_dragging_ && editing()
-            && !project_creating_modal_.in_use() && main_viewport_.is_focused()
+            && !project_creating_modal_.in_use() && main_viewport_.is_hovered()
         };
         editor_setting_panel_.get_hovering()->set_enabled(hovering_enabled);
 
@@ -377,16 +389,6 @@ namespace rke
         default: break;
         }
     }
-
-//  void EditorLayer::on_imgui_render()
-//  {
-//      if(to_create_new_proj_)
-//      {
-//          project_creating_modal_.popup();
-//          to_create_new_proj_ = false;
-//      }
-//      project_creating_modal_.on_render(get_owner());
-//  }
 
     void EditorLayer::on_runtime_start()
     {

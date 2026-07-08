@@ -153,6 +153,7 @@ namespace rke
         ImGui::End();
 
         panel_registry_.render_all();
+        modal_registry_.render_all();
 
         imgui::end_render();
     }
@@ -172,7 +173,7 @@ namespace rke
         if(ImGui::GetIO().WantTextInput) return true;
         for(const auto& [handle, attrib] : panel_registry_.attribs_)
         {
-            if(!attrib.dont_block_when_focused &&
+            if(attrib.dont_block_when_focused &&
                handle->is_focused()) return false;
         }
         return ImGui::GetIO().WantCaptureKeyboard;

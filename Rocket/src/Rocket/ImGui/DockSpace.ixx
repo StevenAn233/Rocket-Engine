@@ -9,8 +9,9 @@ export module DockSpace;
 
 import String;
 import Path;
-import PanelRegistry;
 import NativeWindow;
+import PanelRegistry;
+import ModalRegistry;
 
 export namespace rke
 {
@@ -24,6 +25,7 @@ export namespace rke
 
         void render(glm::vec2 offset, glm::vec2 scale);
         inline PanelRegistry& get_panel_registry() { return panel_registry_; }
+        inline ModalRegistry& get_modal_registry() { return modal_registry_; }
     private:
         bool mouse_blocking() const;
         bool keyboard_blocking() const;
@@ -31,6 +33,8 @@ export namespace rke
         String name_;
         Path config_path_;
         uint32 flags_{};
+
         PanelRegistry panel_registry_{};
+        ModalRegistry modal_registry_{};
     };
 }

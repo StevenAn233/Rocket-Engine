@@ -14,7 +14,9 @@ import Font;
 import HeapManager;
 import ApplicationPanel;
 import Panel;
-import PanelRegistry;
+import PanelRegistry;    
+import Modal;
+import ModalRegistry;
 
 export namespace rke
 {
@@ -38,6 +40,8 @@ export namespace rke
 
         void register_panel(Panel* handle, PanelRegistry::Attrib attrib = {});
         void unregister_panel(Panel* handle);
+        void register_modal(Modal* handle, ModalRegistry::Attrib attrib);
+        void unregister_modal(Modal* handle);
     protected:
         Application();
         virtual ~Application() {};
@@ -46,6 +50,7 @@ export namespace rke
     private:
         WindowsLib windows_lib_;
         PanelRegistry* panel_reg_{};
+        ModalRegistry* modal_reg_{};
         ApplicationPanel panel_{ u8"Application" };
     };
 
