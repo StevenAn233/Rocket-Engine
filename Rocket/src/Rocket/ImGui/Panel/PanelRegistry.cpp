@@ -28,16 +28,17 @@ namespace rke
         }
     }
 
-    void PanelRegistry::serialize_to(ConfigDocument& proxy)
+    void PanelRegistry::serialize_to(ConfigWriter& writer)
     {
         for(auto& [handle, _] : attribs_)
             config_[handle->get_name()] = handle->on();
-        auto panels_map{ proxy.get_child(u8"Panels") };
+        writer.begin_map(u8"Panels");
         for(const auto& config : config_)
-            panels_map->write(config.first, config.second);
+            writer.write(config.first, config.second);
+        writer.end_map();
     }
 
-    void PanelRegistry::deserialize_from(ConfigReader& reader)
+    void PanelRegistry::deserialize_from(const ConfigReader& reader)
     {
         Scope<ConfigReader> panels{ reader.get_child(u8"Panels") };
         if(panels) panels->for_each

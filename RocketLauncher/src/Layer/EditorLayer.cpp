@@ -13,26 +13,28 @@ namespace rke
             { editor_setting_panel_.get_selected()->set_target(entity); });
 
         SceneSerializer::set_serialize_hook
-        ([this](SceneSerializer* self, ConfigWriter* writer)
+        ([this](SceneSerializer* self, ConfigWriter& writer)
         {
             if(!self->is_to_serialize(current_scene_.get())) return;
             editor_cam_.serialize_to(writer);
             
             Entity cam_demo_target{ cam_renderer_.get_cam_demo_target() };
-            if(cam_demo_target.valid()) writer->write
+            if(cam_demo_target.valid()) writer.write
                 (u8"Cam Demo Target", cam_demo_target.get_uuid().value());
             else if(!cam_demo_target.empty())
                 CORE_ERROR(u8"EditorLayer: Cam demo target invalid!");
         });
 
         SceneSerializer::set_deserialize_hook
-        ([this](SceneSerializer*, Scene* scene, const ConfigReader* reader)
+        ([this](SceneSerializer* self, Scene* scene, const ConfigReader& reader)
         {
             editor_cam_.deserialize_from(reader);
-            if(reader->has_key(u8"Cam Demo Target")) {
-                UUID id{ reader->get_at(u8"Cam Demo Target", 0ui64) };
+            if(reader.has_key(u8"Cam Demo Target"))
+            {
+                UUID id{ reader.get_at(u8"Cam Demo Target", 0ui64) };
                 cam_renderer_.set_cam_demo_target(scene->get_entity(id));
-            } else cam_renderer_.set_cam_demo_target({});
+            }
+            else cam_renderer_.set_cam_demo_target({});
         });
 
     // Post-Processing Effects

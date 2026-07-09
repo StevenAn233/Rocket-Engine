@@ -9,16 +9,15 @@ namespace rke
         file::check_to_create_dir(filepath_);
 
         auto writer{ ConfigWriter::create() };
-        if(!writer) {
-            CORE_ERROR(u8"Dockspace: Failed to create config writer!");
-            return;
-        }
+        if(!writer) { CORE_ERROR(u8"EditorSettingPanel: "
+            u8"Failed to create config writer!"); return; }
+
         writer->begin_map();
         writer->write(u8"Last Project Path", last_proj_path_.string());
 
         writer->begin_map(u8"Viewport");
-        selected_->serialize_to(writer.get());
-        hovering_->serialize_to(writer.get());
+        selected_->serialize_to(*(writer.get()));
+        hovering_->serialize_to(*(writer.get()));
         writer->write(u8"Selected Enabled", selected_enabled_editor());
         writer->write(u8"Hovering Enabled", hovering_enabled_editor());
         writer->end_map();
@@ -56,13 +55,19 @@ namespace rke
                 
                 layout::tree_node_branch<u8"Selected Outline">([&]()
                 {
-                    selected_->on_imgui_render();
+                    float outline_thickness{ selected_->get_thickness() };
+                    if(layout::drag_float_control<u8"Thickness">
+                        (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
+                        { selected_->set_thickness(outline_thickness); }
                     ImGui::Checkbox("Enabled", &selected_enabled_editor_);
                 });
 
                 layout::tree_node_branch<u8"Hovering Outline">([&]()
                 {
-                    hovering_->on_imgui_render();
+                    float outline_thickness{ hovering_->get_thickness() };
+                    if(layout::drag_float_control<u8"Thickness">
+                        (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
+                        { hovering_->set_thickness(outline_thickness); }
                     ImGui::Checkbox("Enabled", &hovering_enabled_editor_);
                 });
 
@@ -105,8 +110,8 @@ namespace rke
         }
         auto view_data{ reader->get_child(u8"Viewport") };
         if(view_data) {
-            selected_->deserialize_from(view_data.get());
-            hovering_->deserialize_from(view_data.get());
+            selected_->deserialize_from(*(view_data.get()));
+            hovering_->deserialize_from(*(view_data.get()));
             selected_->set_enabled(view_data->get_at(u8"Selected Enabled", true));
             hovering_->set_enabled(view_data->get_at(u8"Hovering Enabled", true));
         }

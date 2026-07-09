@@ -18,9 +18,8 @@ export namespace rke
 
         Category get_category() const override { return Category::Helper; }
         bool apply(const Texture2D* source, FrameBuffer* destination) override;
-        void on_imgui_render() override;
-        void serialize_to(ConfigWriter* writer) const override;
-        void deserialize_from(const ConfigReader* reader) override;
+        void serialize_to(ConfigWriter& writer) const override;
+        void deserialize_from(const ConfigReader& reader) override;
 
         void on_viewport_resized(uint32 w, uint32 h);
         void set_target	(Entity target );
@@ -28,6 +27,8 @@ export namespace rke
 
         void set_color(glm::vec4 color);
         void set_thickness(float thickness);
+        inline glm::vec4 get_color() const { return uniforms_.outline_color; }
+        inline float get_thickness() const { return uniforms_.thickness; }
     private:
         Ref<FrameBuffer> outline_fbo_{};
         Uniforms uniforms_{};

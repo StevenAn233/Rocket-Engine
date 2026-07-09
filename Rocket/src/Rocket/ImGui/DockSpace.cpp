@@ -31,14 +31,13 @@ namespace rke
         if(config_path_.empty()) return;
         file::check_to_create_dir(config_path_);
 
-        auto proxy{ ConfigDocument::create_map() };
-        if(!proxy) {
-            CORE_ERROR(u8"Dockspace: Failed to create config proxy!");
-            return;
-        }
-        proxy->write(u8"DockSpace Flags", static_cast<int>(flags_));
-        panel_registry_.serialize_to(*(proxy.get()));
-        proxy->push_to_file(config_path_);
+        auto writer{ ConfigWriter::create() };
+        if(!writer) { CORE_ERROR(u8"Dockspace: "
+            u8"Failed to create config writer!"); return; }
+        writer->begin_map();
+        writer->write(u8"DockSpace Flags", static_cast<int>(flags_));
+        panel_registry_.serialize_to(*(writer.get()));
+        writer->push_to_file(config_path_);
 
         imgui::shutdown();
     }

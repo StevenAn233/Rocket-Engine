@@ -34,8 +34,8 @@ export namespace rke
 
         void reset();
 
-        void serialize_to(ConfigWriter* writer) const;
-        void deserialize_from(const ConfigReader* reader);
+        void serialize_to(ConfigWriter& writer) const;
+        void deserialize_from(const ConfigReader& reader);
     private:
         void update_proj();
         void update_view();

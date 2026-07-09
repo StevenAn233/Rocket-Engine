@@ -134,19 +134,19 @@ namespace rke
         update_view();
     }
 
-    void EditorCamera::serialize_to(ConfigWriter* writer) const
+    void EditorCamera::serialize_to(ConfigWriter& writer) const
     {
-        writer->begin_map(u8"Editor Camera");
-        writer->write(u8"Focal Point", focal_point_);
-        writer->write(u8"Distance", distance_);
-        writer->write(u8"Pitch", pitch_);
-        writer->write(u8"Yaw", yaw_);
-        writer->end_map();
+        writer.begin_map(u8"Editor Camera");
+        writer.write(u8"Focal Point", focal_point_);
+        writer.write(u8"Distance", distance_);
+        writer.write(u8"Pitch", pitch_);
+        writer.write(u8"Yaw", yaw_);
+        writer.end_map();
     }
 
-    void EditorCamera::deserialize_from(const ConfigReader* reader)
+    void EditorCamera::deserialize_from(const ConfigReader& reader)
     {
-        auto cam_config{ reader->get_child(u8"Editor Camera") };
+        auto cam_config{ reader.get_child(u8"Editor Camera") };
         if(!cam_config) { reset(); return; } // for just-created scenes
         if(!cam_config || !cam_config->is_map()) {
             CORE_ERROR(u8"EditorCamera: File format incorrect!");

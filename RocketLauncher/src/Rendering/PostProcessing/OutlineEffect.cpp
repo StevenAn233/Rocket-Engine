@@ -55,41 +55,22 @@ namespace rke
         return true;
     }
 
-    void OutlineEffect::on_imgui_render()
+    void OutlineEffect::serialize_to(ConfigWriter& writer) const
     {
-        float outline_thickness{ uniforms_.thickness };
-        if(layout::drag_float_control<u8"Thickness">
-            (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-            { set_thickness(outline_thickness); }
-        // change color...
+        writer.begin_map(get_name());
+
+        writer.write(u8"Enabled", enabled());
+        writer.write(u8"Color", math::linear_to_srgb(uniforms_.outline_color));
+        writer.write(u8"Thickness", uniforms_.thickness);
+
+        writer.end_map();
     }
 
-    void OutlineEffect::serialize_to(ConfigWriter* writer) const
+    void OutlineEffect::deserialize_from(const ConfigReader& reader)
     {
-        if(!writer) {
-            CORE_ERROR(u8"OutlineEffect: Writer null!");
-            return;
-        }
-        writer->begin_map(get_name());
-
-        writer->write(u8"Enabled", enabled());
-        writer->write(u8"Color", math::linear_to_srgb(uniforms_.outline_color));
-        writer->write(u8"Thickness", uniforms_.thickness);
-
-        writer->end_map();
-    }
-
-    void OutlineEffect::deserialize_from(const ConfigReader* reader)
-    {
-        if(!reader) {
-            CORE_ERROR(u8"OutlineEffect: Reader null!");
-            return;
-        }
-        auto config{ reader->get_child(get_name()) };
-        if(!config || !config->is_map()) {
-            CORE_ERROR(u8"OutlineEffect: Wrong yaml format!");
-            return;
-        }
+        auto config{ reader.get_child(get_name()) };
+        if(!config || !config->is_map())
+            { CORE_ERROR(u8"OutlineEffect: Wrong yaml format!"); return; }
         set_enabled(config->get_at(u8"Enabled", true));
         set_color(config->get_at(u8"Color", glm::vec4{}));
         set_thickness(config->get_at(u8"Thickness", 1.0f));

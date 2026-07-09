@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <format>
 #include <utility>
 #include "rke_macros.h"
 
@@ -14,7 +15,8 @@ export namespace rke
     {
     public:
         friend class Window;
-        WindowSettingPanel(String name) : Panel(std::move(name)) {}
+        WindowSettingPanel(String name)
+            : Panel(String::format(u8"Window: '{}'", std::move(name))) {}
     private:
         void on_imgui_render() override;
         void set_context(void* window) { context_ = window; }

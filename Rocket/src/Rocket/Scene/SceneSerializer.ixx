@@ -16,9 +16,9 @@ export namespace rke
     class RKE_API SceneSerializer
     {
     public:
-        using SerializeHook = std::function<void(SceneSerializer*, ConfigWriter*)>;
+        using SerializeHook = std::function<void(SceneSerializer*, ConfigWriter&)>;
         using DeserializeHook = std::function
-            <void(SceneSerializer*, Scene*, const ConfigReader*)>;
+            <void(SceneSerializer*, Scene*, const ConfigReader&)>;
 
         SceneSerializer(Ref<Scene> scene);
         SceneSerializer(const SceneSerializer&) = delete;

@@ -24,7 +24,7 @@ namespace rke
         (
             create_scope<Window::Props>(Window::Props
             {
-                .title{ u8"Rocket" },
+                .title{ u8"Rocket Engine" },
                 .icon_path{ file::assets_dir() / u8"icons" / u8"RKE.png" },
                 .width{ 2450 }, .height{ 1300 },
                 .x_coord{ 50 }, .y_coord{ 100 }

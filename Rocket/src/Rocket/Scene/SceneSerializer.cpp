@@ -215,7 +215,7 @@ namespace rke
         else if(!selected.empty()) CORE_ERROR
             (u8"SceneSerializer: Selected entity invalid!");
 
-        if(s_serialize_hook) s_serialize_hook(this, writer.get());
+        if(s_serialize_hook) s_serialize_hook(this, *(writer.get()));
 
         writer->end_map();
 
@@ -262,7 +262,7 @@ namespace rke
         }
         else scene_->set_selected_entity(Entity{});
 
-        if(s_deserialize_hook) s_deserialize_hook(this, scene_.get(), reader.get());
+        if(s_deserialize_hook) s_deserialize_hook(this, scene_.get(), *(reader.get()));
 
         scene_->get_master_camera();
         scene_->modified_ = false; // just loaded, nothing changed

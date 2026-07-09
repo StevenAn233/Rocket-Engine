@@ -34,17 +34,15 @@ export namespace rke
         void set_enabled(bool enabled) { enabled_ = enabled; }
         bool enabled() const { return enabled_; }
 
-        virtual Category get_category() const { return Category::Standard; }
-
         virtual bool apply(const Texture2D* source, FrameBuffer* destination) = 0;
         // if returns true , use destination->get_texture();
         // if returns false, use (original)source
 
-        virtual void on_imgui_render() {}
-        virtual void serialize_to(ConfigWriter* writer) const {}
-        virtual void deserialize_from(const ConfigReader* reader) {}
+        virtual void serialize_to(ConfigWriter& writer) const {}
+        virtual void deserialize_from(const ConfigReader& reader) {}
+        virtual Category get_category() const { return Category::Standard; }
     protected:
-        explicit PostProcessEffect(String&& name)
+        explicit PostProcessEffect(String name)
             : name_(name.empty() ? u8"Untitled" : std::move(name)) {}
         virtual ~PostProcessEffect() = default;
     protected:
