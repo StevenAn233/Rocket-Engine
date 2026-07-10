@@ -117,15 +117,13 @@ namespace rke
         String scene_path_str{ scene_path.string() };
         if(scene_path.exists() && scene_path_str.ends_with(u8".rkscene"))
         {
-            SceneSerializer serializer(active_scene_);
-            
-            if(serializer.serialize(scene_path_str)) {
-                CORE_INFO(u8"Project: Active scene '{}' saved.", scene_path_str);
-                return true;
-            } else {
+            if(!SceneSerializer::serialize(*active_scene_, scene_path_str))
+            {
                 CORE_ERROR(u8"Project: Failed to save active scene '{}'!", scene_path_str);
                 return false;
             }
+            CORE_INFO(u8"Project: Active scene '{}' saved.", scene_path_str);
+            return true;
         }
         else if(!project_config_.start_scene.empty())
         {
@@ -151,9 +149,7 @@ namespace rke
         }
 
         Ref<Scene> scene{ create_ref<Scene>() };
-        SceneSerializer serializer(scene);
-
-        if(serializer.deserialize(filepath_str))
+        if(SceneSerializer::deserialize(*scene, filepath_str))
         {
             clear_active_scene();
             active_scene_ = scene;

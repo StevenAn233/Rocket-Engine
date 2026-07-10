@@ -30,7 +30,10 @@ export namespace rke
         };
 
         Project(const Project&) = delete; // Only one active project(for now)
-        Project(Project&& ____) = delete;
+        Project(Project&&) = delete;
+
+        void set_name(String name) { project_config_.name = std::move(name); }
+        const String& get_name() const { return project_config_.name; }
 
         bool scripts_hot_reloading();
         bool save(); // both project and active scene
@@ -52,9 +55,6 @@ export namespace rke
         static Project* load_to_active(const Path& path);
         static bool save_active();
         static void clear_active();
-
-        void set_name(String name) { project_config_.name = std::move(name); }
-        const String& get_name() const { return project_config_.name; }
     private:
         Project();
         ~Project();

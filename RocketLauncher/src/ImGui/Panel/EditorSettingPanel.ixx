@@ -4,13 +4,15 @@ export module EditorSettingPanel;
 import rke;
 import Gizmo;
 import OutlineEffect;
+import EditorCamera;
 
 export namespace rke
 {
     class EditorSettingPanel : public Panel
     {
     public:
-        EditorSettingPanel(String name) : Panel(std::move(name)) {}
+        EditorSettingPanel(String name, EditorCamera& cam)
+            : Panel(std::move(name)), camera_(cam) {}
         ~EditorSettingPanel();
 
         void load_from(Path filepath);
@@ -37,6 +39,7 @@ export namespace rke
 
         Path last_proj_path_{};
         float font_scale_{ 1.0f };
+        EditorCamera& camera_;
 
         OutlineEffect* selected_{};
         OutlineEffect* hovering_{};

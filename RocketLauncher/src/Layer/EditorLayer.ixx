@@ -56,7 +56,7 @@ export namespace rke
 
         SceneRenderer main_renderer_{ math::srgb_to_linear
             (glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
-        SceneRenderer cam_renderer_{ math::srgb_to_linear
+        SceneRenderer cam_renderer_ { math::srgb_to_linear
             (glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
 
         int hovering_id_{ -1 };
@@ -70,7 +70,7 @@ export namespace rke
         Toolbar toolbar_{ u8"Toolbar" };
         Viewport main_viewport_{ u8"Main Viewport" };
         Viewport cam_viewport_{ u8"Camera Viewport" };
-        EditorSettingPanel editor_setting_panel_ { u8"Editor Settings" };
+        EditorSettingPanel editor_setting_panel_ { u8"Editor Settings", editor_cam_ };
         SceneHierarchyPanel scene_hierarchy_panel_{ u8"Scene Hierarchy" };
         ContentBrowserPanel content_browser_panel_{ u8"Content Browser" };
         ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };

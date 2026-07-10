@@ -16,21 +16,13 @@ export namespace rke
     class RKE_API SceneSerializer
     {
     public:
-        using SerializeHook = std::function<void(SceneSerializer*, ConfigWriter&)>;
-        using DeserializeHook = std::function
-            <void(SceneSerializer*, Scene*, const ConfigReader&)>;
+        using SerializeHook = std::function<void(const Scene&, ConfigWriter&)>;
+        using DeserializeHook = std::function<void(Scene&, const ConfigReader&)>;
 
-        SceneSerializer(Ref<Scene> scene);
-        SceneSerializer(const SceneSerializer&) = delete;
-        SceneSerializer(SceneSerializer&&) = delete;
-
-        bool serialize  (const Path& filepath);
-        bool deserialize(const Path& filepath);
-        bool is_to_serialize(Scene* scene) { return scene_.get() == scene; }
+        static bool serialize(const Scene& scene, const Path& filepath);
+        static bool deserialize(Scene& scene, const Path& filepath);
 
         static void set_serialize_hook(SerializeHook hook);
         static void set_deserialize_hook(DeserializeHook hook);
-    private:
-        Ref<Scene> scene_;
     };
 }

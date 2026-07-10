@@ -33,6 +33,11 @@ namespace rke
     void EditorCamera::update_view()
     {
         // yaw_ = pitch_ = 0.0f; // Lock the camera's rotation
+        constexpr float twopi{ 2.0f * float(std::numbers::pi) };
+        while(pitch_ < 0) pitch_ += twopi;
+        while(yaw_   < 0) yaw_   += twopi;
+        while(pitch_ > twopi) pitch_ -= twopi;
+        while(yaw_   > twopi) yaw_   -= twopi;
         position_ = calculate_pos();
         view_ = glm::inverse(glm::translate(glm::mat4(1.0f), position_) *
                              glm::mat4_cast(get_orientation()));
@@ -88,7 +93,7 @@ namespace rke
         distance_ -= delta * zoom_speed();
         if(distance_ < 1.0f)
         {
-            focal_point_ += get_forward_dir();
+        //  focal_point_ += get_forward_dir();
             distance_ = 1.0f;
         }
     }

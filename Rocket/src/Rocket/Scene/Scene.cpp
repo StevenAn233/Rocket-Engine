@@ -5,7 +5,8 @@ import ScriptEngine;
 import PhysicsEngine2D;
 import ComponentRegistry;
 
-namespace rke {
+namespace rke
+{
 // Entity
     Entity::Entity(entt::entity handle, const Scene* scene)
         : handle_(handle), owner_scene_(scene) {}

@@ -41,6 +41,18 @@ namespace rke
         {
             if(ImGui::BeginTabItem("Viewport"))
             {
+                layout::tree_node_branch<u8"Camera">([&]()
+                {
+                    bool modified{ false };
+                    modified |= layout::drag_float3_control<u8"Focal Point">
+                        (camera_.focal_point_, 0.1f, glm::vec3(0.0f));
+                    modified |= layout::drag_float_control<u8"Distance">
+                        (camera_.distance_, 0.5f, 1.0f, glm::vec2(1.0f, 100.0f));
+                    modified |= layout::drag_float_control<u8"Pitch">(camera_.pitch_, 0.1f, 0.0f);
+                    modified |= layout::drag_float_control<u8"Yaw"  >(camera_.yaw_  , 0.1f, 0.0f);
+                    if(modified) camera_.update_view();
+                });
+
                 layout::tree_node_branch<u8"Gizmo">([&]()
                 {
                     if(ImGui::RadioButton("Translate", gizmo_mode_ == Gizmo::Mode::Translate))

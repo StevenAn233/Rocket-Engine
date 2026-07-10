@@ -4,7 +4,11 @@ module ContentBrowserPanel;
 namespace rke
 {
     ContentBrowserPanel::ContentBrowserPanel(String name)
-        : Panel(std::move(name)) {}
+        : Panel(std::move(name))
+    {
+        name_buffer_ = create_scope<std::array<char, 256>>();
+        std::memcpy(name_buffer_->data(), "Untitled", 9);
+    }
 
     ContentBrowserPanel::~ContentBrowserPanel()
     {
@@ -63,11 +67,12 @@ namespace rke
 
         ImGui::EndChild();
 
-        constexpr float PADDING{ 16.0f };
+        constexpr float padding{ 16.0f };
+        constexpr float basic_thumbnail_size_{ 96.0f };
         float thumbnail_size{ basic_thumbnail_size_ * thumbnail_scale_ };
 
         float panel_w{ ImGui::GetContentRegionAvail().x };
-        int colunm_count{ static_cast<int>(panel_w / (PADDING + thumbnail_size))};
+        int colunm_count{ static_cast<int>(panel_w / (padding + thumbnail_size))};
         if(colunm_count < 1) colunm_count = 1;
 
         ImGui::BeginChild("Content", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_None);
@@ -83,33 +88,31 @@ namespace rke
         if(to_create_scene) ImGui::OpenPopup("New Scene Name");
         if(ImGui::BeginPopupModal("New Scene Name", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            static char name_buffer[256]{ "Untitled" };
             ImGui::Text("Enter Scene Name:");
-            ImGui::InputText("##SceneName", name_buffer, sizeof(name_buffer),
+            ImGui::InputText("##SceneName", name_buffer_->data(), name_buffer_->size(),
                 ImGuiInputTextFlags_EnterReturnsTrue);
-            if(ImGui::Button("Create")) {
-                String scene_name{ str::to_char8(name_buffer) };
-                if(!scene_name.empty()) {
-                    Ref<Scene> new_scene{ create_ref<Scene>(scene_name) };
-                    SceneSerializer serializer(new_scene);
+            if(ImGui::Button("Create"))
+            {
+                String scene_name{ str::to_char8(name_buffer_->data()) };
+                if(!scene_name.empty())
+                {
                     Path new_scene_path{ current_path_ / (scene_name + u8".rkscene")};
-                    if(!new_scene_path.exists()) {
-                        serializer.serialize(new_scene_path);
-
+                    if(new_scene_path.exists())
+                        CORE_WARN(u8"ContentBrowserPanel: "
+                            u8"Scene '{}' already exists! "
+                            u8"Please choose an another name.",
+                        new_scene_path);
+                    else {
+                        Scope<Scene> new_scene{ create_scope<Scene>(scene_name) };
+                        SceneSerializer::serialize(*new_scene, new_scene_path);
+                        new_scene.reset();
                         ImGui::CloseCurrentPopup();
-                        strncpy(name_buffer, "Untitled", sizeof(name_buffer) - 1); // recover
-                        name_buffer[sizeof(name_buffer) - 1] = '\0';
                     }
-                    else CORE_WARN(u8"ContentBrowserPanel: Scene '{}' already exists! "
-                        u8"Please choose an another name.", new_scene_path);
                 }
             }
             ImGui::SameLine();
-            if(ImGui::Button("Cancel")) {
+            if(ImGui::Button("Cancel"))
                 ImGui::CloseCurrentPopup();
-                strncpy(name_buffer, "Untitled", sizeof(name_buffer) - 1); // recover
-                name_buffer[sizeof(name_buffer) - 1] = '\0';
-            }
             ImGui::EndPopup();
         }
 

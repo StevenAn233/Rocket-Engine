@@ -31,7 +31,8 @@ export namespace rke
         Ref<Texture2D> folder_icon_{};
         Ref<Texture2D> image_icon_ {};
         Ref<Texture2D> file_icon_  {};
-        static constexpr float basic_thumbnail_size_{ 96.0f };
         float thumbnail_scale_{ 1.0f };
+
+        Scope<std::array<char, 256>> name_buffer_{};
     };
 }
