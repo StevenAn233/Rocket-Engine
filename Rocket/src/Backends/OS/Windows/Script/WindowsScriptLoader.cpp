@@ -4,14 +4,14 @@
 
 module ScriptLoader;
 
-import Types;
 import Log;
-import String;
+import Types;
 import Script;
 import ScriptRegistry;
 import FileUtils;
 
-namespace {
+namespace
+{
     struct HModuleDeleter{ void operator()(HMODULE h) const { if(h) FreeLibrary(h); }};
     using SCOPE_HMODULE = std::unique_ptr<std::remove_pointer_t<HMODULE>, HModuleDeleter>;
 
@@ -21,61 +21,61 @@ namespace {
 
 namespace rke
 {
-    bool ScriptLoader::load_script_dll(const Path& dllpath)
+    bool ScriptLoader::load_dylib(const Path& dir, const String& name)
     {
-        if(!dllpath.exists()) {
-            CORE_ERROR(u8"WindowsScriptLoader: DLL not found at '{}'!", dllpath);
+        ScriptRegistry::clear();
+
+        if(!dir.exists()) {
+            CORE_ERROR(u8"WindowsScriptLoader: "
+                u8"Directory '{}' doesn't exist!", dir);
             return false;
         }
 
     // Hot-reloading Support
-        Path copy_dll_path{ dllpath };
-        copy_dll_path.replace_extension(String::format(u8"loaded_{}.dll", s_reload_count++));
-
-        Path pdb_path{ dllpath };
-        pdb_path.replace_extension(u8".pdb"); // share the same name
-
-        Path copy_pdb_path{ copy_dll_path };
-        copy_pdb_path.replace_extension(u8"pdb");
+        Path dll_path{ dir / String::format(u8"{}.dll", name) };
+        Path copy_dll_path{ dir / String::format(u8"{}.loaded-{}.dll", name, s_reload_count++) };
+        CORE_ASSERT(dll_path.exists(), u8"WindowsScriptLoader: "
+            u8"Dll path '{}' doesn't exist!", dll_path);
 
         try {
             // copy DLL
-            fs::copy_file(dllpath, copy_dll_path,
+            fs::copy_file(dll_path, copy_dll_path,
                 fs::copy_options::overwrite_existing); // Important
 
             // copy PDB
+            Path pdb_path{ Path(dll_path).replace_extension(u8"pdb") };
             if(pdb_path.exists()) {
+                Path copy_pdb_path{ Path(copy_dll_path).replace_extension(u8"pdb") };
                 fs::copy_file(pdb_path, copy_pdb_path,
                     fs::copy_options::overwrite_existing); // Important
             }
         }
         catch(const fs::filesystem_error& e)
         {
-            CORE_ERROR(u8"WindowsScriptLoader: Failed to copy DLL for hot-reloading!\n -- {}", e.what());
+            CORE_ERROR(u8"WindowsScriptLoader: "
+                u8"Failed to copy DLL for hot-reloading!\n -- {}", e.what());
             return false;
         }
 
-        SCOPE_HMODULE handle{ LoadLibraryA(copy_dll_path.string().raw()) }; // pointer to dll
-        if(!handle)
-        {
-            CORE_ERROR(u8"WindowsScriptLoader: Failed to load DLL '{}'!", dllpath);
+        SCOPE_HMODULE dll_handle{ LoadLibraryA(copy_dll_path.string().raw()) };
+        if(!dll_handle) {
+            CORE_ERROR(u8"WindowsScriptLoader: "
+                u8"Failed to load DLL '{}'! May be occupied.", dir);
             return false;
         }
 
-        typedef void (*RegisterScriptsFunc)(); // pointer to register function
-        RegisterScriptsFunc register_scripts
-            { RegisterScriptsFunc(GetProcAddress(handle.get(), "register_scripts"))};
-        // function name has to be exactly the same
-
+        auto register_scripts{ reinterpret_cast<void(*)()>
+            (GetProcAddress(dll_handle.get(), "register_scripts")) };
+        // function name has to be exactly the same(ScriptRegistry)
         if(register_scripts)
         {
-            CORE_INFO(u8"WindowsScriptLoader: Registering scripts from '{}'...", dllpath);
-            ScriptRegistry::clear();
+            CORE_INFO(u8"WindowsScriptLoader: Registering scripts from '{}'...", dir);
             register_scripts(); // call the register function
-            CORE_INFO(u8"WindowsScriptLoader: Scripts Registered.");
 
-            unload_all();
-            s_dll_handles.push_back(std::move(handle));
+            s_dll_handles.clear();
+            s_dll_handles.push_back(std::move(dll_handle));
+
+            CORE_INFO(u8"WindowsScriptLoader: Scripts Registered.");
             return true;
         }
 
@@ -83,12 +83,28 @@ namespace rke
         return false;
     }
 
-    void ScriptLoader::unload_all()
+    void ScriptLoader::unload_all_dylibs()
     {
+        ScriptRegistry::clear();
         if(!s_dll_handles.empty())
         {
             s_dll_handles.clear();
             CORE_INFO(u8"WindowsScriptLoader: Unloaded all script DLLs.");
+        }
+    }
+
+    void ScriptLoader::delete_temp_files(const Path& dir)
+    {
+        if(!dir.exists()) return;
+        for(const auto& entry : fs::directory_iterator(dir))
+        {
+            String filename{ Path(entry.path().filename()).string() };
+            if(filename.find(u8"loaded") != String::npos)
+            {
+                std::error_code ec{};
+                fs::remove(entry.path(), ec);
+                if(!ec) CORE_INFO(u8"Project: Deleted temporary '{}'.", filename);
+            }
         }
     }
 }

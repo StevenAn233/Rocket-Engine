@@ -22,8 +22,11 @@ namespace {
 
 namespace rke
 {
-    Project::Project() {}
-    Project::~Project() { ScriptLoader::unload_all(); }
+    Project::~Project()
+    {
+        ScriptLoader::unload_all_dylibs();
+        ScriptLoader::delete_temp_files(project_dir_ / u8"bin" / RKE_CONFIG_NAME);
+    }
 
     bool Project::scripts_hot_reloading()
     {
@@ -31,42 +34,15 @@ namespace rke
         clear_active_scene();
 
         bool succeeded{ true };
-    // Load Script dll: Must be ahead of scene loading!
-        Path dynamic_lib_path{ project_dir_ / u8"bin" / RKE_CONFIG_NAME };
-        // Clean up temp loaded dlls
-        if(dynamic_lib_path.exists())
-            for(const auto& entry : fs::directory_iterator(dynamic_lib_path))
-            {
-                String filename{ Path(entry.path().filename()).string() };
-                if(filename.find(u8"loaded") != String::npos)
-                {
-                    std::error_code ec{};
-                    fs::remove(entry.path(), ec);
-                    if(!ec) CORE_INFO(u8"Project: Deleted temporary '{}'.", filename);
-                }
-            }
-        // previous dll still bound, so can't be deleted
-        // (doesn't really matter, only one dll bound)
+        Path dylib_dir{ project_dir_ / u8"bin" / RKE_CONFIG_NAME };
 
-    #ifdef RKE_PLATFORM_WINDOWS
-        Path script_dll_path{ dynamic_lib_path / (project_config_.name + u8".dll") };
-    #else
-        static_assert(false, u8"Project: Other OS has not been supported yet!");
-    #endif
-
-        if(script_dll_path.exists()) {
-            if(!ScriptLoader::load_script_dll(script_dll_path)) {
-                CORE_ERROR(u8"Project: Could not load script DLL at '{}'!", script_dll_path);
-                succeeded = false;
-            }
-        } else {
-            ScriptRegistry::clear();
-            ScriptLoader::unload_all();
-            if(dynamic_lib_path.exists())
-                CORE_ERROR(u8"Project: Script DLL '{}' doesn't exist!", script_dll_path);
+        if(!ScriptLoader::load_dylib(dylib_dir, project_config_.name))
+        {
+            CORE_ERROR(u8"Project: Could not load script lib '{}' at '{}'!",
+                project_config_.name, dylib_dir);
             succeeded = false;
         }
-
+        
     // Reload Scene(or load new scene)
         Path current_scene_path{ get_assets_dir() / u8"scenes" / project_config_.start_scene };
         bool is_rkscene{ current_scene_path.filename().string().ends_with(u8".rkscene") };
@@ -252,7 +228,7 @@ namespace rke
 
     Project* Project::load_to_active(const Path& path)
     {
-        Scope<Project> project(new Project{});
+        Scope<Project> project(new Project());
         // can't use create_scope<...> here, but
         // which does exactly the same thing anyway.
         project->rkproj_path_ = path;

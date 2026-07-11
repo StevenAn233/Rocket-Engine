@@ -18,6 +18,7 @@ export namespace rke
     class RKE_API Project
     {
     public:
+        friend class Application;
         friend struct std::default_delete<Project>;
 
         struct Config // serialized in .rkproj file
@@ -56,7 +57,7 @@ export namespace rke
         static bool save_active();
         static void clear_active();
     private:
-        Project();
+        Project() = default;
         ~Project();
     private:
         Config project_config_{};

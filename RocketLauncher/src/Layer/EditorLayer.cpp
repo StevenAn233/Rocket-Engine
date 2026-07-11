@@ -90,6 +90,21 @@ namespace rke
             [this](IconButton*) { on_runtime_stop(); },
             [this]() { return current_scene_ && playing(); });
 
+        toolbar_.emplace_icon_button(u8"Reload Script",
+            Texture2D::create (
+                assets_dir / u8"icons" / u8"refresh.png",
+                Texture::FiltFormat::Linear,
+                Texture::WrapFormat::Clamp2Edge, false),
+            [this](IconButton*) {
+                Project& project{ *Project::get_active_project() };
+                project.scripts_hot_reloading();
+                update_current_scene(project.get_active_scene());
+            },
+            [this]() {
+                return Project::get_active_project()
+                    && current_scene_ && !current_scene_->in_runtime();
+            });
+
     // Viewports
         main_viewport_.set_viewport_callback([this](Viewport* self)
         {

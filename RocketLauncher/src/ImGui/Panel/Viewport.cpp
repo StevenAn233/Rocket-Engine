@@ -31,10 +31,10 @@ namespace rke
                 ImGui::InvisibleButton("##EmptyViewport", std::bit_cast<ImVec2>(get_size()));
             }
         }
+        ImGui::PopStyleVar();
 
         if(callback_) callback_(this);
-
         ImGui::End();
-        ImGui::PopStyleVar();
+        
     }   
 }
