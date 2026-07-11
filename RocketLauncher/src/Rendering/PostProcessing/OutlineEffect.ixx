@@ -21,7 +21,8 @@ export namespace rke
         void serialize_to(ConfigWriter& writer) const override;
         void deserialize_from(const ConfigReader& reader) override;
 
-        void on_viewport_resized(uint32 w, uint32 h);
+        void on_viewport_resized(uint32 w, uint32 h) override;
+
         void set_target	(Entity target );
         void set_samples(uint32 samples);
 

@@ -64,5 +64,7 @@ namespace rke
     {
         fbos_[0]->resize(w, h);
         fbos_[1]->resize(w, h);
+        for(auto& [_, effect] : effects_)
+            effect->on_viewport_resized(w, h);
     }
 }

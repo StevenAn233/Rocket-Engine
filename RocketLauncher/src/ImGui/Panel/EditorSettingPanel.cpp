@@ -43,14 +43,15 @@ namespace rke
             {
                 layout::tree_node_branch<u8"Camera">([&]()
                 {
+                    EditorCamera& cam{ *camera_ };
                     bool modified{ false };
                     modified |= layout::drag_float3_control<u8"Focal Point">
-                        (camera_.focal_point_, 0.1f, glm::vec3(0.0f));
+                        (cam.focal_point_, 0.1f, glm::vec3(0.0f));
                     modified |= layout::drag_float_control<u8"Distance">
-                        (camera_.distance_, 0.5f, 1.0f, glm::vec2(1.0f, 100.0f));
-                    modified |= layout::drag_float_control<u8"Pitch">(camera_.pitch_, 0.1f, 0.0f);
-                    modified |= layout::drag_float_control<u8"Yaw"  >(camera_.yaw_  , 0.1f, 0.0f);
-                    if(modified) camera_.update_view();
+                        (cam.distance_, 0.5f, 1.0f, glm::vec2(1.0f, 100.0f));
+                    modified |= layout::drag_float_control<u8"Pitch">(cam.pitch_, 0.1f, 0.0f);
+                    modified |= layout::drag_float_control<u8"Yaw"  >(cam.yaw_  , 0.1f, 0.0f);
+                    if(modified) cam.update_view();
                 });
 
                 layout::tree_node_branch<u8"Gizmo">([&]()
@@ -143,10 +144,4 @@ namespace rke
 
     void EditorSettingPanel::set_last_proj_path(Path path)
         { last_proj_path_ = std::move(path); }
-
-    void EditorSettingPanel::on_viewport_resized(uint32 w, uint32 h)
-    {
-        selected_->on_viewport_resized(w, h);
-        hovering_->on_viewport_resized(w, h);
-    }
 }

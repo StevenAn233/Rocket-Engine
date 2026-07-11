@@ -319,7 +319,6 @@ namespace rke
             if(current_scene_) current_scene_->set_viewport(w, h);
 
             main_renderer_.on_viewport_resized(w, h);
-            editor_setting_panel_ .on_viewport_resized(w, h);
             project_setting_panel_.on_viewport_resized(w, h);
         }
         if(cam_viewport_.resized())

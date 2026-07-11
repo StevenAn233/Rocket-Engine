@@ -8,7 +8,7 @@ export module PostProcessEffect;
 
 import Shader;
 import HeapManager;
-
+import Types;
 import String;
 import Texture;
 import Buffers;
@@ -41,6 +41,8 @@ export namespace rke
         virtual void serialize_to(ConfigWriter& writer) const {}
         virtual void deserialize_from(const ConfigReader& reader) {}
         virtual Category get_category() const { return Category::Standard; }
+
+        virtual void on_viewport_resized(uint32 w, uint32 h) {};
     protected:
         explicit PostProcessEffect(String name)
             : name_(name.empty() ? u8"Untitled" : std::move(name)) {}
