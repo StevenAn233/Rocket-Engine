@@ -86,7 +86,8 @@ namespace rke
             Texture2D::create (
                 assets_dir / u8"icons" / u8"stop.png",
                 Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false),
+                Texture::WrapFormat::Clamp2Edge, false
+            ),
             [this](IconButton*) { on_runtime_stop(); },
             [this]() { return current_scene_ && playing(); });
 
@@ -94,15 +95,18 @@ namespace rke
             Texture2D::create (
                 assets_dir / u8"icons" / u8"refresh.png",
                 Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false),
+                Texture::WrapFormat::Clamp2Edge, false
+            ),
             [this](IconButton*) {
-                Project& project{ *Project::get_active_project() };
-                project.scripts_hot_reloading();
-                update_current_scene(project.get_active_scene());
+                Project* project{ app().get_project() };
+                if(project) {
+                    project->scripts_hot_reloading();
+                    update_current_scene(project->get_active_scene());
+                }
             },
             [this]() {
-                return Project::get_active_project()
-                    && current_scene_ && !current_scene_->in_runtime();
+                return app().get_project() && current_scene_
+                    && !current_scene_->in_runtime();
             });
 
     // Viewports
@@ -122,10 +126,11 @@ namespace rke
                 in_main_viewport_dragging_ = true;
                 const auto* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_SCENE") };
                 if(payload) {
+                    Project* project{ app().get_project() };
                     String scene_path{ reinterpret_cast<const char8*>(payload->Data) };
-                    if(Project::get_active_project() && scene_path.ends_with(u8".rkscene"))
+                    if(project && scene_path.ends_with(u8".rkscene"))
                     {
-                        Ref<Scene> active_scene{ Project::get_active_project()->load_scene(scene_path) };
+                        Ref<Scene> active_scene{ project->load_scene(scene_path) };
                         update_current_scene(active_scene); // can be nullptr
                     }
                 }
@@ -202,9 +207,9 @@ namespace rke
         app().unregister_panel(&cam_viewport_);
         app().unregister_panel(&toolbar_);
 
-        if(Project::get_active_project())
-            Project::get_active_project()->clear_active_scene();
-        Project::clear_active();
+        Project* project{ app().get_project() };
+        if(project) project->clear_active_scene();
+        app().clear_project();
     }
 
     void EditorLayer::on_event(Event& e)
@@ -262,7 +267,10 @@ namespace rke
             if(ctrl) { new_project(); return true; }
             return false;
         case Key::O:
-            if(ctrl) { open_project(e.get_window_name()); return true; }
+            if(ctrl) {
+                open_project(app().get_windows_lib()[e.get_window_name()]);
+                return true;
+            }
             return false;
         case Key::S:
             if(ctrl) { save_project(); return true; }
@@ -446,31 +454,35 @@ namespace rke
 
     void EditorLayer::open_project(const Path& rkproj_path)
     {
-        Project::load_to_active(rkproj_path);
+        app().load_project(rkproj_path);
         project_setting_panel_.refresh_aa_setting();
-        if(Project::get_active_project())
-        {
+        Project* project{ app().get_project() };
+        if(project) {
             editor_setting_panel_.set_last_proj_path(rkproj_path);
-            Path assets_dir{ Project::get_active_project()->get_assets_dir() };
+            Path assets_dir{ project->get_assets_dir() };
             content_browser_panel_.set_context(assets_dir);
             AssetsManager::scan_assets_directory(assets_dir);
 
-            auto scene{ Project::get_active_project()->get_active_scene() };
+            auto scene{ project->get_active_scene() };
             update_current_scene(scene);
         }
     }
 
-    void EditorLayer::open_project(const Window* window)
+    void EditorLayer::open_project(const Window& window)
     {
         auto file_path{ FileDialogs::open_file
-            (u8"Rocket Project (*.rkproj)|*.rkproj|", window) };
+            (u8"Rocket Project (*.rkproj)|*.rkproj|", &window) };
         if(file_path) {
             Path rkproj_path{ file_path.value() };
             open_project(rkproj_path);
         }
     }
 
-    void EditorLayer::save_project() { Project::save_active(); }
+    void EditorLayer::save_project()
+    {
+        Project* project{ app().get_project() };
+        if(project) project->save();
+    }
 
     void EditorLayer::update_current_scene(Ref<Scene> scene)
     {

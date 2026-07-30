@@ -17,6 +17,7 @@ import Panel;
 import PanelRegistry;    
 import Modal;
 import ModalRegistry;
+import Project;
 
 export namespace rke
 {
@@ -36,7 +37,10 @@ export namespace rke
         
         void send_event(Event& e);
 
-        WindowsLib& get_windows_lib() { return windows_lib_; }
+        inline WindowsLib& get_windows_lib() { return windows_lib_; }
+        inline Project* get_project() { return project_.get(); }
+        inline void load_project(const Path& path) { project_ = Project::load_from(path); }
+        inline void clear_project() { project_.reset(); }
 
         void register_panel(Panel* handle, PanelRegistry::Attrib attrib = {});
         void unregister_panel(Panel* handle);
@@ -49,6 +53,8 @@ export namespace rke
         static void on_window_loaded(Window& window);
     private:
         WindowsLib windows_lib_;
+        Scope<Project> project_{};
+
         PanelRegistry* panel_reg_{};
         ModalRegistry* modal_reg_{};
         ApplicationPanel panel_{ u8"Application" };

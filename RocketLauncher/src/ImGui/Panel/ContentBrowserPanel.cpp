@@ -131,9 +131,10 @@ namespace rke
                               { thumbnail_size, thumbnail_size }, { 0, 1 }, { 1, 0 },
                               { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-            Project* active_project{ Project::get_active_project() };
-            if(entry.path().extension() == u8".rkscene" && active_project) {
-                Path active_scene_path{ active_project->get_active_scene_path() };
+            Project* project{ app().get_project() };
+            if(entry.path().extension() == u8".rkscene" && project)
+            {
+                Path active_scene_path{ project->get_active_scene_path() };
                 if(!fs::equivalent(entry.path(), active_scene_path.get()))
                 {
                     if(ImGui::BeginPopupContextItem())
@@ -164,8 +165,11 @@ namespace rke
                     }
                 }
                 
-                ImGui::Image(std::bit_cast<void*>(static_cast<uint64>(icon_id)),
-                    { thumbnail_size, thumbnail_size }, { 0, 1 }, { 1, 0 });
+                ImGui::Image (
+                    std::bit_cast<void*>(static_cast<uint64>(icon_id)),
+                    { thumbnail_size, thumbnail_size },
+                    { 0, 1 }, { 1, 0 }
+                );
                 ImGui::Text("%s", file_name.raw());
                 ImGui::EndDragDropSource();
             }

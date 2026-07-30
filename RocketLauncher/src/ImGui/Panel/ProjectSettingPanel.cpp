@@ -25,7 +25,7 @@ namespace rke
 {
     void ProjectSettingPanel::on_imgui_render()
     {
-        Project* project{ Project::get_active_project() };
+        Project* project{ app().get_project() };
         ImGui::PushID(get_name().raw());
         ImGui::Begin (get_name().raw());
 
@@ -37,12 +37,12 @@ namespace rke
             {
                 layout::tree_node_branch<u8"Name">([this]()
                 {
-                    const String& name{ Project::get_active_project()->get_name() };
+                    const String& name{ app().get_project()->get_name() };
                     char buffer[256]{};
                     strncpy(buffer, name.raw(), sizeof(buffer) - 1);
                     buffer[sizeof(buffer) - 1] = '\0';
                     if(ImGui::InputText("##tag", buffer, sizeof(buffer)))
-                        Project::get_active_project()->set_name(String(str::to_char8(buffer)));
+                        app().get_project()->set_name(String(str::to_char8(buffer)));
                 });
                 ImGui::EndTabItem();
             }
@@ -57,7 +57,7 @@ namespace rke
                 {
                     constexpr const char* items[]
                         { "Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA", "FXAA" };
-                    int* aa_opt{ &Project::get_active_project()->get_config_mut().anti_aliasing_opt };
+                    int* aa_opt{ &(app().get_project()->get_config_mut().anti_aliasing_opt) };
                     if(ImGui::Combo("##msaa", aa_opt, items, static_cast<int>(std::size(items))))
                         apply_aa_setting(*aa_opt);
                 });
@@ -89,7 +89,7 @@ namespace rke
 
     void ProjectSettingPanel::refresh_aa_setting()
     {
-        auto project{ Project::get_active_project() };
+        Project* project{ app().get_project() };
         CORE_ASSERT(project, u8"ProjectSettingPanel: No active project!");
         apply_aa_setting(project->get_config().anti_aliasing_opt);
     }
@@ -102,8 +102,9 @@ namespace rke
             fxaa_->set_enabled(false);
         } else {
             viewport_valid_for_fxaa_ = true;
-            if(!Project::get_active_project()) return;
-            int aa_opt{ Project::get_active_project()->get_config_mut().anti_aliasing_opt };
+            Project* project{ app().get_project() };
+            if(!project) return;
+            int aa_opt{ project->get_config_mut().anti_aliasing_opt };
             fxaa_->set_enabled(aa_opt == 5);
             fxaa_->set_uniform({ glm::vec2(1.0f / w, 1.0f / h) });
         }
@@ -186,7 +187,6 @@ namespace rke
                         + ImGui::CalcTextSize(text.raw()).y;
                        // ^ Will be rotated, so use y(height) here
             float y_pos = start_y;
-
             add_text_vertical(draw_list, text.raw(), ImVec2(x_pos, y_pos), text_col);
         }
 

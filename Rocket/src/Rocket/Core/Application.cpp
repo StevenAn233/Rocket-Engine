@@ -2,7 +2,6 @@
 module Application;
 
 import Log;
-import Project;
 import Instrumentor;
 import DeltaTime;
 import Renderer2D;
@@ -137,7 +136,7 @@ namespace rke
     void execute(Scope<Application> instance)
     {
         register_instance(std::move(instance));
-        Project::init_file_templates(file::assets_dir() / u8"proj-templates");
+        Project::init_templates(file::assets_dir() / u8"proj-templates");
         
         app().init();
         app().run();

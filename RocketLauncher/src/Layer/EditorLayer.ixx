@@ -32,7 +32,7 @@ export namespace rke
             { return scene_state_ == SceneState::Edit; }
     private:
         void new_project();
-        void open_project(const Window* window);
+        void open_project(const Window& window);
         void open_project(const Path& rkproj_path);
         void save_project();
 

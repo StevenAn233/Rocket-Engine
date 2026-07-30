@@ -9,21 +9,16 @@ import ScriptRegistry;
 import AssetsManager;
 import ConfigProxy;
 
-namespace {
-    using namespace rke;
-
+namespace rke
+{
     static String s_cmake_lists_txt{};
     static String s_cmake_presets_json{};
     static String s_myscript_ixx{};
     static String s_editorconfig{};
 
-    static Scope<Project> s_active_project{};
-}
-
-namespace rke
-{
     Project::~Project()
     {
+        clear_active_scene();
         ScriptLoader::unload_all_dylibs();
         ScriptLoader::delete_temp_files(project_dir_ / u8"bin" / RKE_CONFIG_NAME);
     }
@@ -44,7 +39,7 @@ namespace rke
         }
         
     // Reload Scene(or load new scene)
-        Path current_scene_path{ get_assets_dir() / u8"scenes" / project_config_.start_scene };
+        Path current_scene_path{ get_assets_dir() / u8"scenes" / project_config_.start_scene_name };
         bool is_rkscene{ current_scene_path.filename().string().ends_with(u8".rkscene") };
         if(current_scene_path.exists() && is_rkscene) load_scene(current_scene_path);
         return succeeded;
@@ -66,7 +61,7 @@ namespace rke
         writer->begin_map();
 
         writer->write(u8"Project", project_config_.name);
-        writer->write(u8"Start Scene", project_config_.start_scene);
+        writer->write(u8"Start Scene", project_config_.start_scene_name);
 
         writer->begin_map(u8"Config");
         writer->begin_map(u8"Physics Layers");
@@ -89,7 +84,7 @@ namespace rke
         writer->push_to_file(rkproj_path_);
         CORE_INFO(u8"Project: Project '{}' saved.", rkproj_path_);
 
-        Path scene_path{ get_assets_dir() / u8"scenes" / project_config_.start_scene };
+        Path scene_path{ get_assets_dir() / u8"scenes" / project_config_.start_scene_name };
         String scene_path_str{ scene_path.string() };
         if(scene_path.exists() && scene_path_str.ends_with(u8".rkscene"))
         {
@@ -101,7 +96,7 @@ namespace rke
             CORE_INFO(u8"Project: Active scene '{}' saved.", scene_path_str);
             return true;
         }
-        else if(!project_config_.start_scene.empty())
+        else if(!project_config_.start_scene_name.empty())
         {
             CORE_ERROR(u8"Project: Scene '{}' doesn't exist "
                 u8"or is not a valid rkscene!", scene_path_str);
@@ -118,7 +113,7 @@ namespace rke
 
         String filepath_str{ filepath.string() };
         if(filepath.exists() && filepath_str.ends_with(u8".rkscene"))
-            project_config_.start_scene = filepath.filename().string();
+            project_config_.start_scene_name = filepath.filename().string();
         else {
             CORE_WARN(u8"Project: Scene '{}' doesn't exist or is not a valid scene!", filepath);
             return nullptr;
@@ -151,11 +146,9 @@ namespace rke
     Path Project::get_assets_dir() const { return project_dir_ / u8"assets"; }
     Path Project::get_scenes_dir() const { return project_dir_ / u8"assets" / u8"scenes"; }
     Path Project::get_active_scene_path() const
-        { return get_scenes_dir() / project_config_.start_scene; }
+        { return get_scenes_dir() / project_config_.start_scene_name; }
 
-    Project* Project::get_active_project() { return s_active_project.get(); }
-
-    void Project::init_file_templates(const Path& templates_path)
+    void Project::init_templates(const Path& templates_path)
     {
         if(s_cmake_lists_txt.empty()) { s_cmake_lists_txt =
             file::read_file_string(templates_path / u8"CMakeLists.txt.txt"); }
@@ -167,7 +160,7 @@ namespace rke
             file::read_file_string(templates_path / u8".editorconfig.txt"); }
     }
 
-    bool Project::create(const Path& rkproj_path)
+    bool Project::create_files(const Path& rkproj_path)
     {
         if(rkproj_path.extension() != u8".rkproj") {
             CORE_ERROR(u8"Project: Invalid project file path!");
@@ -226,7 +219,7 @@ namespace rke
         return true;
     }
 
-    Project* Project::load_to_active(const Path& path)
+    Scope<Project> Project::load_from(const Path& path)
     {
         Scope<Project> project(new Project());
         // can't use create_scope<...> here, but
@@ -237,16 +230,16 @@ namespace rke
         Scope<ConfigReader> reader{ ConfigReader::create(path) };
         auto& config{ project->project_config_ };
         config.name = reader->get_at(u8"Project", String{});
-        config.start_scene = reader->get_at(u8"Start Scene", String{});
+        config.start_scene_name = reader->get_at(u8"Start Scene", String{});
         if(config.name.empty()) {
             CORE_ERROR(u8"Project: Invalid project file format in '{}'!", path);
-            return s_active_project.get();
+            return nullptr;
         }
-        if(!config.start_scene.empty()) {
-            Path start_scene_path{ project->get_scenes_dir() / config.start_scene };
+        if(!config.start_scene_name.empty()) {
+            Path start_scene_path{ project->get_scenes_dir() / config.start_scene_name };
             if(!start_scene_path.exists()) {
                 CORE_ERROR(u8"Project: Start scene '{}' not found!", start_scene_path);
-                config.start_scene.clear();
+                config.start_scene_name.clear();
             }
         }
         
@@ -271,22 +264,8 @@ namespace rke
             config.anti_aliasing_opt = config_reader->
                 get_at(u8"Anti-Aliasing Option", config.anti_aliasing_opt);
         }
-        if(s_active_project) s_active_project->clear_active_scene();
         CORE_INFO(u8"Project: Project '{}' loaded.", project->rkproj_path_);
-        s_active_project = std::move(project);
-
-        s_active_project->scripts_hot_reloading();
-        return s_active_project.get();
+        project->scripts_hot_reloading();
+        return project;
     }
-
-    bool Project::save_active()
-    {
-        if(!s_active_project) {
-            CORE_WARN(u8"Project: No active project!");
-            return false;
-        }
-        return s_active_project->save();
-    }
-
-    void Project::clear_active() { s_active_project.reset(); }
 }

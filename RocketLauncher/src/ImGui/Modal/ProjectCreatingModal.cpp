@@ -39,18 +39,19 @@ namespace rke
                 {
                     String name{ str::to_char8(name_buffer_->data()) };
                     Path project_dir{ Path(path_buffer_->data()) / name };
-                    Path rkproj_path{ project_dir / (name + u8".rkproj")};
-
-                    if(Project::create(rkproj_path))
-                    {
-                        if(on_project_created_)
-                            on_project_created_(rkproj_path);
+                    if(project_dir.exists()) {
+                        CORE_ERROR(u8"ProjectCreatingModal: Project dir already exists!");
+                    } else {
+                        Path rkproj_path{ project_dir / (name + u8".rkproj")};
+                        if(Project::create_files(rkproj_path))
+                        {
+                            if(on_project_created_) on_project_created_(rkproj_path);
+                            ImGui::CloseCurrentPopup();
+                        }
+                        else CORE_ERROR(u8"ProjectCreatingModal: Failed to create_ref rkproj!");
                     }
-                    else CORE_ERROR(u8"EditorLayer: Failed to create_ref rkproj!");
-
-                    ImGui::CloseCurrentPopup();
                 }
-                else CORE_WARN(u8"EditorLayer: Project name cannot be empty!");
+                else CORE_WARN(u8"ProjectCreatingModal: Project name cannot be empty!");
             }
             ImGui::SameLine();
             if(ImGui::Button("Cancel", ImVec2(120, 0))) ImGui::CloseCurrentPopup();

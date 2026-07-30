@@ -11,6 +11,7 @@ import Gravity2D;
 import Components;
 import Project;
 import PhysicsLayers;
+import Application;
 
 namespace {
     using namespace rke;
@@ -121,8 +122,7 @@ namespace rke
         for(auto entt : rbc_view)
         {
             Entity entity{ s_context->get_entity(entt) };
-            const auto& physics_layers
-                { Project::get_active_project()->get_config().physics_layers };
+            const auto& physics_layers{ app().get_project()->get_config().physics_layers };
             create_body(entity, physics_layers);
         }
     }
