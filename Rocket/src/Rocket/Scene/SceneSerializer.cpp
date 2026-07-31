@@ -194,12 +194,6 @@ namespace {
 
 namespace rke
 {
-    static SceneSerializer::SerializeHook s_serialize_hook{};
-    static SceneSerializer::DeserializeHook s_deserialize_hook{};
-    // There is (mostly)only one editor in the App;
-    // No matter which scene have we loaded, we are gonna have the same editor;
-    // If you really wanna change the editor, just call the setters, fine I believe.
-
     bool SceneSerializer::serialize(const Scene& scene, const Path& filepath)
     {
         Scope<ConfigWriter> writer{ ConfigWriter::create() };
@@ -224,7 +218,7 @@ namespace rke
         else if(!selected.empty()) CORE_ERROR
             (u8"SceneSerializer: Selected entity invalid!");
 
-        if(s_serialize_hook) s_serialize_hook(scene, *(writer.get()));
+        if(serialize_hook_) serialize_hook_(scene, *(writer.get()));
 
         writer->end_map();
 
@@ -271,7 +265,7 @@ namespace rke
         }
         else scene.set_selected_entity(Entity{});
 
-        if(s_deserialize_hook) s_deserialize_hook(scene, *(reader.get()));
+        if(deserialize_hook_) deserialize_hook_(scene, *(reader.get()));
 
         scene.get_master_camera();
         scene.modified_ = false; // just loaded, nothing changed
@@ -279,7 +273,7 @@ namespace rke
     }
 
     void SceneSerializer::set_serialize_hook(SerializeHook hook)
-        { s_serialize_hook = std::move(hook); }
+        { serialize_hook_ = std::move(hook); }
     void SceneSerializer::set_deserialize_hook(DeserializeHook hook)
-        { s_deserialize_hook = std::move(hook); }
+        { deserialize_hook_ = std::move(hook); }
 }

@@ -16,26 +16,22 @@ export namespace rke
         ~EditorSettingPanel();
 
         void load_from(Path filepath);
-
         void set_outline_samples(uint32 samples);
-        void set_last_proj_path (Path path);
-        void set_selected_handle(OutlineEffect* handle) { selected_ = handle; }
-        void set_hovering_handle(OutlineEffect* handle) { hovering_ = handle; }
-        void set_gizmo_mode(Gizmo::Mode mode) { gizmo_mode_ = mode; }
 
-        const Path& get_last_proj_path() const { return last_proj_path_; } // TO REMOVE
+        inline void set_selected_handle(OutlineEffect* handle) { selected_ = handle; }
+        inline void set_hovering_handle(OutlineEffect* handle) { hovering_ = handle; }
+        inline void set_gizmo_mode(Gizmo::Mode mode) { gizmo_mode_ = mode; }
 
-        OutlineEffect* get_selected() const { return selected_; }
-        OutlineEffect* get_hovering() const { return hovering_; }
-        Gizmo::Mode get_gizmo_mode() const { return gizmo_mode_; }
-        bool selected_enabled_editor() const { return selected_enabled_editor_; }
-        bool hovering_enabled_editor() const { return hovering_enabled_editor_; }
+        inline OutlineEffect* get_selected() const { return selected_; }
+        inline OutlineEffect* get_hovering() const { return hovering_; }
+        inline Gizmo::Mode get_gizmo_mode() const { return gizmo_mode_; }
+
+        inline bool selected_enabled_editor() const { return selected_enabled_editor_; }
+        inline bool hovering_enabled_editor() const { return hovering_enabled_editor_; }
     private:
         void on_imgui_render() override;
     private:
         Path filepath_{};
-
-        Path last_proj_path_{}; // TO REMOVE
 
         float font_scale_{ 1.0f };
         EditorCamera* camera_{};

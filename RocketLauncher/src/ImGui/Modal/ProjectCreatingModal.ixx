@@ -15,6 +15,8 @@ export namespace rke
 
         void set_project_created_callback(ProjectCreatedCallback callback)
             { on_project_created_ = std::move(callback); }
+
+
     private:
         void on_imgui_render() override;
         void copy_to_buffer(const String& path);

@@ -26,32 +26,31 @@ export namespace rke
         void on_update(float dt) override;
         void on_render() override;
 
-        bool should_block_mouse() override
-            { return scene_state_ == SceneState::Edit; }
-        bool should_block_keyboard() override
-            { return scene_state_ == SceneState::Edit; }
+        inline bool should_block_mouse() override { return editing(); }
+        inline bool should_block_keyboard() override { return editing(); }
     private:
+    // TO MODIFY
         void new_project();
         void open_project(const Window& window);
-        void open_project(const Path& rkproj_path);
         void save_project();
+    // TO MODIFY
 
         void on_runtime_start();
         void on_runtime_stop();
 
-        void update_current_scene(Ref<Scene> scene);
+        Scope<Scene> load_scene(const String& name);
+        void on_scene_loaded(Scene* scene);
         void entity_right_click_popup_content(Scene* scene);
 
-    // for on_event
         bool on_key_pressed(KeyPressedEvent& e);
         bool on_mouse_scrolled(MouseScrolledEvent& e);
         bool on_mouse_button_pressed(MouseButtonPressedEvent& e);
+        bool on_project_loaded(ProjectLoadedEvent& e);
     private:
         Window* get_owner();
-        bool editing() const { return scene_state_ == SceneState::Edit; }
-        bool playing() const { return scene_state_ == SceneState::Play; }
+        bool editing() const { return scene_edit_ && !scene_test_; }
+        bool testing() const { return scene_edit_ &&  scene_test_; }
     private:
-        SceneState scene_state_{ SceneState::Edit };
         EditorCamera editor_cam_{};
 
         SceneRenderer main_renderer_{ math::srgb_to_linear
@@ -60,8 +59,9 @@ export namespace rke
             (glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
 
         int hovering_id_{ -1 };
-        Ref<Scene> current_scene_{};
-        Ref<Scene> origin_current_scene_{}; // For play/edit shifting
+        Scope<Scene> scene_edit_{};
+        Scope<Scene> scene_test_{};
+        SceneSerializer scene_serializer_{};
 
         const Texture2D* main_output_{};
         const Texture2D* cam_output_ {};

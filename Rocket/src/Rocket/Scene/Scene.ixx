@@ -73,8 +73,6 @@ export namespace rke
         const Scene* owner_scene_{ nullptr }; // doesn't own the scene
     };
 
-    enum class SceneState : uint32 { Edit = 0, Play };
-
     class RKE_API Scene
     {
     public:
@@ -89,10 +87,6 @@ export namespace rke
         Scene(Scene&&) = delete;
         ~Scene();
 
-        void on_attach(); // Called by Project
-        void on_detach(); // Called by Project
-        void clear();
-
         const String& get_name() const { return name_; }
         void set_name(String name)
         {
@@ -102,7 +96,7 @@ export namespace rke
         }
 
         std::vector<Entity> get_all_entities();
-        Ref<Scene> deep_copy(bool temp = true);
+        Scope<Scene> deep_copy(bool temp = true);
 
         bool has_entity(UUID uuid) const
             { return (entity_map_.find(uuid) != entity_map_.end()); }
@@ -118,6 +112,7 @@ export namespace rke
         Entity  copy_entity(Entity entity);
         Entity  copy_entity_towards(Entity entity, Scene* owner);
 
+        void clear();
         void on_update(float dt);
 
         void on_runtime_start();

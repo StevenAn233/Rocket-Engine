@@ -104,7 +104,7 @@ namespace rke
                         new_scene_path);
                     else {
                         Scope<Scene> new_scene{ create_scope<Scene>(scene_name) };
-                        SceneSerializer::serialize(*new_scene, new_scene_path);
+                        initializer_.serialize(*new_scene, new_scene_path);
                         new_scene.reset();
                         ImGui::CloseCurrentPopup();
                     }
@@ -130,35 +130,36 @@ namespace rke
             ImGui::ImageButton(file_name.raw(), static_cast<ImTextureID>(icon_id),
                               { thumbnail_size, thumbnail_size }, { 0, 1 }, { 1, 0 },
                               { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f });
+        // TO MODIFY
+        //  Project* project{ app().get_project() };
+        //  if(entry.path().extension() == u8".rkscene" && project)
+        //  {
+        //      Path active_scene_path{ project->get_active_scene_path() };
+        //      if(!fs::equivalent(entry.path(), active_scene_path.get()))
+        //      {
+        //          if(ImGui::BeginPopupContextItem())
+        //          {
+        //              if(ImGui::MenuItem("Delete Scene"))
+        //              {
+        //                  fs::remove(entry.path());
+        //                  ImGui::CloseCurrentPopup();
+        //              }
+        //              ImGui::EndPopup();
+        //          }
+        //      }
+        //  }
+        // TO MODIFY
 
-            Project* project{ app().get_project() };
-            if(entry.path().extension() == u8".rkscene" && project)
-            {
-                Path active_scene_path{ project->get_active_scene_path() };
-                if(!fs::equivalent(entry.path(), active_scene_path.get()))
-                {
-                    if(ImGui::BeginPopupContextItem())
-                    {
-                        if(ImGui::MenuItem("Delete Scene"))
-                        {
-                            fs::remove(entry.path());
-                            ImGui::CloseCurrentPopup();
-                        }
-                        ImGui::EndPopup();
-                    }
-                }
-            }
-
-            Path filepath{ entry.path() };
-            String filepath_str{ filepath.string() };
-            ImGui::PushID(filepath_str.raw());
+            Path path{ entry.path() };
+            ImGui::PushID(path.string().raw());
             if(!entry.is_directory() && ImGui::BeginDragDropSource())
             {
-                if(filepath.extension() == u8".rkscene") {
+                if(path.extension() == u8".rkscene") {
+                    String scene_name{ path.stem().string() };
                     ImGui::SetDragDropPayload("CONTENT_BROWSER_SCENE",
-                        filepath_str.raw(), filepath_str.size() + 1, ImGuiCond_Once);
+                        scene_name.raw(), scene_name.size() + 1, ImGuiCond_Once);
                 } else {
-                    AssetUUID asset_uuid{ AssetsManager::get_asset_uuid(filepath) };
+                    AssetUUID asset_uuid{ AssetsManager::get_asset_uuid(path) };
                     if(!asset_uuid.empty()) {
                         ImGui::SetDragDropPayload("CONTENT_BROWSER_ASSET",
                             &asset_uuid, sizeof(AssetUUID), ImGuiCond_Once);

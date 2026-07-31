@@ -40,29 +40,7 @@ namespace rke
 // Scene
     Scene::Scene(String name) : name_(std::move(name))
         { registry_ = create_scope<entt::registry>(); }
-    Scene::~Scene() { clear(); }
-
-    void Scene::on_attach()
-    {
-        // do something...
-        CORE_INFO(u8"Scene: Scene '{}' attached.", name_);
-    }
-
-    void Scene::on_detach()
-    {
-        if(in_runtime_) on_runtime_stop();
-        CORE_INFO(u8"Scene: Scene '{}' detached.", name_);
-    }
-
-    void Scene::clear()
-    {
-        registry_ ->clear();
-        to_destroy_.clear();
-        entity_map_.clear();
-        gravity_ = {};
-        master_cam_ = {};
-        selected_entity_ = {};
-    }
+    Scene::~Scene() { if(in_runtime_) on_runtime_stop(); clear(); }
 
     std::vector<Entity> Scene::get_all_entities()
     {
@@ -73,9 +51,9 @@ namespace rke
         return entities;
     }
 
-    Ref<Scene> Scene::deep_copy(bool temp)
+    Scope<Scene> Scene::deep_copy(bool temp)
     {
-        Ref<Scene> new_scene{ create_ref<Scene>(name_) };
+        Scope<Scene> new_scene{ create_scope<Scene>(name_) };
         new_scene->temporary_ = temp;
 
         new_scene->viewport_h_ = viewport_h_;
@@ -181,6 +159,21 @@ namespace rke
         return copied_entity;
     }
 
+    void Scene::clear()
+    {
+        if(in_runtime_) {
+            CORE_ERROR(u8"Scene: Can't be cleared while in runtime!");
+            return;
+        }
+
+        registry_ ->clear();
+        to_destroy_.clear();
+        entity_map_.clear();
+        gravity_ = {};
+        master_cam_ = {};
+        selected_entity_ = {};
+    }
+
     void Scene::on_update(float dt)
     {
         if(in_runtime_) {
@@ -192,6 +185,7 @@ namespace rke
 
     void Scene::on_runtime_start()
     {
+        CORE_ASSERT(in_runtime_, u8"Scene: Already in runtime!");
         in_runtime_ = true;
         ScriptEngine   ::on_runtime_start(this);
         PhysicsEngine2D::on_runtime_start(this);
@@ -199,6 +193,7 @@ namespace rke
 
     void Scene::on_runtime_stop()
     {
+        CORE_ASSERT(!in_runtime_, u8"Scene: Not in runtime!");
         in_runtime_ = false;
         ScriptEngine   ::on_runtime_stop();
         PhysicsEngine2D::on_runtime_stop();

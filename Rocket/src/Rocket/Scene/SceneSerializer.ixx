@@ -19,10 +19,16 @@ export namespace rke
         using SerializeHook = std::function<void(const Scene&, ConfigWriter&)>;
         using DeserializeHook = std::function<void(Scene&, const ConfigReader&)>;
 
-        static bool serialize(const Scene& scene, const Path& filepath);
-        static bool deserialize(Scene& scene, const Path& filepath);
+        SceneSerializer() = default;
+        ~SceneSerializer() = default;
 
-        static void set_serialize_hook(SerializeHook hook);
-        static void set_deserialize_hook(DeserializeHook hook);
+        bool serialize(const Scene& scene, const Path& filepath);
+        bool deserialize(Scene& scene, const Path& filepath);
+
+        void set_serialize_hook(SerializeHook hook);
+        void set_deserialize_hook(DeserializeHook hook);
+    private:
+        SerializeHook serialize_hook_{};
+        DeserializeHook deserialize_hook_{};
     };
 }

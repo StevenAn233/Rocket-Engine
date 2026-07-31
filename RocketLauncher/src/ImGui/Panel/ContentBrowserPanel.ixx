@@ -34,5 +34,6 @@ export namespace rke
         float thumbnail_scale_{ 1.0f };
 
         Scope<std::array<char, 256>> name_buffer_{};
+        SceneSerializer initializer_{};
     };
 }

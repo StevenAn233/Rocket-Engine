@@ -13,7 +13,10 @@ namespace rke
             u8"Failed to create config writer!"); return; }
 
         writer->begin_map();
-        writer->write(u8"Last Project Path", last_proj_path_.string());
+
+        Project* project{ app().get_project() };
+        if(project) writer->write(u8"Last Project Path",
+            project->get_project_dir().string());
 
         writer->begin_map(u8"Viewport");
         selected_->serialize_to(*(writer.get()));
@@ -28,6 +31,42 @@ namespace rke
 
         writer->end_map();
         writer->push_to_file(filepath_);
+    }
+
+    void EditorSettingPanel::load_from(Path filepath)
+    {
+        filepath_ = std::move(filepath);
+        if(!filepath_.exists()) {
+            CORE_WARN(u8"EditorSettingPanel: File '{}' not found!", filepath_);
+            return;
+        }
+        auto reader{ ConfigReader::create(filepath_) };
+        if(!reader || !reader->is_map()) {
+            CORE_ERROR(u8"EditorSettingPanel: File format incorrect!");
+            return;
+        }
+
+        String proj_dir{ reader->get_at(u8"Last Project Path", String{}) };
+        if(!proj_dir.empty()) app().load_project(Path(proj_dir));
+        
+        auto view_data{ reader->get_child(u8"Viewport") };
+        if(view_data) {
+            selected_->deserialize_from(*(view_data.get()));
+            hovering_->deserialize_from(*(view_data.get()));
+            selected_->set_enabled(view_data->get_at(u8"Selected Enabled", true));
+            hovering_->set_enabled(view_data->get_at(u8"Hovering Enabled", true));
+        }
+        auto style_data{ reader->get_child(u8"Style") };
+        if(style_data) {
+            font_scale_ = style_data->get_at(u8"Font Scale", font_scale_);
+            ImGui::GetIO().FontGlobalScale = font_scale_;
+        }
+    }
+
+    void EditorSettingPanel::set_outline_samples(uint32 samples)
+    {
+        selected_->set_samples(samples);
+        hovering_->set_samples(samples);
     }
 
     void EditorSettingPanel::on_imgui_render()
@@ -101,47 +140,4 @@ namespace rke
         ImGui::End();
         ImGui::PopID();
     }
-
-    void EditorSettingPanel::load_from(Path filepath)
-    {
-        filepath_ = std::move(filepath);
-        if(!filepath_.exists()) {
-            CORE_WARN(u8"EditorSettingPanel: File '{}' not found!", filepath_);
-            return;
-        }
-        auto reader{ ConfigReader::create(filepath_) };
-        if(!reader || !reader->is_map()) {
-            CORE_ERROR(u8"EditorSettingPanel: File format incorrect!");
-            return;
-        }
-
-        last_proj_path_ = reader->get_at(u8"Last Project Path", String{});
-        if(!last_proj_path_.empty() && !last_proj_path_.exists())
-        {
-            CORE_ERROR(u8"EditorSettingPanel: Last project path not found!");
-            last_proj_path_.clear();
-        }
-        auto view_data{ reader->get_child(u8"Viewport") };
-        if(view_data) {
-            selected_->deserialize_from(*(view_data.get()));
-            hovering_->deserialize_from(*(view_data.get()));
-            selected_->set_enabled(view_data->get_at(u8"Selected Enabled", true));
-            hovering_->set_enabled(view_data->get_at(u8"Hovering Enabled", true));
-        }
-        
-        auto style_data{ reader->get_child(u8"Style") };
-        if(style_data) {
-            font_scale_ = style_data->get_at(u8"Font Scale", font_scale_);
-            ImGui::GetIO().FontGlobalScale = font_scale_;
-        }
-    }
-
-    void EditorSettingPanel::set_outline_samples(uint32 samples)
-    {
-        selected_->set_samples(samples);
-        hovering_->set_samples(samples);
-    }
-
-    void EditorSettingPanel::set_last_proj_path(Path path)
-        { last_proj_path_ = std::move(path); }
 }
