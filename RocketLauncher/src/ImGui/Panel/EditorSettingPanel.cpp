@@ -53,11 +53,14 @@ namespace rke
             return;
         }
 
-        String proj_dir{ reader->get_at(u8"Last Project Path", String{}) };
-        app().load_project(Path(proj_dir));
+        Path proj_dir{ reader->get_at(u8"Last Project Path", String{}) };
+        app().load_project(proj_dir);
 
-        String scene_edit_path{ reader->get_at(u8"Scene Edit Path", String{}) };
-        owner_->load_scene_edit_from(Path(scene_edit_path));
+        Project* project{ app().get_project() };
+        Path scene_edit_path{ reader->get_at(u8"Scene Edit Path", String{}) };
+        if(!project || scene_edit_path.parent_path() != project->get_scenes_dir())
+            CORE_ERROR(u8"EditorSettingPanel: Scene doesn't belong to current project!");
+        else owner_->load_scene_edit_from(scene_edit_path);
 
         auto view_data{ reader->get_child(u8"Viewport") };
         if(view_data) {
@@ -86,67 +89,66 @@ namespace rke
         ImGui::PushID(get_name().raw());
         ImGui::Begin (get_name().raw());
 
-        if(ImGui::BeginTabBar("##editor_settings_tabs"))
+        if(!ImGui::BeginTabBar("##editor_settings_tabs")) goto end;
+        if(ImGui::BeginTabItem("Viewport"))
         {
-            if(ImGui::BeginTabItem("Viewport"))
+            layout::tree_node_branch<u8"Camera">([&]()
             {
-                layout::tree_node_branch<u8"Camera">([&]()
-                {
-                    EditorCamera& cam{ owner_->editor_cam_ };
-                    bool modified{ false };
-                    modified |= layout::drag_float3_control<u8"Focal Point">
-                        (cam.focal_point_, 0.1f, glm::vec3(0.0f));
-                    modified |= layout::drag_float_control<u8"Distance">
-                        (cam.distance_, 0.5f, 1.0f, glm::vec2(1.0f, 100.0f));
-                    modified |= layout::drag_float_control<u8"Pitch">(cam.pitch_, 0.1f, 0.0f);
-                    modified |= layout::drag_float_control<u8"Yaw"  >(cam.yaw_  , 0.1f, 0.0f);
-                    if(modified) cam.update_view();
-                });
+                EditorCamera& cam{ owner_->editor_cam_ };
+                bool modified{ false };
+                modified |= layout::drag_float3_control<u8"Focal Point">
+                    (cam.focal_point_, 0.1f, glm::vec3(0.0f));
+                modified |= layout::drag_float_control<u8"Distance">
+                    (cam.distance_, 0.5f, 1.0f, glm::vec2(1.0f, 100.0f));
+                modified |= layout::drag_float_control<u8"Pitch">(cam.pitch_, 0.1f, 0.0f);
+                modified |= layout::drag_float_control<u8"Yaw"  >(cam.yaw_  , 0.1f, 0.0f);
+                if(modified) cam.update_view();
+            });
 
-                layout::tree_node_branch<u8"Gizmo">([&]()
-                {
-                    if(ImGui::RadioButton("Translate", gizmo_mode_ == Gizmo::Mode::Translate))
-                        gizmo_mode_ = Gizmo::Mode::Translate;
-                    ImGui::SameLine();
-                    if(ImGui::RadioButton("Rotate", gizmo_mode_ == Gizmo::Mode::Rotate))
-                        gizmo_mode_ = Gizmo::Mode::Rotate;
-                    ImGui::SameLine();
-                    if(ImGui::RadioButton("Scale", gizmo_mode_ == Gizmo::Mode::Scale))
-                        gizmo_mode_ = Gizmo::Mode::Scale;
-                });
-                
-                layout::tree_node_branch<u8"Selected Outline">([&]()
-                {
-                    float outline_thickness{ selected_effect()->get_thickness() };
-                    if(layout::drag_float_control<u8"Thickness">
-                        (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-                        { selected_effect()->set_thickness(outline_thickness); }
-                    ImGui::Checkbox("Enabled", &selected_enabled_editor_);
-                });
-
-                layout::tree_node_branch<u8"Hovering Outline">([&]()
-                {
-                    float outline_thickness{ hovering_effect()->get_thickness() };
-                    if(layout::drag_float_control<u8"Thickness">
-                        (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-                        { hovering_effect()->set_thickness(outline_thickness); }
-                    ImGui::Checkbox("Enabled", &hovering_enabled_editor_);
-                });
-
-                ImGui::EndTabItem();
-            }
-            if(ImGui::BeginTabItem("Style"))
+            layout::tree_node_branch<u8"Gizmo">([&]()
             {
-                layout::tree_node_branch<u8"Font">([&]()
-                {
-                    if(layout::drag_float_control<u8"Scale">
-                        (font_scale_, 0.01f, 1.0f, glm::vec2(0.5f, 2.0f), u8"%.2f")
-                    ) ImGui::GetIO().FontGlobalScale = font_scale_;
-                });
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
+                if(ImGui::RadioButton("Translate", gizmo_mode_ == Gizmo::Mode::Translate))
+                    gizmo_mode_ = Gizmo::Mode::Translate;
+                ImGui::SameLine();
+                if(ImGui::RadioButton("Rotate", gizmo_mode_ == Gizmo::Mode::Rotate))
+                    gizmo_mode_ = Gizmo::Mode::Rotate;
+                ImGui::SameLine();
+                if(ImGui::RadioButton("Scale", gizmo_mode_ == Gizmo::Mode::Scale))
+                    gizmo_mode_ = Gizmo::Mode::Scale;
+            });
+            
+            layout::tree_node_branch<u8"Selected Outline">([&]()
+            {
+                float outline_thickness{ selected_effect()->get_thickness() };
+                if(layout::drag_float_control<u8"Thickness">
+                    (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
+                    { selected_effect()->set_thickness(outline_thickness); }
+                ImGui::Checkbox("Enabled", &selected_enabled_editor_);
+            });
+
+            layout::tree_node_branch<u8"Hovering Outline">([&]()
+            {
+                float outline_thickness{ hovering_effect()->get_thickness() };
+                if(layout::drag_float_control<u8"Thickness">
+                    (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
+                    { hovering_effect()->set_thickness(outline_thickness); }
+                ImGui::Checkbox("Enabled", &hovering_enabled_editor_);
+            });
+
+            ImGui::EndTabItem();
         }
+        if(ImGui::BeginTabItem("Style"))
+        {
+            layout::tree_node_branch<u8"Font">([&]()
+            {
+                if(layout::drag_float_control<u8"Scale">
+                    (font_scale_, 0.01f, 1.0f, glm::vec2(0.5f, 2.0f), u8"%.2f")
+                ) ImGui::GetIO().FontGlobalScale = font_scale_;
+            });
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    end:
         ImGui::End();
         ImGui::PopID();
     }

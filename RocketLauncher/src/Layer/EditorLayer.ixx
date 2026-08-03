@@ -77,10 +77,11 @@ export namespace rke
         const Texture2D* cam_output_ {};
 
     // Panels
+        Scope<EditorSettingPanel> editor_setting_panel_{};
+
         Toolbar toolbar_{ u8"Toolbar" };
         Viewport main_viewport_{ u8"Main Viewport" };
         Viewport cam_viewport_{ u8"Camera Viewport" };
-        Scope<EditorSettingPanel> editor_setting_panel_{};
         SceneHierarchyPanel scene_hierarchy_panel_{ u8"Scene Hierarchy" };
         ContentBrowserPanel content_browser_panel_{ u8"Content Browser" };
         ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };
