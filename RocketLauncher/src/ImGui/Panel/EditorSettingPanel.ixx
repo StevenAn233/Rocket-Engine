@@ -27,8 +27,8 @@ export namespace rke
         inline bool hovering_enabled_editor() const { return hovering_enabled_editor_; }
     private:
         void on_imgui_render() override;
-        OutlineEffect* hovering_effect();
-        OutlineEffect* selected_effect();
+        OutlineEffect* hovering_outline();
+        OutlineEffect* selected_outline();
     private:
         EditorLayer* owner_;
         Path filepath_{};

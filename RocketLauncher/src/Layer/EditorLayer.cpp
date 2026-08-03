@@ -38,15 +38,38 @@ namespace rke
         });
 
     // Effects
-        auto hovering{ create_scope<OutlineEffect>(u8"Hovering") };
-        auto selected{ create_scope<OutlineEffect>(u8"Selected") };
+        auto hovering{ create_scope<OutlineEffect>(u8"Hovering",
+            [this]() -> bool {
+                return !Gizmo::is_using()
+                    && editor_setting_panel_->hovering_enabled_editor()
+                    && !in_main_viewport_dragging_ && editing()
+                    && !project_creating_modal_.in_use() && main_viewport_.is_hovered();
+            }
+        )};
+        auto selected{ create_scope<OutlineEffect>(u8"Selected",
+            [this]() -> bool {
+                Entity selected{ current_scene() ?
+                    current_scene()->get_selected_entity() : Entity{} };
+                int selected_id{ selected.valid() ? static_cast<int>(selected.get_handle()) : -1 };
+                return !Gizmo::is_using()
+                    && editor_setting_panel_->selected_enabled_editor()
+                    && !in_main_viewport_dragging_
+                    && !project_creating_modal_.in_use()
+                    && (selected_id != hovering_id_ || !hovering_outline_->enabled());
+            }
+        )};
         hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
         selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
-        auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa") };
+        auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa",
+            [this]() -> bool {
+                return project_setting_panel_.fxaa_enabled_
+                    && project_setting_panel_.viewport_valid_for_fxaa_;
+            }
+        )};
 
-        hovering_handle_ = hovering.get();
-        selected_handle_ = selected.get();
-        FXAAEffect* fxaa_handle_ = fxaa.get();
+        hovering_outline_ = hovering.get();
+        selected_outline_ = selected.get();
+        FXAAEffect* fxaa_effect{ fxaa.get() };
 
     // SceneRenderer
         main_renderer_.add_effect(std::move(hovering));
@@ -55,7 +78,7 @@ namespace rke
         cam_renderer_.set_samples(1);
 
     // Project Setting
-        project_setting_panel_.set_fxaa_handle(fxaa_handle_);
+        project_setting_panel_.set_fxaa_handle(fxaa_effect);
         project_setting_panel_.set_on_samples_setting([this](uint32 samples)
         {
             main_renderer_.set_samples(samples);
@@ -66,7 +89,7 @@ namespace rke
         editor_setting_panel_->load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
 
         Scene::set_on_entity_selected([this](Entity entity)
-            { selected_handle_->set_target(entity); });
+            { selected_outline_->set_target(entity); });
 
     // SceneHierarchy
         scene_hierarchy_panel_.set_on_entity_node_render([this](Scene* scene)
@@ -339,9 +362,7 @@ namespace rke
             auto h{ static_cast<uint32>(main_viewport_.get_size().y) };
 
             editor_cam_.set_viewport(w, h);
-            if(editing()) scene_edit_->set_viewport(w, h);
-            else if(testing()) scene_test_->set_viewport(w, h);
-
+            if(current_scene()) current_scene()->set_viewport(w, h);
             main_renderer_.on_viewport_resized(w, h);
             project_setting_panel_.on_viewport_resized(w, h);
         }
@@ -354,35 +375,16 @@ namespace rke
         }
         cam_renderer_.cam_demo_validation_check();
 
-        if(editing()) {
-            editor_cam_.on_update(dt);
-            scene_edit_->on_update(dt); // entity deleted here
-
-            bool hovering_enabled{ !Gizmo::is_using()
-                && editor_setting_panel_->hovering_enabled_editor()
-                && !in_main_viewport_dragging_ 
-                && !project_creating_modal_.in_use() && main_viewport_.is_hovered()
-            };
-            hovering_handle_->set_enabled(hovering_enabled);
-
-            Entity selected{ scene_edit_->get_selected_entity() };
-            int selected_id{ selected.valid() ? static_cast<int>(selected.get_handle()) : -1 };
-            bool selected_enabled { !Gizmo::is_using()
-                && editor_setting_panel_->selected_enabled_editor()
-                && !in_main_viewport_dragging_
-                && !project_creating_modal_.in_use()
-                && (selected_id != hovering_id_ || !hovering_enabled)
-            };
-            selected_handle_->set_enabled(selected_enabled);
-        } else if(testing())
-            scene_test_->on_update(dt); // entity deleted here
+        if(editing()) editor_cam_.on_update(dt);
+        if(current_scene()) current_scene()->on_update(dt); // entity deleted here
     }
 
     void EditorLayer::on_render()
     {
-        if(editing()) {
-            main_output_ = main_renderer_.on_render
-                (scene_edit_.get(), editor_cam_.get_view_proj(), editor_cam_.get_pos());
+        if(editing())
+        {
+            main_output_ = main_renderer_.on_render(scene_edit_.get(),
+                editor_cam_.get_view_proj(), editor_cam_.get_pos());
 
             if(scene_edit_ && main_viewport_.is_hovered() &&
              !(Gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
@@ -394,7 +396,7 @@ namespace rke
 
             if(scene_edit_) {
                 Entity target{ scene_edit_->get_entity(hovering_id_, false) };
-                hovering_handle_->set_target(target);
+                hovering_outline_->set_target(target);
             }
 
             if(scene_edit_ && cam_viewport_.on() &&
@@ -408,10 +410,13 @@ namespace rke
                 scene_edit_->set_viewport(size.x, size.y);
             }
             else cam_output_ = nullptr;
-        } else if(testing()) {
+        }
+        else if(testing())
+        {
             main_output_ = main_renderer_.on_render_runtime(scene_test_.get());
             cam_output_  = nullptr;
-        } else { main_output_ = cam_output_ = nullptr; }
+        }
+        else { main_output_ = cam_output_ = nullptr; }
     }
 
     bool EditorLayer::should_block_mouse() { return editing(); }
@@ -424,6 +429,9 @@ namespace rke
         scene_test_ = scene_edit_->deep_copy();
         attach_scene(scene_test_.get());
 
+        CORE_ASSERT(scene_test_, u8"EditorLayer: Failed to copy edit scene!");
+        scene_test_->set_selected_entity(scene_edit_->get_selected_entity().get_uuid());
+
         cam_viewport_.hide();
         scene_test_->on_runtime_start();
     }
@@ -434,6 +442,8 @@ namespace rke
 
         scene_test_->on_runtime_stop();
         cam_viewport_.show();
+
+        scene_edit_->set_selected_entity(scene_test_->get_selected_entity().get_uuid());
 
         attach_scene(scene_edit_.get());
         scene_test_.reset();
@@ -529,5 +539,10 @@ namespace rke
         }
     }
 
-    Window* EditorLayer::get_owner() { return reinterpret_cast<Window*>(owner_); }
+    Scene* EditorLayer::current_scene()
+    {
+        if(editing()) return scene_edit_.get();
+        if(testing()) return scene_test_.get();
+        return nullptr;
+    }
 }

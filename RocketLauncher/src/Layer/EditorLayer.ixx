@@ -54,9 +54,9 @@ export namespace rke
         bool on_mouse_button_pressed(MouseButtonPressedEvent& e);
         bool on_project_loaded(ProjectLoadedEvent& e);
 
-        Window* get_owner();
         bool editing() const { return scene_edit_ && !scene_test_; }
         bool testing() const { return scene_edit_ &&  scene_test_; }
+        Scene* current_scene();
     private:
         EditorCamera editor_cam_{};
 
@@ -64,8 +64,8 @@ export namespace rke
             (glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
         SceneRenderer cam_renderer_ { math::srgb_to_linear
             (glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
-        OutlineEffect* hovering_handle_{};
-        OutlineEffect* selected_handle_{};
+        OutlineEffect* hovering_outline_{};
+        OutlineEffect* selected_outline_{};
 
         int hovering_id_{ -1 };
         Path scene_edit_path_{};

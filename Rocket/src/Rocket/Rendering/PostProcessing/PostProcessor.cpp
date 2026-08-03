@@ -43,7 +43,8 @@ namespace rke
 
         const Texture2D* ping_pong{ source };
         uint32 fbo_index{ 0 };
-        for(Size i{}; i < active_effects.size(); i++) {
+        for(Size i{}; i < active_effects.size(); i++)
+        {
             if(active_effects[i]->apply(ping_pong, fbos_[fbo_index].get()))
             {
                 ping_pong = fbos_[fbo_index]->get_texture();

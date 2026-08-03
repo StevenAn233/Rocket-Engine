@@ -3,11 +3,11 @@ module FXAAEffect;
 
 namespace rke
 {
-    FXAAEffect::FXAAEffect(String name) : PostProcessEffect(std::move(name))
+    FXAAEffect::FXAAEffect(String name, std::function<bool()> func)
+        : PostProcessEffect(std::move(name), std::move(func))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         shader_ = Shader::create(file::assets_dir() / u8"shaders" / u8"fxaa.rkshdr");
-        set_enabled(false);
     }
 
     bool FXAAEffect::apply(const Texture2D* source, FrameBuffer* destination)

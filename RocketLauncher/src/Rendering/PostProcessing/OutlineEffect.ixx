@@ -14,7 +14,7 @@ export namespace rke
             alignas(16) float thickness{ 1.0f };
         };
 
-        OutlineEffect(String name);
+        OutlineEffect(String name, std::function<bool()> func = nullptr);
 
         Category get_category() const override { return Category::Helper; }
         bool apply(const Texture2D* source, FrameBuffer* destination) override;

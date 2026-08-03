@@ -9,6 +9,8 @@ export namespace rke
     class ProjectSettingPanel : public Panel
     {
     public:
+        friend class EditorLayer;
+
         ProjectSettingPanel(String name) : Panel(std::move(name)) {}
 
         void set_on_samples_setting(std::function<void(uint32)> callback)
@@ -25,6 +27,7 @@ export namespace rke
     private:
         FXAAEffect* fxaa_{};
         bool viewport_valid_for_fxaa_{ true };
+        bool fxaa_enabled_{ true };
 
         std::function<void(uint32)> on_samples_setting_{};
     };

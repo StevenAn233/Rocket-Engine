@@ -6,8 +6,8 @@ import Layout;
 namespace rke
 {
 // public
-    OutlineEffect::OutlineEffect(String name)
-        : PostProcessEffect(std::move(name))
+    OutlineEffect::OutlineEffect(String name, std::function<bool()> func)
+        : PostProcessEffect(std::move(name), std::move(func))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         outline_fbo_ = FrameBuffer::create
@@ -59,7 +59,6 @@ namespace rke
     {
         writer.begin_map(get_name());
 
-        writer.write(u8"Enabled", enabled());
         writer.write(u8"Color", math::linear_to_srgb(uniforms_.outline_color));
         writer.write(u8"Thickness", uniforms_.thickness);
 
@@ -71,7 +70,6 @@ namespace rke
         auto config{ reader.get_child(get_name()) };
         if(!config || !config->is_map())
             { CORE_ERROR(u8"OutlineEffect: Wrong yaml format!"); return; }
-        set_enabled(config->get_at(u8"Enabled", true));
         set_color(config->get_at(u8"Color", glm::vec4{}));
         set_thickness(config->get_at(u8"Thickness", 1.0f));
     }

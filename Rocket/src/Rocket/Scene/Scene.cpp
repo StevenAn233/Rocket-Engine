@@ -93,6 +93,7 @@ namespace rke
             new_scene->get_entity(master_cam.get_uuid());
         // don't call set_camera_master() here cause it has already been copied
 
+        new_scene->selected_entity_ = {};
         return new_scene;
     }
 
@@ -185,7 +186,7 @@ namespace rke
 
     void Scene::on_runtime_start()
     {
-        CORE_ASSERT(in_runtime_, u8"Scene: Already in runtime!");
+        CORE_ASSERT(!in_runtime_, u8"Scene: Already in runtime!");
         in_runtime_ = true;
         ScriptEngine   ::on_runtime_start(this);
         PhysicsEngine2D::on_runtime_start(this);
@@ -193,7 +194,7 @@ namespace rke
 
     void Scene::on_runtime_stop()
     {
-        CORE_ASSERT(!in_runtime_, u8"Scene: Not in runtime!");
+        CORE_ASSERT(in_runtime_, u8"Scene: Not in runtime!");
         in_runtime_ = false;
         ScriptEngine   ::on_runtime_stop();
         PhysicsEngine2D::on_runtime_stop();

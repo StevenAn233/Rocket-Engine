@@ -12,9 +12,9 @@ export namespace rke
 
         SceneHierarchyPanel(String name);
 
-        void set_context(Scene* context)
+        inline void set_context(Scene* context)
             { context_ = context; is_scene_selected_ = false; }
-        void set_on_entity_node_render(EntityNodeCallback callback)
+        inline void set_on_entity_node_render(EntityNodeCallback callback)
             { on_entity_node_render_ = std::move(callback); }
 
         template<typename Component, StringLiteral Str, typename Callback>

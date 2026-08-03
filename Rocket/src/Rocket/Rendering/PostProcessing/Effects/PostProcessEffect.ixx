@@ -1,7 +1,8 @@
-﻿module;
+module;
 
 #include <memory>
 #include <utility>
+#include <functional>
 #include "rke_macros.h"
 
 export module PostProcessEffect;
@@ -31,8 +32,7 @@ export namespace rke
         friend class std::default_delete<PostProcessEffect>;
 
         const String& get_name() const { return name_; }
-        void set_enabled(bool enabled) { enabled_ = enabled; }
-        bool enabled() const { return enabled_; }
+        bool enabled() const { return enabled_situation_(); }
 
         virtual bool apply(const Texture2D* source, FrameBuffer* destination) = 0;
         // if returns true , use destination->get_texture();
@@ -44,14 +44,13 @@ export namespace rke
 
         virtual void on_viewport_resized(uint32 w, uint32 h) {};
     protected:
-        explicit PostProcessEffect(String name)
-            : name_(name.empty() ? u8"Untitled" : std::move(name)) {}
+        PostProcessEffect(String name, std::function<bool()> func = nullptr);
         virtual ~PostProcessEffect() = default;
     protected:
         String name_;
         Ref<UniformBuffer> ubo_{};
         Ref<Shader> shader_{};
     private:
-        bool enabled_{ true };
+        std::function<bool()> enabled_situation_{};
     };
 }

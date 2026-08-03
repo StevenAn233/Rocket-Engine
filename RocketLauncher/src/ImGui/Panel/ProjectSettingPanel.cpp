@@ -76,15 +76,13 @@ namespace rke
             u8"ProjectSettingPanel: Func on_samples_settings() unset!");
         CORE_ASSERT(fxaa_, u8"ProjectSettingPanel: Fxaa handle not set!");
 
-        bool fxaa_enabled{ false };
         if(aa_opt <= 4) {
-            fxaa_enabled = false;
+            fxaa_enabled_ = false;
             on_samples_setting_(1 << aa_opt);
         } else if(aa_opt == 5) {
-            fxaa_enabled = true;
+            fxaa_enabled_ = true;
             on_samples_setting_(1);
         }
-        fxaa_->set_enabled(fxaa_enabled && viewport_valid_for_fxaa_);
     }
 
     void ProjectSettingPanel::refresh_aa_setting()
@@ -99,13 +97,8 @@ namespace rke
         CORE_ASSERT(fxaa_, u8"ProjectSettingPanel: Fxaa handle not set!");
         if(w == 0u || h == 0u) {
             viewport_valid_for_fxaa_ = false;
-            fxaa_->set_enabled(false);
         } else {
             viewport_valid_for_fxaa_ = true;
-            Project* project{ app().get_project() };
-            if(!project) return;
-            int aa_opt{ project->get_config_mut().anti_aliasing_opt };
-            fxaa_->set_enabled(aa_opt == 5);
             fxaa_->set_uniform({ glm::vec2(1.0f / w, 1.0f / h) });
         }
     }

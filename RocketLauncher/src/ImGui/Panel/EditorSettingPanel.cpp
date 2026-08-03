@@ -15,8 +15,7 @@ namespace rke
         file::check_to_create_dir(filepath_);
 
         auto writer{ ConfigWriter::create() };
-        if(!writer) { CORE_ERROR(u8"EditorSettingPanel: "
-            u8"Failed to create config writer!"); return; }
+        if(!writer) return;
 
         writer->begin_map();
 
@@ -26,8 +25,8 @@ namespace rke
         writer->write(u8"Scene Edit Path", owner_->scene_edit_path_.string());
 
         writer->begin_map(u8"Viewport");
-        selected_effect()->serialize_to(*(writer.get()));
-        hovering_effect()->serialize_to(*(writer.get()));
+        selected_outline()->serialize_to(*(writer.get()));
+        hovering_outline()->serialize_to(*(writer.get()));
         writer->write(u8"Selected Enabled", selected_enabled_editor());
         writer->write(u8"Hovering Enabled", hovering_enabled_editor());
         writer->end_map();
@@ -64,10 +63,10 @@ namespace rke
 
         auto view_data{ reader->get_child(u8"Viewport") };
         if(view_data) {
-            selected_effect()->deserialize_from(*(view_data.get()));
-            hovering_effect()->deserialize_from(*(view_data.get()));
-            selected_effect()->set_enabled(view_data->get_at(u8"Selected Enabled", true));
-            hovering_effect()->set_enabled(view_data->get_at(u8"Hovering Enabled", true));
+            selected_outline()->deserialize_from(*(view_data.get()));
+            hovering_outline()->deserialize_from(*(view_data.get()));
+            selected_enabled_editor_ = view_data->get_at(u8"Selected Enabled", true);
+            hovering_enabled_editor_ = view_data->get_at(u8"Hovering Enabled", true);
         }
         auto style_data{ reader->get_child(u8"Style") };
         if(style_data) {
@@ -78,14 +77,14 @@ namespace rke
 
     void EditorSettingPanel::set_outline_samples(uint32 samples)
     {
-        selected_effect()->set_samples(samples);
-        hovering_effect()->set_samples(samples);
+        selected_outline()->set_samples(samples);
+        hovering_outline()->set_samples(samples);
     }
 
     void EditorSettingPanel::on_imgui_render()
     {
-        CORE_ASSERT(selected_effect(), u8"EditorSettingPanel: Selected outline handle not set!");
-        CORE_ASSERT(hovering_effect(), u8"EditorSettingPanel: Hovering outline handle not set!");
+        CORE_ASSERT(selected_outline(), u8"EditorSettingPanel: Selected outline handle not set!");
+        CORE_ASSERT(hovering_outline(), u8"EditorSettingPanel: Hovering outline handle not set!");
         ImGui::PushID(get_name().raw());
         ImGui::Begin (get_name().raw());
 
@@ -119,19 +118,19 @@ namespace rke
             
             layout::tree_node_branch<u8"Selected Outline">([&]()
             {
-                float outline_thickness{ selected_effect()->get_thickness() };
+                float outline_thickness{ selected_outline()->get_thickness() };
                 if(layout::drag_float_control<u8"Thickness">
                     (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-                    { selected_effect()->set_thickness(outline_thickness); }
+                    { selected_outline()->set_thickness(outline_thickness); }
                 ImGui::Checkbox("Enabled", &selected_enabled_editor_);
             });
 
             layout::tree_node_branch<u8"Hovering Outline">([&]()
             {
-                float outline_thickness{ hovering_effect()->get_thickness() };
+                float outline_thickness{ hovering_outline()->get_thickness() };
                 if(layout::drag_float_control<u8"Thickness">
                     (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-                    { hovering_effect()->set_thickness(outline_thickness); }
+                    { hovering_outline()->set_thickness(outline_thickness); }
                 ImGui::Checkbox("Enabled", &hovering_enabled_editor_);
             });
 
@@ -153,6 +152,6 @@ namespace rke
         ImGui::PopID();
     }
 
-    OutlineEffect* EditorSettingPanel::hovering_effect() { return owner_->hovering_handle_; }
-    OutlineEffect* EditorSettingPanel::selected_effect() { return owner_->selected_handle_; }
+    OutlineEffect* EditorSettingPanel::hovering_outline() { return owner_->hovering_outline_; }
+    OutlineEffect* EditorSettingPanel::selected_outline() { return owner_->selected_outline_; }
 }

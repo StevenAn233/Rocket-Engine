@@ -24,7 +24,7 @@ namespace rke
         {(is_scene_selected_ ? ImGuiTreeNodeFlags_Selected : 0)
         | ImGuiTreeNodeFlags_OpenOnArrow
         | ImGuiTreeNodeFlags_SpanAvailWidth
-        | ImGuiTreeNodeFlags_DefaultOpen};
+        | ImGuiTreeNodeFlags_DefaultOpen };
 
         bool opened{ ImGui::TreeNodeEx(static_cast<void*>(context_), flags,
             (context_->to_save() ? "%s*" : "%s"), context_->get_name().raw())};
