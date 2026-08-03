@@ -11,7 +11,6 @@ target_sources(RocketLauncher
     FILES ${LAUNCHER_MODULES}
   PRIVATE
     ${LAUNCHER_SOURCES}
-  
 )
 
 if(WIN32)

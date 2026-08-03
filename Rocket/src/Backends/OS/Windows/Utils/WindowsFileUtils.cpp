@@ -65,15 +65,14 @@ namespace {
 
 namespace rke
 {
-    std::optional<String> FileDialogs::open_file(StringView filter, const Window* window)
+    String FileDialogs::open_file(StringView filter, NativeWindow window)
     {
         OPENFILENAMEW ofn{}; // A stands for ANSI
         WCHAR sz_file[260]{};
         WCHAR current_dir[256]{};
-        ZeroMemory(&ofn,  sizeof(OPENFILENAME));
+        ZeroMemory(&ofn, sizeof(OPENFILENAME));
         ofn.lStructSize = sizeof(OPENFILENAME);
-        ofn.hwndOwner   = glfwGetWin32Window
-            (window->get_context().as<GLFWwindow>());
+        ofn.hwndOwner = glfwGetWin32Window(window.as<GLFWwindow>());
         ofn.lpstrFile = sz_file;
         ofn.nMaxFile  = sizeof(sz_file);
         if(GetCurrentDirectoryW(256, current_dir))
@@ -87,18 +86,17 @@ namespace rke
 
         if(GetOpenFileNameW(&ofn) == TRUE)
             return wide_to_utf8(ofn.lpstrFile);
-        return std::nullopt;
+        return String{};
     }
 
-    std::optional<String> FileDialogs::save_file(StringView filter, const Window* window)
+    String FileDialogs::save_file(StringView filter, NativeWindow window)
     {
         OPENFILENAMEW ofn{};
         WCHAR sz_file[260]{};
     
-        ZeroMemory(&ofn,  sizeof(OPENFILENAMEW));
+        ZeroMemory(&ofn, sizeof(OPENFILENAMEW));
         ofn.lStructSize = sizeof(OPENFILENAMEW);
-        ofn.hwndOwner   = glfwGetWin32Window
-            (window->get_context().as<GLFWwindow>());
+        ofn.hwndOwner = glfwGetWin32Window(window.as<GLFWwindow>());
         
         ofn.lpstrFile = sz_file;
         ofn.nMaxFile = sizeof(sz_file);
@@ -111,22 +109,21 @@ namespace rke
 
         if(GetSaveFileNameW(&ofn) == TRUE)
             return wide_to_utf8(ofn.lpstrFile);
-        return std::nullopt;
+        return String{};
     }
 
-    std::optional<String> FileDialogs::select_folder(const Window* window)
+    String FileDialogs::select_folder(NativeWindow window)
     {
         Microsoft::WRL::ComPtr<IFileOpenDialog> p_file_dialog{};
-        std::optional<String> result{ std::nullopt };
 
         HRESULT hr{ CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE) };
-        if(FAILED(hr)) return result;
+        if(FAILED(hr)) return String{};
 
         hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_PPV_ARGS(&p_file_dialog));
         if(FAILED(hr))
         {
             CoUninitialize();
-            return result;
+            return String{};
         }
 
         DWORD dw_options{};
@@ -139,12 +136,12 @@ namespace rke
         if(FAILED(hr))
         {
             CoUninitialize();
-            return result;
+            return String{};
         }
 
-        hr = p_file_dialog->Show(glfwGetWin32Window
-            (window->get_context().as<GLFWwindow>()));
+        hr = p_file_dialog->Show(glfwGetWin32Window(window.as<GLFWwindow>()));
 
+        String result{};
         if(SUCCEEDED(hr))
         {
             Microsoft::WRL::ComPtr<IShellItem> p_item{};

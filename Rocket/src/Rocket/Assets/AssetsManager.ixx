@@ -60,8 +60,7 @@ export namespace rke
     {
     public:
         static void scan_assets_directory(const Path& root_dir);
-        static AssetUUID get_or_create_sub_uuid(AssetUUID uuid,
-                                                const AssetSettings& settings);
+        static AssetUUID get_or_create_sub_uuid(AssetUUID uuid, const AssetSettings& settings);
 
         static AssetHandle load_asset(AssetUUID uuid);
         template<typename T>

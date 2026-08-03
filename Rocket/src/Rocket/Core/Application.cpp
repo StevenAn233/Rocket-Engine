@@ -12,6 +12,7 @@ import DockSpace;
 import DockSpaceLayer;
 import EventDispatcher;
 import ApplicationEvent;
+import ProjectEvent;
 
 namespace rke
 {
@@ -84,6 +85,23 @@ namespace rke
             return false;
         });
         windows_lib_.on_event(e);
+    }
+
+    void Application::load_project(const Path& path)
+    {
+        project_ = Project::load_from(path);
+        if(project_) {
+            ProjectLoadedEvent event{ u8"main" };
+            send_event(event);
+        }
+        else clear_project();
+    }
+
+    void Application::clear_project()
+    {
+        project_.reset();
+        ProjectClearedEvent event{ u8"main" };
+        send_event(event);
     }
 
     void Application::register_panel(Panel* handle, PanelRegistry::Attrib attrib)

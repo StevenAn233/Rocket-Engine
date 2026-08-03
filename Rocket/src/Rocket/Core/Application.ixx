@@ -36,12 +36,12 @@ export namespace rke
         void run();
         
         void send_event(Event& e);
+        void load_project(const Path& path);
+        void clear_project();
 
         inline WindowsLib& get_windows_lib() { return windows_lib_; }
         inline Project* get_project() { return project_.get(); }
-        inline void load_project(const Path& path) { project_ = Project::load_from(path); }
-        inline void clear_project() { project_.reset(); }
-
+        
         void register_panel(Panel* handle, PanelRegistry::Attrib attrib = {});
         void unregister_panel(Panel* handle);
         void register_modal(Modal* handle, ModalRegistry::Attrib attrib);

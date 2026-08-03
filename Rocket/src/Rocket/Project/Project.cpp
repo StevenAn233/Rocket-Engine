@@ -8,7 +8,6 @@ import ScriptLoader;
 import ScriptRegistry;
 import AssetsManager;
 import ConfigProxy;
-import ProjectEvent;
 import Application;
 
 namespace rke
@@ -66,10 +65,8 @@ namespace rke
 
     bool Project::scripts_hot_reloading()
     {
-    // TO MODIFY
         Path dylib_dir{ project_dir_ / u8"bin" / RKE_CONFIG_NAME };
         return ScriptLoader::load_dylib(dylib_dir, project_config_.name);
-    // TO MODIFY
     }
 
     void Project::init_templates(const Path& templates_path)
@@ -144,7 +141,7 @@ namespace rke
 
     Scope<Project> Project::load_from(const Path& path)
     {
-        Scope<Project> project(new Project());
+        Scope<Project> project{ create_scope<Project>() };
         // can't use create_scope<...> here, but
         // which does exactly the same thing anyway.
         project->rkproj_path_ = path;
@@ -180,8 +177,6 @@ namespace rke
                 get_at(u8"Anti-Aliasing Option", config.anti_aliasing_opt);
         }
         CORE_INFO(u8"Project: Project '{}' loaded.", project->rkproj_path_);
-        ProjectLoadedEvent event{ u8"main" };
-        app().send_event(event);
         project->scripts_hot_reloading();
         return project;
     }

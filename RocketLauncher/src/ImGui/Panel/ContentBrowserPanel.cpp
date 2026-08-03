@@ -155,9 +155,9 @@ namespace rke
             if(!entry.is_directory() && ImGui::BeginDragDropSource())
             {
                 if(path.extension() == u8".rkscene") {
-                    String scene_name{ path.stem().string() };
+                    String path_data{ path.string() };
                     ImGui::SetDragDropPayload("CONTENT_BROWSER_SCENE",
-                        scene_name.raw(), scene_name.size() + 1, ImGuiCond_Once);
+                        path_data.raw(), path_data.size() + 1, ImGuiCond_Once);
                 } else {
                     AssetUUID asset_uuid{ AssetsManager::get_asset_uuid(path) };
                     if(!asset_uuid.empty()) {

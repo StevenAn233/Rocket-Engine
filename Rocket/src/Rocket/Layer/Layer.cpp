@@ -9,6 +9,9 @@ import Input;
 
 namespace rke
 {
+    Layer::Layer(String name, Window* owner)
+        : debug_name_(std::move(name)), owner_(owner) {}
+
     void Layer::on_update(float dt)
     {
         Input::transition_input_state
@@ -18,18 +21,18 @@ namespace rke
     const String& Layer::get_owner_name()
     {
         CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return reinterpret_cast<Window*>(owner_)->get_name();
+        return owner_->get_name();
     }
 
     bool Layer::mouse_blocked() const
     {
         CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return layer_index_ < reinterpret_cast<Window*>(owner_)->get_mouse_blocking_index();
+        return layer_index_ < owner_->get_mouse_blocking_index();
     }
 
     bool Layer::keyboard_blocked() const
     {
         CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return layer_index_ < reinterpret_cast<Window*>(owner_)->get_keyboard_blocking_index();
+        return layer_index_ < owner_->get_keyboard_blocking_index();
     }
 }

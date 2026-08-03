@@ -11,7 +11,7 @@ export module FileUtils;
 import Types;
 import String;
 import Path;
-import Window;
+import NativeWindow;
 
 export namespace rke
 {
@@ -19,9 +19,9 @@ export namespace rke
     {
     public:
     // windows api
-        static std::optional<String> open_file(StringView filter, const Window* window);
-        static std::optional<String> save_file(StringView filter, const Window* window);
-        static std::optional<String> select_folder(const Window* window);
+        static String open_file(StringView filter, NativeWindow window);
+        static String save_file(StringView filter, NativeWindow window);
+        static String select_folder(NativeWindow window);
     };
 
     using Buffer = std::vector<rke::byte>;

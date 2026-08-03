@@ -11,17 +11,21 @@ namespace rke
 
     void LayerStack::push_layer(Scope<Layer> layer)
     {
-        layer->on_attach();
+        CORE_ASSERT(layer, u8"LayerStack: Layer null!");
+        Layer& to_attach{ *layer };
         layer->layer_index_ = insert_index_;
         layers_.emplace(layers_.begin() + insert_index_, std::move(layer));
+        to_attach.on_attach();
         insert_index_++;
     }
 
     void LayerStack::push_overlay(Scope<Layer> overlay)
     {
-        overlay->on_attach();
+        CORE_ASSERT(overlay, u8"LayerStack: Overlay null!");
+        Layer& to_attach{ *overlay };
         overlay->layer_index_ = this->size();
         layers_.push_back(std::move(overlay));
+        to_attach.on_attach();
     }
 
     Scope<Layer> LayerStack::pop_layer()
@@ -31,10 +35,10 @@ namespace rke
             return nullptr;
         }
         auto it{ layers_.end() + insert_index_ - 1 };
-        it->get()->on_detach();
-        Scope<Layer> temp{ std::move(*it) };
+        Scope<Layer> to_detach{ std::move(*it) };
         layers_.erase(it);
-        return temp;
+        to_detach->on_detach();
+        return to_detach;
     }
 
     Scope<Layer> LayerStack::pop_overlay()
@@ -49,10 +53,10 @@ namespace rke
     Scope<Layer> LayerStack::pop_back()
     {
         auto it{ layers_.end() - 1 };
-        it->get()->on_detach();
-        Scope<Layer> temp{ std::move(*it) };
+        Scope<Layer> to_detach{ std::move(*it) };
         layers_.erase(it);
-        return temp;
+        to_detach->on_detach();
+        return to_detach;
     }
 
     Layer& LayerStack::back() { return *(layers_.back().get()); }

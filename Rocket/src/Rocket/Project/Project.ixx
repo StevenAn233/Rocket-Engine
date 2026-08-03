@@ -21,6 +21,9 @@ export namespace rke
         friend class Application;
         friend struct std::default_delete<Project>;
 
+        Project() = default;
+        ~Project();
+
         struct Config // serialized in .rkproj file
         {
             String name{ u8"Untitled" };
@@ -38,6 +41,7 @@ export namespace rke
         inline const String& get_name() const { return project_config_.name; }
 
         inline const Path& get_project_dir() const { return project_dir_; }
+        inline const Path& get_rkproj_path() const { return rkproj_path_; }
         inline Path get_assets_dir() const { return project_dir_ / u8"assets"; }
         inline Path get_scenes_dir() const { return project_dir_ / u8"assets" / u8"scenes"; }
 
@@ -47,9 +51,6 @@ export namespace rke
         static void init_templates(const Path& templates_path);
         static bool create_files(const Path& path);
         static Scope<Project> load_from(const Path& path);
-    private:
-        Project() = default;
-        ~Project();
     private:
         Config project_config_{};
         Path project_dir_{}; // to project folder

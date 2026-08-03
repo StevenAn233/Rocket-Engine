@@ -1,8 +1,14 @@
 ﻿module;
 module EditorSettingPanel;
 
+import EditorLayer;
+
 namespace rke
 {
+    EditorSettingPanel::EditorSettingPanel(String name, EditorLayer* owner)
+        : Panel(std::move(name)), owner_(owner)
+    { CORE_ASSERT(owner_, u8"EditorSettingPanel: Owner null!"); }
+
     EditorSettingPanel::~EditorSettingPanel()
     {
         if(filepath_.empty()) return;
@@ -15,12 +21,13 @@ namespace rke
         writer->begin_map();
 
         Project* project{ app().get_project() };
-        if(project) writer->write(u8"Last Project Path",
-            project->get_project_dir().string());
+        writer->write(u8"Last Project Path",
+            project ? project->get_rkproj_path().string() : String{});
+        writer->write(u8"Scene Edit Path", owner_->scene_edit_path_.string());
 
         writer->begin_map(u8"Viewport");
-        selected_->serialize_to(*(writer.get()));
-        hovering_->serialize_to(*(writer.get()));
+        selected_effect()->serialize_to(*(writer.get()));
+        hovering_effect()->serialize_to(*(writer.get()));
         writer->write(u8"Selected Enabled", selected_enabled_editor());
         writer->write(u8"Hovering Enabled", hovering_enabled_editor());
         writer->end_map();
@@ -47,14 +54,17 @@ namespace rke
         }
 
         String proj_dir{ reader->get_at(u8"Last Project Path", String{}) };
-        if(!proj_dir.empty()) app().load_project(Path(proj_dir));
-        
+        app().load_project(Path(proj_dir));
+
+        String scene_edit_path{ reader->get_at(u8"Scene Edit Path", String{}) };
+        owner_->load_scene_edit_from(Path(scene_edit_path));
+
         auto view_data{ reader->get_child(u8"Viewport") };
         if(view_data) {
-            selected_->deserialize_from(*(view_data.get()));
-            hovering_->deserialize_from(*(view_data.get()));
-            selected_->set_enabled(view_data->get_at(u8"Selected Enabled", true));
-            hovering_->set_enabled(view_data->get_at(u8"Hovering Enabled", true));
+            selected_effect()->deserialize_from(*(view_data.get()));
+            hovering_effect()->deserialize_from(*(view_data.get()));
+            selected_effect()->set_enabled(view_data->get_at(u8"Selected Enabled", true));
+            hovering_effect()->set_enabled(view_data->get_at(u8"Hovering Enabled", true));
         }
         auto style_data{ reader->get_child(u8"Style") };
         if(style_data) {
@@ -65,14 +75,14 @@ namespace rke
 
     void EditorSettingPanel::set_outline_samples(uint32 samples)
     {
-        selected_->set_samples(samples);
-        hovering_->set_samples(samples);
+        selected_effect()->set_samples(samples);
+        hovering_effect()->set_samples(samples);
     }
 
     void EditorSettingPanel::on_imgui_render()
     {
-        CORE_ASSERT(selected_, u8"EditorSettingPanel: Selected outline handle not set!");
-        CORE_ASSERT(hovering_, u8"EditorSettingPanel: Hovering outline handle not set!");
+        CORE_ASSERT(selected_effect(), u8"EditorSettingPanel: Selected outline handle not set!");
+        CORE_ASSERT(hovering_effect(), u8"EditorSettingPanel: Hovering outline handle not set!");
         ImGui::PushID(get_name().raw());
         ImGui::Begin (get_name().raw());
 
@@ -82,7 +92,7 @@ namespace rke
             {
                 layout::tree_node_branch<u8"Camera">([&]()
                 {
-                    EditorCamera& cam{ *camera_ };
+                    EditorCamera& cam{ owner_->editor_cam_ };
                     bool modified{ false };
                     modified |= layout::drag_float3_control<u8"Focal Point">
                         (cam.focal_point_, 0.1f, glm::vec3(0.0f));
@@ -107,19 +117,19 @@ namespace rke
                 
                 layout::tree_node_branch<u8"Selected Outline">([&]()
                 {
-                    float outline_thickness{ selected_->get_thickness() };
+                    float outline_thickness{ selected_effect()->get_thickness() };
                     if(layout::drag_float_control<u8"Thickness">
                         (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-                        { selected_->set_thickness(outline_thickness); }
+                        { selected_effect()->set_thickness(outline_thickness); }
                     ImGui::Checkbox("Enabled", &selected_enabled_editor_);
                 });
 
                 layout::tree_node_branch<u8"Hovering Outline">([&]()
                 {
-                    float outline_thickness{ hovering_->get_thickness() };
+                    float outline_thickness{ hovering_effect()->get_thickness() };
                     if(layout::drag_float_control<u8"Thickness">
                         (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-                        { hovering_->set_thickness(outline_thickness); }
+                        { hovering_effect()->set_thickness(outline_thickness); }
                     ImGui::Checkbox("Enabled", &hovering_enabled_editor_);
                 });
 
@@ -140,4 +150,7 @@ namespace rke
         ImGui::End();
         ImGui::PopID();
     }
+
+    OutlineEffect* EditorSettingPanel::hovering_effect() { return owner_->hovering_handle_; }
+    OutlineEffect* EditorSettingPanel::selected_effect() { return owner_->selected_handle_; }
 }

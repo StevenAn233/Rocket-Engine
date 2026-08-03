@@ -3,8 +3,8 @@ module ProjectCreatingModal;
 
 namespace rke
 {
-    ProjectCreatingModal::ProjectCreatingModal(String title, const Window* context)
-        : Modal(std::move(title)), context_(context)
+    ProjectCreatingModal::ProjectCreatingModal(String title)
+        : Modal(std::move(title))
     {
         name_buffer_ = create_scope<std::array<char, 256>>();
         path_buffer_ = create_scope<std::array<char, 512>>();
@@ -27,8 +27,9 @@ namespace rke
             ImGui::SameLine();
             if(ImGui::Button("..."))
             {
-                auto selected_folder{ FileDialogs::select_folder(context_) };
-                if(selected_folder) copy_to_buffer(*selected_folder);
+                String selected_folder{ FileDialogs::select_folder
+                    (app().get_windows_lib().get_main().get_context()) };
+                copy_to_buffer(selected_folder);
             }
 
             ImGui::Separator();

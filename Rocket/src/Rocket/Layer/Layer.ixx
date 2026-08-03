@@ -2,6 +2,7 @@
 
 #include <utility>
 #include "rke_macros.h"
+namespace rke { class Window; }
 
 export module Layer;
 
@@ -19,11 +20,11 @@ export namespace rke
     public:
         friend class LayerStack;
 
-        Layer(String name, void* owner)
-            : debug_name_(std::move(name)), owner_(owner) {}
+        Layer(String name, Window* owner);
+        virtual ~Layer() {};
+
         Layer(const Layer&) = delete;
         Layer(Layer&&) = delete;
-        virtual ~Layer() = default;
 
         virtual void on_attach() {};
         virtual void on_detach() {};
@@ -36,15 +37,15 @@ export namespace rke
         virtual bool should_block_keyboard() = 0;
         // depends on THIS layer
 
-        inline StringView get_debug_name() const { return debug_name_; }
         const String& get_owner_name();
+        inline StringView get_debug_name() const { return debug_name_; }
         inline Size get_index() const { return layer_index_; }
     protected:
         bool mouse_blocked() const;
         bool keyboard_blocked() const;
         // depends on FORMER layers
     protected:
-        void* owner_;
+        Window* owner_;
         String debug_name_;
         Size layer_index_{};
     };

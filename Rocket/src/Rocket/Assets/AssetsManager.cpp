@@ -137,6 +137,9 @@ namespace rke
         }
 
     // 2. register UUIDs according to meta paths
+        register_asset(AssetUUID(0), Path(u8"<Empty Asset>"),
+            AssetType::None, EmptySettings{}, AssetUUID(0));
+        
         std::unordered_set<String> valid_meta_paths{};
         for(const Path& file_path : all_files)
         {
@@ -259,15 +262,20 @@ namespace rke
     const Path& AssetsManager::get_asset_path(AssetUUID uuid)
     {
         auto it{ s_asset_registry.find(uuid) };
-        CORE_ASSERT(it != s_asset_registry.end(), u8"AssetsManager: Asset path not found!");
+        if(it == s_asset_registry.end()) {
+            CORE_ERROR(u8"AssetsManager: Asset uuid '{}' not found!", uuid.value());
+            it = s_asset_registry.find(0);
+        }
         return it->second.path;
     }
 
     const AssetSettings& AssetsManager::get_asset_settings(AssetUUID uuid)
     {
         auto it{ s_asset_registry.find(uuid) };
-        CORE_ASSERT(it != s_asset_registry.end(),
-            u8"AssetsManager: UUID '{}' not found!", uuid.value());
+        if(it == s_asset_registry.end()) {
+            CORE_ERROR(u8"AssetsManager: Asset uuid '{}' not found!", uuid.value());
+            it = s_asset_registry.find(0);
+        }
         return it->second.settings;
     }
 

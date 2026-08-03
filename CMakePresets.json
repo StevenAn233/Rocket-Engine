@@ -22,8 +22,8 @@
     {
       "name": "win-base",
       "hidden": true,
-      "generator": "Visual Studio 18 2026",
       "inherits": "base",
+      "generator": "Visual Studio 18 2026",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-windows-mixed",
         "CMAKE_C_COMPILER": "cl.exe",

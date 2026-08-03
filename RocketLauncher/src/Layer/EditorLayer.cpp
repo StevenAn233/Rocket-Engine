@@ -2,26 +2,16 @@
 module EditorLayer;
 
 import Gizmo;
-import OutlineEffect;
 import FXAAEffect;
 
 namespace rke
 {
+    EditorLayer::EditorLayer(String name, Window* owner)
+        : Layer(std::move(name), owner) {}
+
     void EditorLayer::on_attach()
     {
-        auto hovering{ create_scope<OutlineEffect>(u8"Hovering") };
-        auto selected{ create_scope<OutlineEffect>(u8"Selected") };
-        hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
-        selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
-
-    // EditorSetting
-        editor_setting_panel_.set_hovering_handle(hovering.get());
-        editor_setting_panel_.set_selected_handle(selected.get());
-        editor_setting_panel_.load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
-
-    // After EditorSetting
-        Scene::set_on_entity_selected([this](Entity entity)
-            { editor_setting_panel_.get_selected()->set_target(entity); });
+        editor_setting_panel_ = create_scope<EditorSettingPanel>(u8"Editor Settings", this);
 
         scene_serializer_.set_serialize_hook
         ([this](const Scene& scene, ConfigWriter& writer)
@@ -33,7 +23,6 @@ namespace rke
                 (u8"Cam Demo Target", cam_demo_target.get_uuid().value());
             else if(!cam_demo_target.empty())
                 CORE_ERROR(u8"EditorLayer: Cam demo target invalid!");
-            writer.write(u8"Scene Edit", scene_edit_ ? scene_edit_->get_name() : String{});
         });
 
         scene_serializer_.set_deserialize_hook
@@ -46,26 +35,38 @@ namespace rke
                 cam_renderer_.set_cam_demo_target(scene.get_entity(id));
             }
             else cam_renderer_.set_cam_demo_target({});
-            String scene_name{ reader.get_at(u8"Scene Edit", String{}) };
-            scene_edit_ = load_scene(scene_name);
         });
 
+    // Effects
+        auto hovering{ create_scope<OutlineEffect>(u8"Hovering") };
+        auto selected{ create_scope<OutlineEffect>(u8"Selected") };
+        hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
+        selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
         auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa") };
 
-        project_setting_panel_.set_fxaa_handle(fxaa.get());
-        project_setting_panel_.set_on_samples_setting([this](uint32 samples)
-        {
-            main_renderer_.set_samples(samples);
-            editor_setting_panel_.set_outline_samples(samples);
-        });
+        hovering_handle_ = hovering.get();
+        selected_handle_ = selected.get();
+        FXAAEffect* fxaa_handle_ = fxaa.get();
 
     // SceneRenderer
-        main_renderer_.set_samples(4);
         main_renderer_.add_effect(std::move(hovering));
         main_renderer_.add_effect(std::move(selected));
         main_renderer_.add_effect(std::move(fxaa));
-
         cam_renderer_.set_samples(1);
+
+    // Project Setting
+        project_setting_panel_.set_fxaa_handle(fxaa_handle_);
+        project_setting_panel_.set_on_samples_setting([this](uint32 samples)
+        {
+            main_renderer_.set_samples(samples);
+            editor_setting_panel_->set_outline_samples(samples);
+        });
+
+    // EditorSetting
+        editor_setting_panel_->load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
+
+        Scene::set_on_entity_selected([this](Entity entity)
+            { selected_handle_->set_target(entity); });
 
     // SceneHierarchy
         scene_hierarchy_panel_.set_on_entity_node_render([this](Scene* scene)
@@ -108,11 +109,9 @@ namespace rke
             [this](IconButton*) {
                 Project* project{ app().get_project() };
                 if(project) {
-                    String name{ scene_edit_->get_name() };
                     scene_edit_.reset();
                     project->scripts_hot_reloading();
-                    scene_edit_ = load_scene(name);
-                    on_scene_loaded(scene_edit_.get());
+                    load_scene_edit_from(scene_edit_path_);
                 }
             },
             [this]() { return editing(); }
@@ -127,7 +126,7 @@ namespace rke
             {
                 Gizmo::on_render (
                     scene_edit_->get_selected_entity(),
-                    editor_setting_panel_.get_gizmo_mode(),
+                    editor_setting_panel_->get_gizmo_mode(),
                     editor_cam_, mouse_blocked());
             }
         // Drag Drop
@@ -136,9 +135,8 @@ namespace rke
                 in_main_viewport_dragging_ = true;
                 const auto* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_SCENE") };
                 if(payload) {
-                    String scene_name{ reinterpret_cast<const char8*>(payload->Data) };
-                    scene_edit_ = load_scene(scene_name);
-                    on_scene_loaded(scene_edit_.get()); // can be nullptr
+                    String data{ reinterpret_cast<const char8*>(payload->Data) };
+                    load_scene_edit_from(Path(data));
                 }
                 ImGui::EndDragDropTarget();
             }
@@ -164,13 +162,12 @@ namespace rke
         project_creating_modal_.set_project_created_callback
         ([this](const Path& rkproj_path)
         {
-            scene_edit_.reset();
-            on_scene_loaded(nullptr);
+            clear_scene_edit();
             app().load_project(rkproj_path);
         });
 
     // PanelRegistry
-        app().register_panel(&editor_setting_panel_);
+        app().register_panel(editor_setting_panel_.get());
         app().register_panel(&scene_hierarchy_panel_);
         app().register_panel(&content_browser_panel_);
         app().register_panel(&project_setting_panel_);
@@ -198,10 +195,8 @@ namespace rke
     void EditorLayer::on_detach()
     {
         if(testing()) on_runtime_stop();
-        scene_edit_.reset();
-        on_scene_loaded(nullptr);
-
-        app().unregister_panel(&editor_setting_panel_);
+        
+        app().unregister_panel(editor_setting_panel_.get());
         app().unregister_panel(&scene_hierarchy_panel_);
         app().unregister_panel(&content_browser_panel_);
         app().unregister_panel(&project_setting_panel_);
@@ -209,6 +204,9 @@ namespace rke
         app().unregister_panel(&cam_viewport_);
         app().unregister_panel(&toolbar_);
 
+        editor_setting_panel_.reset();
+
+        clear_scene_edit();
         app().clear_project();
     }
 
@@ -270,13 +268,13 @@ namespace rke
         switch(e.get_key())
         {
         case Key::Num1:
-            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Translate);
+            editor_setting_panel_->set_gizmo_mode(Gizmo::Mode::Translate);
             return true;
         case Key::Num2:
-            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Rotate);
+            editor_setting_panel_->set_gizmo_mode(Gizmo::Mode::Rotate);
             return true;
         case Key::Num3:
-            editor_setting_panel_.set_gizmo_mode(Gizmo::Mode::Scale);
+            editor_setting_panel_->set_gizmo_mode(Gizmo::Mode::Scale);
             return true;
         case Key::Keypad5:
             editor_cam_.reset();
@@ -317,6 +315,8 @@ namespace rke
 
     bool EditorLayer::on_project_loaded(ProjectLoadedEvent& e)
     {
+        CORE_ASSERT(!testing(), u8"EditorLayer: Can't load project while testing!");
+        clear_scene_edit();
         Project* project{ app().get_project() };
         if(project) {
             project_setting_panel_.refresh_aa_setting();
@@ -359,21 +359,21 @@ namespace rke
             scene_edit_->on_update(dt); // entity deleted here
 
             bool hovering_enabled{ !Gizmo::is_using()
-                && editor_setting_panel_.hovering_enabled_editor()
+                && editor_setting_panel_->hovering_enabled_editor()
                 && !in_main_viewport_dragging_ 
                 && !project_creating_modal_.in_use() && main_viewport_.is_hovered()
             };
-            editor_setting_panel_.get_hovering()->set_enabled(hovering_enabled);
+            hovering_handle_->set_enabled(hovering_enabled);
 
             Entity selected{ scene_edit_->get_selected_entity() };
             int selected_id{ selected.valid() ? static_cast<int>(selected.get_handle()) : -1 };
             bool selected_enabled { !Gizmo::is_using()
-                && editor_setting_panel_.selected_enabled_editor()
+                && editor_setting_panel_->selected_enabled_editor()
                 && !in_main_viewport_dragging_
                 && !project_creating_modal_.in_use()
                 && (selected_id != hovering_id_ || !hovering_enabled)
             };
-            editor_setting_panel_.get_selected()->set_enabled(selected_enabled);
+            selected_handle_->set_enabled(selected_enabled);
         } else if(testing())
             scene_test_->on_update(dt); // entity deleted here
     }
@@ -394,7 +394,7 @@ namespace rke
 
             if(scene_edit_) {
                 Entity target{ scene_edit_->get_entity(hovering_id_, false) };
-                editor_setting_panel_.get_hovering()->set_target(target);
+                hovering_handle_->set_target(target);
             }
 
             if(scene_edit_ && cam_viewport_.on() &&
@@ -414,12 +414,15 @@ namespace rke
         } else { main_output_ = cam_output_ = nullptr; }
     }
 
+    bool EditorLayer::should_block_mouse() { return editing(); }
+    bool EditorLayer::should_block_keyboard() { return editing(); }
+
     void EditorLayer::on_runtime_start()
     {
         if(!editing()) return;
 
         scene_test_ = scene_edit_->deep_copy();
-        on_scene_loaded(scene_test_.get());
+        attach_scene(scene_test_.get());
 
         cam_viewport_.hide();
         scene_test_->on_runtime_start();
@@ -432,7 +435,7 @@ namespace rke
         scene_test_->on_runtime_stop();
         cam_viewport_.show();
 
-        on_scene_loaded(scene_edit_.get());
+        attach_scene(scene_edit_.get());
         scene_test_.reset();
     }
 
@@ -441,49 +444,68 @@ namespace rke
 
     void EditorLayer::open_project(const Window& window)
     {
-        auto file_path{ FileDialogs::open_file
-            (u8"Rocket Project (*.rkproj)|*.rkproj|", &window) };
-        if(file_path) {
-            Path rkproj_path{ file_path.value() };
-            app().load_project(rkproj_path);
-        }
+        app().load_project(FileDialogs::open_file
+            (u8"Rocket Project (*.rkproj)|*.rkproj|", window.get_context()));
     }
 
     void EditorLayer::save_project()
     {
         Project* project{ app().get_project() };
         if(project) project->save();
-
-        if(editing()) scene_serializer_.serialize(*scene_edit_,
-            project->get_scenes_dir() / scene_edit_->get_name());
+        if(editing()) scene_serializer_.serialize(*scene_edit_, scene_edit_path_);
     }
 // TO MODIFY
 
-    Scope<Scene> EditorLayer::load_scene(const String& name)
+    Scope<Scene> EditorLayer::load_scene_from(const Path& path)
     {
-        Project* project{ app().get_project() };
-        if(!project) {
-            CORE_ERROR(u8"EditorLayer: No project loaded!");
-            return nullptr;
-        }
-
-        Path scene_path{ project->get_scenes_dir() / (name + u8".rkscene") };
-        if(!scene_path.exists()) {
-            CORE_ERROR(u8"EditorLayer: Scene '{}' not found!", scene_path);
+        if(!path.exists()) {
+            CORE_ERROR(u8"EditorLayer: Scene '{}' not found!", path);
             return nullptr;
         }
 
         Scope<Scene> scene{ create_scope<Scene>() };
-        if(scene_serializer_.deserialize(*scene, scene_path))
+        if(scene_serializer_.deserialize(*scene, path))
         {
-            CORE_INFO(u8"Project: Scene '{}' loaded.", scene_path);
+            CORE_INFO(u8"Project: Scene '{}' loaded.", path);
             return scene;
         }
-        CORE_ERROR(u8"Project: Could not load scene '{}'!", scene_path);
+        CORE_ERROR(u8"Project: Could not load scene '{}'!", path);
         return nullptr;
     }
 
-    void EditorLayer::on_scene_loaded(Scene* scene)
+    bool EditorLayer::load_scene_edit_from(const Path& path)
+    {
+        scene_edit_ = load_scene_from(path);
+        scene_edit_path_ = std::move(path);
+        attach_scene(scene_edit_.get());
+        return true;
+    }
+
+    bool EditorLayer::load_scene_edit(const String& name)
+    {
+        if(name.empty()) {
+            CORE_ERROR(u8"EditorLayer: Scene name empty!");
+            goto error;
+        }
+        if(!app().get_project()) {
+            CORE_ERROR(u8"EditorLayer: No project loaded!");
+            goto error;
+        }
+        return load_scene_edit_from(app().get_project()
+            -> get_scenes_dir() / (name + u8".rkscene"));
+    error:
+        clear_scene_edit();
+        return false;
+    }
+
+    void EditorLayer::clear_scene_edit()
+    {
+        scene_edit_.reset();
+        scene_edit_path_.clear();
+        attach_scene(nullptr);
+    }
+
+    void EditorLayer::attach_scene(Scene* scene)
     {
         scene_hierarchy_panel_.set_context(scene);
 
