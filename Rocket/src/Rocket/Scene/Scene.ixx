@@ -82,35 +82,33 @@ export namespace rke
         friend class PhysicsEngine2D;
         friend class SceneRenderer;
 
-        explicit Scene(String name = u8"Untitled");
+        Scene(String name = u8"Untitled");
         Scene(const Scene&) = delete;
         Scene(Scene&&) = delete;
         ~Scene();
 
+        void set_name(String name);
         const String& get_name() const { return name_; }
-        void set_name(String name)
-        {
-            if(name.empty()) name_ = u8"Untitled";
-            else name_ = std::move(name);
-            mark_modified();
-        }
-
-        std::vector<Entity> get_all_entities();
+        
         Scope<Scene> deep_copy(bool temp = true);
 
-        bool has_entity(UUID uuid) const
-            { return (entity_map_.find(uuid) != entity_map_.end()); }
-
         Entity create_entity(String tag = u8"New Entity", UUID uuid = {});
-        Entity get_entity(entt::entity handle, bool warn = true) const;
-        Entity get_entity(uint32 handle, bool warn = true) const
-            { return get_entity(static_cast<entt::entity>(handle), warn); }
-        Entity get_entity(int probable, bool warn = true) const;
+        void destroy_entity(Entity entity);
+
+        std::vector<Entity> get_all_entities();
+        bool has_entity(UUID uuid) const;
+
+        Entity copy_entity(Entity entity);
+        Entity copy_entity_towards(Entity entity, Scene* owner);
+
+        Entity get_entity(uint32 handle) const;
         Entity get_entity(UUID uuid) const;
 
-        void destroy_entity(Entity entity);
-        Entity  copy_entity(Entity entity);
-        Entity  copy_entity_towards(Entity entity, Scene* owner);
+        Entity get_selected_entity() const { return selected_entity_; }
+        void set_selected_entity(Entity entity);
+        void set_selected_entity(uint32 handle);
+        void set_selected_entity(UUID uuid);
+        void destroy_selected_entity();
 
         void clear();
         void on_update(float dt);
@@ -137,31 +135,6 @@ export namespace rke
         glm::vec2  get_gravity() const { return gravity_.get(); }
         glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
 
-        Entity get_selected_entity() const { return selected_entity_; }
-        void set_selected_entity(Entity entity);
-        void set_selected_entity(uint32 handle)
-        {
-            selected_entity_ = get_entity(handle);
-            if(on_entity_selected_) on_entity_selected_(selected_entity_);
-        }
-        void set_selected_entity(int propable)
-        {
-            selected_entity_ = get_entity(propable, false);
-            if(on_entity_selected_) on_entity_selected_(selected_entity_);
-        }
-        void set_selected_entity(UUID uuid)
-        {
-            selected_entity_ = get_entity(uuid);
-            if(on_entity_selected_) on_entity_selected_(selected_entity_);
-        }
-        void destroy_selected_entity()
-        {
-            if(selected_entity_.valid())
-                destroy_entity(selected_entity_);
-            set_selected_entity(Entity{});
-        }
-        Entity copy_selected_entity() { return copy_entity(selected_entity_); }
-
         static void set_on_entity_selected(std::function<void(Entity)> callback)
             { on_entity_selected_ = std::move(callback); }
     private:
@@ -176,10 +149,8 @@ export namespace rke
         Gravity2D gravity_{};
         bool in_runtime_{ false };
 
-    // for mark_modified()
         mutable bool modified_{ false };
-        bool temporary_{ false };
-    // ---
+        bool temporary_{ false }; // not gonna serialize
 
         mutable Entity master_cam_{};
         std::unordered_map<UUID, entt::entity> entity_map_{};

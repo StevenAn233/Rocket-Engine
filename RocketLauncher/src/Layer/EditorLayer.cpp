@@ -31,8 +31,8 @@ namespace rke
             editor_cam_.deserialize_from(reader);
             if(reader.has_key(u8"Cam Demo Target"))
             {
-                UUID id{ reader.get_at(u8"Cam Demo Target", 0ui64) };
-                cam_renderer_.set_cam_demo_target(scene.get_entity(id));
+                UUID uuid{ reader.get_at(u8"Cam Demo Target", 0ui64) };
+                cam_renderer_.set_cam_demo_target(scene.get_entity(uuid));
             }
             else cam_renderer_.set_cam_demo_target({});
         });
@@ -71,6 +71,9 @@ namespace rke
         selected_outline_ = selected.get();
         FXAAEffect* fxaa_effect{ fxaa.get() };
 
+        Scene::set_on_entity_selected([this](Entity entity)
+            { selected_outline_->set_target(entity); });
+
     // SceneRenderer
         main_renderer_.add_effect(std::move(hovering));
         main_renderer_.add_effect(std::move(selected));
@@ -87,9 +90,6 @@ namespace rke
 
     // EditorSetting
         editor_setting_panel_->load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
-
-        Scene::set_on_entity_selected([this](Entity entity)
-            { selected_outline_->set_target(entity); });
 
     // SceneHierarchy
         scene_hierarchy_panel_.set_on_entity_node_render([this](Scene* scene)
@@ -395,7 +395,7 @@ namespace rke
             else hovering_id_ = -1;
 
             if(scene_edit_) {
-                Entity target{ scene_edit_->get_entity(hovering_id_, false) };
+                Entity target{ scene_edit_->get_entity(static_cast<uint32>(hovering_id_)) };
                 hovering_outline_->set_target(target);
             }
 
@@ -426,7 +426,7 @@ namespace rke
     {
         if(!editing()) return;
 
-        scene_test_ = scene_edit_->deep_copy();
+        scene_test_ = scene_edit_->deep_copy(true);
         attach_scene(scene_test_.get());
 
         CORE_ASSERT(scene_test_, u8"EditorLayer: Failed to copy edit scene!");
@@ -534,7 +534,8 @@ namespace rke
         if(!scene) return;
         if(ImGui::MenuItem("Delete")) scene->destroy_selected_entity();
         if(ImGui::MenuItem("Copy")) {
-            Entity copied{ scene->copy_selected_entity() };
+            Entity selected{ scene->get_selected_entity() };
+            Entity copied{ scene->copy_entity(selected) };
             scene->set_selected_entity(copied);
         }
     }

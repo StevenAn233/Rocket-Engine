@@ -206,17 +206,14 @@ namespace rke
         auto view{ scene.registry_->view<UUIDComponent>() };
         for(auto it{ view.rbegin() }; it != view.rend(); ++it)
         {
-            Entity entity( scene.get_entity(*it) );
+            Entity entity{ scene.get_entity(static_cast<uint32>(*it)) };
             if(!entity.valid()) continue;
             serialize_entity(*(writer.get()), entity);
         }
         writer->end_array();
 
         Entity selected{ scene.get_selected_entity() };
-        if(selected.valid()) writer->write
-            (u8"Selected Entity", selected.get_uuid().value());
-        else if(!selected.empty()) CORE_ERROR
-            (u8"SceneSerializer: Selected entity invalid!");
+        writer->write(u8"Selected Entity", selected.valid() ? selected.get_uuid().value() : 0);
 
         if(serialize_hook_) serialize_hook_(scene, *(writer.get()));
 
@@ -260,8 +257,8 @@ namespace rke
             { deserialize_entity(scene, *(config.get())); });
 
         if(reader->has_key(u8"Selected Entity")) {
-            UUID selected_id{reader->get_at(u8"Selected Entity", 0ui64)};
-            scene.set_selected_entity(selected_id);
+            UUID uuid{ reader->get_at(u8"Selected Entity", 0ui64) };
+            scene.set_selected_entity(uuid);
         }
         else scene.set_selected_entity(Entity{});
 

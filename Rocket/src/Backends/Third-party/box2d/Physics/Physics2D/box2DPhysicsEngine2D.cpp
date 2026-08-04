@@ -95,10 +95,10 @@ namespace {
         }
     }
 
-    static void on_physics_component_destroyed(entt::registry&, entt::entity e)
+    static void on_physics_component_destroyed(entt::registry&, entt::entity entt)
     {
         if(!s_context || !s_context->in_runtime()) return;
-        destroy_body(s_context->get_entity(e));
+        destroy_body(s_context->get_entity(static_cast<uint32>(entt)));
     }
 }
 
@@ -121,7 +121,7 @@ namespace rke
         auto rbc_view{ registry.view<Rigidbody2DComponent>() };
         for(auto entt : rbc_view)
         {
-            Entity entity{ s_context->get_entity(entt) };
+            Entity entity{ s_context->get_entity(static_cast<uint32>(entt)) };
             const auto& physics_layers{ app().get_project()->get_config().physics_layers };
             create_body(entity, physics_layers);
         }
@@ -148,7 +148,7 @@ namespace rke
             auto view{ s_context->registry_->view<Rigidbody2DComponent>() };
             for(auto entt : view)
             {
-                Entity entity{ s_context->get_entity(entt) };
+                Entity entity{ s_context->get_entity(static_cast<uint32>(entt)) };
 
                 const auto& rbc{ entity.get<Rigidbody2DComponent>() };
                 if(B2_IS_NULL(std::bit_cast<b2ShapeId>(rbc.body_id))) continue;

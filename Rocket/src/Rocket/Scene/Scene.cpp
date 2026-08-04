@@ -40,15 +40,14 @@ namespace rke
 // Scene
     Scene::Scene(String name) : name_(std::move(name))
         { registry_ = create_scope<entt::registry>(); }
+
     Scene::~Scene() { if(in_runtime_) on_runtime_stop(); clear(); }
 
-    std::vector<Entity> Scene::get_all_entities()
+    void Scene::set_name(String name)
     {
-        std::vector<Entity> entities{};
-        auto all_entities{ registry_->view<TagComponent>() };
-        for(auto entt : all_entities)
-            entities.push_back({ entt, this });
-        return entities;
+        if(name.empty()) name_ = u8"Untitled";
+        else name_ = std::move(name);
+        mark_modified();
     }
 
     Scope<Scene> Scene::deep_copy(bool temp)
@@ -110,33 +109,41 @@ namespace rke
         return entity;
     }
 
-    Entity Scene::get_entity(entt::entity handle, bool warn) const
+    void Scene::destroy_entity(Entity entity)
     {
-        if(registry_->valid(handle)) return Entity(handle, this);
-        if(warn) CORE_WARN(u8"Scene: Entity handle is not valid!");
-        return {};
+        if(entity.valid())
+            to_destroy_.push_back(entity);
     }
 
-    Entity Scene::get_entity(int probable, bool warn) const
+    std::vector<Entity> Scene::get_all_entities()
     {
-        if(probable <= -1) {
-            if(warn) CORE_WARN(u8"Scene: Entity handle is null!");
-            return {};
-        }
-        return get_entity(static_cast<uint32>(probable), warn);
+        std::vector<Entity> entities{};
+        auto all_entities{ registry_->view<TagComponent>() };
+        for(auto entt : all_entities)
+            entities.push_back({ entt, this });
+        return entities;
+    }
+
+    bool Scene::has_entity(UUID uuid) const
+    {
+        if(uuid.empty()) return false;
+        return entity_map_.find(uuid) != entity_map_.end();
+    }
+
+    Entity Scene::get_entity(uint32 handle) const
+    {
+        entt::entity entt{ static_cast<entt::entity>(handle) };
+        if(registry_->valid(entt)) return Entity(entt, this);
+        return Entity{};
     }
 
     Entity Scene::get_entity(UUID uuid) const
     {
         if(uuid.empty()) return {};
-        if(entity_map_.find(uuid) != entity_map_.end())
-            return { entity_map_.at(uuid), this };
+        if(has_entity(uuid)) return Entity(entity_map_.at(uuid), this);
         CORE_ERROR(u8"Scene: Entity UUID '{}' not found!", uuid.value());
-        return {};
+        return Entity{};
     }
-
-    void Scene::destroy_entity(Entity entity)
-        { if(entity.valid()) to_destroy_.push_back(entity); }
 
     Entity Scene::copy_entity(Entity entity)
         { return copy_entity_towards(entity, this); }
@@ -158,6 +165,35 @@ namespace rke
         });
 
         return copied_entity;
+    }
+
+    void Scene::set_selected_entity(Entity entity)
+    {
+        if(entity.empty() || (entity.valid() && entity.belongs_to(this)))
+        {
+            selected_entity_ = entity;
+            if(on_entity_selected_) on_entity_selected_(selected_entity_);
+        }
+        else CORE_ERROR(u8"Scene: Selected entity invalid!");
+    }
+
+    void Scene::set_selected_entity(uint32 handle)
+    {
+        selected_entity_ = get_entity(handle);
+        if(on_entity_selected_) on_entity_selected_(selected_entity_);
+    }
+
+    void Scene::set_selected_entity(UUID uuid)
+    {
+        selected_entity_ = get_entity(uuid);
+        if(on_entity_selected_) on_entity_selected_(selected_entity_);
+    }
+
+    void Scene::destroy_selected_entity()
+    {
+        if(selected_entity_.valid())
+            destroy_entity(selected_entity_);
+        set_selected_entity(Entity{});
     }
 
     void Scene::clear()
@@ -248,22 +284,12 @@ namespace rke
             const auto& cam_com{ registry_->get<CameraComponent>(entt) };
             if(!cam_com.master) continue;
             
-            master_cam_ = get_entity(entt);
+            master_cam_ = get_entity(static_cast<uint32>(entt));
             CORE_INFO(u8"Scene: Master camera has been set to '{}'.",
                 master_cam_.get<TagComponent>().tag);
             return master_cam_;
         }
         return {};
-    }
-
-    void Scene::set_selected_entity(Entity entity)
-    {
-        if(entity.empty() || (entity.valid() && entity.belongs_to(this)))
-        {
-            selected_entity_ = entity;
-            if(on_entity_selected_) on_entity_selected_(selected_entity_);
-        }
-        else CORE_ERROR(u8"Scene: Selected entity invalid!");
     }
 
     void Scene::flush_destroy_queue()

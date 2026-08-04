@@ -38,7 +38,7 @@ namespace rke
         auto view{ registry.view<NativeScriptComponent>() };
         for(auto entt : view)
         {
-            Entity entity{ s_context->get_entity(entt) };
+            Entity entity{ s_context->get_entity(static_cast<uint32>(entt)) };
             const auto& name{ entity.get<NativeScriptComponent>().script_name };
             if(!name.empty()) create_script(entity.get_handle(), name);
         }
