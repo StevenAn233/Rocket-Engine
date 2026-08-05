@@ -13,7 +13,7 @@ namespace rke
 
         layout::tree_node_branch<u8"V-Sync">([&]()
         {
-            Window& owner{ *reinterpret_cast<Window*>(context_) };
+            Window& owner{ *context_ };
             float panel_w{ ImGui::GetContentRegionAvail().x };
             ImGui::SetNextItemWidth(panel_w - 10.0f);
             if(ImGui::SliderFloat("##extent",
@@ -32,4 +32,6 @@ namespace rke
 
         ImGui::End();
     }
+
+    void WindowSettingPanel::set_context(Window* window) { context_ = window; }
 }

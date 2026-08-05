@@ -27,4 +27,13 @@ export namespace rke
         EVENT_CLASS_TYPE(ProjectCleared);
         EVENT_CLASS_CATEGORY(EventCategoryProject);
     };
+
+    class RKE_API ProjectSavedEvent : public Event
+    {
+    public:
+        ProjectSavedEvent(StringView name) : Event(name) {}
+
+        EVENT_CLASS_TYPE(ProjectSaved);
+        EVENT_CLASS_CATEGORY(EventCategoryProject);
+    };
 }

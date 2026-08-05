@@ -28,14 +28,12 @@ export namespace rke
         SceneRenderer(SceneRenderer&&) = delete;
 
         inline void set_samples(uint32 samples) { scene_fbo_->set_samples(samples); }
-        inline void set_cam_demo_target(Entity entity) { cam_demo_target_ = entity; }
-        inline Entity get_cam_demo_target() const { return cam_demo_target_; }
-        inline void cam_demo_validation_check() { cam_demo_target_.invalidate_if_unavailable(); }
 
         void add_effect(Scope<PostProcessEffect> effect);
-        const Texture2D* on_render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
-        const Texture2D* on_render_runtime(const Scene* scene); // uses master camera(in the scene)
-        const Texture2D* cam_demo_render  (const Scene* scene, Entity cam_demo);
+        const Texture2D* render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
+        const Texture2D* render_master_cam(const Scene* scene);
+        const Texture2D* render_demo_cam(const Scene* scene);
+
         void on_viewport_resized(uint32 w, uint32 h);
 
         int get_hovering_id(int mouse_x, int mouse_y);
@@ -59,14 +57,12 @@ export namespace rke
         void render_scene(const Scene* scene, const glm::mat4& view_projection, glm::vec3 cam_postion);
     private:
         glm::vec4 clear_color_;
+        PostProcessor post_processor_{ clear_color_ };
 
         std::vector<Renderable> opaque_queue_{};
         std::vector<Renderable> cutout_queue_{};
         std::vector<Renderable> transparent_queue_{};
 
-        Entity cam_demo_target_{}; // MAY MODIFY
         Ref<FrameBuffer> scene_fbo_{}; // has its ownership
-
-        PostProcessor post_processor_{ clear_color_ };
     };
 }

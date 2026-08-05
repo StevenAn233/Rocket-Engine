@@ -557,8 +557,9 @@ namespace rke
                     if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                     {
                         selected.emplace<CameraComponent>();
+                        selected.get_mut<CameraComponent>().camera
+                            .set_viewport(context_->get_viewport_h(), context_->get_viewport_w());
 
-                        context_->refresh_camera_components();
                         auto& tc{ selected.get_mut<TransformComponent>() };
                         tc.size = glm::vec3(1.0f);
 

@@ -41,8 +41,7 @@ namespace rke
             u8"Dockspace Layer", windows_lib_.main_window_,
             file::editor_dir() / u8"settings" / u8"dockspace.yaml"
         }};
-        panel_reg_ = &(ds_layer->dockspace_.get_panel_registry());
-        modal_reg_ = &(ds_layer->dockspace_.get_modal_registry());
+        dockspace_ = &(ds_layer->dockspace_);
         main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ds_layer)));
         register_panel(&panel_);
         register_panel(&main_window.setting_panel_);
@@ -79,8 +78,8 @@ namespace rke
             {
                 unregister_panel(&windows_lib_.get_main().setting_panel_);
                 unregister_panel(&panel_);
-                panel_reg_ = nullptr;
-                modal_reg_ = nullptr;
+                dockspace_->editor_runtime_ = nullptr;
+                dockspace_ = nullptr;
             }
             return false;
         });
@@ -106,27 +105,30 @@ namespace rke
 
     void Application::register_panel(Panel* handle, PanelRegistry::Attrib attrib)
     {
-        if(!panel_reg_) return;
-        panel_reg_->register_panel(handle, attrib);
+        if(!dockspace_) return;
+        dockspace_->get_panel_registry().register_panel(handle, attrib);
     }
 
     void Application::unregister_panel(Panel* handle)
     {
-        if(!panel_reg_) return;
-        panel_reg_->unregister_panel(handle);
+        if(!dockspace_) return;
+        dockspace_->get_panel_registry().unregister_panel(handle);
     }
 
     void Application::register_modal(Modal* handle, ModalRegistry::Attrib attrib)
     {
-        if(!modal_reg_) return;
-        modal_reg_->register_modal(handle, attrib);
+        if(!dockspace_) return;
+        dockspace_->get_modal_registry().register_modal(handle, attrib);
     }
 
     void Application::unregister_modal(Modal* handle)
     {
-        if(!modal_reg_) return;
-        modal_reg_->unregister_modal(handle);
+        if(!dockspace_) return;
+        dockspace_->get_modal_registry().unregister_modal(handle);
     }
+
+    void Application::set_dockspace_editor_runtime(std::function<bool()> func)
+        { dockspace_->editor_runtime_ = std::move(func); }
 
 // callbacks
     void Application::on_window_loaded(Window& window)

@@ -38,6 +38,8 @@ namespace rke
     bool Entity::operator!=(const Entity& other) const { return !operator==(other); }
 
 // Scene
+    std::function<void(Entity)> Scene::on_entity_selected_{};
+
     Scene::Scene(String name) : name_(std::move(name))
         { registry_ = create_scope<entt::registry>(); }
 
@@ -88,8 +90,8 @@ namespace rke
             new_scene->entity_map_[uuid] = entt;
         }
         Entity master_cam{ get_master_camera() }; // refresh
-        if(master_cam.valid()) new_scene->master_cam_ =
-            new_scene->get_entity(master_cam.get_uuid());
+        if(master_cam.valid())
+            new_scene->master_cam_ = new_scene->get_entity(master_cam.get_uuid());
         // don't call set_camera_master() here cause it has already been copied
 
         new_scene->selected_entity_ = {};
@@ -111,8 +113,14 @@ namespace rke
 
     void Scene::destroy_entity(Entity entity)
     {
-        if(entity.valid())
-            to_destroy_.push_back(entity);
+        if(!entity.belongs_to(this)) {
+            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+            return;
+        }
+        if(entity == selected_entity_) set_selected_entity(Entity{});
+        if(entity == master_cam_) master_cam_ = {};
+        if(entity == demo_cam_) demo_cam_ = {};
+        to_destroy_.push_back(entity);
     }
 
     std::vector<Entity> Scene::get_all_entities()
@@ -145,11 +153,10 @@ namespace rke
         return Entity{};
     }
 
-    Entity Scene::copy_entity(Entity entity)
-        { return copy_entity_towards(entity, this); }
-
     Entity Scene::copy_entity_towards(Entity entity, Scene* owner)
     {
+        if(!entity.belongs_to(this))
+            CORE_WARN(u8"Scene: Entity doesn't belong to this scene!");
         Entity copied_entity{ owner->registry_->create(), owner };
         mark_modified();
 
@@ -169,31 +176,46 @@ namespace rke
 
     void Scene::set_selected_entity(Entity entity)
     {
-        if(entity.empty() || (entity.valid() && entity.belongs_to(this)))
-        {
-            selected_entity_ = entity;
-            if(on_entity_selected_) on_entity_selected_(selected_entity_);
+        if(!entity.empty() && !entity.belongs_to(this)) {
+            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+            return;
         }
-        else CORE_ERROR(u8"Scene: Selected entity invalid!");
-    }
-
-    void Scene::set_selected_entity(uint32 handle)
-    {
-        selected_entity_ = get_entity(handle);
+        selected_entity_ = entity;
+        if(!entity.empty() && entity.has<CameraComponent>()) demo_cam_ = entity;
         if(on_entity_selected_) on_entity_selected_(selected_entity_);
+        // mark_modified();
     }
 
-    void Scene::set_selected_entity(UUID uuid)
+    void Scene::set_master_camera(Entity entity)
     {
-        selected_entity_ = get_entity(uuid);
-        if(on_entity_selected_) on_entity_selected_(selected_entity_);
+        if(entity.empty()) goto set;
+        if(!entity.belongs_to(this)) {
+            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+            return;
+        }
+        if(!entity.has<CameraComponent>()) {
+            CORE_ERROR(u8"Scene: Entity isn't a camera!");
+            return;
+        }
+    set:
+        master_cam_ = entity;
+        mark_modified();
     }
 
-    void Scene::destroy_selected_entity()
+    void Scene::set_demo_camera(Entity entity)
     {
-        if(selected_entity_.valid())
-            destroy_entity(selected_entity_);
-        set_selected_entity(Entity{});
+        if(entity.empty()) goto set;
+        if(!entity.belongs_to(this)) {
+            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+            return;
+        }
+        if(!entity.has<CameraComponent>()) {
+            CORE_ERROR(u8"Scene: Entity isn't a camera!");
+            return;
+        }
+    set:
+        demo_cam_ = entity;
+        mark_modified();
     }
 
     void Scene::clear()
@@ -202,11 +224,11 @@ namespace rke
             CORE_ERROR(u8"Scene: Can't be cleared while in runtime!");
             return;
         }
-
         registry_ ->clear();
         to_destroy_.clear();
         entity_map_.clear();
         gravity_ = {};
+        demo_cam_ = {};
         master_cam_ = {};
         selected_entity_ = {};
     }
@@ -214,7 +236,7 @@ namespace rke
     void Scene::on_update(float dt)
     {
         if(in_runtime_) {
-            ScriptEngine   ::on_update(dt);
+            ScriptEngine::on_update(dt);
             PhysicsEngine2D::on_update(dt);
         }
         flush_destroy_queue();
@@ -224,7 +246,7 @@ namespace rke
     {
         CORE_ASSERT(!in_runtime_, u8"Scene: Already in runtime!");
         in_runtime_ = true;
-        ScriptEngine   ::on_runtime_start(this);
+        ScriptEngine::on_runtime_start(this);
         PhysicsEngine2D::on_runtime_start(this);
     }
 
@@ -232,7 +254,7 @@ namespace rke
     {
         CORE_ASSERT(in_runtime_, u8"Scene: Not in runtime!");
         in_runtime_ = false;
-        ScriptEngine   ::on_runtime_stop();
+        ScriptEngine::on_runtime_stop();
         PhysicsEngine2D::on_runtime_stop();
     }
 
@@ -240,13 +262,9 @@ namespace rke
     {
         viewport_w_ = width;
         viewport_h_ = height;
-        refresh_camera_components();
-    }
-
-    void Scene::refresh_camera_components()
-    {
         auto view{ registry_->view<CameraComponent>() };
-        for(auto cam_entt : view) {
+        for(auto cam_entt : view)
+        {
             auto& camera_com{ view.get<CameraComponent>(cam_entt) };
             if(!camera_com.aspect_ratio_fixed)
                 camera_com.camera.set_viewport(viewport_w_, viewport_h_);
@@ -256,47 +274,11 @@ namespace rke
     void Scene::on_mouse_scrolled_runtime(MouseScrolledEvent& e)
         { if(in_runtime()) ScriptEngine::on_mouse_scrolled(e); }
 
-    void Scene::set_camera_master(Entity entity)
-    {
-        if(!entity.valid()) {
-            CORE_WARN(u8"Scene: Entity doesn't exist!");
-            return;
-        } else if(!entity.has<CameraComponent>()) {
-            CORE_WARN(u8"Scene: Entity isn't a camera!");
-            return;
-        }
-        if(entity.get_uuid() == master_cam_.get_uuid()) return;
-        auto view{ registry_->view<CameraComponent>() };
-        for(auto entt : view) view.get<CameraComponent>(entt).master = false;
-        entity.get_mut<CameraComponent>().master = true;
-        entity.get_mut<CameraComponent>().camera.set_viewport(viewport_w_, viewport_h_);
-        master_cam_ = entity;
-        CORE_INFO(u8"Scene: Master camera has been set to '{}'.",
-            master_cam_.get<TagComponent>().tag);
-        mark_modified();
-    }
-
-    Entity Scene::get_master_camera() const
-    {
-        if(master_cam_.valid()) return master_cam_;
-        auto view{ registry_->view<CameraComponent>() };
-        for(auto entt : view) {
-            const auto& cam_com{ registry_->get<CameraComponent>(entt) };
-            if(!cam_com.master) continue;
-            
-            master_cam_ = get_entity(static_cast<uint32>(entt));
-            CORE_INFO(u8"Scene: Master camera has been set to '{}'.",
-                master_cam_.get<TagComponent>().tag);
-            return master_cam_;
-        }
-        return {};
-    }
-
     void Scene::flush_destroy_queue()
     {
         if(to_destroy_.empty()) return;
-        for(Entity entity : to_destroy_) {
-            if(entity == master_cam_) master_cam_ = {};
+        for(Entity entity : to_destroy_)
+        {
             UUID uuid{ entity.get_uuid() };
             if(!uuid.empty()) entity_map_.erase(uuid);
             registry_->destroy(entity.handle_);

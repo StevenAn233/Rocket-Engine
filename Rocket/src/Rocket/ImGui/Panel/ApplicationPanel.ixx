@@ -1,6 +1,7 @@
 ﻿module;
 
 #include <utility>
+#include "rke_macros.h"
 
 export module ApplicationPanel;
 
@@ -12,9 +13,8 @@ export namespace rke
     class ApplicationPanel : public Panel
     {
     public:
-        ApplicationPanel(String name)
-            : Panel(std::move(name)) {}
+        ApplicationPanel(String name) : Panel(std::move(name)) {}
     private:
-        void on_imgui_render() override;
+        RKE_API void on_imgui_render() override;
     };
 }

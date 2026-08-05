@@ -60,7 +60,10 @@ namespace rke
         });
     }
 
-    const Texture2D* SceneRenderer::on_render(const Scene* scene,
+    void SceneRenderer::add_effect(Scope<PostProcessEffect> effect)
+        { post_processor_.add_effect(std::move(effect)); }
+    
+    const Texture2D* SceneRenderer::render(const Scene* scene,
         const glm::mat4& vp, glm::vec3 pos)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
@@ -74,10 +77,7 @@ namespace rke
         return post_processor_.process(scene_fbo_->get_texture(0));
     }
 
-    void SceneRenderer::add_effect(Scope<PostProcessEffect> effect)
-        { post_processor_.add_effect(std::move(effect)); }
-
-    const Texture2D* SceneRenderer::on_render_runtime(const Scene* scene)
+    const Texture2D* SceneRenderer::render_master_cam(const Scene* scene)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
 
@@ -100,19 +100,18 @@ namespace rke
         return post_processor_.process(scene_fbo_->get_texture(0));
     }
 
-    const Texture2D* SceneRenderer::cam_demo_render(const Scene* scene, Entity cam_demo)
+    const Texture2D* SceneRenderer::render_demo_cam(const Scene* scene)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
 
-        scene_fbo_->clear_to_upload([this, cam_demo, scene]()
+        scene_fbo_->clear_to_upload([this, scene]()
         {
-            if(cam_demo.valid() && cam_demo.has<CameraComponent>())
-                cam_demo_target_ = cam_demo;
-            if(cam_demo_target_.valid() && cam_demo_target_.has<CameraComponent>())
+            Entity demo_cam{ scene->get_demo_camera() };
+            if(demo_cam.valid() && demo_cam.has<CameraComponent>())
             {
-                const auto& tc{ cam_demo_target_.get<TransformComponent>() };
+                const auto& tc{ demo_cam.get<TransformComponent>() };
                 const glm::mat4& projection
-                    { cam_demo_target_.get<CameraComponent>().camera.get_proj() };
+                    { demo_cam.get<CameraComponent>().camera.get_proj() };
                 glm::mat4 transform{ tc.get_transform() };
 
                 auto vp{ projection * glm::inverse(transform) };

@@ -1,6 +1,7 @@
 ﻿module;
 
 #include <memory>
+#include <functional>
 #include "rke_macros.h"
 
 export module Application;
@@ -18,6 +19,7 @@ import PanelRegistry;
 import Modal;
 import ModalRegistry;
 import Project;
+import DockSpace;
 
 export namespace rke
 {
@@ -49,15 +51,14 @@ export namespace rke
     protected:
         Application();
         virtual ~Application() {};
+        void set_dockspace_editor_runtime(std::function<bool()> func);
     private:
         static void on_window_loaded(Window& window);
     private:
         WindowsLib windows_lib_;
         Scope<Project> project_{};
-
-        PanelRegistry* panel_reg_{};
-        ModalRegistry* modal_reg_{};
         ApplicationPanel panel_{ u8"Application" };
+        DockSpace* dockspace_{};
     };
 
     RKE_API Application& app();

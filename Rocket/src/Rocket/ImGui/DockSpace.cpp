@@ -2,12 +2,14 @@
 module DockSpace;
 
 import Log;
+import Input;
 import FileUtils;
 import ConfigProxy;
 import Application;
 import Project;
 import ImGuiSetup;
 import ApplicationEvent;
+import ProjectEvent;
 
 namespace rke
 {
@@ -24,10 +26,24 @@ namespace rke
             { CORE_WARN(u8"DockSpace: File format incorrect!"); return; }
         flags_ = reader->get_at(u8"DockSpace Flags", 0);
         panel_registry_.deserialize_from(*(reader.get()));
+
+        project_creating_modal_.set_project_created_callback
+        ([this](const Path& rkproj_path) { app().load_project(rkproj_path); });
+
+        modal_registry_.register_modal(&project_creating_modal_,
+        {[this]() -> bool {
+            if(to_create_project_) {
+                to_create_project_ = false;
+                return true;
+            }
+            return false;
+        }});
     }
 
     DockSpace::~DockSpace()
     {
+        modal_registry_.unregister_modal(&project_creating_modal_);
+
         if(config_path_.empty()) return;
         file::check_to_create_dir(config_path_);
 
@@ -48,7 +64,7 @@ namespace rke
 
         imgui::begin_render();
 
-        const ImGuiViewport* viewport{ ImGui::GetMainViewport() }; // glfwWindow(attached in ImGuiLayer)
+        const ImGuiViewport* viewport{ ImGui::GetMainViewport() };
         ImGui::SetNextWindowPos // not including menu bar/task bar
         ({
             viewport->WorkPos.x + offset.x,
@@ -131,20 +147,17 @@ namespace rke
                 panel_registry_.render_switches_menubar();
                 ImGui::EndMenu();
             }
-        //  if(ImGui::BeginMenu("Project"))
-        //  {
-        //      bool no_project{ !Project::get_active_project() };
-        //      if(ImGui::MenuItem("New Project..." , "Ctrl+N", false, !is_play)) new_project();
-        //      if(ImGui::MenuItem("Open Project...", "Ctrl+O", false, !is_play)) open_project(get_owner());
-        //      if(ImGui::MenuItem("Save Project", "Ctrl+S", false, !is_play && !no_project)) save_project();
-        //      if(ImGui::MenuItem("Reload scripts...", nullptr, false, !is_play))
-        //      {
-        //          auto project{ Project::get_active_project() };
-        //          project->scripts_hot_reloading();
-        //          update_current_scene(project->get_active_scene());
-        //      };
-        //      ImGui::EndMenu();
-        //  }
+            if(ImGui::BeginMenu("Project"))
+            {
+                bool running{ editor_runtime_ ? editor_runtime_() : false };
+                if(ImGui::MenuItem("New Project..." , "Ctrl+N", false, !running)) create_project();
+                if(ImGui::MenuItem("Open Project...", "Ctrl+O", false, !running))
+                    open_project(app().get_windows_lib().get_main());
+                
+                if(ImGui::MenuItem("Save Project", "Ctrl+S",
+                    false, !running && app().get_project())) save_project();
+                ImGui::EndMenu();
+            }
 
             ImGui::PopStyleVar(2);
             ImGui::EndMenuBar();
@@ -157,7 +170,7 @@ namespace rke
         imgui::end_render();
     }
 
-    bool DockSpace::mouse_blocking() const
+    bool DockSpace::should_block_mouse() const
     {
         for(const auto& [handle, attrib] : panel_registry_.attribs_)
         {
@@ -167,14 +180,66 @@ namespace rke
         return ImGui::GetIO().WantCaptureMouse;
     }
 
-    bool DockSpace::keyboard_blocking() const
+    bool DockSpace::should_block_keyboard() const
     {
         if(ImGui::GetIO().WantTextInput) return true;
+        if(project_creating_modal_.in_use()) return true;
         for(const auto& [handle, attrib] : panel_registry_.attribs_)
         {
             if(attrib.dont_block_when_focused &&
                handle->is_focused()) return false;
         }
         return ImGui::GetIO().WantCaptureKeyboard;
+    }
+
+    void DockSpace::on_update()
+    {
+        ctrl_pressed_ = (
+            Input::is_key_pressed(Key::RightControl) ||
+            Input::is_key_pressed(Key::LeftControl )
+        );
+    }
+
+    bool DockSpace::on_key_pressed(KeyPressedEvent& e)
+    {
+        if(e.is_held()) return false;
+        if(editor_runtime_ && editor_runtime_()) return false;
+        switch(e.get_key())
+        {
+        case Key::N:
+            if(ctrl_pressed_) { create_project(); return true; }
+            return false;
+        case Key::O:
+            if(ctrl_pressed_) {
+                open_project(app().get_windows_lib().get_main());
+                return true;
+            }
+            return false;
+        case Key::S:
+            if(ctrl_pressed_) { save_project(); return true; }
+            return false;
+        }
+        return false;
+    }
+
+    void DockSpace::create_project() { to_create_project_ = true; }
+
+    void DockSpace::open_project(const Window& window)
+    {
+        String str{ FileDialogs::open_file (
+            u8"Rocket Project (*.rkproj)|*.rkproj|",
+            window.get_context()
+        )};
+        if(!str.empty()) app().load_project(Path(str));
+    }
+
+    void DockSpace::save_project()
+    {
+        Project* project{ app().get_project() };
+        if(project) {
+            project->save();
+            ProjectSavedEvent e{ u8"main" };
+            app().send_event(e); 
+        }
     }
 }

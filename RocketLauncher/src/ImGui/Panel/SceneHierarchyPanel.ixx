@@ -51,7 +51,7 @@ export namespace rke
                 else if constexpr(std::is_same_v<Component, CameraComponent>)
                 {
                     if(ImGui::MenuItem("Make Master"))
-                        context_->set_camera_master(entity);
+                        context_->set_master_camera(entity);
                     if(ImGui::MenuItem("Delete"))
                         to_delete = true;
                 }
@@ -72,7 +72,8 @@ export namespace rke
 
             invoking:
                 std::invoke(std::forward<Callback>(callback), entity);
-            }, 0, std::bit_cast<void*>(static_cast<uint64>(type_id)));
+            },
+            0, std::bit_cast<void*>(static_cast<uint64>(type_id)));
 
             if(to_delete) {
                 entity.remove<Component>();

@@ -1,6 +1,10 @@
 ﻿module;
 module ProjectCreatingModal;
 
+import Log;
+import FileUtils;
+import Application;
+
 namespace rke
 {
     ProjectCreatingModal::ProjectCreatingModal(String title)

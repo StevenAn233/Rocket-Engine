@@ -14,10 +14,18 @@ namespace rke
             Application::init();
             Window& main_window{ get_windows_lib().get_main() };
             auto editor_layer{ create_scope<EditorLayer>(u8"EditorLayer", &main_window) };
+            editor_layer_ = editor_layer.get();
             main_window.push_layer(std::move(editor_layer));
+            set_dockspace_editor_runtime([this]() { return editor_layer_->testing(); });
         }
 
-        void shutdown() override { Application::shutdown(); }
+        void shutdown() override
+        {
+            editor_layer_ = nullptr;
+            Application::shutdown();
+        }
+    private:
+        EditorLayer* editor_layer_{};
     };
 }
 

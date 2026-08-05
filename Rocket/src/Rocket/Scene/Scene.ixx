@@ -94,21 +94,33 @@ export namespace rke
 
         Entity create_entity(String tag = u8"New Entity", UUID uuid = {});
         void destroy_entity(Entity entity);
+        void destroy_entity(uint32 handle) { destroy_entity(get_entity(handle)); }
+        void destroy_entity(UUID uuid) { destroy_entity(get_entity(uuid)); }
 
         std::vector<Entity> get_all_entities();
         bool has_entity(UUID uuid) const;
 
-        Entity copy_entity(Entity entity);
+        Entity copy_entity(Entity entity) { return copy_entity_towards(entity, this); }
         Entity copy_entity_towards(Entity entity, Scene* owner);
 
         Entity get_entity(uint32 handle) const;
         Entity get_entity(UUID uuid) const;
 
         Entity get_selected_entity() const { return selected_entity_; }
+        void destroy_selected_entity() { destroy_entity(selected_entity_); }
         void set_selected_entity(Entity entity);
-        void set_selected_entity(uint32 handle);
-        void set_selected_entity(UUID uuid);
-        void destroy_selected_entity();
+        void set_selected_entity(uint32 handle) { set_selected_entity(get_entity(handle)); }
+        void set_selected_entity(UUID uuid) { set_selected_entity(get_entity(uuid)); }
+        
+        Entity get_master_camera() const { return master_cam_; }
+        void set_master_camera(Entity entity);
+        void set_master_camera(uint32 handle) { set_master_camera(get_entity(handle)); }
+        void set_master_camera(UUID uuid) { set_master_camera(get_entity(uuid)); }
+
+        Entity get_demo_camera() const { return demo_cam_; }
+        void set_demo_camera(Entity entity);
+        void set_demo_camera(uint32 handle) { set_demo_camera(get_entity(handle)); }
+        void set_demo_camera(UUID uuid) { set_demo_camera(get_entity(uuid)); }
 
         void clear();
         void on_update(float dt);
@@ -118,9 +130,9 @@ export namespace rke
 
         void on_mouse_scrolled_runtime(MouseScrolledEvent& e);
 
-        void set_camera_master(Entity entity);
         void set_viewport(uint32 width, uint32 height);
-        void refresh_camera_components();
+        inline uint32 get_viewport_w() const { return viewport_w_; }
+        inline uint32 get_viewport_h() const { return viewport_h_; }
 
         bool in_runtime() const { return in_runtime_; }
         bool to_save() const { return !temporary_ && modified_; }
@@ -129,9 +141,7 @@ export namespace rke
         void mark_modified() const { if(!temporary_) modified_ = true; }
         void mark_modified_if(bool condition) const
             { if(!temporary_ && condition) modified_ = true; }
-    // ---
 
-        Entity get_master_camera() const;
         glm::vec2  get_gravity() const { return gravity_.get(); }
         glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
 
@@ -152,11 +162,12 @@ export namespace rke
         mutable bool modified_{ false };
         bool temporary_{ false }; // not gonna serialize
 
-        mutable Entity master_cam_{};
         std::unordered_map<UUID, entt::entity> entity_map_{};
-
+        Entity master_cam_{};
+        Entity demo_cam_{};
         Entity selected_entity_{}; // std::vector<Entity> selected_entities{};
-        static inline std::function<void(Entity)> on_entity_selected_{};
+
+        static std::function<void(Entity)> on_entity_selected_;
     };
 
     template<typename Component>

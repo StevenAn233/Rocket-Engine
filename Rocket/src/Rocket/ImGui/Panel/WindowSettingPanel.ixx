@@ -3,6 +3,7 @@
 #include <format>
 #include <utility>
 #include "rke_macros.h"
+namespace rke { class Window; }
 
 export module WindowSettingPanel;
 
@@ -18,9 +19,9 @@ export namespace rke
         WindowSettingPanel(String name)
             : Panel(String::format(u8"Window: '{}'", std::move(name))) {}
     private:
-        void on_imgui_render() override;
-        void set_context(void* window) { context_ = window; }
+        RKE_API void on_imgui_render() override;
+        void set_context(Window* window);
     private:
-        void* context_{};
+        Window* context_{};
     };
 }

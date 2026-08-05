@@ -4,6 +4,20 @@ module EditorLayer;
 import Gizmo;
 import FXAAEffect;
 
+namespace {
+    using namespace rke;
+    static void entity_right_click_popup_content(Scene* scene)
+    {
+        if(!scene) return;
+        if(ImGui::MenuItem("Delete")) scene->destroy_selected_entity();
+        if(ImGui::MenuItem("Copy")) {
+            Entity selected{ scene->get_selected_entity() };
+            Entity copied{ scene->copy_entity(selected) };
+            scene->set_selected_entity(copied);
+        }
+    }
+}
+
 namespace rke
 {
     EditorLayer::EditorLayer(String name, Window* owner)
@@ -20,34 +34,23 @@ namespace rke
         {
             if(&scene != scene_edit_.get()) return;
             editor_cam_.serialize_to(writer);
-            Entity cam_demo_target{ cam_renderer_.get_cam_demo_target() };
-            if(cam_demo_target.valid()) writer.write
-                (u8"Cam Demo Target", cam_demo_target.get_uuid().value());
-            else if(!cam_demo_target.empty())
-                CORE_ERROR(u8"EditorLayer: Cam demo target invalid!");
         });
 
         scene_serializer_.set_deserialize_hook
         ([this](Scene& scene, const ConfigReader& reader)
-        {
-            editor_cam_.deserialize_from(reader);
-            if(reader.has_key(u8"Cam Demo Target"))
-            {
-                UUID uuid{ reader.get_at(u8"Cam Demo Target", 0ui64) };
-                cam_renderer_.set_cam_demo_target(scene.get_entity(uuid));
-            }
-            else cam_renderer_.set_cam_demo_target({});
-        });
+            { editor_cam_.deserialize_from(reader); });
 
     // Effects
         auto hovering{ create_scope<OutlineEffect>(u8"Hovering",
             [this]() -> bool {
-                return !Gizmo::is_using()
+                return !Gizmo::is_using() && !keyboard_blocked()
                     && editor_setting_panel_->hovering_enabled_editor()
                     && !in_main_viewport_dragging_ && editing()
-                    && !project_creating_modal_.in_use() && main_viewport_.is_hovered();
+                    && main_viewport_.is_hovered();
             }
         )};
+        hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
+
         auto selected{ create_scope<OutlineEffect>(u8"Selected",
             [this]() -> bool {
                 Entity selected{ current_scene() ?
@@ -56,12 +59,11 @@ namespace rke
                 return !Gizmo::is_using()
                     && editor_setting_panel_->selected_enabled_editor()
                     && !in_main_viewport_dragging_
-                    && !project_creating_modal_.in_use()
                     && (selected_id != hovering_id_ || !hovering_outline_->enabled());
             }
         )};
-        hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
         selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
+
         auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa",
             [this]() -> bool {
                 return project_setting_panel_.fxaa_enabled_
@@ -94,8 +96,7 @@ namespace rke
         editor_setting_panel_->load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
 
     // SceneHierarchy
-        scene_hierarchy_panel_.set_on_entity_node_render([this](Scene* scene)
-            { entity_right_click_popup_content(scene); });
+        scene_hierarchy_panel_.set_on_entity_node_render(entity_right_click_popup_content);
 
     // ContentBrowser
         Path assets_dir{ file::assets_dir() };
@@ -124,7 +125,6 @@ namespace rke
             [this]() { return testing(); }
         );
 
-    // TO MODIFY
         toolbar_.emplace_icon_button(u8"Reload Script",
             Texture2D::create (
                 assets_dir / u8"icons" / u8"refresh.png",
@@ -141,7 +141,6 @@ namespace rke
             },
             [this]() { return editing(); }
         );
-    // TO MODIFY
 
     // Viewports
         main_viewport_.set_viewport_callback([this](Viewport* self)
@@ -183,14 +182,6 @@ namespace rke
         main_viewport_.set_target_getter([this]() { return main_output_; });
         cam_viewport_ .set_target_getter([this]() { return cam_output_;  });
 
-    // Modal
-        project_creating_modal_.set_project_created_callback
-        ([this](const Path& rkproj_path)
-        {
-            clear_scene_edit();
-            app().load_project(rkproj_path);
-        });
-
     // PanelRegistry
         app().register_panel(editor_setting_panel_.get());
         app().register_panel(content_browser_panel_.get());
@@ -204,17 +195,6 @@ namespace rke
         });
         app().register_panel(&cam_viewport_);
         app().register_panel(&toolbar_, { .always_on = true });
-
-    // ModalRegistry
-        app().register_modal(&project_creating_modal_,
-        {[this]() -> bool {
-            if(to_create_new_proj_)
-            {
-                to_create_new_proj_ = false;
-                return true;
-            }
-            return false;
-        }});
     }
 
     void EditorLayer::on_detach()
@@ -240,52 +220,32 @@ namespace rke
     {
         if(e.handled()) return;
         EventDispatcher dispatcher{ e };
-        dispatcher.dispatch<ProjectLoadedEvent>([this]
-            (ProjectLoadedEvent& e) { return on_project_loaded(e); });
-        dispatcher.dispatch<KeyPressedEvent>([this]
-            (KeyPressedEvent& e) { return on_key_pressed(e); });
-        dispatcher.dispatch<MouseScrolledEvent>([this]
-            (MouseScrolledEvent& e) { return on_mouse_scrolled(e); });
-        dispatcher.dispatch<MouseButtonPressedEvent>([this]
-            (MouseButtonPressedEvent& e) { return on_mouse_button_pressed(e); });
+        if(e.belongs_to(EventCategoryProject))
+        {
+            dispatcher.dispatch<ProjectLoadedEvent>([this]
+                (ProjectLoadedEvent& e) { return on_project_loaded(e); });
+            dispatcher.dispatch<ProjectSavedEvent>([this]
+                (ProjectSavedEvent& e) { return on_project_saved(e); });
+        }
+        else if(e.belongs_to(EventCategoryInput))
+        {
+            dispatcher.dispatch<KeyPressedEvent>([this]
+                (KeyPressedEvent& e) { return on_key_pressed(e); });
+            dispatcher.dispatch<MouseScrolledEvent>([this]
+                (MouseScrolledEvent& e) { return on_mouse_scrolled(e); });
+            dispatcher.dispatch<MouseButtonPressedEvent>([this]
+                (MouseButtonPressedEvent& e) { return on_mouse_button_pressed(e); });
+        }
     }
 
     bool EditorLayer::on_key_pressed(KeyPressedEvent& e)
     {
-        if(e.is_held()) return false;
-
-        bool ctrl {
-            Input::is_key_pressed(Key::RightControl) ||
-            Input::is_key_pressed(Key::LeftControl )
-        };
-        bool shift {
-            Input::is_key_pressed(Key::RightShift) ||
-            Input::is_key_pressed(Key::LeftShift )
-        };
-
-        switch(e.get_key())
-        {
-        case Key::N:
-            if(ctrl) { new_project(); return true; }
-            return false;
-        case Key::O:
-            if(ctrl) {
-                open_project(app().get_windows_lib()[e.get_window_name()]);
-                return true;
-            }
-            return false;
-        case Key::S:
-            if(ctrl) { save_project(); return true; }
-            return false;
-        default: break;
-        }
-
-        if(!main_viewport_.is_focused()) return false;
-        if(!scene_edit_) return false;
+        if(e.is_held() || !scene_edit_
+         || !main_viewport_.is_focused()) return false;
 
         if(e.get_key() == Key::F5) {
             if(editing()) { on_runtime_start(); return true; }
-            else if(testing()) { on_runtime_stop(); return true; }
+            if(testing()) { on_runtime_stop (); return true; }
             return false;
         }
 
@@ -314,10 +274,9 @@ namespace rke
 
     bool EditorLayer::on_mouse_scrolled(MouseScrolledEvent& e)
     {
-        if(!main_viewport_.is_hovered()) return false;
-        if(!scene_edit_) return false;
+        if(!scene_edit_ || !main_viewport_.is_hovered()) return false;
         if(testing()) {
-            scene_edit_->on_mouse_scrolled_runtime(e);
+            scene_test_->on_mouse_scrolled_runtime(e);
             return true;
         }
         return editor_cam_.on_mouse_scrolled(e);
@@ -348,6 +307,12 @@ namespace rke
         return true;
     }
 
+    bool EditorLayer::on_project_saved(ProjectSavedEvent& e)
+    {
+        save_scene_edit();
+        return true;
+    }
+
     void EditorLayer::on_update(float dt)
     {
         RKE_PROFILE_FUNCTION();
@@ -371,7 +336,6 @@ namespace rke
 
             cam_renderer_.on_viewport_resized(w, h);
         }
-        cam_renderer_.cam_demo_validation_check();
 
         if(editing()) editor_cam_.on_update(dt);
         if(current_scene()) current_scene()->on_update(dt); // entity deleted here
@@ -381,8 +345,12 @@ namespace rke
     {
         if(editing())
         {
-            main_output_ = main_renderer_.on_render(scene_edit_.get(),
-                editor_cam_.get_view_proj(), editor_cam_.get_pos());
+            main_output_ = main_renderer_.render
+            (
+                scene_edit_.get(),
+                editor_cam_.get_view_proj(),
+                editor_cam_.get_pos()
+            );
 
             if(scene_edit_ && main_viewport_.is_hovered() &&
              !(Gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
@@ -403,15 +371,14 @@ namespace rke
                 // switch to cam demo viewport size
                 auto size{ cam_viewport_.get_size() };
                 scene_edit_->set_viewport(size.x, size.y);
-                cam_output_ = cam_renderer_.cam_demo_render
-                    (scene_edit_.get(), scene_edit_->get_selected_entity());
+                cam_output_ = cam_renderer_.render_demo_cam(scene_edit_.get());
                 scene_edit_->set_viewport(size.x, size.y);
             }
             else cam_output_ = nullptr;
         }
         else if(testing())
         {
-            main_output_ = main_renderer_.on_render_runtime(scene_test_.get());
+            main_output_ = main_renderer_.render_master_cam(scene_test_.get());
             cam_output_  = nullptr;
         }
         else { main_output_ = cam_output_ = nullptr; }
@@ -446,23 +413,6 @@ namespace rke
         attach_scene(scene_edit_.get());
         scene_test_.reset();
     }
-
-// TO MODIFY
-    void EditorLayer::new_project() { to_create_new_proj_ = true; }
-
-    void EditorLayer::open_project(const Window& window)
-    {
-        app().load_project(FileDialogs::open_file
-            (u8"Rocket Project (*.rkproj)|*.rkproj|", window.get_context()));
-    }
-
-    void EditorLayer::save_project()
-    {
-        Project* project{ app().get_project() };
-        if(project) project->save();
-        if(editing()) scene_serializer_.serialize(*scene_edit_, scene_edit_path_);
-    }
-// TO MODIFY
 
     Scope<Scene> EditorLayer::load_scene_from(const Path& path)
     {
@@ -506,6 +456,12 @@ namespace rke
         return false;
     }
 
+    void EditorLayer::save_scene_edit()
+    {
+        if(editing()) scene_serializer_
+            .serialize(*scene_edit_, scene_edit_path_);
+    }
+
     void EditorLayer::clear_scene_edit()
     {
         scene_edit_.reset();
@@ -525,17 +481,6 @@ namespace rke
         cam_output_  = nullptr;
         main_renderer_.clean_up();
         cam_renderer_ .clean_up();
-    }
-
-    void EditorLayer::entity_right_click_popup_content(Scene* scene)
-    {
-        if(!scene) return;
-        if(ImGui::MenuItem("Delete")) scene->destroy_selected_entity();
-        if(ImGui::MenuItem("Copy")) {
-            Entity selected{ scene->get_selected_entity() };
-            Entity copied{ scene->copy_entity(selected) };
-            scene->set_selected_entity(copied);
-        }
     }
 
     Scene* EditorLayer::current_scene()

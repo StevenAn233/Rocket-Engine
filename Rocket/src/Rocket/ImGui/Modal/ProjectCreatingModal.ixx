@@ -1,7 +1,14 @@
 ﻿module;
+
+#include <array>
+#include <utility>
+#include <functional>
+
 export module ProjectCreatingModal;
 
-import rke;
+import Path;
+import String;
+import HeapManager;
 import Modal;
 
 export namespace rke

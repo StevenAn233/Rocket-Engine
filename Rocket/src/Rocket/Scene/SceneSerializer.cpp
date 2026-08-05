@@ -50,7 +50,6 @@ namespace {
             writer.write(u8"Orthographic Far" , ConfigValue(cam.get_orthographic_far_clip   ()));
             writer.write(u8"Orthographic Near", ConfigValue(cam.get_orthographic_near_clip  ()));
 
-            writer.write(u8"Master", ConfigValue(camera_com.master));
             writer.write(u8"Fixed Aspect-Ratio", ConfigValue(camera_com.aspect_ratio_fixed));
 
             writer.end_map();
@@ -133,7 +132,6 @@ namespace {
         Scope<ConfigReader> cc_reader{ reader.get_child(u8"Camera Component") };
         if(cc_reader) {
             auto& cc{ entity.emplace<CameraComponent>() };
-            cc.master = cc_reader->get_at(u8"Master", false);
             cc.aspect_ratio_fixed = cc_reader->get_at(u8"Fixed Aspect-Ratio", false);
 
             cc.camera.set_current_type(cc_reader->get_at(u8"Projection Type", 0));
@@ -215,6 +213,12 @@ namespace rke
         Entity selected{ scene.get_selected_entity() };
         writer->write(u8"Selected Entity", selected.valid() ? selected.get_uuid().value() : 0);
 
+        Entity master_cam{ scene.get_master_camera() };
+        writer->write(u8"Master Camera", master_cam.valid() ? master_cam.get_uuid().value() : 0);
+
+        Entity demo_cam{ scene.get_demo_camera() };
+        writer->write(u8"Demo Camera", demo_cam.valid() ? demo_cam.get_uuid().value() : 0);
+
         if(serialize_hook_) serialize_hook_(scene, *(writer.get()));
 
         writer->end_map();
@@ -261,6 +265,18 @@ namespace rke
             scene.set_selected_entity(uuid);
         }
         else scene.set_selected_entity(Entity{});
+
+        if(reader->has_key(u8"Master Camera")) {
+            UUID uuid{ reader->get_at(u8"Master Camera", 0ui64) };
+            scene.set_master_camera(uuid);
+        }
+        else scene.set_master_camera(Entity{});
+
+        if(reader->has_key(u8"Demo Camera")) {
+            UUID uuid{ reader->get_at(u8"Demo Camera", 0ui64) };
+            scene.set_demo_camera(uuid);
+        }
+        else scene.set_demo_camera(Entity{});
 
         if(deserialize_hook_) deserialize_hook_(scene, *(reader.get()));
 
