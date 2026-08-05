@@ -12,6 +12,8 @@ namespace rke
     void EditorLayer::on_attach()
     {
         editor_setting_panel_ = create_scope<EditorSettingPanel>(u8"Editor Settings", this);
+        content_browser_panel_ = create_scope<ContentBrowserPanel>
+            (u8"Content Browser", [this]()-> const Path& { return scene_edit_path_; });
 
         scene_serializer_.set_serialize_hook
         ([this](const Scene& scene, ConfigWriter& writer)
@@ -97,10 +99,10 @@ namespace rke
 
     // ContentBrowser
         Path assets_dir{ file::assets_dir() };
-        content_browser_panel_.set_folder_icon(assets_dir / u8"icons" / u8"folder.png");
-        content_browser_panel_.set_image_icon (assets_dir / u8"icons" / u8"image.png" );
-        content_browser_panel_.set_file_icon  (assets_dir / u8"icons" / u8"file.png"  );
-        content_browser_panel_.load_from(file::editor_dir() / u8"settings" / u8"content-browser.yaml");
+        content_browser_panel_->set_folder_icon(assets_dir / u8"icons" / u8"folder.png");
+        content_browser_panel_->set_image_icon (assets_dir / u8"icons" / u8"image.png" );
+        content_browser_panel_->set_file_icon  (assets_dir / u8"icons" / u8"file.png"  );
+        content_browser_panel_->load_from(file::editor_dir() / u8"settings" / u8"content-browser.yaml");
 
     // Toolbar
         toolbar_.emplace_icon_button(u8"Play",
@@ -191,8 +193,8 @@ namespace rke
 
     // PanelRegistry
         app().register_panel(editor_setting_panel_.get());
+        app().register_panel(content_browser_panel_.get());
         app().register_panel(&scene_hierarchy_panel_);
-        app().register_panel(&content_browser_panel_);
         app().register_panel(&project_setting_panel_);
         app().register_panel(&main_viewport_,
         {
@@ -220,14 +222,15 @@ namespace rke
         if(testing()) on_runtime_stop();
         
         app().unregister_panel(editor_setting_panel_.get());
+        app().unregister_panel(content_browser_panel_.get());
         app().unregister_panel(&scene_hierarchy_panel_);
-        app().unregister_panel(&content_browser_panel_);
         app().unregister_panel(&project_setting_panel_);
         app().unregister_panel(&main_viewport_);
         app().unregister_panel(&cam_viewport_);
         app().unregister_panel(&toolbar_);
 
         editor_setting_panel_.reset();
+        content_browser_panel_.reset();
 
         clear_scene_edit();
         app().clear_project();
@@ -340,13 +343,8 @@ namespace rke
     {
         CORE_ASSERT(!testing(), u8"EditorLayer: Can't load project while testing!");
         clear_scene_edit();
-        Project* project{ app().get_project() };
-        if(project) {
-            project_setting_panel_.refresh_aa_setting();
-            Path assets_dir{ project->get_assets_dir() };
-            content_browser_panel_.set_context(assets_dir);
-            AssetsManager::scan_assets_directory(assets_dir);
-        }
+        content_browser_panel_->on_project_loaded();
+        project_setting_panel_.refresh_aa_setting();
         return true;
     }
 

@@ -88,8 +88,7 @@ namespace rke
     void ProjectSettingPanel::refresh_aa_setting()
     {
         Project* project{ app().get_project() };
-        CORE_ASSERT(project, u8"ProjectSettingPanel: No active project!");
-        apply_aa_setting(project->get_config().anti_aliasing_opt);
+        apply_aa_setting(project ? project->get_config().anti_aliasing_opt : 1);
     }
 
     void ProjectSettingPanel::on_viewport_resized(uint32 w, uint32 h)

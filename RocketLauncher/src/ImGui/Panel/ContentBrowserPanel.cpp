@@ -3,9 +3,11 @@ module ContentBrowserPanel;
 
 namespace rke
 {
-    ContentBrowserPanel::ContentBrowserPanel(String name)
-        : Panel(std::move(name))
+    ContentBrowserPanel::ContentBrowserPanel(String name, std::function<const Path&()> func)
+        : Panel(std::move(name)), current_scene_path_getter_(std::move(func))
     {
+        CORE_ASSERT(current_scene_path_getter_,
+            u8"ContentBrowserPanel: Current scene path getter null!");
         name_buffer_ = create_scope<std::array<char, 256>>();
         std::memcpy(name_buffer_->data(), "Untitled", 9);
     }
@@ -27,17 +29,15 @@ namespace rke
         writer->push_to_file(filepath_);
     }
 
-    bool ContentBrowserPanel::set_context(const Path& context)
+    void ContentBrowserPanel::on_project_loaded()
     {
-        if(!context.exists()) {
-            CORE_ERROR(u8"ContentBrowserPanel: File '{}' doesn't exsit!", context);
-            context_.clear();
-            current_path_.clear();
-            return false;
-        }
+        Project* project{ app().get_project() };
+        Path context{ project ? project->get_assets_dir() : Path{} };
+        CORE_ASSERT(context.exists(), u8"ContentBrowserPanel: "
+            u8"Context '{}' doesn't exsit!", context);
         context_ = context;
         current_path_ = context;
-        return true;
+        AssetsManager::scan_assets_directory(context);
     }
 
     void ContentBrowserPanel::on_imgui_render()
@@ -130,25 +130,24 @@ namespace rke
             ImGui::ImageButton(file_name.raw(), static_cast<ImTextureID>(icon_id),
                               { thumbnail_size, thumbnail_size }, { 0, 1 }, { 1, 0 },
                               { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f });
-        // TO MODIFY
-        //  Project* project{ app().get_project() };
-        //  if(entry.path().extension() == u8".rkscene" && project)
-        //  {
-        //      Path active_scene_path{ project->get_active_scene_path() };
-        //      if(!fs::equivalent(entry.path(), active_scene_path.get()))
-        //      {
-        //          if(ImGui::BeginPopupContextItem())
-        //          {
-        //              if(ImGui::MenuItem("Delete Scene"))
-        //              {
-        //                  fs::remove(entry.path());
-        //                  ImGui::CloseCurrentPopup();
-        //              }
-        //              ImGui::EndPopup();
-        //          }
-        //      }
-        //  }
-        // TO MODIFY
+        
+            Project* project{ app().get_project() };
+            if(entry.path().extension() == u8".rkscene" && project)
+            {
+                if(ImGui::BeginPopupContextItem())
+                {
+                    if(!fs::equivalent(entry.path(), current_scene_path_getter_().get()))
+                    {
+                        if(ImGui::MenuItem("Delete Scene"))
+                        {
+                            fs::remove(entry.path());
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                    else ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                }
+            }
 
             Path path{ entry.path() };
             ImGui::PushID(path.string().raw());

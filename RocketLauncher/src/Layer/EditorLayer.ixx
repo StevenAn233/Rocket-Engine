@@ -78,12 +78,12 @@ export namespace rke
 
     // Panels
         Scope<EditorSettingPanel> editor_setting_panel_{};
+        Scope<ContentBrowserPanel> content_browser_panel_{};
 
         Toolbar toolbar_{ u8"Toolbar" };
         Viewport main_viewport_{ u8"Main Viewport" };
         Viewport cam_viewport_{ u8"Camera Viewport" };
         SceneHierarchyPanel scene_hierarchy_panel_{ u8"Scene Hierarchy" };
-        ContentBrowserPanel content_browser_panel_{ u8"Content Browser" };
         ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };
     // Modals
         ProjectCreatingModal project_creating_modal_{ u8"Create New Project" };
