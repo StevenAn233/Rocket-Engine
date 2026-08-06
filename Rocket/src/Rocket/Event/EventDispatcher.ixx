@@ -19,6 +19,7 @@ export namespace rke
               && std::same_as<std::invoke_result_t<Func, E&>, bool>
         bool dispatch(Func&& callback)
         {
+            if(event_.handled_) return true;
             if(event_.get_type_id() == E::type_id())
             {
                 event_.handled_ |= std::invoke
