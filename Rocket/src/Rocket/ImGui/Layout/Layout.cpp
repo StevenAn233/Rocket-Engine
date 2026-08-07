@@ -31,11 +31,11 @@ namespace rke::layout
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, 0.0f });
 
         float  line_height{ ImGui::GetFontSize() + GImGui->Style.FramePadding.y * 2.0f };
-        ImVec2 button_size{ line_height * 0.5f, line_height };
+        ImVec2 button_size{ line_height * 0.4f, line_height };
 
         float available_width{ ImGui::GetContentRegionAvail().x };
-        float item_width {
-            available_width - button_size.x -
+        float item_width { available_width -
+            button_size.x -
             GImGui->Style.ItemSpacing.x * 2.0f
         };
 
@@ -80,7 +80,7 @@ namespace rke::layout
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, 0.0f });
 
         float  line_height{ ImGui::GetFontSize() + GImGui->Style.FramePadding.y * 2.0f };
-        ImVec2 button_size{ line_height * 0.5f, line_height };
+        ImVec2 button_size{ line_height * 0.4f, line_height };
 
         float available_width{ ImGui::GetContentRegionAvail().x };
         float item_width { available_width / 2.0f
@@ -156,10 +156,10 @@ namespace rke::layout
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, 0.0f });
 
         float  line_height{ ImGui::GetFontSize() + GImGui->Style.FramePadding.y * 2.0f };
-        ImVec2 button_size{ line_height - 3.0f, line_height };
+        ImVec2 button_size{ line_height * 0.6f, line_height };
 
         float available_width{ ImGui::GetContentRegionAvail().x };
-        float item_width { (available_width - 10.0f) / 3.0f
+        float item_width { available_width / 3.0f
             - button_size.x
             - GImGui->Style.ItemSpacing.x * 2.0f
         };

@@ -95,8 +95,8 @@ namespace rke
             {
                 EditorCamera& cam{ owner_->editor_cam_ };
                 bool modified{ false };
-                modified |= layout::drag_float3_control<u8"Focal Point">
-                    (cam.focal_point_, 0.1f, glm::vec3(0.0f));
+                modified |= layout::drag_float3_control<u8"Focus">
+                    (cam.focus_, 0.1f, glm::vec3(0.0f));
                 modified |= layout::drag_float_control<u8"Distance">
                     (cam.distance_, 0.5f, 1.0f, glm::vec2(1.0f, 100.0f));
                 modified |= layout::drag_float_control<u8"Pitch">(cam.pitch_, 0.1f, 0.0f);

@@ -77,8 +77,8 @@ namespace rke
     void EditorCamera::mouse_pan(glm::vec2 delta)
     {
         auto [x_speed, y_speed] { pan_speed() };
-        focal_point_ += -get_right_dir() * delta.x * x_speed * distance_;
-        focal_point_ +=  get_up_dir	  () * delta.y * y_speed * distance_;
+        focus_ += -get_right_dir() * delta.x * x_speed * distance_;
+        focus_ +=  get_up_dir   () * delta.y * y_speed * distance_;
     }
 
     void EditorCamera::mouse_rotate(glm::vec2 delta)
@@ -93,7 +93,7 @@ namespace rke
         distance_ -= delta * zoom_speed();
         if(distance_ < 1.0f)
         {
-        //  focal_point_ += get_forward_dir();
+        //  focus_ += get_forward_dir();
             distance_ = 1.0f;
         }
     }
@@ -129,11 +129,11 @@ namespace rke
     glm::quat EditorCamera::get_orientation() const
         { return glm::quat(glm::vec3(-pitch_, -yaw_, 0.0f)); }
     glm::vec3 EditorCamera::calculate_pos() const
-        { return focal_point_ - get_forward_dir() * distance_; }
+        { return focus_ - get_forward_dir() * distance_; }
 
     void EditorCamera::reset()
     {
-        focal_point_ = {};
+        focus_ = {};
         distance_ = 10.0f;
         pitch_ = 0.0f; yaw_ = 0.0f;
         update_view();
@@ -142,7 +142,7 @@ namespace rke
     void EditorCamera::serialize_to(ConfigWriter& writer) const
     {
         writer.begin_map(u8"Editor Camera");
-        writer.write(u8"Focal Point", focal_point_);
+        writer.write(u8"Focus", focus_);
         writer.write(u8"Distance", distance_);
         writer.write(u8"Pitch", pitch_);
         writer.write(u8"Yaw", yaw_);
@@ -157,7 +157,7 @@ namespace rke
             CORE_ERROR(u8"EditorCamera: File format incorrect!");
             reset(); return;
         }
-        focal_point_ = cam_config->get_at(u8"Focal Point", focal_point_);
+        focus_ = cam_config->get_at(u8"Focus", focus_);
         distance_ = cam_config->get_at(u8"Distance", distance_);
         pitch_ = cam_config->get_at(u8"Pitch", pitch_);
         yaw_ = cam_config->get_at(u8"Yaw", yaw_);

@@ -58,7 +58,7 @@ export namespace rke
         glm::mat4 view_{ 1.0f };
 
         glm::vec3 position_{ 0.0f, 0.0f, 0.0f };
-        glm::vec3 focal_point_{ 0.0f, 0.0f, 0.0f };
+        glm::vec3 focus_{ 0.0f, 0.0f, 0.0f };
         // rotation & zooming central, only moves when panning
 
         glm::vec2 last_mouse_pos_{ 0.0f, 0.0f };
