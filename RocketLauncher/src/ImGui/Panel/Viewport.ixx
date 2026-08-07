@@ -8,19 +8,17 @@ export namespace rke
     class Viewport : public Panel
     {
     public:
-        using ViewportCallback = std::function<void(Viewport*)>;
+        using ViewportCallback = std::function<void(Viewport&)>;
         using TargetGetter = std::function<const Texture2D*()>;
 
-        Viewport(String name) : Panel(std::move(name)) {}
+        Viewport(String name, TargetGetter getter);
 
         inline void set_viewport_callback(ViewportCallback callback)
             { callback_ = std::move(callback); }
-        inline void set_target_getter(TargetGetter getter)
-            { getter_ = std::move(getter); }
     private:
         void on_imgui_render() override;
     private:
+        TargetGetter getter_;
         ViewportCallback callback_{};
-        TargetGetter getter_{};
     };
 }

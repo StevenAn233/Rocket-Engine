@@ -28,6 +28,10 @@ namespace rke
         editor_setting_panel_ = create_scope<EditorSettingPanel>(u8"Editor Settings", this);
         content_browser_panel_ = create_scope<ContentBrowserPanel>
             (u8"Content Browser", [this]()-> const Path& { return scene_edit_path_; });
+        main_viewport_ = create_scope<Viewport>(u8"Main Viewport",
+            [this]() { return main_output_; });
+        cam_viewport_ = create_scope<Viewport>(u8"Camera Viewport",
+            [this]() { return cam_output_; });
 
         scene_serializer_.set_serialize_hook
         ([this](const Scene& scene, ConfigWriter& writer)
@@ -46,7 +50,7 @@ namespace rke
                 return !Gizmo::is_using() && !keyboard_blocked()
                     && editor_setting_panel_->hovering_enabled_editor()
                     && !in_main_viewport_dragging_ && editing()
-                    && main_viewport_.is_hovered();
+                    && main_viewport_->is_hovered();
             }
         )};
         hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
@@ -143,10 +147,10 @@ namespace rke
         );
 
     // Viewports
-        main_viewport_.set_viewport_callback([this](Viewport* self)
+        main_viewport_->set_viewport_callback([this](Viewport& self)
         {
         // Gizmo
-            if(editing() && self->is_focused())
+            if(editing() && self.is_focused())
             {
                 Gizmo::on_render (
                     scene_edit_->get_selected_entity(),
@@ -179,21 +183,20 @@ namespace rke
             }
             else in_popup = false;
         });
-        main_viewport_.set_target_getter([this]() { return main_output_; });
-        cam_viewport_ .set_target_getter([this]() { return cam_output_;  });
 
     // PanelRegistry
         app().register_panel(editor_setting_panel_.get());
         app().register_panel(content_browser_panel_.get());
-        app().register_panel(&scene_hierarchy_panel_);
-        app().register_panel(&project_setting_panel_);
-        app().register_panel(&main_viewport_,
+        app().register_panel(main_viewport_.get(),
         {
             .always_on = true,
             .dont_block_when_hovered = true,
             .dont_block_when_focused = true
         });
-        app().register_panel(&cam_viewport_);
+        app().register_panel(cam_viewport_.get());
+
+        app().register_panel(&scene_hierarchy_panel_);
+        app().register_panel(&project_setting_panel_);
         app().register_panel(&toolbar_, { .always_on = true });
     }
 
@@ -203,14 +206,17 @@ namespace rke
         
         app().unregister_panel(editor_setting_panel_.get());
         app().unregister_panel(content_browser_panel_.get());
+        app().unregister_panel(main_viewport_.get());
+        app().unregister_panel(cam_viewport_.get());
+
         app().unregister_panel(&scene_hierarchy_panel_);
         app().unregister_panel(&project_setting_panel_);
-        app().unregister_panel(&main_viewport_);
-        app().unregister_panel(&cam_viewport_);
         app().unregister_panel(&toolbar_);
 
         editor_setting_panel_.reset();
         content_browser_panel_.reset();
+        main_viewport_.reset();
+        cam_viewport_.reset();
 
         clear_scene_edit();
         app().clear_project();
@@ -241,7 +247,7 @@ namespace rke
     bool EditorLayer::on_key_pressed(KeyPressedEvent& e)
     {
         if(e.is_held() || !scene_edit_
-         || !main_viewport_.is_focused()) return false;
+         || !main_viewport_->is_focused()) return false;
 
         if(e.get_key() == Key::F5) {
             if(editing()) { on_runtime_start(); return true; }
@@ -274,7 +280,7 @@ namespace rke
 
     bool EditorLayer::on_mouse_scrolled(MouseScrolledEvent& e)
     {
-        if(!scene_edit_ || !main_viewport_.is_hovered()) return false;
+        if(!scene_edit_ || !main_viewport_->is_hovered()) return false;
         if(testing()) {
             scene_test_->on_mouse_scrolled_runtime(e);
             return true;
@@ -284,7 +290,7 @@ namespace rke
 
     bool EditorLayer::on_mouse_button_pressed(MouseButtonPressedEvent& e)
     {
-        if(!main_viewport_.is_hovered()) return false;
+        if(!main_viewport_->is_hovered()) return false;
         if(!scene_edit_ || testing()) return false;
 
         bool is_gizmo_over{ Gizmo::is_over() &&
@@ -319,20 +325,20 @@ namespace rke
 
         Layer::on_update(dt);
 
-        if(main_viewport_.resized())
+        if(main_viewport_->resized())
         {
-            auto w{ static_cast<uint32>(main_viewport_.get_size().x) };
-            auto h{ static_cast<uint32>(main_viewport_.get_size().y) };
+            auto w{ static_cast<uint32>(main_viewport_->get_size().x) };
+            auto h{ static_cast<uint32>(main_viewport_->get_size().y) };
 
             editor_cam_.set_viewport(w, h);
             if(current_scene()) current_scene()->set_viewport(w, h);
             main_renderer_.on_viewport_resized(w, h);
             project_setting_panel_.on_viewport_resized(w, h);
         }
-        if(cam_viewport_.resized())
+        if(cam_viewport_->resized())
         {
-            auto w{ static_cast<uint32>(cam_viewport_.get_size().x) };
-            auto h{ static_cast<uint32>(cam_viewport_.get_size().y) };
+            auto w{ static_cast<uint32>(cam_viewport_->get_size().x) };
+            auto h{ static_cast<uint32>(cam_viewport_->get_size().y) };
 
             cam_renderer_.on_viewport_resized(w, h);
         }
@@ -352,10 +358,10 @@ namespace rke
                 editor_cam_.get_pos()
             );
 
-            if(scene_edit_ && main_viewport_.is_hovered() &&
+            if(scene_edit_ && main_viewport_->is_hovered() &&
              !(Gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
             {
-                glm::vec2 vp_mouse{ main_viewport_.get_mouse_pos() };
+                glm::vec2 vp_mouse{ main_viewport_->get_mouse_pos() };
                 hovering_id_ = main_renderer_.get_hovering_id(vp_mouse.x, vp_mouse.y);
             }
             else hovering_id_ = -1;
@@ -365,11 +371,11 @@ namespace rke
                 hovering_outline_->set_target(target);
             }
 
-            if(scene_edit_ && cam_viewport_.on() &&
-              !cam_viewport_.hidden() && cam_viewport_.visible())
+            if(scene_edit_ && cam_viewport_->on() &&
+              !cam_viewport_->hidden() && cam_viewport_->visible())
             {
                 // switch to cam demo viewport size
-                auto size{ cam_viewport_.get_size() };
+                auto size{ cam_viewport_->get_size() };
                 scene_edit_->set_viewport(size.x, size.y);
                 cam_output_ = cam_renderer_.render_demo_cam(scene_edit_.get());
                 scene_edit_->set_viewport(size.x, size.y);
@@ -397,7 +403,7 @@ namespace rke
         CORE_ASSERT(scene_test_, u8"EditorLayer: Failed to copy edit scene!");
         scene_test_->set_selected_entity(scene_edit_->get_selected_entity().get_uuid());
 
-        cam_viewport_.hide();
+        cam_viewport_->hide();
         scene_test_->on_runtime_start();
     }
 
@@ -406,7 +412,7 @@ namespace rke
         if(!testing()) return;
 
         scene_test_->on_runtime_stop();
-        cam_viewport_.show();
+        cam_viewport_->show();
 
         scene_edit_->set_selected_entity(scene_test_->get_selected_entity().get_uuid());
 
@@ -473,7 +479,7 @@ namespace rke
     {
         scene_hierarchy_panel_.set_context(scene);
 
-        auto size{ main_viewport_.get_size() };
+        auto size{ main_viewport_->get_size() };
         if(scene) scene->set_viewport(size.x, size.y);
 
         hovering_id_ = -1;

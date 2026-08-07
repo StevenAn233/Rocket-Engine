@@ -131,7 +131,7 @@ namespace rke
 
     int SceneRenderer::get_hovering_id(int mouse_x, int mouse_y)
     {
-        // make sure border checked
+        // check border
         if(scene_fbo_ && mouse_x >= 0 && mouse_y >= 0
         && mouse_x < scene_fbo_->get_specification().width
         && mouse_y < scene_fbo_->get_specification().height)
@@ -160,21 +160,22 @@ namespace rke
             Renderer2D::draw_quad ({
                 .position{ tc.position }, .rotation{ tc.rotation },
                 .size{ tc.size.x, tc.size.y }, .color { sc.color },
-                .uv_coords{ tex ? tex->calc_uv
-                (
-                    sprite.cell_coords,
-                    sprite.cell_pixels,
-                    sprite.cell_counts
-                ) :
-                std::array<glm::vec2, 4>
-                {
-                    glm::vec2(1.0f, 1.0f),
-                    glm::vec2(0.0f, 1.0f),
-                    glm::vec2(0.0f, 0.0f),
-                    glm::vec2(1.0f, 0.0f)
-                }},
+                .uv_coords{ tex ?
+                    tex->calc_uv (
+                        sprite.cell_coords,
+                        sprite.cell_pixels,
+                        sprite.cell_counts
+                    ) :
+                    std::array<glm::vec2, 4>
+                    {
+                        glm::vec2(1.0f, 1.0f),
+                        glm::vec2(0.0f, 1.0f),
+                        glm::vec2(0.0f, 0.0f),
+                        glm::vec2(1.0f, 0.0f)
+                    }
+                },
                 .tiling_factor{ sprite.tiling_factor }, .texture{ tex },
-                .entity_id{ static_cast<int>(renderable.entity) } // EDITOR ONLY
+                .entity_id{ static_cast<int>(renderable.entity) }
             });
         }
     //  else if(scene->registry_->all_of<MeshComponent>(renderable.entity)) {...}
