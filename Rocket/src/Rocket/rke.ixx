@@ -23,7 +23,6 @@ export import ApplicationEvent;
 export import KeyEvent;
 export import MouseEvent;
 export import ProjectEvent;
-// export import SceneEvent;
 
 export import Input;
 export import Keys;
