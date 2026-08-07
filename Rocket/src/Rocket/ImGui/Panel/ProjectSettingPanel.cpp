@@ -1,8 +1,14 @@
 ﻿module;
 
+#include <imgui.h>
 #include <imgui_internal.h>
 
 module ProjectSettingPanel;
+
+import Types;
+import ProjectEvent;
+import Application;
+import Layout;
 
 namespace {
     void add_text_vertical(ImDrawList* draw_list, const char* text, ImVec2 pos, ImU32 text_color)
@@ -23,6 +29,24 @@ namespace {
 
 namespace rke
 {
+    void ProjectSettingPanel::set_aa(AntiAliasing aa_opt)
+    {
+        Project* project{ app().get_project() };
+        if(project) project->get_config_mut().anti_aliasing = aa_opt;
+
+        uint32 samples{ 1 };
+        switch(aa_opt)
+        {
+        case AntiAliasing::MSAAx2:  samples = 2;  break;
+        case AntiAliasing::MSAAx4:  samples = 4;  break;
+        case AntiAliasing::MSAAx8:  samples = 8;  break;
+        case AntiAliasing::MSAAx16: samples = 16; break;
+        }
+        
+        ProjectSamplesSetEvent event{ u8"main", samples };
+        app().send_event(event);
+    }
+
     void ProjectSettingPanel::on_imgui_render()
     {
         Project* project{ app().get_project() };
@@ -55,11 +79,31 @@ namespace rke
             {
                 layout::tree_node_branch<u8"Anti-Aliasing">([&]()
                 {
-                    constexpr const char* items[]
-                        { "Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA", "FXAA" };
-                    int* aa_opt{ &(app().get_project()->get_config_mut().anti_aliasing_opt) };
-                    if(ImGui::Combo("##msaa", aa_opt, items, static_cast<int>(std::size(items))))
-                        apply_aa_setting(*aa_opt);
+                    static const char* items[]{ "Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA", "FXAA" };
+                    int aa_opt{};
+                    switch(project->get_config().anti_aliasing)
+                    {
+                    case AntiAliasing::Off:     aa_opt = 0; break;
+                    case AntiAliasing::MSAAx2:  aa_opt = 1; break;
+                    case AntiAliasing::MSAAx4:  aa_opt = 2; break;
+                    case AntiAliasing::MSAAx8:  aa_opt = 3; break;
+                    case AntiAliasing::MSAAx16: aa_opt = 4; break;
+                    case AntiAliasing::FXAA:    aa_opt = 5; break;
+                    }
+                    if(ImGui::Combo("##aa", &aa_opt, items, static_cast<int>(std::size(items))))
+                    {
+                        AntiAliasing aa{ AntiAliasing::Off };
+                        switch(aa_opt)
+                        {
+                        case 0: aa = AntiAliasing::Off;     break;
+                        case 1: aa = AntiAliasing::MSAAx2;  break;
+                        case 2: aa = AntiAliasing::MSAAx4;  break;
+                        case 3: aa = AntiAliasing::MSAAx8;  break;
+                        case 4: aa = AntiAliasing::MSAAx16; break;
+                        case 5: aa = AntiAliasing::FXAA;    break;
+                        }
+                        set_aa(aa);
+                    }
                 });
                 ImGui::EndTabItem();
             }
@@ -68,38 +112,6 @@ namespace rke
     end:
         ImGui::End();
         ImGui::PopID();
-    }
-
-    void ProjectSettingPanel::apply_aa_setting(int aa_opt)
-    {
-        CORE_ASSERT(on_samples_setting_,
-            u8"ProjectSettingPanel: Func on_samples_settings() unset!");
-        CORE_ASSERT(fxaa_, u8"ProjectSettingPanel: Fxaa handle not set!");
-
-        if(aa_opt <= 4) {
-            fxaa_enabled_ = false;
-            on_samples_setting_(1 << aa_opt);
-        } else if(aa_opt == 5) {
-            fxaa_enabled_ = true;
-            on_samples_setting_(1);
-        }
-    }
-
-    void ProjectSettingPanel::refresh_aa_setting()
-    {
-        Project* project{ app().get_project() };
-        apply_aa_setting(project ? project->get_config().anti_aliasing_opt : 1);
-    }
-
-    void ProjectSettingPanel::on_viewport_resized(uint32 w, uint32 h)
-    {
-        CORE_ASSERT(fxaa_, u8"ProjectSettingPanel: Fxaa handle not set!");
-        if(w == 0u || h == 0u) {
-            viewport_valid_for_fxaa_ = false;
-        } else {
-            viewport_valid_for_fxaa_ = true;
-            fxaa_->set_uniform({ glm::vec2(1.0f / w, 1.0f / h) });
-        }
     }
 
     void ProjectSettingPanel::draw_layer_collision_matrix(PhysicsLayers& layers)

@@ -70,14 +70,15 @@ namespace rke
 
         auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa",
             [this]() -> bool {
-                return project_setting_panel_.fxaa_enabled_
-                    && project_setting_panel_.viewport_valid_for_fxaa_;
+                Project* project{ app().get_project() };
+                if(project) return project->get_config()
+                    .anti_aliasing == AntiAliasing::FXAA;
+                return false;
             }
         )};
 
         hovering_outline_ = hovering.get();
         selected_outline_ = selected.get();
-        FXAAEffect* fxaa_effect{ fxaa.get() };
 
         Scene::set_on_entity_selected([this](Entity entity)
             { selected_outline_->set_target(entity); });
@@ -87,14 +88,6 @@ namespace rke
         main_renderer_.add_effect(std::move(selected));
         main_renderer_.add_effect(std::move(fxaa));
         cam_renderer_.set_samples(1);
-
-    // Project Setting
-        project_setting_panel_.set_fxaa_handle(fxaa_effect);
-        project_setting_panel_.set_on_samples_setting([this](uint32 samples)
-        {
-            main_renderer_.set_samples(samples);
-            editor_setting_panel_->set_outline_samples(samples);
-        });
 
     // EditorSetting
         editor_setting_panel_->load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
@@ -196,7 +189,6 @@ namespace rke
         app().register_panel(cam_viewport_.get());
 
         app().register_panel(&scene_hierarchy_panel_);
-        app().register_panel(&project_setting_panel_);
         app().register_panel(&toolbar_, { .always_on = true });
     }
 
@@ -210,7 +202,6 @@ namespace rke
         app().unregister_panel(cam_viewport_.get());
 
         app().unregister_panel(&scene_hierarchy_panel_);
-        app().unregister_panel(&project_setting_panel_);
         app().unregister_panel(&toolbar_);
 
         editor_setting_panel_.reset();
@@ -232,6 +223,8 @@ namespace rke
                 (ProjectLoadedEvent& e) { return on_project_loaded(e); });
             dispatcher.dispatch<ProjectSavedEvent>([this]
                 (ProjectSavedEvent& e) { return on_project_saved(e); });
+            dispatcher.dispatch<ProjectSamplesSetEvent>([this]
+                (ProjectSamplesSetEvent& e) { return on_project_samples_set(e); });
         }
         else if(e.belongs_to(EventCategoryInput))
         {
@@ -309,7 +302,6 @@ namespace rke
         CORE_ASSERT(!testing(), u8"EditorLayer: Can't load project while testing!");
         clear_scene_edit();
         content_browser_panel_->on_project_loaded();
-        project_setting_panel_.refresh_aa_setting();
         return true;
     }
 
@@ -317,6 +309,14 @@ namespace rke
     {
         save_scene_edit();
         return true;
+    }
+
+    bool EditorLayer::on_project_samples_set(ProjectSamplesSetEvent& e)
+    {
+        uint32 samples{ e.get_samples() };
+        main_renderer_.set_samples(samples);
+        editor_setting_panel_->set_outline_samples(samples);
+        return true;     
     }
 
     void EditorLayer::on_update(float dt)
@@ -333,7 +333,6 @@ namespace rke
             editor_cam_.set_viewport(w, h);
             if(current_scene()) current_scene()->set_viewport(w, h);
             main_renderer_.on_viewport_resized(w, h);
-            project_setting_panel_.on_viewport_resized(w, h);
         }
         if(cam_viewport_->resized())
         {
@@ -479,8 +478,11 @@ namespace rke
     {
         scene_hierarchy_panel_.set_context(scene);
 
-        auto size{ main_viewport_->get_size() };
-        if(scene) scene->set_viewport(size.x, size.y);
+        if(scene) {
+            glm::vec2 size{ main_viewport_ ?
+                main_viewport_->get_size() : glm::vec2(0.0f) };
+            scene->set_viewport(size.x, size.y);
+        }
 
         hovering_id_ = -1;
         main_output_ = nullptr;

@@ -36,14 +36,15 @@ namespace rke
         PlatformSupport::init();
         Renderer2D::init();
 
-        DockSpaceLayer* ds_layer{ new DockSpaceLayer
-        {
+        Scope<DockSpaceLayer> ds_layer{ create_scope<DockSpaceLayer>
+        (
             u8"Dockspace Layer", windows_lib_.main_window_,
             file::editor_dir() / u8"settings" / u8"dockspace.yaml"
-        }};
+        )};
         dockspace_ = &(ds_layer->dockspace_);
-        main_window.push_overlay(Scope<Layer>(static_cast<Layer*>(ds_layer)));
-        register_panel(&panel_);
+        main_window.push_overlay(Scope<Layer>(ds_layer.release()));
+        register_panel(&project_setting_panel_);
+        register_panel(&application_panel_);
         register_panel(&main_window.setting_panel_);
     }
 
@@ -77,7 +78,8 @@ namespace rke
             if(e.get_window_name() == u8"main")
             {
                 unregister_panel(&windows_lib_.get_main().setting_panel_);
-                unregister_panel(&panel_);
+                unregister_panel(&application_panel_);
+                unregister_panel(&project_setting_panel_);
                 dockspace_->editor_runtime_ = nullptr;
                 dockspace_ = nullptr;
             }
@@ -90,6 +92,7 @@ namespace rke
     {
         project_ = Project::load_from(path);
         if(project_) {
+            project_setting_panel_.set_aa(project_->get_config().anti_aliasing);
             ProjectLoadedEvent event{ u8"main" };
             send_event(event);
         }

@@ -15,5 +15,7 @@ export namespace rke
         bool apply(const Texture2D* source, FrameBuffer* destination) override;
         Category get_category() const override { return Category::System; }
         void set_uniform(const Uniforms& uniforms);
+    private:
+        void on_viewport_resized(uint32 w, uint32 h) override;
     };
 }

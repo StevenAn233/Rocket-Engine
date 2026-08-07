@@ -41,11 +41,11 @@ export namespace rke
         virtual void serialize_to(ConfigWriter& writer) const {}
         virtual void deserialize_from(const ConfigReader& reader) {}
         virtual Category get_category() const { return Category::Standard; }
-
-        virtual void on_viewport_resized(uint32 w, uint32 h) {};
     protected:
         PostProcessEffect(String name, std::function<bool()> func = nullptr);
         virtual ~PostProcessEffect() = default;
+        
+        virtual void on_viewport_resized(uint32 w, uint32 h) {};
     protected:
         String name_;
         Ref<UniformBuffer> ubo_{};

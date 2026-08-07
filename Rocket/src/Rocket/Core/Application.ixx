@@ -14,6 +14,7 @@ import Event;
 import Font;
 import HeapManager;
 import ApplicationPanel;
+import ProjectSettingPanel;
 import Panel;
 import PanelRegistry;    
 import Modal;
@@ -57,8 +58,10 @@ export namespace rke
     private:
         WindowsLib windows_lib_;
         Scope<Project> project_{};
-        ApplicationPanel panel_{ u8"Application" };
         DockSpace* dockspace_{};
+
+        ApplicationPanel application_panel_{ u8"Application" };
+        ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };
     };
 
     RKE_API Application& app();

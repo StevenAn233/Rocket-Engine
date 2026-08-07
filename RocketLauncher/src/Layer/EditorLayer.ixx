@@ -8,7 +8,6 @@ import Viewport;
 import EditorSettingPanel;
 import SceneHierarchyPanel;
 import ContentBrowserPanel;
-import ProjectSettingPanel;
 import EditorCamera;
 
 export namespace rke
@@ -49,6 +48,7 @@ export namespace rke
 
         bool on_project_loaded(ProjectLoadedEvent& e);
         bool on_project_saved(ProjectSavedEvent& e);
+        bool on_project_samples_set(ProjectSamplesSetEvent& e);
 
         bool editing() const { return scene_edit_ && !scene_test_; }
         bool testing() const { return scene_edit_ &&  scene_test_; }
@@ -80,7 +80,6 @@ export namespace rke
 
         Toolbar toolbar_{ u8"Toolbar" };
         SceneHierarchyPanel scene_hierarchy_panel_{ u8"Scene Hierarchy" };
-        ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };
 
         bool in_main_viewport_dragging_{ false };
     };

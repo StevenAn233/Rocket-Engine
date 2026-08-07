@@ -52,9 +52,8 @@ namespace rke
             writer->end_map();
         }
         writer->end_map(); // Physics Layers
-        writer->write(u8"Showed Layers", static_cast<uint32>
-            (layers.get_showed_layer_count()));
-        writer->write(u8"Anti-Aliasing Option", project_config_.anti_aliasing_opt);
+        writer->write(u8"Showed Layers", static_cast<uint32>(layers.get_showed_layer_count()));
+        writer->write(u8"Anti-Aliasing", static_cast<int>(project_config_.anti_aliasing));
         writer->end_map(); // Config
 
         writer->end_map();
@@ -129,7 +128,7 @@ namespace rke
         }
         writer->end_map(); // Physics Layers
         writer->write(u8"Showed Layers", 1);
-        writer->write(u8"Anti-Aliasing Option", 2);
+        writer->write(u8"Anti-Aliasing", static_cast<int>(AntiAliasing::MSAAx4));
         writer->end_map(); // Config
 
         writer->end_map();
@@ -173,8 +172,8 @@ namespace rke
             uint8 showed_layers{ static_cast<uint8>
                 (config_reader->get_at(u8"Showed Layers", 1ui32)) };
             config.physics_layers.set_showed_layer_count(showed_layers);
-            config.anti_aliasing_opt = config_reader->
-                get_at(u8"Anti-Aliasing Option", config.anti_aliasing_opt);
+            config.anti_aliasing = static_cast<AntiAliasing>(config_reader->
+                get_at(u8"Anti-Aliasing", static_cast<int>(AntiAliasing::MSAAx4)));
         }
         CORE_INFO(u8"Project: Project '{}' loaded.", project->rkproj_path_);
         project->scripts_hot_reloading();

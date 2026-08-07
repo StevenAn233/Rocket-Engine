@@ -7,6 +7,7 @@ export module ProjectEvent;
 
 import Event;
 import String;
+import Types;
 
 export namespace rke
 {
@@ -35,5 +36,19 @@ export namespace rke
 
         EVENT_CLASS_TYPE(ProjectSaved);
         EVENT_CLASS_CATEGORY(EventCategoryProject);
+    };
+
+    class RKE_API ProjectSamplesSetEvent : public Event
+    {
+    public:
+        ProjectSamplesSetEvent(StringView name, uint32 samples)
+            : Event(name), samples_(samples) {}
+        
+        uint32 get_samples() const { return samples_; }
+
+        EVENT_CLASS_TYPE(ProjectSamplesSet);
+        EVENT_CLASS_CATEGORY(EventCategoryProject);
+    private:
+        uint32 samples_;
     };
 }

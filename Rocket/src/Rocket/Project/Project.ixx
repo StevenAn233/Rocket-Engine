@@ -7,6 +7,7 @@
 
 export module Project;
 
+import Types;
 import Scene;
 import String;
 import Path;
@@ -15,6 +16,16 @@ import PhysicsLayers;
 
 export namespace rke
 {
+    enum class AntiAliasing : int
+    {
+        FXAA    = 0,
+        Off     = 1,
+        MSAAx2  = 2,
+        MSAAx4  = 4,
+        MSAAx8  = 8,
+        MSAAx16 = 16
+    };
+
     class RKE_API Project
     {
     public:
@@ -28,7 +39,7 @@ export namespace rke
         {
             String name{ u8"Untitled" };
             PhysicsLayers physics_layers{};
-            int anti_aliasing_opt{ 2 };
+            AntiAliasing anti_aliasing{};
         };
 
         Project(const Project&) = delete; // Only one active project

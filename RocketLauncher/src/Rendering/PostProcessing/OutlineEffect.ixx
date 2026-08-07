@@ -21,8 +21,6 @@ export namespace rke
         void serialize_to(ConfigWriter& writer) const override;
         void deserialize_from(const ConfigReader& reader) override;
 
-        void on_viewport_resized(uint32 w, uint32 h) override;
-
         void set_target	(Entity target );
         void set_samples(uint32 samples);
 
@@ -30,6 +28,8 @@ export namespace rke
         void set_thickness(float thickness);
         inline glm::vec4 get_color() const { return uniforms_.outline_color; }
         inline float get_thickness() const { return uniforms_.thickness; }
+    private:
+        void on_viewport_resized(uint32 w, uint32 h) override;
     private:
         Ref<FrameBuffer> outline_fbo_{};
         Uniforms uniforms_{};

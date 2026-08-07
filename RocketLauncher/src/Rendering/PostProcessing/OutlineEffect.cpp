@@ -79,10 +79,6 @@ namespace rke
     void OutlineEffect::set_samples(uint32 samples)
         { outline_fbo_->set_samples(samples); }
 
-    void OutlineEffect::on_viewport_resized(uint32 w, uint32 h)
-        { outline_fbo_->resize(w, h); }
-
-// private
     void OutlineEffect::set_color(glm::vec4 color)
     {
         uniforms_.outline_color = math::srgb_to_linear(color);
@@ -94,4 +90,6 @@ namespace rke
         uniforms_.thickness = thickness;
         ubo_->set_data(&uniforms_, sizeof(Uniforms));
     }
+
+    void OutlineEffect::on_viewport_resized(uint32 w, uint32 h) { outline_fbo_->resize(w, h); }
 }

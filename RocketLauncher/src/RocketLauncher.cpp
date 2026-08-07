@@ -13,9 +13,10 @@ namespace rke
         {
             Application::init();
             Window& main_window{ get_windows_lib().get_main() };
-            auto editor_layer{ create_scope<EditorLayer>(u8"EditorLayer", &main_window) };
+            Scope<EditorLayer> editor_layer {
+                create_scope<EditorLayer>(u8"EditorLayer", &main_window) };
             editor_layer_ = editor_layer.get();
-            main_window.push_layer(std::move(editor_layer));
+            main_window.push_layer(Scope<Layer>(editor_layer.release()));
             set_dockspace_editor_runtime([this]() { return editor_layer_->testing(); });
         }
 
