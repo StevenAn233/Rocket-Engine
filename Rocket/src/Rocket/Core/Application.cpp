@@ -144,7 +144,7 @@ namespace rke
 
     static void register_instance(Scope<Application> instance)
     {
-        CORE_ASSERT(!s_instance, u8"Rocket: Instance already existed!");
+        CORE_ASSERT(!s_instance, u8"Rocket: Instance already exists!");
         s_instance = std::move(instance);
     }
 

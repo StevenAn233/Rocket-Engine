@@ -77,12 +77,14 @@ namespace rke
 
         bool opened{ ImGui::TreeNodeEx("entity_node", flags, "%s", tag.raw())};
 
-        if(ImGui::IsItemClicked()) {
+        if(ImGui::IsItemClicked())
+        {
             is_scene_selected_ = false;
             context_->set_selected_entity(entity);
         }
 
-        if(ImGui::BeginPopupContextItem()) {
+        if(ImGui::BeginPopupContextItem())
+        {
             if(ImGui::IsWindowAppearing())
                 context_->set_selected_entity(entity);
             on_entity_node_render_(context_);
@@ -120,10 +122,9 @@ namespace rke
         {
             const String& name{ context_->get_name() };
             char buffer[256]{};
-            strncpy(buffer, name.raw(), sizeof(buffer) - 1);
-            buffer[sizeof(buffer) - 1] = '\0';
+            std::memcpy(buffer, name.raw(), sizeof(buffer) - 1);
             if(ImGui::InputText("##tag", buffer, sizeof(buffer)))
-                context_->set_name(String(str::to_char8(buffer)));   
+                context_->set_name(String(str::to_char8(buffer)));
         });
 
         layout::tree_node_branch<u8"Physics">([this]()
@@ -131,7 +132,8 @@ namespace rke
             static glm::vec2 recover{ Gravity2D::get_default() };
             context_->mark_modified_if (
                 layout::drag_float2_control<u8"Gravity">
-                    (context_->get_gravity_mut(), 0.01f, recover));
+                    (context_->get_gravity_mut(), 0.01f, recover)
+            );
         });
     }
 
@@ -164,14 +166,16 @@ namespace rke
                     (
                         transform_com.position, 0.0f, glm::vec3(0.0f),
                         std::nullopt, std::nullopt, std::nullopt
-                    ));
+                    )
+                );
             } else {
                 context_->mark_modified_if (
                     layout::drag_float3_control<u8"Position">
                     (
                         transform_com.position, 0.1f, glm::vec3(0.0f),
                         glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-                    ));
+                    )
+                );
             }
 
             if(transform_com.locked) {
@@ -180,14 +184,16 @@ namespace rke
                     (
                         transform_com.rotation, 0.0f, glm::vec3(0.0f),
                         std::nullopt, std::nullopt, std::nullopt
-                    ));
+                    )
+                );
             } else {
                 context_->mark_modified_if (
                     layout::drag_float3_control<u8"Rotation">
                     (
                         transform_com.rotation, 0.5f, glm::vec3(0.0f),
                         glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-                    ));
+                    )
+                );
             }
 
             if(transform_com.locked || ent.has<CameraComponent>())
@@ -197,7 +203,8 @@ namespace rke
                     (
                         transform_com.size, 0.0f, glm::vec3(1.0f),
                         std::nullopt, std::nullopt, std::nullopt
-                    ));
+                    )
+                );
             }
             else if(ent.has<SpriteComponent>())
             {
@@ -206,13 +213,13 @@ namespace rke
                     (
                         transform_com.size, 0.1f, glm::vec3(1.0f, 1.0f, 0.0f),
                         glm::vec2(0.0f), glm::vec2(0.0f), std::nullopt
-                    ));
-            }
-            else
-            {
+                    )
+                );
+            } else {
                 context_->mark_modified_if (
                     layout::drag_float3_control<u8"Size">
-                        (transform_com.size, 0.1f, glm::vec3(1.0f)));
+                        (transform_com.size, 0.1f, glm::vec3(1.0f))
+                );
             }
         });
 

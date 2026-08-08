@@ -11,7 +11,9 @@ namespace {
     using namespace rke;
 
 // Hash support(for sub-asset)
-    struct TextureSettingsHasher {
+    struct SettingsHashers
+    {
+        Size operator()(const EmptySettings&) const { return 0; }
         Size operator()(const TextureSettings& s) const
         {
             Size h1{ std::hash<int >{}(static_cast<int>(s.filt)) };
@@ -21,14 +23,8 @@ namespace {
         }
     };
 
-    struct SettingsHasherVisitor {
-        Size operator()(const EmptySettings&) const { return 0; }
-        Size operator()(const TextureSettings& s) const
-            { return TextureSettingsHasher{}(s); }
-    };
-
     static Size get_settings_hash(const AssetSettings& settings)
-        { return std::visit(SettingsHasherVisitor{}, settings); }
+        { return std::visit(SettingsHashers{}, settings); }
 
 // Static data/registry
     static std::unordered_map<AssetUUID, AssetMeta> s_asset_registry{};

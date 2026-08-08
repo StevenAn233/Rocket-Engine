@@ -62,11 +62,10 @@ namespace rke
                 layout::tree_node_branch<u8"Name">([this]()
                 {
                     const String& name{ app().get_project()->get_name() };
-                    char buffer[256]{};
-                    strncpy(buffer, name.raw(), sizeof(buffer) - 1);
-                    buffer[sizeof(buffer) - 1] = '\0';
-                    if(ImGui::InputText("##tag", buffer, sizeof(buffer)))
-                        app().get_project()->set_name(String(str::to_char8(buffer)));
+                    char name_buffer[256]{};
+                    std::memcpy(name_buffer, name.raw(), sizeof(name_buffer) - 1); // TO MODIFY
+                    if(ImGui::InputText("##tag", name_buffer, sizeof(name_buffer)))
+                        app().get_project()->set_name(String(str::to_char8(name_buffer)));
                 });
                 ImGui::EndTabItem();
             }
@@ -79,7 +78,15 @@ namespace rke
             {
                 layout::tree_node_branch<u8"Anti-Aliasing">([&]()
                 {
-                    static const char* items[]{ "Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA", "FXAA" };
+                    static const char* items[]
+                    {
+                        "Off",      // 0
+                        "2x MSAA",  // 1
+                        "4x MSAA",  // 2
+                        "8x MSAA",  // 3
+                        "16x MSAA", // 4
+                        "FXAA"      // 5
+                    };
                     int aa_opt{};
                     switch(project->get_config().anti_aliasing)
                     {
@@ -142,6 +149,7 @@ namespace rke
         ImU32 text_col { ImGui::GetColorU32(ImGuiCol_Text) };
         float font_size{ ImGui::GetFontSize() };
 
+        char name_buffer[64]{};
         for(uint8 row{}; row < count; row++)
         {
             const String& row_name{ layers.get_name(row) };
@@ -149,13 +157,11 @@ namespace rke
             float text_w{ ImGui::CalcTextSize(row_name.raw()).x };
             ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x);
 
-            char buffer[64]{};
-            strncpy(buffer, row_name.raw(), sizeof(buffer) - 1);
-            buffer[sizeof(buffer) - 1] = '\0';
+            std::memcpy(name_buffer, row_name.raw(), sizeof(name_buffer) - 1); // TO MODIFY
             ImGui::PushID(row);
             ImGui::SetNextItemWidth(label_width - spacing);
-            if(ImGui::InputText("##Name", buffer, sizeof(buffer)))
-                layers.set_name(row, String(str::to_char8(buffer), strlen(buffer)));
+            if(ImGui::InputText("##Name", name_buffer, sizeof(name_buffer)))
+                layers.set_name(row, String(str::to_char8(name_buffer), strlen(name_buffer)));
             ImGui::PopID();
 
             ImGui::SameLine();
@@ -171,12 +177,16 @@ namespace rke
                     layers.set_collision(row, col, if_collides);
 
                 if(ImGui::IsItemHovered())
-                     ImGui::SetTooltip("%s <-> %s", row_name.raw(), layers.get_name(col).raw());
+                    ImGui::SetTooltip("%s <-> %s",
+                        row_name.raw(), layers.get_name(col).raw());
 
                 ImGui::PopID();
                 ImGui::SameLine();
-                ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x +
-                                     label_width + (col + 1) * (cell_size + spacing));
+                ImGui::SetCursorPosX (
+                    ImGui::GetWindowContentRegionMin().x +
+                    label_width +
+                    (col + 1) * (cell_size + spacing)
+                );
             }
             ImGui::NewLine();
         }
@@ -187,10 +197,11 @@ namespace rke
         for(uint8 i{}; i < count; i++)
         {
             const String& text{ layers.get_name(i) };
-            float x_pos = start_x + (i * (cell_size + spacing))
-                        + ImGui::CalcTextSize(text.raw()).y;
-                       // ^ Will be rotated, so use y(height) here
-            float y_pos = start_y;
+            float x_pos { start_x
+                + (i * (cell_size + spacing))
+                + ImGui::CalcTextSize(text.raw()).y
+            }; // ^ Will be rotated, so use y(height) here
+            float y_pos{ start_y };
             add_text_vertical(draw_list, text.raw(), ImVec2(x_pos, y_pos), text_col);
         }
 
