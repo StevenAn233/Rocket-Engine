@@ -3,7 +3,7 @@
 #include "../include/binding_points.glsl"
 
 layout(location = 0) out vec4 o_color;
-layout(location = 1) out int  o_entity_id; // EDITOR ONLY
+layout(location = 1) out int  o_entity_id;
 
 layout(location = 0) in vec4  v_color;
 layout(location = 1) in vec2  v_uv_coord;
@@ -12,13 +12,13 @@ layout(location = 2) in float v_tiling_factor;
 layout(location = 3) in flat int v_tex_id;
 layout(location = 4) in flat int v_if_tex_grey;
 layout(location = 5) in flat int v_is_font;
-layout(location = 6) in flat int v_entity_id; // EDITOR ONLY
+layout(location = 6) in flat int v_entity_id;
 
 layout(binding = Sampler2D_0) uniform sampler2D u_textures[32];
 
 void main()
 {
-	o_entity_id = v_entity_id; // EDITOR ONLY
+	o_entity_id = v_entity_id;
 
 	vec4 tex_color;
 	if(bool(v_is_font)) {

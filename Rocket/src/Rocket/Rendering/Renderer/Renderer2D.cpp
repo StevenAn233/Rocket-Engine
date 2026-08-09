@@ -18,7 +18,6 @@ import FileUtils;
 import Application;
 import Instrumentor;
 
-// maybe need to remove EDITOR ONLY stuffs in the future
 namespace {
     using namespace rke;
 
@@ -32,7 +31,7 @@ namespace {
         int tex_id	   { 0 };
         int if_tex_grey{ 0 };
         int is_font	   { 0 };
-        int entity_id  {-1 }; // EDITOR ONLY
+        int entity_id  {-1 };
     };
 
     struct CameraData { glm::mat4 view_proj{ 1.0f }; };
@@ -73,10 +72,10 @@ namespace {
         QuadVertexProps* quad_vertex_ptr{ nullptr };
 
         Renderer2D::Statistics stats{};
+        bool in_scene{ false };
     };
 
     static Renderer2DStorage s_data{};
-    static bool s_in_scene{ false };
 }
 
 namespace rke {
@@ -120,7 +119,7 @@ namespace rke {
             { u8"a_tex_id"	   , rke::ShaderDataType::Int },
             { u8"a_if_tex_grey", rke::ShaderDataType::Int },
             { u8"a_is_font"	   , rke::ShaderDataType::Int },
-            { u8"a_entity_id"  , rke::ShaderDataType::Int } // EDITOR ONLY
+            { u8"a_entity_id"  , rke::ShaderDataType::Int }
         };
         data->vao->add_vbo(data->vbo, quad_vertex_layout);
 
@@ -154,11 +153,11 @@ namespace rke {
 
         auto handle{ app().get_windows_lib().get_current_context().val() };
         CORE_ASSERT(s_data.context_data.count(handle), u8"Renderer2D: Unregistered context!");
-        PerContextData* data{ s_data.context_data.at(handle).get() };
+        PerContextData& data{ *(s_data.context_data.at(handle)) };
 
-        data->ubo->bind(BindingPoint::UBO_Camera);
-        data->camera_buffer.view_proj = view_projection;
-        data->ubo->set_data(&(data->camera_buffer), sizeof(CameraData));
+        data.ubo->bind(BindingPoint::UBO_Camera);
+        data.camera_buffer.view_proj = view_projection;
+        data.ubo->set_data(&(data.camera_buffer), sizeof(CameraData));
     #ifdef RKE_ENABLE_STATISTICS
         s_data.stats.cam_set_count++;
     #endif
@@ -168,7 +167,7 @@ namespace rke {
     {
         RKE_PROFILE_FUNCTION();
 
-        s_in_scene = true;
+        s_data.in_scene = true;
         s_data.shader->bind();
         start_batch();
     }
@@ -176,30 +175,30 @@ namespace rke {
     void Renderer2D::end_scene()
     {
         RKE_PROFILE_FUNCTION();
-        s_in_scene = false;
+        s_data.in_scene = false;
         flush();
     }
 
     void Renderer2D::draw_quad(const Renderer2D::QuadProps& props)
     {
         RKE_PROFILE_FUNCTION();
-        CORE_ASSERT(s_in_scene, u8"Renderer2D: Call of draw_quad"
+        CORE_ASSERT(s_data.in_scene, u8"Renderer2D: Call of draw_quad"
             u8" should be between begin_sence and end_sence!");
 
         auto handle{ app().get_windows_lib().get_current_context().val() };
         CORE_ASSERT(s_data.context_data.count(handle),
             u8"Renderer2D: Drawing on an unregistered context!");
-        PerContextData* data{ s_data.context_data.at(handle).get() };
+        PerContextData& data{ *(s_data.context_data.at(handle)) };
 
-        if(data->index_count >= s_data.MAX_INDICES ||
-           s_data.texture_slot_index >= s_data.MAX_TEXTURE_SLOTS)
+        if(data.index_count >= s_data.MAX_INDICES
+        || s_data.texture_slot_index >= s_data.MAX_TEXTURE_SLOTS)
             { flush(); start_batch(); }
 
         // calculate position(CPU side)
         glm::mat4 transform {
-            glm::translate(glm::mat4(1.0f), props.position)
-          * glm::mat4_cast(glm::quat(glm::radians(props.rotation)))
-          * glm::scale	  (glm::mat4(1.0f), { props.size.x, props.size.y, 0.0f })
+            glm::translate(glm::mat4(1.0f), props.position) *
+            glm::mat4_cast(glm::quat(glm::radians(props.rotation))) *
+            glm::scale(glm::mat4(1.0f), { props.size.x, props.size.y, 0.0f })
         };
 
         // find texture id
@@ -232,10 +231,10 @@ namespace rke {
             s_data.quad_vertex_ptr->tex_id		  = tex_index;
             s_data.quad_vertex_ptr->if_tex_grey	  = static_cast<int>(props.make_tex_gray);
             s_data.quad_vertex_ptr->is_font		  = static_cast<int>(props.is_font);
-            s_data.quad_vertex_ptr->entity_id	  = props.entity_id; // EDITOR ONLY
+            s_data.quad_vertex_ptr->entity_id	  = props.entity_id;
             s_data.quad_vertex_ptr++; // stride: QuadVertexProps
         }
-        data->index_count += 6;
+        data.index_count += 6;
     #ifdef RKE_ENABLE_STATISTICS
         s_data.stats.quad_count++;
     #endif
@@ -290,19 +289,19 @@ namespace rke {
         auto handle{ app().get_windows_lib().get_current_context().val() };
         CORE_ASSERT(s_data.context_data.count(handle),
             u8"Renderer2D: Drawing on an unregistered context!");
-        PerContextData* data{ s_data.context_data.at(handle).get() };
-        data->index_count = 0;
+        PerContextData& data{ *(s_data.context_data.at(handle)) };
+        data.index_count = 0;
         s_data.texture_slot_index = 1; // set to the head
 
         if(s_data.quad_vertex_ptr != nullptr) 
         {
-            data->vbo->unmap();
+            data.vbo->unmap();
             s_data.quad_vertex_ptr = nullptr;
             CORE_ERROR(u8"Renderer2D: VBO was explicitly "
                 u8"unmapped before re-mapping. Check flush logic!");
         }
         s_data.quad_vertex_ptr = reinterpret_cast<QuadVertexProps*>
-            (data->vbo->map(GBuffer::Access::Write));
+            (data.vbo->map(GBuffer::Access::Write));
         CORE_ASSERT(s_data.quad_vertex_ptr, u8"Renderer2D: Failed to map vertex buffer!");
     }
 
@@ -313,23 +312,23 @@ namespace rke {
         auto handle{ app().get_windows_lib().get_current_context().val() };
         CORE_ASSERT(s_data.context_data.count(handle),
             u8"Renderer2D: Drawing on an unregistered context!");
-        auto& data{ s_data.context_data.at(handle) };
+        PerContextData& data{ *(s_data.context_data.at(handle)) };
 
         if(s_data.quad_vertex_ptr)
         {
-            data->vbo->unmap();
+            data.vbo->unmap();
             s_data.quad_vertex_ptr = nullptr;
         }
-        if(data->index_count == 0) return;
+        if(data.index_count == 0) return;
 
         // bind textures
         for(uint32 i{}; i < s_data.texture_slot_index; i++)
             s_data.texture_slots[i]->bind
                 (static_cast<uint32>(BindingPoint::Sampler2D_0) + i);
 
-        data->vao->bind();
-        RenderCommand::draw_indexed(data->index_count);
-        data->vao->unbind();
+        data.vao->bind();
+        RenderCommand::draw_indexed(data.index_count);
+        data.vao->unbind();
     #ifdef RKE_ENABLE_STATISTICS
         s_data.stats.drawcall_count++;
     #endif

@@ -10,7 +10,7 @@ layout(location = 3) in float a_tiling_factor;
 layout(location = 4) in int a_tex_id;
 layout(location = 5) in int a_if_tex_grey;
 layout(location = 6) in int a_is_font;
-layout(location = 7) in int a_entity_id; // EDITOR ONLY
+layout(location = 7) in int a_entity_id;
 
 layout(std140, binding = UBO_Camera) uniform Camera
 {
@@ -24,7 +24,7 @@ layout(location = 2) out float v_tiling_factor;
 layout(location = 3) out flat int v_tex_id;
 layout(location = 4) out flat int v_if_tex_grey;
 layout(location = 5) out flat int v_is_font;
-layout(location = 6) out flat int v_entity_id; // EDITOR ONLY
+layout(location = 6) out flat int v_entity_id;
 
 void main()
 {
@@ -35,7 +35,7 @@ void main()
 	v_tex_id      = a_tex_id;
 	v_if_tex_grey = a_if_tex_grey;
 	v_is_font	  = a_is_font;
-	v_entity_id	  = a_entity_id; // EDITOR ONLY
+	v_entity_id	  = a_entity_id;
 
 	gl_Position = u_camera.view_proj * vec4(a_position, 1.0);
 }
