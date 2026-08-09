@@ -63,6 +63,6 @@ export namespace rke
         std::vector<Renderable> cutout_queue_{};
         std::vector<Renderable> transparent_queue_{};
 
-        Ref<FrameBuffer> scene_fbo_{}; // has its ownership
+        Scope<FrameBuffer> scene_fbo_{};
     };
 }

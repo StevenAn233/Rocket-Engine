@@ -5,9 +5,8 @@
 module VertexArray;
 import :OpenGL;
 
-import Buffers;
 import Log;
-
+import Buffers;
 import Instrumentor;
 
 namespace {
@@ -45,8 +44,7 @@ namespace rke
     glVertexArray::~glVertexArray()
         { glDeleteVertexArrays(1, &renderer_id_); }
 
-    void glVertexArray::add_vbo(const Ref<VertexBuffer>& vbo,
-                                const BufferLayout& layout)
+    void glVertexArray::add_vbo(Ref<VertexBuffer> vbo, const BufferLayout& layout)
     {
         CORE_ASSERT(layout.get_elements().size(),
             u8"VertexBuffer: Layout has no elements!");
@@ -103,13 +101,28 @@ namespace rke
         }
         binding_index_++;
 
-        vbos_.push_back(vbo); // keep it alive
+        vbos_.push_back(std::move(vbo)); // keep it alive
     }
 
-    void glVertexArray::set_ibo(const Ref<IndexBuffer>& ibo)
+    void glVertexArray::set_ibo(Ref<IndexBuffer> ibo)
     {
         glVertexArrayElementBuffer(renderer_id_, ibo->get_renderer_id());
-        ibo_ = ibo; // keep it alive
+        ibo_ = std::move(ibo); // keep it alive
+    }
+
+    const VertexBuffer& glVertexArray::get_vbo(Size index) const
+    {
+        CORE_ASSERT(index < vbos_.size(), u8"glVertexArray: Out of bound!");
+        const VertexBuffer* ptr{ vbos_[index].get() };
+        CORE_ASSERT(ptr, u8"glVertexArray: Object null!");
+        return *ptr;
+    }
+
+    const IndexBuffer& glVertexArray::get_ibo() const
+    {
+        const IndexBuffer* ptr{ ibo_.get() };
+        CORE_ASSERT(ptr, u8"glVertexArray: Object null!");
+        return *ptr;
     }
 
     void glVertexArray::bind() const

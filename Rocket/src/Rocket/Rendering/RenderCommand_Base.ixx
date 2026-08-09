@@ -75,7 +75,7 @@ export namespace rke
             get_instance().draw_impl(start, end);
         }
         static void draw_quad() { draw(0, 4); }
-        static void draw_indexed(const Ref<VertexArray>& vao)
+        static void draw_indexed(const VertexArray& vao)
         {
             RKE_PROFILE_FUNCTION();
             get_instance().draw_indexed_impl(vao);
@@ -109,7 +109,7 @@ export namespace rke
         virtual void clear_depth_buffer_impl(uint32 fbo, float depth, int stencil) = 0;
 
         virtual void draw_impl(int start, int end) = 0;
-        virtual void draw_indexed_impl(const Ref<VertexArray>& vao) = 0;
+        virtual void draw_indexed_impl(const VertexArray& vao) = 0;
         virtual void draw_indexed_impl(int count) = 0;
     private:
         static RenderCommand& get_instance();

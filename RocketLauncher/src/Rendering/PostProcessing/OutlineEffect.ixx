@@ -31,7 +31,7 @@ export namespace rke
     private:
         void on_viewport_resized(uint32 w, uint32 h) override;
     private:
-        Ref<FrameBuffer> outline_fbo_{};
+        Scope<FrameBuffer> outline_fbo_{};
         Uniforms uniforms_{};
         Entity target_{};
     };

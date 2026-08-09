@@ -33,7 +33,7 @@ export namespace rke
         void on_viewport_resized(uint32 w, uint32 h);
         void clean_up() { fbos_[0]->clear(); fbos_[1]->clear(); }
     private:
-        Ref<FrameBuffer> fbos_[2]{};
+        Scope<FrameBuffer> fbos_[2]{};
         uint32 viewport_w_{}, viewport_h_{};
 
         EffectMap effects_{};

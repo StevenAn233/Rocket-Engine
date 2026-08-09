@@ -8,12 +8,12 @@ import Log;
 
 namespace rke
 {
-    Ref<FrameBuffer> FrameBuffer::create(FrameBuffer::Specification spec)
+    Scope<FrameBuffer> FrameBuffer::create(FrameBuffer::Specification spec)
     {
         switch(RenderBackend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
-            return create_ref<glFrameBuffer>(spec);
+            return create_scope<glFrameBuffer>(spec);
         default:
             CORE_ASSERT(false, u8"FrameBuffer: Other graphics api(s) not supported!");
         }

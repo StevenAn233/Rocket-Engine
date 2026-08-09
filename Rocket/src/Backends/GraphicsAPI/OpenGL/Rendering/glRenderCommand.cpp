@@ -144,16 +144,16 @@ namespace rke
     void glRenderCommand::draw_impl(int start, int end)
         { glDrawArrays(GL_TRIANGLE_STRIP, start, end); }
 
-    void glRenderCommand::draw_indexed_impl(const Ref<VertexArray>& vao)
+    void glRenderCommand::draw_indexed_impl(const VertexArray& vao)
     {
     #ifdef RKE_DEBUG
         GLint is_attrib_enabled{};
-        glGetVertexArrayIndexediv(vao->get(), 0, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &is_attrib_enabled);
+        glGetVertexArrayIndexediv(vao.get(), 0, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &is_attrib_enabled);
         if(!is_attrib_enabled)
             CORE_WARN(u8"glRenderCommand: Vertex Attribute 0 is NOT enabled!");
     #endif // RKE_DEBUG
 
-        glDrawElements(GL_TRIANGLES, vao->get_ibo()->get_count(), GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, vao.get_ibo().get_count(), GL_UNSIGNED_INT, nullptr);
     }
 
     void glRenderCommand::draw_indexed_impl(int count)

@@ -59,6 +59,9 @@ export namespace rke
             AttachmentSpecification attachment_spec{};
         };
 
+        FrameBuffer() = default;
+        virtual ~FrameBuffer() = default;
+
         FrameBuffer(const FrameBuffer&) = delete;
         FrameBuffer& operator=(const FrameBuffer&) = delete;
         FrameBuffer(FrameBuffer&&) = delete;
@@ -86,10 +89,7 @@ export namespace rke
         virtual const Texture2D* get_texture(int index = 0) const = 0;
         virtual const Specification& get_specification() const = 0;
 
-        static Ref<FrameBuffer> create(Specification spec);
-    protected:
-        FrameBuffer() = default;
-        virtual ~FrameBuffer() = default;
+        static Scope<FrameBuffer> create(Specification spec);
     private:
         virtual bool zero_sized() const = 0;
         virtual bool over_sized() const = 0;

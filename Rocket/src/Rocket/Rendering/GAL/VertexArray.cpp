@@ -8,12 +8,12 @@ import RenderBackend;
 
 namespace rke
 {
-    Ref<VertexArray> VertexArray::create()
+    Scope<VertexArray> VertexArray::create()
     {
         switch(RenderBackend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
-            return create_ref<glVertexArray>();
+            return create_scope<glVertexArray>();
         default:
             CORE_ASSERT(false, u8"VertexArray: Other graphics api(s) not supported!");
         }

@@ -39,7 +39,7 @@ namespace {
 
     struct PerContextData
     {
-        Ref<VertexArray  > vao{};
+        Scope<VertexArray> vao{};
         Ref<VertexBuffer > vbo{}; // a huge vbo(for one context)
         Ref<IndexBuffer  > ibo{}; // a huge ibo(for one context)
         Ref<UniformBuffer> ubo{};
