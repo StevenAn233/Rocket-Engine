@@ -52,7 +52,7 @@ export namespace rke
 
         static RKE_API void draw_quad(const QuadProps& props);
         static RKE_API void draw_text(const String& text,
-            Ref<Font> font, glm::vec3 position_, float scale = 1.0f,
+            Font& font, glm::vec3 position_, float scale = 1.0f,
             glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f });
     private:
         static void start_batch();

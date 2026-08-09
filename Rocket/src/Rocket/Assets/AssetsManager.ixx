@@ -1,6 +1,5 @@
 ﻿module;
 
-#include <variant>
 #include "rke_macros.h"
 
 export module AssetsManager;
@@ -28,7 +27,7 @@ export namespace rke
         // Mesh...
     };
 
-    struct RKE_API EmptySettings {};
+    struct RKE_API EmptySettings { uint64 padding{}; };
 
     struct RKE_API TextureSettings
     {
@@ -40,35 +39,37 @@ export namespace rke
 //  struct RKE_API MeshSettings  {...}
 //  struct RKE_API AudioSettings {...}
 
-    using AssetSettings = std::variant <
-        EmptySettings,
-        TextureSettings
-    //  MeshSettings, etc.
-    >;
-
-    struct AssetMeta
+    union AssetSettings
     {
-        Path path{};
-        AssetType type{ AssetType::None };
-        AssetSettings settings{};
-        AssetHandle handle{}; // 0 for invalid/empty
-
-        AssetUUID parent_uuid{ 0 };
+        EmptySettings empty;
+        TextureSettings tex;
     };
 
     class RKE_API AssetsManager
     {
     public:
         static void scan_assets_directory(const Path& root_dir);
-        static AssetUUID get_or_create_sub_uuid(AssetUUID uuid, const AssetSettings& settings);
+        static AssetUUID get_sub_uuid(AssetUUID uuid, AssetSettings settings);
 
         static AssetHandle load_asset(AssetUUID uuid);
+
+        template<typename T>
+        static consteval AssetType get_asset_type()
+        {
+            if constexpr(std::is_same_v<T, Texture2D>)
+                return AssetType::Texture;
+            else if constexpr(std::is_same_v<T, Shader>)
+                return AssetType::Shader;
+            else if constexpr(std::is_same_v<T, Font>)
+                return AssetType::Font;
+            else return AssetType::None;
+        }
+
         template<typename T>
         static T* get_asset(AssetHandle handle)
         {
-            void* raw_ptr{ get_asset_internal(handle) };
-            if(!raw_ptr) return nullptr;
-            return static_cast<T*>(raw_ptr);
+            return static_cast<T*>
+                (get_asset_internal(handle, get_asset_type<T>()));
         }
 
         static bool is_asset_loaded(AssetUUID uuid);
@@ -78,12 +79,6 @@ export namespace rke
         static const AssetSettings& get_asset_settings(AssetUUID uuid);
         static AssetUUID get_asset_uuid(const Path& path);
     private:
-        static void* get_asset_internal(AssetHandle handle);
-        static void register_asset(AssetUUID uuid, const Path& path, AssetType type,
-                                   AssetSettings settings, AssetUUID parent);
-
-        static Ref<Texture2D> load_texture(const AssetMeta& meta);
-        static Ref<Shader> load_shader(const AssetMeta& meta);
-        static Ref<Font> load_font(const AssetMeta& meta);
+        static void* get_asset_internal(AssetHandle handle, AssetType type);
     };
 }

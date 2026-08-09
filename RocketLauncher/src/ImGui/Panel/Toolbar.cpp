@@ -3,7 +3,7 @@ module Toolbar;
 
 namespace rke
 {
-    IconButton::IconButton(String name, String str_id, Ref<Texture2D> icon,
+    IconButton::IconButton(String name, String str_id, Scope<Texture2D> icon,
                            std::function<void(IconButton*)> on_click,
                            std::function<bool()> is_enabled, bool visible)
         : name_(std::move(name)), str_id_(std::move(str_id)), icon_(std::move(icon))
@@ -77,7 +77,7 @@ namespace rke
     }
 
     void Toolbar::emplace_icon_button(String name, 
-        Ref<Texture2D> icon, std::function<void(IconButton*)> on_click,
+        Scope<Texture2D> icon, std::function<void(IconButton*)> on_click,
         std::function<bool()> is_enabled, bool visible)
     {
         Size count{ icon_buttons_.size() + 1 };

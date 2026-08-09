@@ -29,6 +29,9 @@ export namespace rke
         enum class FiltFormat : uint32 { Linear	= 0, Nearest };
         enum class WrapFormat : uint32 { Clamp2Edge = 0, Repeat };
 
+        Texture() = default;
+        virtual ~Texture() = default;
+
         Texture(const Texture&) = delete;
         Texture& operator=(const Texture&) = delete;
         Texture(Texture&&) = delete;
@@ -77,23 +80,22 @@ export namespace rke
             };
             return math::calc_uv(min, max);
         }
-    protected:
-        Texture() = default;
-        virtual ~Texture() = default;
     };
 
     class RKE_API Texture2D : public Texture
     {
     public:
-        static Ref<Texture2D> create(uint32 w, uint32 h,
-            Format format, FiltFormat filt = FiltFormat::Linear);
-        static Ref<Texture2D> create(const Path& filepath,
-            FiltFormat filt = FiltFormat::Linear,
-            WrapFormat wrap = WrapFormat::Clamp2Edge, bool srgb = true);
-        static Ref<Texture2D> create_from_id
-            (uint32 renderer_id, uint32 w, uint32 h, Format format);
-    protected:
         Texture2D() = default;
         ~Texture2D() override = default;
+
+        static Scope<Texture2D> create(uint32 w, uint32 h,
+            Format format, FiltFormat filt = FiltFormat::Linear);
+
+        static Scope<Texture2D> create(const Path& filepath,
+            FiltFormat filt = FiltFormat::Linear,
+            WrapFormat wrap = WrapFormat::Clamp2Edge, bool srgb = true);
+        
+        static Scope<Texture2D> create_from_id(uint32 renderer_id,
+            uint32 w, uint32 h, Format format);
     };
 }

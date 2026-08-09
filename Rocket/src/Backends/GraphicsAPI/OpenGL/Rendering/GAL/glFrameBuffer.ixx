@@ -44,7 +44,7 @@ namespace rke
         uint32 msaa_renderer_id_{};
         std::vector<uint32> msaa_attachments_{};
 
-        std::vector<Ref<Texture2D>> output_textures_{}; // serve as view/wrapper here
+        std::vector<Scope<Texture2D>> output_textures_{}; // serve as view/wrapper here
 
     // for read_pixel()
         Ref<PixelBuffer> pixel_pbo_{};

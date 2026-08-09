@@ -10,22 +10,19 @@ export namespace rke
     public:
         friend class Toolbar;
 
-        IconButton(String name, String str_id, Ref<Texture2D> icon,
+        IconButton(String name, String str_id, Scope<Texture2D> icon,
                    std::function<void(IconButton*)> on_click,
                    std::function<bool()> is_enabled, bool visible);
-
-        void set_icon(Ref<Texture2D> icon) { icon_ = icon; }
     private:
         void render(float size); // only square supported now
     private:
-        String name_{};
-        String str_id_{};
+        String name_;
+        String str_id_;
 
-        Ref<Texture2D> icon_{};
-
-        std::function<void(IconButton*)> on_click_{};
-        std::function<bool()> is_enabled_{};
-        bool visible_{ true };
+        Scope<Texture2D> icon_;
+        std::function<void(IconButton*)> on_click_;
+        std::function<bool()> is_enabled_;
+        bool visible_;
     };
 
     class Toolbar : public Panel
@@ -34,7 +31,7 @@ export namespace rke
         Toolbar(String name) : Panel(std::move(name)) {}
 
         void emplace_icon_button(String name,
-            Ref<Texture2D> icon,
+            Scope<Texture2D> icon,
             std::function<void(IconButton*)> on_click,
             std::function<bool()> is_enabled = nullptr,
             bool visible = true);

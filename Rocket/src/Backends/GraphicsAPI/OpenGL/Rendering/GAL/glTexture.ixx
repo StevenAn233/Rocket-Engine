@@ -28,7 +28,7 @@ namespace rke
         void bind(BindingPoint point) const override;
         void bind(uint32 slot) const override;
     private:
-        bool owns_texture_; // may need to change
+        bool owns_texture_; // TO MODIFY
 
         uint32 width_{}, height_{};
         uint32 renderer_id_{};

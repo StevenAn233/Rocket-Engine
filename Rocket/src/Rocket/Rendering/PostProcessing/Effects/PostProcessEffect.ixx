@@ -49,7 +49,7 @@ export namespace rke
     protected:
         String name_;
         Ref<UniformBuffer> ubo_{};
-        Ref<Shader> shader_{};
+        Scope<Shader> shader_{};
     private:
         std::function<bool()> enabled_situation_{};
     };

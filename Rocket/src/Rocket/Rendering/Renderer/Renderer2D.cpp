@@ -63,8 +63,8 @@ namespace {
             glm::vec4( 0.5f, -0.5f, 0.0f, 1.0f)
         };
 
-        Ref<Shader> shader{};
-        Ref<Texture2D> default_texture{};
+        Scope<Shader> shader{};
+        Scope<Texture2D> default_texture{};
 
         std::array<Texture2D*, MAX_TEXTURE_SLOTS> texture_slots{};
         uint32 texture_slot_index{ 1 }; // 0 for default texture
@@ -241,34 +241,34 @@ namespace rke {
     #endif
     }
 
-    void Renderer2D::draw_text(const String& text, Ref<Font> font,
-                               glm::vec3 pos, float scale, glm::vec4 color)
+    void Renderer2D::draw_text(const String& text,
+        Font& font, glm::vec3 pos, float scale, glm::vec4 color)
     {
         RKE_PROFILE_FUNCTION();
 
-        auto* char_data{ static_cast<const stbtt_packedchar*>(font->get_char_data()) };
+        auto* char_data{ static_cast<const stbtt_packedchar*>(font.get_char_data()) };
         float x{}, y{};
         for(const char* c{ text.raw() }; *c; c++) // should be safe with String
         {
             stbtt_aligned_quad quad{};
             stbtt_GetPackedQuad(char_data,
-                font->get_atlas_size(), font->get_atlas_size(),
+                font.get_atlas_size(), font.get_atlas_size(),
                 static_cast<int>(*c - 32), &x, &y, &quad, 0);
 
             if(*c == ' ') continue;
 
             static QuadProps props{};
             props.position = {
-                ( (quad.x0 + quad.x1) * (scale / font->get_font_size()) / 2.0f) + pos.x,
-                (-(quad.y0 + quad.y1) * (scale / font->get_font_size()) / 2.0f) + pos.y, // flip manully
+                ( (quad.x0 + quad.x1) * (scale / font.get_font_size()) / 2.0f) + pos.x,
+                (-(quad.y0 + quad.y1) * (scale / font.get_font_size()) / 2.0f) + pos.y, // flip manully
                 pos.z
             };
             props.size = {
-                -(quad.x1 - quad.x0) * (scale / font->get_font_size()), // flip manully
-                 (quad.y1 - quad.y0) * (scale / font->get_font_size())
+                -(quad.x1 - quad.x0) * (scale / font.get_font_size()), // flip manully
+                 (quad.y1 - quad.y0) * (scale / font.get_font_size())
             };
-            props.color   = color;
-            props.texture = font->get_font_atlas().get();
+            props.color = color;
+            props.texture = font.get_font_atlas();
 
             props.uv_coords[0] = { quad.s1, quad.t1 };
             props.uv_coords[1] = { quad.s0, quad.t1 };

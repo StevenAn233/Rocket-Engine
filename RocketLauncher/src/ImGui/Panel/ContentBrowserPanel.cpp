@@ -127,9 +127,11 @@ namespace rke
             uint32 icon_id{ entry.is_directory() ?
                 folder_icon_->get_renderer_id () :
                 get_file_icon(file_name)->get_renderer_id() };
-            ImGui::ImageButton(file_name.raw(), static_cast<ImTextureID>(icon_id),
-                              { thumbnail_size, thumbnail_size }, { 0, 1 }, { 1, 0 },
-                              { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f });
+            ImGui::ImageButton(file_name.raw(),
+                static_cast<ImTextureID>(icon_id),
+                { thumbnail_size, thumbnail_size }, { 0, 1 }, { 1, 0 },
+                { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }
+            );
         
             Project* project{ app().get_project() };
             if(entry.path().extension() == u8".rkscene" && project)
@@ -221,10 +223,10 @@ namespace rke
         thumbnail_scale_ = reader->get_at(u8"Thumbnail Scale", thumbnail_scale_);
     }
 
-    Ref<Texture2D> ContentBrowserPanel::get_file_icon(const String& file_name)
+    Texture2D* ContentBrowserPanel::get_file_icon(const String& file_name)
     {
         if(file_name.ends_with(u8".png") || file_name.ends_with(u8".jpg"))
-            return image_icon_;
-        return file_icon_;
+            return image_icon_.get();
+        return file_icon_.get();
     }
 }

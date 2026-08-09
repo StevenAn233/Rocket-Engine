@@ -9,7 +9,7 @@ import ConfigProxy;
 
 namespace rke
 {
-    Ref<Shader> Shader::create(const Path& shader_path)
+    Scope<Shader> Shader::create(const Path& shader_path)
     {
         if(!shader_path.exists()) {
             CORE_ERROR(u8"Shader: Config file '{}' not found!", shader_path);
@@ -36,7 +36,7 @@ namespace rke
         switch(RenderBackend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
-            return create_ref<glShader>(name, paths);
+            return create_scope<glShader>(name, paths);
         default:
             CORE_ASSERT(false, u8"Shader: Other graphics api(s) not supported!");
         }

@@ -29,6 +29,9 @@ export namespace rke
     class RKE_API Shader
     {
     public:
+        Shader() = default;
+        virtual ~Shader() = default;
+
         Shader(const Shader&) = delete;
         Shader& operator=(const Shader&) = delete;
         Shader(Shader&&) = delete;
@@ -47,9 +50,6 @@ export namespace rke
         virtual const String& get_name() const = 0;
         virtual uint32 get_renderer_id() const = 0;
 
-        static Ref<Shader> create(const Path& shader_path);
-    protected:
-        Shader() = default;
-        virtual ~Shader() = default;
+        static Scope<Shader> create(const Path& shader_path);
     };
 }

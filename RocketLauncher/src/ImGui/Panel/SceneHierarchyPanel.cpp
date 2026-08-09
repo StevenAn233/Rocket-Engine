@@ -324,20 +324,20 @@ namespace rke
 
             if(tex_opened && sc.sprite.is_texture_loaded())
             {
-                AssetSettings settings{ AssetsManager::get_asset_settings(sc.sprite.tex_uuid) };
-                auto* tex_settings{ std::get_if<TextureSettings>(&settings) };
-                CORE_ASSERT(tex_settings, u8"SceneHierarchyPanel: Texture setting format incorrect!");
+                AssetSettings settings{ AssetsManager::
+                    get_asset_settings(sc.sprite.tex_uuid) }; // copied!
+                TextureSettings& tex_settings{ settings.tex };
+
                 layout::two_columns_table<u8"Filter">([&]()
                 {
                     static constexpr const char* items[]{ "Linear", "Nearest" };
-                    int option{ static_cast<int>(tex_settings->filt) };
+                    int option{ static_cast<int>(tex_settings.filt) };
 
                     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                     if(ImGui::Combo("##filt", &option, items, (int)std::size(items)))
                     {
-                        tex_settings->filt = static_cast<Texture::FiltFormat>(option);
-                        sc.sprite = Sprite(AssetsManager::
-                            get_or_create_sub_uuid(sc.sprite.tex_uuid, *tex_settings));
+                        tex_settings.filt = static_cast<Texture::FiltFormat>(option);
+                        sc.sprite = Sprite(AssetsManager::get_sub_uuid(sc.sprite.tex_uuid, settings));
                         context_->mark_modified();
                     }
                 });
@@ -345,15 +345,14 @@ namespace rke
                 layout::two_columns_table<u8"Wrapping">([&]()
                 {
                     static constexpr const char* items[]{ "Clamp to Edge", "Repeat" };
-                    int option{ static_cast<int>(tex_settings->wrap) };
+                    int option{ static_cast<int>(tex_settings.wrap) };
                 
                     float available_width{ ImGui::GetContentRegionAvail().x };
                     ImGui::SetNextItemWidth(available_width);
                     if(ImGui::Combo("##wrap", &option, items, (int)std::size(items)))
                     {
-                        tex_settings->wrap = static_cast<Texture::WrapFormat>(option);
-                        sc.sprite = Sprite(AssetsManager::
-                            get_or_create_sub_uuid(sc.sprite.tex_uuid, *tex_settings));
+                        tex_settings.wrap = static_cast<Texture::WrapFormat>(option);
+                        sc.sprite = Sprite(AssetsManager::get_sub_uuid(sc.sprite.tex_uuid, settings));
                         context_->mark_modified();
                     }
                 });

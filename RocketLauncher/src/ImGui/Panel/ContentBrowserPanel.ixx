@@ -19,8 +19,8 @@ export namespace rke
         void load_from(Path filepath);
     private:
         void on_imgui_render() override;
+        Texture2D* get_file_icon(const String& file_name);
 
-        Ref<Texture2D> get_file_icon(const String& file_name);
         inline void scale_icon(float extent = 1.0f)
             { thumbnail_scale_ *= std::sqrt(extent); }
     private:
@@ -29,9 +29,9 @@ export namespace rke
         Path context_{}; // project assets dir
         Path current_path_{};
 
-        Ref<Texture2D> folder_icon_{};
-        Ref<Texture2D> image_icon_ {};
-        Ref<Texture2D> file_icon_  {};
+        Scope<Texture2D> folder_icon_{};
+        Scope<Texture2D> image_icon_ {};
+        Scope<Texture2D> file_icon_  {};
         float thumbnail_scale_{ 1.0f };
 
         Scope<std::array<char, 256>> name_buffer_{};

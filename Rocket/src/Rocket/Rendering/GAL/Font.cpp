@@ -46,4 +46,6 @@ namespace rke
 
         delete[] temp_bitmap;
     }
+
+    Font::~Font() { delete[] char_data_; }
 }
