@@ -180,7 +180,7 @@ namespace rke
 
             if(transform_com.locked) {
                 context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Rotition">
+                    layout::drag_float3_control<u8"Rotation">
                     (
                         transform_com.rotation, 0.0f, glm::vec3(0.0f),
                         std::nullopt, std::nullopt, std::nullopt
@@ -437,8 +437,7 @@ namespace rke
                 }
             });
 
-            context_->mark_modified_if(ImGui::Checkbox
-                ("Rotation Fixed", &rbc.rotation_fixed));
+            context_->mark_modified_if(ImGui::Checkbox("Rotation Fixed", &rbc.rotation_fixed));
         });
 
         check_then_draw<BoxCollider2DComponent, u8"Box Collider 2D">(entity, [this](Entity ent)

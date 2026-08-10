@@ -60,22 +60,22 @@ namespace {
 
     static inline void attach_msaa_depth_texture(uint32 renderer_id,
         uint32& depth_attachment_id, int samples,
-        GLenum internal_format, GLenum attachement_type, uint32 w, uint32 h)
+        GLenum internal_format, GLenum attachment_type, uint32 w, uint32 h)
     {
         glTextureStorage2DMultisample(depth_attachment_id, samples, internal_format, w, h, GL_TRUE);
-        glNamedFramebufferTexture(renderer_id, attachement_type, depth_attachment_id, 0);
+        glNamedFramebufferTexture(renderer_id, attachment_type, depth_attachment_id, 0);
     }
 
     static inline void attach_depth_texture(uint32 renderer_id, uint32& depth_attachment_id,
-        GLenum internal_format, GLenum attachement_type, uint32 w, uint32 h)
+        GLenum internal_format, GLenum attachment_type, uint32 w, uint32 h)
     {
         glTextureStorage2D(depth_attachment_id, 1, internal_format, w, h);
-        glNamedFramebufferTexture(renderer_id, attachement_type, depth_attachment_id, 0);
+        glNamedFramebufferTexture(renderer_id, attachment_type, depth_attachment_id, 0);
     }
 
     static inline GLenum tex_format_to_gl_enum(Texture::Format fb_format)
     {
-        switch (fb_format)
+        switch(fb_format)
         {
         case Texture::Format::RGBA8:   return GL_RGBA8;
         case Texture::Format::RGB8:    return GL_RGB8;
