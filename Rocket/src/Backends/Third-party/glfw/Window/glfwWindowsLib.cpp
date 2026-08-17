@@ -22,7 +22,7 @@ namespace rke
             return NativeWindow(glfwGetCurrentContext());
             break;
         default:
-            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
+            CORE_ASSERT(false, u8"glfwWindowLib: Other APIs not supported!");
         }
         return NativeWindow();
     }
@@ -35,9 +35,12 @@ namespace rke
             glfwMakeContextCurrent(context.as<GLFWwindow>());
             break;
         default:
-            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
+            CORE_ASSERT(false, u8"glfwWindowLib: Other APIs not supported!");
         }
     }
+
+    bool WindowsLib::is_context_current(NativeWindow context)
+        { return get_current_context() == context; }
 
     WindowsLib::WindowsLib(std::function<void(Window&)> callback)
         : load_callback_(std::move(callback))

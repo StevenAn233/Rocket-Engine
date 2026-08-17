@@ -1,119 +1,29 @@
 ﻿module;
 
-#include <ImGuizmo.h>
-#include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_glfw.h>
-
-#include <GLFW/glfw3.h>
+#include <glfw/glfw3.h>
 
 module ImGuiSetup;
 
-import Log;
-import String;
-import FileUtils;
-import ImGuiStyle;
-import ConfigProxy;
-
-namespace {
-    using namespace rke;
-    static inline ImGuiIO& io() { return ImGui::GetIO(); }
-}
-
-namespace rke::imgui
+namespace rke::imgui::internal
 {
-    static const String& get_imgui_ini_path()
+    void init_window(NativeWindow context)
     {
-        static const String s_ini_path {
-            (file::editor_dir() / u8"settings" / u8"imgui.ini")
-        .string() };
-        return s_ini_path;
-    }
-
-    void init(NativeWindow context)
-    {
-    // Setup ImGui context
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        io().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-        io().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        io().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-        io().ConfigFlags |= ImGuiConfigFlags_IsSRGB;
-        io().IniFilename = get_imgui_ini_path().raw();
-
-    // Setup style
-        imgui::style::darktheme();
-        ImGuiStyle& style{ ImGui::GetStyle() };
-        style.CellPadding.y = 0.0f;
-        style.ItemSpacing.x = 4.0f;
-        style.ItemSpacing.y = 4.0f;
-        if(io().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-            // Bg for Background
-        }
-
-    // Setup fonts
-        Path config_path{ file::editor_dir() / u8"config" / u8"style.conf" };
-        auto reader{ ConfigReader::create(config_path) };
-        auto font_data{ reader ? reader->get_child(u8"Font") : nullptr };
-        Path font_path{};
-        float font_size_base{};
-        if(font_data) {
-            font_path = file::unify_path(font_data->get_at(u8"Path", String()));
-            font_size_base = font_data->get_at(u8"Size", 16.0f);
-        }
-        ImGui::GetStyle().FontSizeBase = font_size_base;
-
-        if(font_path.exists()) {
-            io().Fonts->Clear();
-            float high_res_font_size{ font_size_base * 2.0f };
-            ImFont* font{ io().Fonts->AddFontFromFileTTF
-                (font_path.string().raw(), high_res_font_size) };
-            CORE_ASSERT(font, u8"glfwImGuiLayer: Fail to load font!");
-        } else {
-            CORE_WARN(u8"glfwImGuiLayer: Font path '{}' not found!"
-                u8" Using default one.", font_path);
-        }
-
-    // Setup DPI scaling
-        io().ConfigDpiScaleFonts = true;
-        io().ConfigDpiScaleViewports = true;
-
-    // Setup platform/renderer backends
         ImGui_ImplGlfw_InitForOpenGL
             (reinterpret_cast<GLFWwindow*>(context.get()), true);
-        ImGui_ImplOpenGL3_Init("#version 430 core");
+        // TO MODIFY
     }
 
-    void shutdown()
-    {
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-    }
+    void shutdown_window() { ImGui_ImplGlfw_Shutdown(); }
 
-    void begin_render()
-    {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        ImGuizmo::BeginFrame();
-    }
+    void begin_render_window() { ImGui_ImplGlfw_NewFrame(); }
 
-    void end_render()
+    void end_render_window()
     {
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        // Issue: glBindSample(...) called here ^^^, which doesn't support mipmap;
-        // Causing RocketLauncher::Toolbar icons rendered terribly.
-
-        if(io().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        if(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-            GLFWwindow* cached{ glfwGetCurrentContext() };
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(cached);
         }
     }
 }

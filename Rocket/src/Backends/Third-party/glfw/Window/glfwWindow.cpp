@@ -1,6 +1,5 @@
 ﻿module;
 
-#include <GLAD/glad.h> // TO REMOVE
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
 
@@ -186,38 +185,17 @@ namespace rke
         glfwSetWindowPos(context_.as<GLFWwindow>(), props.x_coord, props.y_coord);
         glfwShowWindow(context_.as<GLFWwindow>());
 
-    // set OpenGL context(TO REMOVE)
         make_context_current();
-
-        switch(RenderBackend::get_graphics_api())
-        {
-        case GraphicsAPI::OpenGL: {
-            int succeeded{ gladLoadGLLoader(GLADloadproc(glfwGetProcAddress)) };
-            CORE_ASSERT(succeeded, u8"glad: Failed to initialize GLAD!");
-        } break;
-        default:
-            CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
-        }
-
-        CORE_INFO(u8R"(OpenGL Context created
-     -- OpenGL vendor  : {}
-     -- OpenGL renderer: {}
-     -- OpenGL version : {})",
-            (const char*)glGetString(GL_VENDOR  ),
-            (const char*)glGetString(GL_RENDERER),
-            (const char*)glGetString(GL_VERSION));
-
-        RenderCommand::enable_blend();
-        RenderCommand::disable_srgb(); // manually applied in ToneMapping
-        RenderCommand::enable_depth_test();
-    // TO REMOVE
+        RenderBackend::init_window_context(context_);
 
     // set window icon(after glfwCreateWindow)
         if(props.icon_path.exists())
         {
             int width{}, height{}, channels{};
-            stbi_uc* pixels{ stbi_load(props.icon_path.string().raw(),
-                                       &width, &height, &channels, 4) };
+            stbi_uc* pixels{ stbi_load (
+                props.icon_path.string().raw(),
+                &width, &height, &channels, 4
+            )};
             CORE_ASSERT(pixels, u8"glfwWindow: Failed to load window icon!");
 
             GLFWimage images[1]{};
@@ -321,9 +299,11 @@ namespace rke
         {
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
-            MouseScrolledEvent e{ data.name,
+            MouseScrolledEvent e {
+                data.name,
                 static_cast<float>(x_offset),
-                static_cast<float>(y_offset)};
+                static_cast<float>(y_offset)
+            };
             app().send_event(e);
         });
 
@@ -332,9 +312,11 @@ namespace rke
         {
             auto& data{ *reinterpret_cast<WindowData*>
                 (glfwGetWindowUserPointer(window)) };
-            MouseMovedEvent e{ data.name,
+            MouseMovedEvent e {
+                data.name,
                 static_cast<float>(x_coord),
-                static_cast<float>(y_coord)};
+                static_cast<float>(y_coord)
+            };
             app().send_event(e);
         });
     }
@@ -356,9 +338,18 @@ namespace rke
     {
         switch(RenderBackend::get_graphics_api())
         {
-        case GraphicsAPI::OpenGL: {
-            NativeWindow curr_ctx{ WindowsLib::get_current_context() };
-            WindowsLib::make_context_current(get_context());
+        case GraphicsAPI::OpenGL:
+            if(!WindowsLib::is_context_current(context_))
+            {
+                CORE_ERROR(u8"glfwWindow: This context is not currrent!");
+                return;
+            }
+        }
+
+        switch(RenderBackend::get_graphics_api())
+        {
+        case GraphicsAPI::OpenGL:
+        {
             if(data_.vsync_extent > 1.0f)
             {
                 CORE_WARN(u8"glfwWindow: V-sync extent can only be between 0.0 to 1.0.");
@@ -372,7 +363,6 @@ namespace rke
                 data_.vsync_extent = 0.0f;
             }
             else glfwSwapInterval(static_cast<int>(1.0f / data_.vsync_extent) + 0.5f);
-            WindowsLib::make_context_current(curr_ctx);
         } break;
         default:
             CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");

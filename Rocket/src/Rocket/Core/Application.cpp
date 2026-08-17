@@ -60,12 +60,16 @@ namespace rke
         {
             RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");
 
-            DeltaTime::update();
-            windows_lib_.update_all(DeltaTime::get());
+            for(auto& [_, window] : windows_lib_.map_)
+            {
+                window->make_context_current();
 
-            Renderer2D::reset_stats();
-            windows_lib_.render_all();
+                DeltaTime::update();
+                window->on_update(DeltaTime::get());
 
+                Renderer2D::reset_stats();
+                window->on_render();
+            }
             windows_lib_.refresh();
         }
     }

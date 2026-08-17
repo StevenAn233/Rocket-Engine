@@ -35,7 +35,6 @@ namespace rke
 
     void Window::on_event(Event& e)
     {
-        if(name_ != e.get_window_name()) return;
         for(auto it{ layer_stack_.rbegin() }; it != layer_stack_.rend(); ++it)
         {
             if(e.handled()) return;
@@ -46,7 +45,6 @@ namespace rke
     void Window::on_update(float dt)
     {
         check_layer_blocking();
-        make_context_current();
         for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
             it->get()->on_update(dt);
     }

@@ -18,20 +18,15 @@ namespace rke
             return true;
         });
         if(e.handled()) return;
-        for(auto& [_, window] : map_)
-            window->on_event(e);
-    }
 
-    void WindowsLib::update_all(float dt)
-    {
-        for(auto& [_, window] : map_)
-            window->on_update(dt);
-    }
-
-    void WindowsLib::render_all()
-    {
-        for(auto& [_, window] : map_)
-            window->on_render();
+        for(auto& [name, window] : map_)
+        {
+            if(e.get_window_name() == name)
+            {
+                window->on_event(e);
+                return;
+            }
+        }
     }
 
     Window& WindowsLib::load(String name, Scope<Window::Props> props)

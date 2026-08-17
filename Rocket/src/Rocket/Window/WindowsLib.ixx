@@ -33,6 +33,7 @@ export namespace rke
 
         static NativeWindow get_current_context();
         static void make_context_current(NativeWindow context);
+        static bool is_context_current(NativeWindow context);
 
         Window& load_main(Scope<Window::Props> props);
         void remove_main();
@@ -57,8 +58,6 @@ export namespace rke
         }
 
         void on_event(Event& e);
-        void update_all(float dt);
-        void render_all();
         Window& add(Scope<Window> window);
     private:
         WindowsMap map_{};
