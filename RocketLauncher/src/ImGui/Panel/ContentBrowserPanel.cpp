@@ -1,6 +1,11 @@
 ﻿module;
 module ContentBrowserPanel;
 
+namespace {
+    static void ImGui_ImplOpenGL3_DisableBindSampler(const ImDrawList*, const ImDrawCmd*)
+        { rke::imgui::disable_bind_sampler(); }
+}
+
 namespace rke
 {
     ContentBrowserPanel::ContentBrowserPanel(String name, std::function<const Path&()> func)
@@ -167,11 +172,16 @@ namespace rke
                     }
                 }
                 
+                ImGui::GetWindowDrawList()->AddCallback
+                    (ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
                 ImGui::Image (
                     std::bit_cast<void*>(static_cast<uint64>(icon_id)),
                     { thumbnail_size, thumbnail_size },
                     { 0, 1 }, { 1, 0 }
                 );
+                ImGui::GetWindowDrawList()->AddCallback
+                    (ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
+
                 ImGui::Text("%s", file_name.raw());
                 ImGui::EndDragDropSource();
             }
@@ -195,12 +205,14 @@ namespace rke
             Texture::FiltFormat::Linear,
             Texture::WrapFormat::Clamp2Edge, false);
     }
+
     void ContentBrowserPanel::set_image_icon(const Path& filepath)
     {
         image_icon_ = Texture2D::create(filepath,
             Texture::FiltFormat::Linear,
             Texture::WrapFormat::Clamp2Edge, false);
     }
+
     void ContentBrowserPanel::set_file_icon(const Path& filepath)
     {
         file_icon_ = Texture2D::create(filepath,

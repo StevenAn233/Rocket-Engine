@@ -31,6 +31,7 @@ export import MouseButtons;
 export import Window;
 export import Layer;
 
+export import ImGuiSetup;
 export import Layout;
 export import Panel;
 export import Modal;

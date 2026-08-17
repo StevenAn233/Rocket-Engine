@@ -1,13 +1,9 @@
 ﻿module;
 module Toolbar;
 
-import ImGuiSetup;
-
 namespace {
     static void ImGui_ImplOpenGL3_DisableBindSampler(const ImDrawList*, const ImDrawCmd*)
-    {
-        rke::imgui::disable_bind_sampler();
-    }
+        { rke::imgui::disable_bind_sampler(); }
 }
 
 namespace rke
@@ -28,13 +24,15 @@ namespace rke
         {
             if(now_disabled) ImGui::BeginDisabled();
 
-            ImGui::GetWindowDrawList()->AddCallback(ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
+            ImGui::GetWindowDrawList()->AddCallback
+                (ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
             if(ImGui::ImageButton(str_id_.raw(),
                 ImTextureRef(static_cast<ImTextureID>(icon_->get_renderer_id())),
                 { size, size }, { 0.0f, 1.0f }, { 1.0f, 0.0f },
                 { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }
             ))	{ if(on_click_) on_click_(this); }
-            ImGui::GetWindowDrawList()->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
+            ImGui::GetWindowDrawList()->AddCallback
+                (ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
 
             if(ImGui::IsItemHovered())
                 ImGui::SetTooltip("%s", name_.raw());
