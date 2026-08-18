@@ -131,31 +131,32 @@ namespace rke
 
 namespace rke
 {
-    static Scope<Application> s_instance{};
+    static Application* s_app_handle{};
 
-    static void register_instance(Scope<Application> instance)
+    static void register_instance(Application* handle)
     {
-        CORE_ASSERT(!s_instance, u8"Rocket: Instance already exists!");
-        s_instance = std::move(instance);
+        CORE_ASSERT(!s_app_handle, u8"Rocket: Instance already exists!");
+        s_app_handle = handle;
     }
 
-    static void unregister_instance() { s_instance.reset(); }
+    static void unregister_instance() { s_app_handle = nullptr; }
 
     Application& app()
     {
-        CORE_ASSERT(s_instance, u8"Rocket: Instance haven't been created!");
-        return *s_instance;
+        CORE_ASSERT(s_app_handle, u8"Rocket: Instance haven't been created!");
+        return *s_app_handle;
     }
 
     void execute(Scope<Application> instance)
     {
-        register_instance(std::move(instance));
         Project::init_templates(file::assets_dir() / u8"proj-templates");
-        
-        app().init();
-        app().run();
-        app().shutdown();
+        register_instance(instance.get()); // ownership still within function scope
+
+        instance->init();
+        instance->run();
+        instance->shutdown();
 
         unregister_instance();
+        instance.reset();
     }
 }
