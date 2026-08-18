@@ -3,16 +3,19 @@
 #include <utility>
 #include <memory>
 #include <filesystem>
+#include <unordered_map>
 #include "rke_macros.h"
 
 export module Project;
 
 import Types;
 import Scene;
+import SceneSerializer;
 import String;
 import Path;
 import HeapManager;
 import PhysicsLayers;
+import AssetsManager;
 
 export namespace rke
 {
@@ -32,7 +35,7 @@ export namespace rke
         friend class Application;
         friend struct std::default_delete<Project>;
 
-        Project() = default;
+        Project(const Path& rkproj_path);
         ~Project();
 
         struct Config // serialized in .rkproj file
@@ -59,13 +62,22 @@ export namespace rke
         inline const Config& get_config() const { return project_config_; }
         inline Config& get_config_mut() { return project_config_; }
 
+        inline AssetsManager& get_assets_manager() { return *assets_manager_; }
+
+        Scene* load_scene(const String& name, SceneSerializer& scene_serializer);
+        void save_scene(const Scene& scene, SceneSerializer& scene_serializer);
+        void save_scene(const String& name, SceneSerializer& scene_serializer);
+        void remove_scene(const String& name);
+
         static void init_templates(const Path& templates_path);
         static bool create_files(const Path& path);
-        static Scope<Project> load_from(const Path& path);
     private:
+        Path project_dir_; // to project folder
+        Path rkproj_path_; // to .rkproj file
         Config project_config_{};
-        Path project_dir_{}; // to project folder
-        Path rkproj_path_{}; // to .rkproj file
-        // SceneManager manager_;
+
+        std::unordered_map<String, Scope<Scene>> scene_map_{};
+        // SceneManager scene_manager_;
+        Scope<AssetsManager> assets_manager_{};
     };
 }

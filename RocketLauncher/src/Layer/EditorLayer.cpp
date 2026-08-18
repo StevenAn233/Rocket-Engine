@@ -26,8 +26,7 @@ namespace rke
     void EditorLayer::on_attach()
     {
         editor_setting_panel_ = create_scope<EditorSettingPanel>(u8"Editor Settings", this);
-        content_browser_panel_ = create_scope<ContentBrowserPanel>
-            (u8"Content Browser", [this]()-> const Path& { return scene_edit_path_; });
+        content_browser_panel_ = create_scope<ContentBrowserPanel>(u8"Content Browser");
         main_viewport_ = create_scope<Viewport>(u8"Main Viewport",
             [this]() { return main_output_; });
         cam_viewport_ = create_scope<Viewport>(u8"Camera Viewport",
@@ -35,14 +34,11 @@ namespace rke
 
         scene_serializer_.set_serialize_hook
         ([this](const Scene& scene, ConfigWriter& writer)
-        {
-            if(&scene != scene_edit_.get()) return;
-            editor_cam_.serialize_to(writer);
-        });
+            { editor_cam_.serialize_to(writer); });
 
-        scene_serializer_.set_deserialize_hook
-        ([this](Scene& scene, const ConfigReader& reader)
-            { editor_cam_.deserialize_from(reader); });
+    //  scene_serializer_.set_deserialize_hook
+    //  ([this](Scene& scene, const ConfigReader& reader)
+    //      { editor_cam_.deserialize_from(reader); });
 
     // Effects
         auto hovering{ create_scope<OutlineEffect>(u8"Hovering",
@@ -59,7 +55,7 @@ namespace rke
             [this]() -> bool {
                 Entity selected{ current_scene() ?
                     current_scene()->get_selected_entity() : Entity{} };
-                int selected_id{ selected.valid() ? static_cast<int>(selected.get_handle()) : -1 };
+                uint32 selected_id{ selected.valid() ? selected.get_handle() : entity_id_null };
                 return !Gizmo::is_using()
                     && editor_setting_panel_->selected_enabled_editor()
                     && !in_main_viewport_dragging_
@@ -130,11 +126,7 @@ namespace rke
             ),
             [this](IconButton*) {
                 Project* project{ app().get_project() };
-                if(project) {
-                    scene_edit_.reset();
-                    project->scripts_hot_reloading();
-                    load_scene_edit_from(scene_edit_path_);
-                }
+                if(project) project->scripts_hot_reloading();
             },
             [this]() { return editing(); }
         );
@@ -156,22 +148,22 @@ namespace rke
                 in_main_viewport_dragging_ = true;
                 const auto* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_SCENE") };
                 if(payload) {
-                    String data{ reinterpret_cast<const char8*>(payload->Data) };
-                    load_scene_edit_from(Path(data));
+                    String scene_name{ reinterpret_cast<const char8*>(payload->Data) };
+                    load_scene_edit(scene_name);
                 }
                 ImGui::EndDragDropTarget();
             }
             else in_main_viewport_dragging_ = false;
         // Entity Pop-up
             static bool in_popup{ false };
-            if(!scene_edit_ || (hovering_id_ == -1 && !in_popup)) return;
+            if(!scene_edit_ || (hovering_id_ == entity_id_null && !in_popup)) return;
             if(ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
             {
                 if(ImGui::IsWindowAppearing()) {
                     in_popup = true;
                     scene_edit_->set_selected_entity(hovering_id_);
                 }
-                entity_right_click_popup_content(scene_edit_.get());
+                entity_right_click_popup_content(scene_edit_);
                 ImGui::EndPopup();
             }
             else in_popup = false;
@@ -352,7 +344,7 @@ namespace rke
         {
             main_output_ = main_renderer_.render
             (
-                scene_edit_.get(),
+                scene_edit_,
                 editor_cam_.get_view_proj(),
                 editor_cam_.get_pos()
             );
@@ -361,12 +353,13 @@ namespace rke
              !(Gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
             {
                 glm::vec2 vp_mouse{ main_viewport_->get_mouse_pos() };
-                hovering_id_ = main_renderer_.get_hovering_id(vp_mouse.x, vp_mouse.y);
+                hovering_id_ = static_cast<uint32>(main_renderer_
+                    .get_hovering_id(vp_mouse.x, vp_mouse.y));
             }
-            else hovering_id_ = -1;
+            else hovering_id_ = entity_id_null;
 
             if(scene_edit_) {
-                Entity target{ scene_edit_->get_entity(static_cast<uint32>(hovering_id_)) };
+                Entity target{ scene_edit_->get_entity(hovering_id_) };
                 hovering_outline_->set_target(target);
             }
 
@@ -376,7 +369,7 @@ namespace rke
                 // switch to cam demo viewport size
                 auto size{ cam_viewport_->get_size() };
                 scene_edit_->set_viewport(size.x, size.y);
-                cam_output_ = cam_renderer_.render_demo_cam(scene_edit_.get());
+                cam_output_ = cam_renderer_.render_demo_cam(scene_edit_);
                 scene_edit_->set_viewport(size.x, size.y);
             }
             else cam_output_ = nullptr;
@@ -415,62 +408,36 @@ namespace rke
 
         scene_edit_->set_selected_entity(scene_test_->get_selected_entity().get_uuid());
 
-        attach_scene(scene_edit_.get());
+        attach_scene(scene_edit_);
         scene_test_.reset();
-    }
-
-    Scope<Scene> EditorLayer::load_scene_from(const Path& path)
-    {
-        if(!path.exists()) {
-            CORE_ERROR(u8"EditorLayer: Scene '{}' not found!", path);
-            return nullptr;
-        }
-
-        Scope<Scene> scene{ create_scope<Scene>() };
-        if(scene_serializer_.deserialize(*scene, path))
-        {
-            CORE_INFO(u8"Project: Scene '{}' loaded.", path);
-            return scene;
-        }
-        CORE_ERROR(u8"Project: Could not load scene '{}'!", path);
-        return nullptr;
-    }
-
-    bool EditorLayer::load_scene_edit_from(const Path& path)
-    {
-        scene_edit_ = load_scene_from(path);
-        scene_edit_path_ = std::move(path);
-        attach_scene(scene_edit_.get());
-        return true;
     }
 
     bool EditorLayer::load_scene_edit(const String& name)
     {
-        if(name.empty()) {
-            CORE_ERROR(u8"EditorLayer: Scene name empty!");
-            goto error;
-        }
         if(!app().get_project()) {
             CORE_ERROR(u8"EditorLayer: No project loaded!");
-            goto error;
+            clear_scene_edit();
+            return false;
         }
-        return load_scene_edit_from(app().get_project()
-            -> get_scenes_dir() / (name + u8".rkscene"));
-    error:
-        clear_scene_edit();
-        return false;
+        scene_edit_ = app().get_project()->load_scene(name, scene_serializer_);
+    // TO MODIFY
+        Scope<ConfigReader> reader{ ConfigReader::create(scene_edit_->get_path()) };
+        editor_cam_.deserialize_from(*reader);
+    // TO MODIFY
+        attach_scene(scene_edit_);
+        return true;
     }
 
     void EditorLayer::save_scene_edit()
     {
-        if(editing()) scene_serializer_
-            .serialize(*scene_edit_, scene_edit_path_);
+        if(!scene_edit_) return;
+        if(editing() && app().get_project())
+            app().get_project()->save_scene(*scene_edit_, scene_serializer_);
     }
 
     void EditorLayer::clear_scene_edit()
     {
-        scene_edit_.reset();
-        scene_edit_path_.clear();
+        scene_edit_ = nullptr;
         attach_scene(nullptr);
     }
 
@@ -484,7 +451,7 @@ namespace rke
             scene->set_viewport(size.x, size.y);
         }
 
-        hovering_id_ = -1;
+        hovering_id_ = entity_id_null;
         main_output_ = nullptr;
         cam_output_  = nullptr;
         main_renderer_.clean_up();
@@ -493,7 +460,7 @@ namespace rke
 
     Scene* EditorLayer::current_scene()
     {
-        if(editing()) return scene_edit_.get();
+        if(editing()) return scene_edit_;
         if(testing()) return scene_test_.get();
         return nullptr;
     }

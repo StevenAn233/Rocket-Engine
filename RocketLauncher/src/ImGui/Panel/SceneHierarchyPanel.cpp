@@ -280,6 +280,7 @@ namespace rke
         check_then_draw<SpriteComponent, u8"Sprite">(entity, [this](Entity ent)
         {
             auto& sc{ ent.get_mut<SpriteComponent>() };
+            AssetsManager& assets_manager{ context_->get_owner()->get_assets_manager() };
 
         // Texture
             bool no_texture{ !sc.sprite.has_texture() };
@@ -299,7 +300,7 @@ namespace rke
 
             float available_width{ ImGui::GetContentRegionAvail().x };
             String display_name{ no_texture ? u8"<No Texture>" :
-                AssetsManager::get_asset_path(sc.sprite.tex_uuid).filename().string() };
+                assets_manager.get_asset_path(sc.sprite.tex_uuid).filename().string() };
 
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
             if(ImGui::Button(display_name.raw(), ImVec2(available_width, 0.0f)))
@@ -324,7 +325,7 @@ namespace rke
 
             if(tex_opened && sc.sprite.is_texture_loaded())
             {
-                AssetSettings settings{ AssetsManager::
+                AssetSettings settings{ assets_manager.
                     get_asset_settings(sc.sprite.tex_uuid) }; // copied!
                 TextureSettings& tex_settings{ settings.tex };
 
@@ -337,7 +338,7 @@ namespace rke
                     if(ImGui::Combo("##filt", &option, items, (int)std::size(items)))
                     {
                         tex_settings.filt = static_cast<Texture::FiltFormat>(option);
-                        sc.sprite = Sprite(AssetsManager::get_sub_uuid(sc.sprite.tex_uuid, settings));
+                        sc.sprite = Sprite(assets_manager.get_sub_uuid(sc.sprite.tex_uuid, settings));
                         context_->mark_modified();
                     }
                 });
@@ -352,12 +353,12 @@ namespace rke
                     if(ImGui::Combo("##wrap", &option, items, (int)std::size(items)))
                     {
                         tex_settings.wrap = static_cast<Texture::WrapFormat>(option);
-                        sc.sprite = Sprite(AssetsManager::get_sub_uuid(sc.sprite.tex_uuid, settings));
+                        sc.sprite = Sprite(assets_manager.get_sub_uuid(sc.sprite.tex_uuid, settings));
                         context_->mark_modified();
                     }
                 });
 
-                auto tex{ AssetsManager::get_asset<Texture2D>(sc.sprite.tex_handle) };
+                Texture2D* tex{ assets_manager.get_asset<Texture2D>(sc.sprite.tex_handle) };
                 context_->mark_modified_if(layout::drag_float_control<u8"Tiling">
                     (sc.sprite.tiling_factor, 0.5f, 1.0f, glm::vec2(0.0f, 100.0f)));
                 context_->mark_modified_if (

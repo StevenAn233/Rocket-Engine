@@ -1,6 +1,7 @@
 ﻿module;
 
 #include <utility>
+#include "rke_macros.h"
 
 export module ProjectSettingPanel;
 
@@ -19,7 +20,7 @@ export namespace rke
         ProjectSettingPanel(String name) : Panel(std::move(name)) {}
         void set_aa(AntiAliasing aa_opt);
     private:
-        void on_imgui_render() override;
+        RKE_API void on_imgui_render() override;
         void draw_layer_collision_matrix(PhysicsLayers& layers);
     };
 }

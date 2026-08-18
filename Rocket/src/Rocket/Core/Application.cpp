@@ -81,7 +81,7 @@ namespace rke
 
     void Application::load_project(const Path& path)
     {
-        project_ = Project::load_from(path);
+        project_ = create_scope<Project>(path);
         if(project_) {
             project_setting_panel_.set_aa(project_->get_config().anti_aliasing);
             ProjectLoadedEvent event{ u8"main" };

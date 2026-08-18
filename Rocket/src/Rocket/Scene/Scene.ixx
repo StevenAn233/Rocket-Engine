@@ -3,6 +3,7 @@
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 #include "rke_macros.h"
+namespace rke { class Project; }
 
 export module Scene;
 
@@ -10,6 +11,7 @@ import Log;
 import UUID;
 import Types;
 import String;
+import Path;
 import Event;
 import MouseEvent;
 import ApplicationEvent;
@@ -69,9 +71,11 @@ export namespace rke
         RKE_API Entity(entt::entity handle, const Scene* scene);
         RKE_API Entity(uint32 handle, const Scene* scene);
     private:
-        entt::entity handle_{ entt::null };
-        const Scene* owner_scene_{ nullptr }; // doesn't own the scene
+        entt::entity handle_{ entt::null }; // version(12bits) + index(20bits)
+        const Scene* owner_scene_{ nullptr };
     };
+
+    constexpr uint32 entity_id_null{ 0xFFFFFFFFu };
 
     class RKE_API Scene
     {
@@ -82,14 +86,18 @@ export namespace rke
         friend class PhysicsEngine2D;
         friend class SceneRenderer;
 
-        Scene(String name = u8"Untitled");
-        Scene(const Scene&) = delete;
-        Scene(Scene&&) = delete;
+        Scene(Project* owner, String name = u8"Untitled");
         ~Scene();
 
-        void set_name(String name);
-        const String& get_name() const { return name_; }
+        Scene(const Scene&) = delete;
+        Scene(Scene&&) = delete;
         
+        void set_name(String name);
+        inline const String& get_name() const { return name_; }
+        
+        inline Project* get_owner() const { return owner_; }
+        Path get_path() const;
+
         Scope<Scene> deep_copy(bool temp = true);
 
         Entity create_entity(String tag = u8"New Entity", UUID uuid = {});
@@ -150,6 +158,7 @@ export namespace rke
     private:
         void flush_destroy_queue();
     private:
+        Project* owner_;
         String name_;
 
         Scope<entt::registry> registry_{};

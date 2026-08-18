@@ -13,7 +13,7 @@ namespace {
 // Hash support(for sub-asset)
     struct SettingsHashers
     {
-        Size operator()(const EmptySettings&) const { return 0; }
+        Size operator()(const EmptySettings&) const { return 0ull; }
         Size operator()(const TextureSettings& s) const
         {
             Size h1{ std::hash<int >{}(static_cast<int>(s.filt)) };
@@ -32,39 +32,7 @@ namespace {
         }
     }
 
-// Static data/registry
-    using AssetData = std::unique_ptr<void, void(*)(void*)>;
-
-    struct AssetMeta
-    {
-        Path asset_path{};
-        AssetType type{ AssetType::None };
-        AssetSettings settings{};
-
-        AssetHandle handle{}; // 0 for invalid/empty
-        AssetUUID parent_uuid{ 0 };
-    };
-
-    struct RuntimeAsset
-    {
-        AssetData data{ nullptr, nullptr };
-        AssetType type{ AssetType::None };
-    };
-
-    static std::unordered_map<AssetUUID, AssetMeta> s_asset_registry{};
-    static std::unordered_map<AssetUUID, std::vector<AssetUUID>> s_asset_families{};
-    static std::vector<RuntimeAsset> s_runtime_assets{};
-
 // Helpers
-    static AssetHandle allocate_handle()
-    {
-        if(s_runtime_assets.empty())
-            s_runtime_assets.emplace_back(); // Dummy for Handle 0
-    
-        s_runtime_assets.emplace_back();
-        return static_cast<AssetHandle>(s_runtime_assets.size() - 1);
-    }
-
     static AssetType get_asset_type_from_extension(const Path& filepath)
     {
         if(filepath.extension().string() == u8".png")
@@ -98,8 +66,7 @@ namespace {
         return settings;
     }
 
-    static void write_settings(AssetType type,
-        const AssetSettings& settings, ConfigDocument& doc)
+    static void write_settings(AssetType type, const AssetSettings& settings, ConfigDocument& doc)
     {
         if(!doc.is_map()) {
             CORE_ERROR(u8"AssetsManager: Doc is not a map!");
@@ -125,55 +92,32 @@ namespace {
             [](void* ptr) { delete static_cast<T*>(ptr); } );
     }
 
-// functions
-    static void register_asset(AssetUUID uuid, const Path& path,
-        AssetType type, AssetSettings settings, AssetUUID parent)
-    {
-        if(s_asset_registry.contains(uuid)) {
-            CORE_ERROR(u8"AssetsManager: UUID collision "
-                u8"or duplicate registration for '{}'!", uuid.value());
-            return;
-        }
-        s_asset_registry[uuid] = { path, type, settings, 0, parent };
-    }
-
-    static Scope<Texture2D> load_texture(const AssetMeta& meta)
-    {
-        const Path& path{ meta.asset_path };
-        if(path.empty() || !path.exists()) return nullptr;
-
-        const TextureSettings& settings{ meta.settings.tex };
-        return Texture2D::create(path, settings.filt, settings.wrap, settings.srgb);
-    }
-
-    static Scope<Shader> load_shader(const AssetMeta& meta)
-    {
-        const Path& path{ meta.asset_path };
-        if(path.empty() || !path.exists()) return nullptr;
-        return Shader::create(path);
-    }
-
-    static Scope<Font> load_font(const AssetMeta& meta)
-    {
-        const Path& path{ meta.asset_path };
-        if(path.empty() || !path.exists()) return nullptr;
-        return create_scope<Font>(path);
-    }
+    static constexpr uint32 extract_index(AssetHandle handle)
+        { return static_cast<uint32>(static_cast<uint64>(handle)); }
+    static constexpr uint32 extract_version(AssetHandle handle)
+        { return static_cast<uint32>(static_cast<uint64>(handle) >> 32); }
 }
 
 namespace rke
 {
-    void AssetsManager::scan_assets_directory(const Path& root_dir)
-    {
-        s_asset_registry.clear();
-        s_asset_families.clear();
-        s_runtime_assets.clear();
+    AssetsManager::AssetsManager(const Path& assets_dir) { rescan(assets_dir); }
 
+    void AssetsManager::clear()
+    {
+        asset_registry_.clear();
+        asset_families_.clear();
+        runtime_assets_.clear();
+        // don't clear version info here!
+    }
+
+    void AssetsManager::rescan(const Path& assets_dir)
+    {
+        clear();
     // 1. scan to extract asset/meta path
         std::vector<Path> all_files{};
         std::vector<Path> all_metas{};
         try {
-            for(const auto& entry : fs::recursive_directory_iterator(root_dir.get()))
+            for(const auto& entry : fs::recursive_directory_iterator(assets_dir.get()))
             {
                 if(!entry.is_regular_file()) continue;
                 
@@ -183,7 +127,7 @@ namespace rke
             }
         } catch(const std::exception& e) {
             CORE_ERROR(u8"AssetsManager: Failed to scan directory '{}': {}!",
-                root_dir, e.what());
+                assets_dir, e.what());
             return;
         }
 
@@ -206,12 +150,12 @@ namespace rke
 
                 AssetSettings settings{ extract_settings(type, *reader) };
                 register_asset(uuid, asset_path, type, settings, uuid);
-                s_asset_families[uuid].push_back(uuid); // requires to store itself!
+                asset_families_[uuid].push_back(uuid); // requires to store itself!
 
                 Scope<ConfigReader> sub_assets_reader{ reader->get_child(u8"SubAssets") };
                 if(sub_assets_reader && sub_assets_reader->is_array())
                 {
-                    std::vector<AssetUUID>& sub_uuids{ s_asset_families[uuid] };
+                    std::vector<AssetUUID>& sub_uuids{ asset_families_[uuid] };
                     sub_assets_reader->for_each([&](Scope<ConfigReader> reader)
                     {
                         if(!reader) return;
@@ -241,8 +185,9 @@ namespace rke
             }
         }
 
-    // 3. clean orphan metas
-        for(const Path& meta_path : all_metas) {
+    // 3. clean orphan meta files
+        for(const Path& meta_path : all_metas)
+        {
             if(valid_meta_paths.contains(meta_path.string())) continue;
             try {
                 fs::remove(meta_path.get());
@@ -254,11 +199,66 @@ namespace rke
         }
     }
 
+    AssetHandle AssetsManager::load_asset(AssetUUID uuid)
+    {
+        if(uuid.empty()) return asset_handle_null;
+
+        // check registry
+        auto it{ asset_registry_.find(uuid) };
+        if(it == asset_registry_.end()) {
+            CORE_ERROR(u8"AssetsManager: Unknown Asset UUID '{}'! "
+                u8"Did you forget to register it?", uuid.value());
+            return asset_handle_null;
+        }
+
+        // check handle
+        AssetMeta& meta{ it->second };
+        if(meta.handle != asset_handle_null) return meta.handle;
+
+        AssetData loaded_resource{ nullptr, nullptr };
+        CORE_INFO(u8"AssetsManager: Loading asset '{}' from '{}'...",
+            uuid.value(), meta.asset_path);
+        switch(meta.type)
+        {
+        case AssetType::Texture: {
+            Scope<Texture2D> tex{ load_texture(meta) };
+            loaded_resource = to_asset_data(std::move(tex));
+        } break;
+        case AssetType::Shader: {
+            Scope<Shader> shader{ load_shader(meta) };
+            loaded_resource = to_asset_data(std::move(shader));
+        } break;
+        case AssetType::Font: {
+            Scope<Font> font{ load_font(meta) };
+            loaded_resource = to_asset_data(std::move(font));
+        } break;
+        default:
+            CORE_ERROR(u8"AssetsManager: Unknown asset type!");
+            return asset_handle_null;
+        }
+
+        if(!loaded_resource) {
+            CORE_ERROR(u8"AssetsManager: "
+                u8"Failed to load asset at '{}'", meta.asset_path);
+            return asset_handle_null;
+        }
+        CORE_INFO(u8"AssetsManager: Asset '{}' successfully loaded.", uuid.value());
+
+        AssetHandle handle{ allocate_handle() };
+        RuntimeAsset& asset{ runtime_assets_[extract_index(handle)] };
+        
+        asset.data = std::move(loaded_resource);
+        asset.type = meta.type;
+
+        meta.handle = handle;
+        return handle;
+    }
+
     AssetUUID AssetsManager::get_sub_uuid(AssetUUID uuid, AssetSettings settings)
     {
-        AssetUUID main_uuid{ s_asset_registry.at(uuid).parent_uuid };
-        auto it{ s_asset_registry.find(main_uuid) };
-        if(it == s_asset_registry.end()) {
+        AssetUUID main_uuid{ asset_registry_.at(uuid).parent_uuid };
+        auto it{ asset_registry_.find(main_uuid) };
+        if(it == asset_registry_.end()) {
             CORE_ERROR(u8"AssetsManager: UUID '{}' not found!", main_uuid.value());
             return AssetUUID(0);
         }
@@ -266,10 +266,10 @@ namespace rke
         const AssetMeta& main_meta{ it->second };
     // Find sub_uuid
         Size desired_hash{ get_settings_hash(main_meta.type, settings) };
-        if(s_asset_families.contains(main_uuid)) {
-            for(AssetUUID sub_uuid : s_asset_families[main_uuid])
+        if(asset_families_.contains(main_uuid)) {
+            for(AssetUUID sub_uuid : asset_families_[main_uuid])
             {
-                const AssetMeta& sub_meta{ s_asset_registry.at(sub_uuid) };
+                const AssetMeta& sub_meta{ asset_registry_.at(sub_uuid) };
                 CORE_ASSERT(main_meta.type == sub_meta.type,
                     u8"AssetManager: Sub asset must be as the same type as its main asset!");
                 if(get_settings_hash(main_meta.type, sub_meta.settings) == desired_hash)
@@ -296,113 +296,107 @@ namespace rke
             new_sub_uuid.value(), main_meta.asset_path);
 
         register_asset(new_sub_uuid, main_meta.asset_path, main_meta.type, settings, main_uuid);
-        s_asset_families[main_uuid].push_back(new_sub_uuid);
+        asset_families_[main_uuid].push_back(new_sub_uuid);
         return new_sub_uuid;
     }
 
     bool AssetsManager::is_asset_loaded(AssetUUID uuid)
     {
-        auto it{ s_asset_registry.find(uuid) };
-        if(it == s_asset_registry.end()) return false;
-        return it->second.handle != 0;
+        auto it{ asset_registry_.find(uuid) };
+        if(it == asset_registry_.end()) return false;
+        return it->second.handle != asset_handle_null;
     }
 
     bool AssetsManager::is_handle_valid(AssetHandle handle)
     {
-        return handle > 0 && handle < s_runtime_assets.size()
-            && s_runtime_assets[handle].data != nullptr;
+        if(handle == asset_handle_null) return false;
+        uint32 index{ extract_index(handle) };
+        return index < runtime_assets_.size()
+            && index < runtime_assets_version_.size()
+            && runtime_assets_[index].data.get() != nullptr
+            && runtime_assets_version_[index] == extract_version(handle);
     }
 
     const Path& AssetsManager::get_asset_path(AssetUUID uuid)
     {
-        auto it{ s_asset_registry.find(uuid) };
-        if(it == s_asset_registry.end()) {
+        auto it{ asset_registry_.find(uuid) };
+        if(it == asset_registry_.end()) {
             CORE_ERROR(u8"AssetsManager: Asset uuid '{}' not found!", uuid.value());
-            it = s_asset_registry.find(0);
+            it = asset_registry_.find(0);
         }
         return it->second.asset_path;
     }
 
     const AssetSettings& AssetsManager::get_asset_settings(AssetUUID uuid)
     {
-        auto it{ s_asset_registry.find(uuid) };
-        if(it == s_asset_registry.end()) {
+        auto it{ asset_registry_.find(uuid) };
+        if(it == asset_registry_.end()) {
             CORE_ERROR(u8"AssetsManager: Asset uuid '{}' not found!", uuid.value());
-            it = s_asset_registry.find(0);
+            it = asset_registry_.find(0);
         }
         return it->second.settings;
     }
 
     AssetUUID AssetsManager::get_asset_uuid(const Path& path)
     {
-        for(const auto& [uuid, meta] : s_asset_registry)
+        for(const auto& [uuid, meta] : asset_registry_)
             if((meta.asset_path == path) && (meta.parent_uuid == uuid))
                 return uuid;
         return AssetUUID(0);
     }
 
-    AssetHandle AssetsManager::load_asset(AssetUUID uuid)
+// private
+    AssetHandle AssetsManager::allocate_handle()
     {
-        if(uuid.empty()) return 0;
-
-        // check registry
-        auto it{ s_asset_registry.find(uuid) };
-        if(it == s_asset_registry.end()) {
-            CORE_ERROR(u8"AssetsManager: Unknown Asset UUID '{}'! "
-                u8"Did you forget to register it?", uuid.value());
-            return 0;
-        }
-
-        // check handle
-        AssetMeta& meta{ it->second };
-        if(meta.handle != 0) return meta.handle;
-
-        AssetData loaded_resource{ nullptr, nullptr };
-        CORE_INFO(u8"AssetsManager: Loading asset '{}' from '{}'...",
-            uuid.value(), meta.asset_path);
-        switch(meta.type)
-        {
-        case AssetType::Texture: {
-            Scope<Texture2D> tex{ load_texture(meta) };
-            loaded_resource = to_asset_data(std::move(tex));
-        } break;
-        case AssetType::Shader: {
-            Scope<Shader> shader{ load_shader(meta) };
-            loaded_resource = to_asset_data(std::move(shader));
-        } break;
-        case AssetType::Font: {
-            Scope<Font> font{ load_font(meta) };
-            loaded_resource = to_asset_data(std::move(font));
-        } break;
-        default:
-            CORE_ERROR(u8"AssetsManager: Unknown asset type!");
-            return 0;
-        }
-
-        if(!loaded_resource) {
-            CORE_ERROR(u8"AssetsManager: "
-                u8"Failed to load asset at '{}'", meta.asset_path);
-            return 0;
-        }
-        CORE_INFO(u8"AssetsManager: Asset '{}' successfully loaded.", uuid.value());
-
-        AssetHandle handle{ allocate_handle() };
-        RuntimeAsset& asset{ s_runtime_assets[handle] };
-        
-        asset.data = std::move(loaded_resource);
-        asset.type = meta.type;
-
-        meta.handle = handle;
-        return handle;
+        runtime_assets_.emplace_back(AssetData(nullptr, nullptr), AssetType::None);
+        while(runtime_assets_version_.size() < runtime_assets_.size())
+            runtime_assets_version_.push_back(0);
+        uint64 index_val{ runtime_assets_.size() - 1 };
+        runtime_assets_version_[index_val]++;
+        uint64 version_val{ static_cast<uint64>(runtime_assets_version_[index_val]) };
+        // downside cast should be fine because I don't think someone can load billions of assets...
+        return static_cast<AssetHandle>((version_val << 32) + (index_val & 0xFFFFFFFFull));
     }
 
-// private
-    void* AssetsManager::get_asset_internal(AssetHandle handle, AssetType type)
+    void AssetsManager::register_asset(AssetUUID uuid,
+        const Path& path, AssetType type, AssetSettings settings, AssetUUID parent)
+    {
+        if(asset_registry_.contains(uuid)) {
+            CORE_ERROR(u8"AssetsManager: UUID collision "
+                u8"or duplicate registration for '{}'!", uuid.value());
+            return;
+        }
+        asset_registry_.emplace(uuid, AssetMeta(path, type, settings, asset_handle_null, parent));
+    }
+
+    void* AssetsManager::get_asset_impl(AssetHandle handle, AssetType type)
     {
         if(!is_handle_valid(handle)) return nullptr;
-        RuntimeAsset& asset{ s_runtime_assets[handle] };
-        if(asset.type == AssetType::None) return nullptr;
+        RuntimeAsset& asset{ runtime_assets_[extract_index(handle)] };
         if(asset.type != type) return nullptr;
         return asset.data.get();
+    }
+
+    Scope<Texture2D> AssetsManager::load_texture(const AssetMeta& meta)
+    {
+        const Path& path{ meta.asset_path };
+        if(path.empty() || !path.exists()) return nullptr;
+
+        const TextureSettings& settings{ meta.settings.tex };
+        return Texture2D::create(path, settings.filt, settings.wrap, settings.srgb);
+    }
+
+    Scope<Shader> AssetsManager::load_shader(const AssetMeta& meta)
+    {
+        const Path& path{ meta.asset_path };
+        if(path.empty() || !path.exists()) return nullptr;
+        return Shader::create(path);
+    }
+
+    Scope<Font> AssetsManager::load_font(const AssetMeta& meta)
+    {
+        const Path& path{ meta.asset_path };
+        if(path.empty() || !path.exists()) return nullptr;
+        return create_scope<Font>(path);
     }
 }

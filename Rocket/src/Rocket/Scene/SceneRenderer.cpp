@@ -2,6 +2,7 @@
 module SceneRenderer;
 
 import Log;
+import Project;
 import Renderer2D;
 import Application;
 import RenderCommand;
@@ -157,8 +158,10 @@ namespace rke
             const auto& sc{ scene->registry_->
                 get<SpriteComponent>(static_cast<entt::entity>(renderable.entity)) };
             const auto& sprite{ sc.sprite }; // texture asset
-            auto* tex{ AssetsManager::get_asset<Texture2D>(sprite.tex_handle) };
-            Renderer2D::draw_quad ({
+            auto* tex{ scene->get_owner()->get_assets_manager()
+                .get_asset<Texture2D>(sprite.tex_handle) };
+            Renderer2D::draw_quad
+            ({
                 .position{ tc.position }, .rotation{ tc.rotation },
                 .size{ tc.size.x, tc.size.y }, .color { sc.color },
                 .uv_coords{ tex ?
@@ -208,15 +211,16 @@ namespace rke
 
             auto& sc{ view.get<SpriteComponent>(entity) };
             auto& sprite{ sc.sprite }; // texture asset
+            AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager() };
             if(sprite.has_texture() && !sprite.is_texture_loaded()) {
-                sprite.tex_handle = AssetsManager::load_asset(sprite.tex_uuid);
-                if(auto* tex{ AssetsManager::get_asset<Texture2D>(sprite.tex_handle) })
+                sprite.tex_handle = assets_manager.load_asset(sprite.tex_uuid);
+                if(auto* tex{ assets_manager.get_asset<Texture2D>(sprite.tex_handle) })
                     sprite.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
                 else {
                     CORE_ERROR(u8"SceneRenderer: UUID '{}' invalid! "
                         u8"It's been reset to 0!", sprite.tex_uuid.value());
                     sprite.tex_uuid = UUID(0); // uuid been reset here!
-                    sprite.tex_handle = 0;
+                    sprite.tex_handle = asset_handle_null;
                 }
             }
 

@@ -70,7 +70,7 @@ export namespace rke
     struct RKE_API Sprite // TO REMOVE
     {
         AssetUUID tex_uuid;
-        AssetHandle tex_handle{};
+        AssetHandle tex_handle{ asset_handle_null };
 
         float tiling_factor{ 1.0f };
         glm::vec2 cell_pixels{ 1.0f, 1.0f };
@@ -81,7 +81,7 @@ export namespace rke
         Sprite(AssetUUID id) : tex_uuid(id) {}
 
         bool has_texture() const { return !tex_uuid.empty(); }
-        bool is_texture_loaded() const { return tex_handle != 0; }
+        bool is_texture_loaded() const { return tex_handle != asset_handle_null; }
     };
 
     struct RKE_API SpriteComponent

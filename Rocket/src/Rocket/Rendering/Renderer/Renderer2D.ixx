@@ -45,7 +45,7 @@ export namespace rke
             float tiling_factor{ 1.0f };
             Texture2D* texture{};
             bool make_tex_gray{ false };
-            bool is_font	  { false };
+            bool is_font{ false };
 
             int entity_id{ -1 };
         };

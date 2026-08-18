@@ -34,9 +34,7 @@ export namespace rke
         void on_runtime_start();
         void on_runtime_stop ();
 
-        Scope<Scene> load_scene_from(const Path& path);
-        bool load_scene_edit_from(const Path& path); // Whole path given
-        bool load_scene_edit(const String& name); // Project scene-dir / name.rkscene
+        bool load_scene_edit(const String& name);
         void save_scene_edit();
         void clear_scene_edit();
         
@@ -63,9 +61,8 @@ export namespace rke
         OutlineEffect* hovering_outline_{};
         OutlineEffect* selected_outline_{};
 
-        int hovering_id_{ -1 };
-        Path scene_edit_path_{};
-        Scope<Scene> scene_edit_{};
+        uint32 hovering_id_{ entity_id_null };
+        Scene* scene_edit_{};
         Scope<Scene> scene_test_{}; // A copy of scene_edit_; Temporary.
         SceneSerializer scene_serializer_{};
 

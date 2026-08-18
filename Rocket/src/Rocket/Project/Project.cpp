@@ -2,7 +2,6 @@
 module Project;
 
 import Log;
-import SceneSerializer;
 import FileUtils;
 import ScriptLoader;
 import ScriptRegistry;
@@ -16,6 +15,44 @@ namespace rke
     static String s_cmake_presets_json{};
     static String s_myscript_ixx{};
     static String s_editorconfig{};
+
+    Project::Project(const Path& rkproj_path)
+        : rkproj_path_(rkproj_path), project_dir_(rkproj_path.parent_path())
+    {
+        assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
+
+        Scope<ConfigReader> reader{ ConfigReader::create(rkproj_path) };
+        auto& config{ project_config_ };
+        config.name = reader->get_at(u8"Project", String{});
+        if(config.name.empty()) {
+            CORE_ERROR(u8"Project: Invalid project file format in '{}'!", rkproj_path);
+            return;
+        }
+        
+        Scope<ConfigReader> config_reader{ reader->get_child(u8"Config") };
+        if(!config_reader)
+            CORE_ERROR(u8"Project: 'Config' not found in '{}'!", rkproj_path);
+        else {
+            Scope<ConfigReader> layers{ config_reader->get_child(u8"Physics Layers") };
+            if(layers) layers->for_each
+            ([&config](String name, Scope<ConfigReader> layer)
+            {
+                int idx{ std::stoi(name.raw()) };
+                if(idx >= 16) return;
+                config.physics_layers.set_name(static_cast<uint8>(idx),
+                    layer->get_at(u8"Name", PhysicsLayers::get_default_name()));
+                config.physics_layers.set_mask(static_cast<uint8>(idx),
+                    layer->get_at(u8"Mask", PhysicsLayers::get_default_mask()));
+            });
+            uint8 showed_layers{ static_cast<uint8>
+                (config_reader->get_at(u8"Showed Layers", 1ui32)) };
+            config.physics_layers.set_showed_layer_count(showed_layers);
+            config.anti_aliasing = static_cast<AntiAliasing>(config_reader->
+                get_at(u8"Anti-Aliasing", static_cast<int>(AntiAliasing::MSAAx4)));
+        }
+        CORE_INFO(u8"Project: Project '{}' loaded.", rkproj_path_);
+        scripts_hot_reloading();
+    }
 
     Project::~Project()
     {
@@ -68,6 +105,54 @@ namespace rke
         return ScriptLoader::load_dylib(dylib_dir, project_config_.name);
     }
 
+    Scene* Project::load_scene(const String& name, SceneSerializer& scene_serializer)
+    {
+        if(scene_map_.contains(name)) return scene_map_.at(name).get();
+
+        Path scene_path{ get_scenes_dir() / (name + u8".rkscene") };
+        if(!scene_path.exists()) {
+            CORE_ERROR(u8"EditorLayer: Scene '{}' not found!", scene_path);
+            return nullptr;
+        }
+        Scope<Scene> scene{ create_scope<Scene>(this, name) };
+        if(scene_serializer.deserialize(*scene, scene_path))
+        {
+            CORE_INFO(u8"Project: Scene '{}' loaded.", scene_path);
+            Scene* handle{ scene.get() };
+            scene_map_.emplace(name, std::move(scene));
+            return handle;
+        }
+        CORE_ERROR(u8"Project: Could not load scene '{}'!", scene_path);
+        return nullptr;
+    }
+
+    void Project::save_scene(const Scene& scene, SceneSerializer& scene_serializer)
+    {
+        if(scene.get_owner() != this) {
+            CORE_ERROR(u8"Project: Scene '{}' "
+                u8"doesn't belong to this project!", scene.get_name());
+            return;
+        }
+        scene_serializer.serialize(scene, scene.get_path());
+    }
+
+    void Project::save_scene(const String& name, SceneSerializer& scene_serializer)
+    {
+        Path scene_path{ get_scenes_dir() / (name + u8".rkscene") };
+        if(!scene_path.exists()) {
+            CORE_ERROR(u8"Project: Path '{}' not found!", scene_path);
+            return;
+        }
+        if(!scene_map_.contains(name)) {
+            CORE_ERROR(u8"Project: Scene '{}' not loaded!", name);
+            return;
+        }
+        scene_serializer.serialize(*(scene_map_.at(name)), scene_path);
+    }
+
+    void Project::remove_scene(const String& name) { scene_map_.erase(name); }
+    
+// static
     void Project::init_templates(const Path& templates_path)
     {
         if(s_cmake_lists_txt.empty()) { s_cmake_lists_txt =
@@ -136,47 +221,5 @@ namespace rke
         CORE_INFO(u8"Project: Created new project '{}.rkproj' at '{}'.",
             project_name, project_dir);
         return true;
-    }
-
-    Scope<Project> Project::load_from(const Path& path)
-    {
-        Scope<Project> project{ create_scope<Project>() };
-        // can't use create_scope<...> here, but
-        // which does exactly the same thing anyway.
-        project->rkproj_path_ = path;
-        project->project_dir_ = path.parent_path();
-
-        Scope<ConfigReader> reader{ ConfigReader::create(path) };
-        auto& config{ project->project_config_ };
-        config.name = reader->get_at(u8"Project", String{});
-        if(config.name.empty()) {
-            CORE_ERROR(u8"Project: Invalid project file format in '{}'!", path);
-            return nullptr;
-        }
-        
-        Scope<ConfigReader> config_reader{ reader->get_child(u8"Config") };
-        if(!config_reader)
-            CORE_ERROR(u8"Project: 'Config' not found in '{}'!", path);
-        else {
-            Scope<ConfigReader> layers{ config_reader->get_child(u8"Physics Layers") };
-            if(layers) layers->for_each
-            ([&config](String name, Scope<ConfigReader> layer)
-            {
-                int idx{ std::stoi(name.raw()) };
-                if(idx >= 16) return;
-                config.physics_layers.set_name(static_cast<uint8>(idx),
-                    layer->get_at(u8"Name", PhysicsLayers::get_default_name()));
-                config.physics_layers.set_mask(static_cast<uint8>(idx),
-                    layer->get_at(u8"Mask", PhysicsLayers::get_default_mask()));
-            });
-            uint8 showed_layers{ static_cast<uint8>
-                (config_reader->get_at(u8"Showed Layers", 1ui32)) };
-            config.physics_layers.set_showed_layer_count(showed_layers);
-            config.anti_aliasing = static_cast<AntiAliasing>(config_reader->
-                get_at(u8"Anti-Aliasing", static_cast<int>(AntiAliasing::MSAAx4)));
-        }
-        CORE_INFO(u8"Project: Project '{}' loaded.", project->rkproj_path_);
-        project->scripts_hot_reloading();
-        return project;
     }
 }

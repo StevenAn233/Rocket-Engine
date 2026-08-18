@@ -1,5 +1,9 @@
 ﻿module;
 
+#include <vector>
+#include <memory>
+#include <filesystem>
+#include <unordered_map>
 #include "rke_macros.h"
 
 export module AssetsManager;
@@ -15,8 +19,12 @@ import UUID;
 
 export namespace rke
 {
-    using AssetHandle = uint32;
-    using AssetUUID   = UUID;
+    using AssetUUID = UUID;
+    using AssetData = std::unique_ptr<void, void(*)(void*)>;
+
+    enum class AssetHandle : uint64 {};
+    constexpr AssetHandle asset_handle_null
+        { static_cast<AssetHandle>(0xFFFFFFFFFFFFFFFFull) };
 
     enum class AssetType : int
     {
@@ -48,13 +56,22 @@ export namespace rke
     class RKE_API AssetsManager
     {
     public:
-        static void scan_assets_directory(const Path& root_dir);
-        static AssetUUID get_sub_uuid(AssetUUID uuid, AssetSettings settings);
+        AssetsManager(const Path& assets_dir);
+        ~AssetsManager() = default;
 
-        static AssetHandle load_asset(AssetUUID uuid);
+        AssetsManager(const AssetsManager&) = delete;
+        AssetsManager& operator=(const AssetsManager&) = delete;
+        AssetsManager(AssetsManager&&) = default;
+        AssetsManager& operator=(AssetsManager&&) = default;
+
+        void clear();
+        void rescan(const Path& assets_dir);
+
+        AssetHandle load_asset(AssetUUID uuid);
+        AssetUUID get_sub_uuid(AssetUUID uuid, AssetSettings settings);
 
         template<typename T>
-        static consteval AssetType get_asset_type()
+        consteval AssetType get_asset_type()
         {
             if constexpr(std::is_same_v<T, Texture2D>)
                 return AssetType::Texture;
@@ -66,19 +83,46 @@ export namespace rke
         }
 
         template<typename T>
-        static T* get_asset(AssetHandle handle)
-        {
-            return static_cast<T*>
-                (get_asset_internal(handle, get_asset_type<T>()));
-        }
+        inline T* get_asset(AssetHandle handle)
+            { return static_cast<T*>(get_asset_impl(handle, get_asset_type<T>())); }
 
-        static bool is_asset_loaded(AssetUUID uuid);
-        static bool is_handle_valid(AssetHandle handle);
+        bool is_asset_loaded(AssetUUID uuid);
+        bool is_handle_valid(AssetHandle handle);
 
-        static const Path& get_asset_path(AssetUUID uuid);
-        static const AssetSettings& get_asset_settings(AssetUUID uuid);
-        static AssetUUID get_asset_uuid(const Path& path);
+        const Path& get_asset_path(AssetUUID uuid);
+        const AssetSettings& get_asset_settings(AssetUUID uuid);
+        AssetUUID get_asset_uuid(const Path& path);
     private:
-        static void* get_asset_internal(AssetHandle handle, AssetType type);
+        struct AssetMeta
+        {
+            Path asset_path{};
+            AssetType type{ AssetType::None };
+            AssetSettings settings{};
+
+            AssetHandle handle{ asset_handle_null };
+            AssetUUID parent_uuid{ 0 };
+        };
+
+        struct RuntimeAsset
+        {
+            AssetData data;
+            AssetType type;
+        };
+
+        AssetHandle allocate_handle();
+        void register_asset(AssetUUID uuid,
+            const Path& path, AssetType type,
+            AssetSettings settings, AssetUUID parent);
+
+        void* get_asset_impl(AssetHandle handle, AssetType type);
+        Scope<Texture2D> load_texture(const AssetMeta& meta);
+        Scope<Shader> load_shader(const AssetMeta& meta);
+        Scope<Font> load_font(const AssetMeta& meta);
+    private:
+        std::unordered_map<AssetUUID, AssetMeta> asset_registry_{};
+        std::unordered_map<AssetUUID, std::vector<AssetUUID>> asset_families_{};
+        std::vector<RuntimeAsset> runtime_assets_{};
+        std::vector<uint32> runtime_assets_version_{};
+        std::vector<uint32> free_asset_index_stack_{}; // unload not done yet
     };
 }

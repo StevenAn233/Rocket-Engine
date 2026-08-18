@@ -22,7 +22,7 @@ namespace rke
         Project* project{ app().get_project() };
         writer->write(u8"Last Project Path",
             project ? project->get_rkproj_path().string() : String{});
-        writer->write(u8"Scene Edit Path", owner_->scene_edit_path_.string());
+        writer->write(u8"Scene Edit", owner_->scene_edit_->get_name());
 
         writer->begin_map(u8"Viewport");
         selected_outline()->serialize_to(*(writer.get()));
@@ -56,10 +56,8 @@ namespace rke
         app().load_project(proj_dir);
 
         Project* project{ app().get_project() };
-        Path scene_edit_path{ reader->get_at(u8"Scene Edit Path", String{}) };
-        if(!project || scene_edit_path.parent_path() != project->get_scenes_dir())
-            CORE_ERROR(u8"EditorSettingPanel: Scene doesn't belong to current project!");
-        else owner_->load_scene_edit_from(scene_edit_path);
+        String scene_edit_name{ reader->get_at(u8"Scene Edit", String{}) };
+        owner_->load_scene_edit(scene_edit_name);
 
         auto view_data{ reader->get_child(u8"Viewport") };
         if(view_data) {

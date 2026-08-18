@@ -55,7 +55,7 @@ export namespace rke
         inline StringView get_window_name() const { return window_name_; }
         inline bool handled() const { return handled_; }
     protected:
-        Event(StringView window_name) : window_name_(window_name) {} // TO MODIFY
+        Event(StringView window_name) : window_name_(window_name) {}
     protected:
         bool handled_{ false }; // For EventDispatcher
         StringView window_name_;

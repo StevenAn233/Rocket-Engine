@@ -8,7 +8,7 @@ export namespace rke
     class ContentBrowserPanel : public Panel
     {
     public:
-        ContentBrowserPanel(String name, std::function<const Path&()> func);
+        ContentBrowserPanel(String name);
         ~ContentBrowserPanel();
 
         void set_folder_icon(const Path& filepath);
@@ -26,8 +26,9 @@ export namespace rke
     private:
         Path filepath_{};
 
-        Path context_{}; // project assets dir
-        Path current_path_{};
+        Project* context_{};
+        Path assets_dir_{}; // project assets dir
+        Path current_dir_{};
 
         Scope<Texture2D> folder_icon_{};
         Scope<Texture2D> image_icon_ {};
@@ -36,7 +37,5 @@ export namespace rke
 
         Scope<std::array<char, 256>> name_buffer_{};
         SceneSerializer initializer_{};
-
-        std::function<const Path&()> current_scene_path_getter_;
     };
 }

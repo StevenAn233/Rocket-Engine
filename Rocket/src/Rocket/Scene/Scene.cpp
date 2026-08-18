@@ -1,6 +1,7 @@
 ﻿module;
 module Scene;
 
+import Project;
 import ScriptEngine;
 import PhysicsEngine2D;
 import ComponentRegistry;
@@ -40,7 +41,8 @@ namespace rke
 // Scene
     std::function<void(Entity)> Scene::on_entity_selected_{};
 
-    Scene::Scene(String name) : name_(std::move(name))
+    Scene::Scene(Project* owner, String name)
+        : owner_(owner), name_(std::move(name))
         { registry_ = create_scope<entt::registry>(); }
 
     Scene::~Scene() { if(in_runtime_) on_runtime_stop(); clear(); }
@@ -52,9 +54,11 @@ namespace rke
         mark_modified();
     }
 
+    Path Scene::get_path() const { return owner_->get_scenes_dir() / (name_ + u8".rkscene"); }
+
     Scope<Scene> Scene::deep_copy(bool temp)
     {
-        Scope<Scene> new_scene{ create_scope<Scene>(name_) };
+        Scope<Scene> new_scene{ create_scope<Scene>(owner_, name_) };
         new_scene->temporary_ = temp;
 
         new_scene->viewport_h_ = viewport_h_;

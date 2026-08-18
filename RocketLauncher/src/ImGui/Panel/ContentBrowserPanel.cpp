@@ -8,11 +8,9 @@ namespace {
 
 namespace rke
 {
-    ContentBrowserPanel::ContentBrowserPanel(String name, std::function<const Path&()> func)
-        : Panel(std::move(name)), current_scene_path_getter_(std::move(func))
+    ContentBrowserPanel::ContentBrowserPanel(String name)
+        : Panel(std::move(name))
     {
-        CORE_ASSERT(current_scene_path_getter_,
-            u8"ContentBrowserPanel: Current scene path getter null!");
         name_buffer_ = create_scope<std::array<char, 256>>();
         std::memcpy(name_buffer_->data(), "Untitled", 9);
     }
@@ -36,19 +34,26 @@ namespace rke
 
     void ContentBrowserPanel::on_project_loaded()
     {
-        Project* project{ app().get_project() };
-        Path context{ project ? project->get_assets_dir() : Path{} };
-        CORE_ASSERT(context.exists(), u8"ContentBrowserPanel: "
-            u8"Context '{}' doesn't exsit!", context);
-        context_ = context;
-        current_path_ = context;
-        AssetsManager::scan_assets_directory(context);
+        context_ = app().get_project();
+        if(!context_) {
+            CORE_ERROR(u8"ContentBrowerPanel: Project null!");
+            assets_dir_.clear();
+            current_dir_.clear();
+            return;
+        }
+        assets_dir_ = context_->get_assets_dir();
+        if(!assets_dir_.exists()) {
+            CORE_ERROR(u8"ContentBrowserPanel: "
+                u8"Assets dir '{}' doesn't exsit!", assets_dir_);
+            assets_dir_.clear();
+        }
+        current_dir_ = assets_dir_;
     }
 
     void ContentBrowserPanel::on_imgui_render()
     {
         ImGui::Begin(get_name().raw());
-        if(context_.empty()) { ImGui::End(); return; }
+        if(assets_dir_.empty()) { ImGui::End(); return; }
 
         ImGui::BeginChild("Header",
             ImVec2(0, ImGui::CalcTextSize("hello world").y),
@@ -59,16 +64,16 @@ namespace rke
         if(ImGui::SmallButton("+")) scale_icon(1.25f);
         ImGui::SameLine();
 
-        if(current_path_ != context_) {
+        if(current_dir_ != assets_dir_) {
             if(ImGui::SmallButton("<"))
-                current_path_ = current_path_.parent_path();
+                current_dir_ = current_dir_.parent_path();
         } else {
             ImGui::BeginDisabled();
             ImGui::SmallButton("<");
             ImGui::EndDisabled();
         }
         ImGui::SameLine();
-        ImGui::Text("%s", current_path_.string().raw());
+        ImGui::Text("%s", current_dir_.string().raw());
 
         ImGui::EndChild();
 
@@ -83,7 +88,7 @@ namespace rke
         ImGui::BeginChild("Content", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_None);
 
         bool to_create_scene{ false };
-        if((current_path_ == (context_ / u8"scenes")) &&
+        if((current_dir_ == (assets_dir_ / u8"scenes")) &&
            ImGui::BeginPopupContextWindow("ContentBrowserPopup",
            ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
         {
@@ -101,14 +106,14 @@ namespace rke
                 String scene_name{ str::to_char8(name_buffer_->data()) };
                 if(!scene_name.empty())
                 {
-                    Path new_scene_path{ current_path_ / (scene_name + u8".rkscene")};
+                    Path new_scene_path{ current_dir_ / (scene_name + u8".rkscene")};
                     if(new_scene_path.exists())
                         CORE_WARN(u8"ContentBrowserPanel: "
                             u8"Scene '{}' already exists! "
                             u8"Please choose an another name.",
                         new_scene_path);
                     else {
-                        Scope<Scene> new_scene{ create_scope<Scene>(scene_name) };
+                        Scope<Scene> new_scene{ context_->load_scene(scene_name, initializer_) };
                         initializer_.serialize(*new_scene, new_scene_path);
                         new_scene.reset();
                         ImGui::CloseCurrentPopup();
@@ -124,9 +129,10 @@ namespace rke
         ImGui::Columns(colunm_count, 0, false);
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-        for(auto& entry : fs::directory_iterator(current_path_))
+        for(auto& entry : fs::directory_iterator(current_dir_))
         {
-            if(entry.path().extension() == u8".meta") continue;
+            Path path{ entry.path() };
+            if(path.extension() == u8".meta") continue;
 
             String file_name{ Path(entry.path().filename()).string() };
             uint32 icon_id{ entry.is_directory() ?
@@ -138,34 +144,29 @@ namespace rke
                 { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }
             );
         
-            Project* project{ app().get_project() };
-            if(entry.path().extension() == u8".rkscene" && project)
+            if(path.extension() == u8".rkscene")
             {
                 if(ImGui::BeginPopupContextItem())
                 {
-                    if(!fs::equivalent(entry.path(), current_scene_path_getter_().get()))
+                    if(ImGui::MenuItem("Delete Scene"))
                     {
-                        if(ImGui::MenuItem("Delete Scene"))
-                        {
-                            fs::remove(entry.path());
-                            ImGui::CloseCurrentPopup();
-                        }
+                        fs::remove(path);
+                        ImGui::CloseCurrentPopup();
                     }
-                    else ImGui::CloseCurrentPopup();
                     ImGui::EndPopup();
                 }
             }
-
-            Path path{ entry.path() };
+            
             ImGui::PushID(path.string().raw());
             if(!entry.is_directory() && ImGui::BeginDragDropSource())
             {
                 if(path.extension() == u8".rkscene") {
-                    String path_data{ path.string() };
+                    String scene_name{ path.stem().string() };
                     ImGui::SetDragDropPayload("CONTENT_BROWSER_SCENE",
-                        path_data.raw(), path_data.size() + 1, ImGuiCond_Once);
+                        scene_name.raw(), scene_name.size() + 1, ImGuiCond_Once);
                 } else {
-                    AssetUUID asset_uuid{ AssetsManager::get_asset_uuid(path) };
+                    AssetUUID asset_uuid{ context_ ?
+                        context_->get_assets_manager().get_asset_uuid(path) : AssetUUID(0) };
                     if(!asset_uuid.empty()) {
                         ImGui::SetDragDropPayload("CONTENT_BROWSER_ASSET",
                             &asset_uuid, sizeof(AssetUUID), ImGuiCond_Once);
@@ -189,7 +190,7 @@ namespace rke
 
             if(entry.is_directory() && ImGui::IsItemHovered()
             && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                { current_path_ /= entry.path().filename(); }
+                { current_dir_ /= path.filename(); }
             ImGui::TextWrapped(file_name.raw());
             ImGui::NextColumn();
         }
