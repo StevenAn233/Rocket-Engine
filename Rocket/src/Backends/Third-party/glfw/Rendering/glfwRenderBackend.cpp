@@ -6,11 +6,11 @@ module RenderBackend;
 
 import Log;
 
-namespace rke
+namespace rke::render_backend::internal
 {
-    void* RenderBackend::get_proc_address_getter()
+    void* get_proc_address_getter()
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return reinterpret_cast<void*>(glfwGetProcAddress);

@@ -1,11 +1,7 @@
 ﻿export module PlatformSupport;
 
-export namespace rke
+export namespace rke::platform_support
 {
-    class PlatformSupport
-    {
-    public:
-        static void init();
-        static void shutdown();
-    };
+    void begin();
+    void end();
 }

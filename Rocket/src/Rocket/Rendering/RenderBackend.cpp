@@ -4,16 +4,17 @@ module RenderBackend;
 import Log;
 import RenderCommand;
 import WindowsLib;
+import Application;
 
-namespace rke
+namespace rke::render_backend
 {
-    GraphicsAPI RenderBackend::get_graphics_api()
+    GraphicsAPI get_graphics_api()
     {
         // offer alternatives if available
         return GraphicsAPI::OpenGL;
     }
 
-    void RenderBackend::init_window_context(NativeWindow context)
+    void init_window_context(NativeWindow context)
     {
         switch(get_graphics_api())
         {
@@ -25,11 +26,11 @@ namespace rke
             }
         }
         
-        void* getter{ get_proc_address_getter() };
-        set_proc_address_getter(getter);
+        void* getter{ internal::get_proc_address_getter() };
+        internal::set_proc_address_getter(getter);
 
-        RenderCommand::enable_blend();
-        RenderCommand::disable_srgb(); // manually applied in ToneMapping
-        RenderCommand::enable_depth_test();
+        app().render_command().enable_blend();
+        app().render_command().disable_srgb(); // manually applied in ToneMapping
+        app().render_command().enable_depth_test();
     }
 }

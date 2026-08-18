@@ -226,7 +226,7 @@ namespace rke
 
     void DockSpace::open_project(const Window& window)
     {
-        String str{ FileDialogs::open_file (
+        String str{ file::dialogs::open_file (
             u8"Rocket Project (*.rkproj)|*.rkproj|",
             window.get_context()
         )};

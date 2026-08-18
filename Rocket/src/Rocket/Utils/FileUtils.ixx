@@ -15,19 +15,18 @@ import NativeWindow;
 
 export namespace rke
 {
-    class RKE_API FileDialogs
-    {
-    public:
-    // windows api
-        static String open_file(StringView filter, NativeWindow window);
-        static String save_file(StringView filter, NativeWindow window);
-        static String select_folder(NativeWindow window);
-    };
-
     using Buffer = std::vector<rke::byte>;
 
     namespace file
     {
+    // windows api
+        namespace dialogs
+        {
+            RKE_API String open_file(StringView filter, NativeWindow window);
+            RKE_API String save_file(StringView filter, NativeWindow window);
+            RKE_API String select_folder(NativeWindow window);
+        }
+
         inline void check_to_create_dir(const Path& path)
         {
             Path parent{ path.parent_path() };

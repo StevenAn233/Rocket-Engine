@@ -9,15 +9,9 @@ import RenderBackend;
 
 namespace rke
 {
-    RenderCommand& RenderCommand::get_instance()
-    {
-        static Scope<RenderCommand> instance{ create() };
-        return *instance;
-    }
-
     Scope<RenderCommand> RenderCommand::create()
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_scope<glRenderCommand>();

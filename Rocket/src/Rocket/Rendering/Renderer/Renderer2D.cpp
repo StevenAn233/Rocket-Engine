@@ -327,7 +327,7 @@ namespace rke {
                 (static_cast<uint32>(BindingPoint::Sampler2D_0) + i);
 
         data.vao->bind();
-        RenderCommand::draw_indexed(data.index_count);
+        app().render_command().draw_indexed(data.index_count);
         data.vao->unbind();
     #ifdef RKE_ENABLE_STATISTICS
         s_data.stats.drawcall_count++;

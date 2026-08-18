@@ -10,7 +10,7 @@ namespace rke
 {
     Scope<FrameBuffer> FrameBuffer::create(FrameBuffer::Specification spec)
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_scope<glFrameBuffer>(spec);

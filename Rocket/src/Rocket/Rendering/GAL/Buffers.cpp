@@ -10,7 +10,7 @@ namespace rke
 {
     Ref<VertexBuffer> VertexBuffer::create(const void* data, uint32 size)
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_ref<glVertexBuffer>(data, size);
@@ -22,7 +22,7 @@ namespace rke
 
     Ref<VertexBuffer> VertexBuffer::create(uint32 size)
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_ref<glVertexBuffer>(size);
@@ -34,7 +34,7 @@ namespace rke
 
     Ref<IndexBuffer> IndexBuffer::create(const void* data, uint32 count)
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_ref<glIndexBuffer>(data, count);
@@ -46,7 +46,7 @@ namespace rke
 
     Ref<UniformBuffer> UniformBuffer::create(uint32 size)
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_ref<glUniformBuffer>(size);
@@ -58,7 +58,7 @@ namespace rke
 
     Ref<PixelBuffer> PixelBuffer::create(uint32 size)
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_ref<glPixelBuffer>(size);
@@ -70,7 +70,7 @@ namespace rke
 
     Ref<PixelBuffer> PixelBuffer::create(const void* data, uint32 size)
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_ref<glPixelBuffer>(data, size);

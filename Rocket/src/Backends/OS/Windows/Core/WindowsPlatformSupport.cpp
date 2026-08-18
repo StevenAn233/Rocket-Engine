@@ -6,13 +6,13 @@ module PlatformSupport;
 
 import Log;
 
-namespace rke
+namespace rke::platform_support
 {
-    void PlatformSupport::init()
+    void begin()
     {
         HRESULT hr{ CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED) };
         if(FAILED(hr)) CORE_ERROR(u8"WindowsPlatformSupport: Failed to co-initialize!");
     }
 
-    void PlatformSupport::shutdown() { CoUninitialize(); }
+    void end() { CoUninitialize(); }
 }

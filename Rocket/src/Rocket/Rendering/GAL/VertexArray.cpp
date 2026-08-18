@@ -10,7 +10,7 @@ namespace rke
 {
     Scope<VertexArray> VertexArray::create()
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_scope<glVertexArray>();

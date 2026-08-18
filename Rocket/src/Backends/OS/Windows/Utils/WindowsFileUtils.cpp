@@ -63,9 +63,9 @@ namespace {
     }
 }
 
-namespace rke
+namespace rke::file::dialogs
 {
-    String FileDialogs::open_file(StringView filter, NativeWindow window)
+    String open_file(StringView filter, NativeWindow window)
     {
         OPENFILENAMEW ofn{}; // A stands for ANSI
         WCHAR sz_file[260]{};
@@ -89,7 +89,7 @@ namespace rke
         return String{};
     }
 
-    String FileDialogs::save_file(StringView filter, NativeWindow window)
+    String save_file(StringView filter, NativeWindow window)
     {
         OPENFILENAMEW ofn{};
         WCHAR sz_file[260]{};
@@ -112,7 +112,7 @@ namespace rke
         return String{};
     }
 
-    String FileDialogs::select_folder(NativeWindow window)
+    String select_folder(NativeWindow window)
     {
         Microsoft::WRL::ComPtr<IFileOpenDialog> p_file_dialog{};
 

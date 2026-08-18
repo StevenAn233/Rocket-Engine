@@ -72,79 +72,79 @@ namespace rke::debug
 
 namespace rke
 {
-    void glRenderCommand::enable_blend_impl()
+    void glRenderCommand::enable_blend()
     {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
-    void glRenderCommand::disable_blend_impl() { glDisable(GL_BLEND); }
+    void glRenderCommand::disable_blend() { glDisable(GL_BLEND); }
 
-    void glRenderCommand::blend_func_default_impl()
+    void glRenderCommand::blend_func_default()
         { glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); }
 
-    void glRenderCommand::blend_func_transparent_impl()
+    void glRenderCommand::blend_func_transparent()
         { glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); }
 
-    void glRenderCommand::enable_srgb_impl() { glEnable(GL_FRAMEBUFFER_SRGB); }
+    void glRenderCommand::enable_srgb() { glEnable(GL_FRAMEBUFFER_SRGB); }
 
-    void glRenderCommand::set_depth_write_impl(bool enabled)
+    void glRenderCommand::set_depth_write(bool enabled)
     {
         if(enabled) glDepthMask(GL_TRUE);
         else glDepthMask(GL_FALSE);
     }
 
-    void glRenderCommand::enable_depth_test_impl()
+    void glRenderCommand::enable_depth_test()
     {
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
     }
 
-    void glRenderCommand::disable_srgb_impl() { glDisable(GL_FRAMEBUFFER_SRGB); }
+    void glRenderCommand::disable_srgb() { glDisable(GL_FRAMEBUFFER_SRGB); }
 
-    void glRenderCommand::disable_depth_test_impl()
+    void glRenderCommand::disable_depth_test()
     {
         glDepthMask(GL_FALSE);
         glDisable(GL_DEPTH_TEST);
     }
 
-    void glRenderCommand::set_viewport_impl(uint32 x, uint32 y, uint32 w, uint32 h)
+    void glRenderCommand::set_viewport(uint32 x, uint32 y, uint32 w, uint32 h)
     {
         glViewport(static_cast<int>(x), static_cast<int>(y),
                    static_cast<int>(w), static_cast<int>(h));
     }
 
-    void glRenderCommand::clear_color_buffer_impl(uint32 fbo, int color_attach_index, int val)
+    void glRenderCommand::clear_color_buffer(uint32 fbo, int color_attach_index, int val)
     {
         const int values[]{ val, 0, 0, 1 };
         glClearNamedFramebufferiv(fbo, GL_COLOR, color_attach_index, values);
     }
 
-    void glRenderCommand::clear_color_buffer_impl(uint32 fbo, int color_attach_index, float val)
+    void glRenderCommand::clear_color_buffer(uint32 fbo, int color_attach_index, float val)
     {
         const float values[]{ val, 0.0f, 0.0f, 1.0f };
         glClearNamedFramebufferfv(fbo, GL_COLOR, color_attach_index, values);
     }
 
-    void glRenderCommand::clear_color_buffer_impl(uint32 fbo, int color_attach_index, glm::vec3 val)
+    void glRenderCommand::clear_color_buffer(uint32 fbo, int color_attach_index, glm::vec3 val)
     {
         const float values[]{ val.r, val.g, val.b, 1.0f };
         glClearNamedFramebufferfv(fbo, GL_COLOR, color_attach_index, values);
     }
 
-    void glRenderCommand::clear_color_buffer_impl(uint32 fbo, int color_attach_index, glm::vec4 val)
+    void glRenderCommand::clear_color_buffer(uint32 fbo, int color_attach_index, glm::vec4 val)
     {
         const float values[]{ val.r, val.g, val.b, val.a };
         glClearNamedFramebufferfv(fbo, GL_COLOR, color_attach_index, values);
     }
 
-    void glRenderCommand::clear_depth_buffer_impl(uint32 fbo, float depth, int stencil)
+    void glRenderCommand::clear_depth_buffer(uint32 fbo, float depth, int stencil)
         { glClearNamedFramebufferfi(fbo, GL_DEPTH_STENCIL, 0, depth, stencil); }
 
-    void glRenderCommand::draw_impl(int start, int end)
+    void glRenderCommand::draw(int start, int end)
         { glDrawArrays(GL_TRIANGLE_STRIP, start, end); }
 
-    void glRenderCommand::draw_indexed_impl(const VertexArray& vao)
+    void glRenderCommand::draw_indexed(const VertexArray& vao)
     {
     #ifdef RKE_DEBUG
         GLint is_attrib_enabled{};
@@ -156,6 +156,6 @@ namespace rke
         glDrawElements(GL_TRIANGLES, vao.get_ibo().get_count(), GL_UNSIGNED_INT, nullptr);
     }
 
-    void glRenderCommand::draw_indexed_impl(int count)
+    void glRenderCommand::draw_indexed(int count)
         { glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr); }
 }

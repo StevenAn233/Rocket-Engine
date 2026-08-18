@@ -7,6 +7,7 @@ module FrameBuffer;
 import :OpenGL;
 
 import Log;
+import Application;
 import RenderCommand;
 
 namespace {
@@ -154,7 +155,7 @@ namespace rke
             {
                 const glm::vec4* val{ std::get_if<glm::vec4>(&attachment_specs[i].clear_value) };
                 CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
-                RenderCommand::clear_color_buffer(fbo, color_attachment_index, *val);
+                app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
                 color_attachment_index++; 
             } break;
             case Texture::Format::RGB8:
@@ -162,25 +163,25 @@ namespace rke
             {
                 const glm::vec3* val{ std::get_if<glm::vec3>(&attachment_specs[i].clear_value) };
                 CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
-                RenderCommand::clear_color_buffer(fbo, color_attachment_index, *val);
+                app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
                 color_attachment_index++;
             } break;
             case Texture::Format::R32I:
             {
                 const int* val{ std::get_if<int>(&attachment_specs[i].clear_value) };
                 CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
-                RenderCommand::clear_color_buffer(fbo, color_attachment_index, *val);
+                app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
                 color_attachment_index++;
             } break;
             case Texture::Format::R8:
             {
                 const float* val{ std::get_if<float>(&attachment_specs[i].clear_value) };
                 CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
-                RenderCommand::clear_color_buffer(fbo, color_attachment_index, *val);
+                app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
                 color_attachment_index++;
             } break;
             case Texture::Format::DEPTH24_STENCIL8:
-                RenderCommand::clear_depth_buffer(fbo, 1.0f, 0);
+                app().render_command().clear_depth_buffer(fbo, 1.0f, 0);
                 break;
             default: CORE_ASSERT(false, u8"glFrameBuffer: Unsupported texture format!");
             }

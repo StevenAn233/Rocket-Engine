@@ -33,7 +33,7 @@ namespace rke
         if(reader->has_key(u8"TessEvaluation")) paths[ShaderStage::TessEvaluation] =
             base_dir / file::unify_path(reader->get_at(u8"TessEvaluation", String{}));
         
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return create_scope<glShader>(name, paths);

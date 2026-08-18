@@ -16,7 +16,7 @@ namespace rke
 {
     NativeWindow WindowsLib::get_current_context()
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             return NativeWindow(glfwGetCurrentContext());
@@ -29,7 +29,7 @@ namespace rke
 
     void WindowsLib::make_context_current(NativeWindow context)
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             glfwMakeContextCurrent(context.as<GLFWwindow>());
@@ -63,15 +63,13 @@ namespace rke
         {
             map_.erase(u8"main");
             main_window_ = nullptr;
-            for(auto& [_, window] : map_)
-                window->should_close(true);
         }
         std::erase_if(map_, [this](auto& pair)
         {
             Window& window{ *(pair.second.get()) };
-            if(window.should_close()) return true;
+            if(!main_window_ || window.should_close()) return true;
 
-            switch(RenderBackend::get_graphics_api())
+            switch(render_backend::get_graphics_api())
             {
             case GraphicsAPI::OpenGL:
                 glfwSwapBuffers(window.get_context().as<GLFWwindow>());

@@ -19,8 +19,6 @@ export namespace rke
     class RKE_API WindowsLib
     {
     public:
-        friend class Application;
-        
         using WindowsMap = std::unordered_map<String, Scope<Window>>;
 
         WindowsLib(std::function<void(Window&)> callback);
@@ -34,6 +32,9 @@ export namespace rke
         static NativeWindow get_current_context();
         static void make_context_current(NativeWindow context);
         static bool is_context_current(NativeWindow context);
+
+        void loop();
+        void on_event(Event& e);
 
         Window& load_main(Scope<Window::Props> props);
         void remove_main();
@@ -49,15 +50,9 @@ export namespace rke
         inline Size size () const { return map_.size (); }
         inline bool empty() const { return map_.empty(); }
         inline bool exists(const String& name) const { return map_.contains(name); }
+        inline bool valid() const { return main_window_ && !main_window_->should_close(); }
     private:
         void refresh();
-        inline bool valid() const
-        {
-            if(!main_window_) return false;
-            return !main_window_->should_close();
-        }
-
-        void on_event(Event& e);
         Window& add(Scope<Window> window);
     private:
         WindowsMap map_{};

@@ -4,6 +4,7 @@ module ToneMapping;
 import BindingPoint;
 import Buffers;
 import AssetsManager;
+import Application;
 import RenderCommand;
 import FileUtils;
 
@@ -25,7 +26,7 @@ namespace rke
             ubo_->bind(BindingPoint::UBO_PostProcess);
 
             shader_->bind();
-            RenderCommand::draw_quad();
+            app().render_command().draw_quad();
             shader_->unbind();
         });
         return true;

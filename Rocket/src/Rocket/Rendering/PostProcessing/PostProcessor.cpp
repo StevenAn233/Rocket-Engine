@@ -3,6 +3,7 @@ module PostProcessor;
 
 import Log;
 import RenderCommand;
+import Application;
 
 namespace rke
 {
@@ -38,8 +39,8 @@ namespace rke
         }
 
         clean_up();
-        RenderCommand::disable_blend();
-        RenderCommand::disable_depth_test();
+        app().render_command().disable_blend();
+        app().render_command().disable_depth_test();
 
         const Texture2D* ping_pong{ source };
         uint32 fbo_index{ 0 };
@@ -55,8 +56,8 @@ namespace rke
         CORE_ASSERT(tone_mapping_.apply(ping_pong, fbos_[fbo_index].get()),
             u8"PostProcessor: Tone mapping failed!");
 
-        RenderCommand::enable_depth_test(); // default
-        RenderCommand::enable_blend();		// default
+        app().render_command().enable_depth_test(); // default
+        app().render_command().enable_blend();		// default
 
         return fbos_[fbo_index]->get_texture();
     }

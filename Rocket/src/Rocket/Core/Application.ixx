@@ -21,6 +21,7 @@ import Modal;
 import ModalRegistry;
 import Project;
 import DockSpace;
+import RenderCommand;
 
 export namespace rke
 {
@@ -42,6 +43,7 @@ export namespace rke
         void load_project(const Path& path);
         void clear_project();
 
+        inline RenderCommand& render_command() { return *render_command_; }
         inline WindowsLib& get_windows_lib() { return windows_lib_; }
         inline Project* get_project() { return project_.get(); }
         
@@ -58,7 +60,9 @@ export namespace rke
     private:
         WindowsLib windows_lib_;
         Scope<Project> project_{};
-        DockSpace* dockspace_{};
+        Scope<RenderCommand> render_command_{};
+
+        DockSpace* dockspace_{}; // owned by WindowsLib::LayerStack::DockSpaceLayer
 
         ApplicationPanel application_panel_{ u8"Application" };
         ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };

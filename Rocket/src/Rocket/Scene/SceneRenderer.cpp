@@ -3,6 +3,7 @@ module SceneRenderer;
 
 import Log;
 import Renderer2D;
+import Application;
 import RenderCommand;
 import Components;
 
@@ -259,8 +260,8 @@ namespace rke
 
         if(!transparent_queue_.empty())
         {
-            RenderCommand::set_depth_write(false);
-            RenderCommand::blend_func_transparent();
+            app().render_command().set_depth_write(false);
+            app().render_command().blend_func_transparent();
 
             Renderer2D::begin_scene();
 
@@ -269,8 +270,8 @@ namespace rke
 
             Renderer2D::end_scene();
 
-            RenderCommand::blend_func_default();
-            RenderCommand::set_depth_write(true);
+            app().render_command().blend_func_default();
+            app().render_command().set_depth_write(true);
         }
     }
 }

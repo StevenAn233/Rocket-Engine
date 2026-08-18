@@ -186,7 +186,7 @@ namespace rke
         glfwShowWindow(context_.as<GLFWwindow>());
 
         make_context_current();
-        RenderBackend::init_window_context(context_);
+        render_backend::init_window_context(context_);
 
     // set window icon(after glfwCreateWindow)
         if(props.icon_path.exists())
@@ -336,7 +336,7 @@ namespace rke
 
     void glfwWindow::update_vsync()
     {
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
             if(!WindowsLib::is_context_current(context_))
@@ -346,7 +346,7 @@ namespace rke
             }
         }
 
-        switch(RenderBackend::get_graphics_api())
+        switch(render_backend::get_graphics_api())
         {
         case GraphicsAPI::OpenGL:
         {

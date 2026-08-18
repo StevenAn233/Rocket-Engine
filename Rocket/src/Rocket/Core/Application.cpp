@@ -3,7 +3,6 @@ module Application;
 
 import Log;
 import Instrumentor;
-import DeltaTime;
 import Renderer2D;
 import PlatformSupport;
 import FileUtils;
@@ -16,7 +15,8 @@ import ProjectEvent;
 
 namespace rke
 {
-    Application::Application() : windows_lib_(on_window_loaded) {}
+    Application::Application() : windows_lib_(on_window_loaded)
+        { render_command_ = RenderCommand::create(); }
 
     void Application::init()
     {
@@ -31,14 +31,12 @@ namespace rke
             })
         )};
 
-        DeltaTime::update();
-        DeltaTime::update();
-        PlatformSupport::init();
+        platform_support::begin();
         Renderer2D::init();
 
         Scope<DockSpaceLayer> ds_layer{ create_scope<DockSpaceLayer>
         (
-            u8"Dockspace Layer", windows_lib_.main_window_,
+            u8"Dockspace Layer", &main_window,
             file::editor_dir() / u8"settings" / u8"dockspace.yaml"
         )};
         dockspace_ = &(ds_layer->dockspace_);
@@ -51,7 +49,7 @@ namespace rke
     void Application::shutdown()
     {
         Renderer2D::shutdown();
-        PlatformSupport::shutdown();
+        platform_support::end();
     }
 
     void Application::run()
@@ -59,18 +57,7 @@ namespace rke
         while(windows_lib_.valid())
         {
             RKE_PROFILE_SCOPE(u8"void Application::run(void) loop_frame");
-
-            for(auto& [_, window] : windows_lib_.map_)
-            {
-                window->make_context_current();
-
-                DeltaTime::update();
-                window->on_update(DeltaTime::get());
-
-                Renderer2D::reset_stats();
-                window->on_render();
-            }
-            windows_lib_.refresh();
+            windows_lib_.loop();
         }
     }
 

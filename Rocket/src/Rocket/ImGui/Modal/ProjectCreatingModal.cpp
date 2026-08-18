@@ -31,7 +31,7 @@ namespace rke
             ImGui::SameLine();
             if(ImGui::Button("..."))
             {
-                String selected_folder{ FileDialogs::select_folder
+                String selected_folder{ file::dialogs::select_folder
                     (app().get_windows_lib().get_main().get_context()) };
                 copy_to_buffer(selected_folder);
             }
