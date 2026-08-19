@@ -16,7 +16,6 @@ namespace rke
             return;
         }
 
-        Entity selected{ context_->get_selected_entity() };
     // Scene Hierarchy
         ImGui::Begin(get_name().raw());
 
@@ -36,7 +35,7 @@ namespace rke
         if(opened) {
             std::vector<Entity> all_entities{ context_->get_all_entities() };
             for(Entity entity : all_entities)
-                draw_entity_node(entity, selected);
+                draw_entity_node(entity, context_->get_selected_entity());
 
             if(ImGui::IsWindowHovered()
             && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered())
@@ -55,6 +54,7 @@ namespace rke
         ImGui::Begin("##expanded", nullptr, ImGuiWindowFlags_NoTitleBar);
         ImGui::PushID(get_name().raw());
 
+        Entity selected{ context_->get_selected_entity() };
         if(selected.valid()) {
             draw_components(selected);
             add_components_popup(selected);

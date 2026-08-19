@@ -152,9 +152,6 @@ export namespace rke
 
         glm::vec2  get_gravity() const { return gravity_.get(); }
         glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
-
-        static void set_on_entity_selected(std::function<void(Entity)> callback)
-            { on_entity_selected_ = std::move(callback); }
     private:
         void flush_destroy_queue();
     private:
@@ -175,8 +172,6 @@ export namespace rke
         Entity master_cam_{};
         Entity demo_cam_{};
         Entity selected_entity_{}; // std::vector<Entity> selected_entities{};
-
-        static std::function<void(Entity)> on_entity_selected_;
     };
 
     template<typename Component>

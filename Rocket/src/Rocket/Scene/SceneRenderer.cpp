@@ -196,6 +196,9 @@ namespace rke
     void SceneRenderer::render_scene(const Scene* scene,
         const glm::mat4& view_projection, glm::vec3 cam_position)
     {
+        CORE_WARN(u8"scene selected entity: {}(render)",
+            scene->get_selected_entity().get_handle());
+
     // frustum culling
         auto planes{ get_planes_normal(view_projection) };
 
@@ -215,17 +218,16 @@ namespace rke
             if(sprite.has_texture() && !assets_manager.is_handle_valid(sprite.tex_handle))
             {
                 sprite.tex_handle = assets_manager.load_asset(sprite.tex_uuid);
-                if(!assets_manager.is_handle_valid(sprite.tex_handle))
-                {
+                if(!assets_manager.is_handle_valid(sprite.tex_handle)) {
                     CORE_ERROR(u8"SceneRenderer: Failed to load texture '{}'!", sprite.tex_uuid.value());
                     sprite.tex_uuid = UUID(0); // uuid been reset here!
                     sprite.tex_handle = asset_handle_null;
+                } else {
+                    Texture2D* tex{ assets_manager.get_asset<Texture2D>(sprite.tex_handle) };
+                    if(tex) sprite.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
+                    else CORE_ERROR(u8"SceneRenderer: Failed to get texture reference!");
                 }
-                else if(auto* tex{ assets_manager.get_asset<Texture2D>(sprite.tex_handle) })
-                    sprite.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
-                else CORE_ERROR(u8"SceneRenderer: Failed to get texture reference!");
             }
-
             uint32 handle{ static_cast<uint32>(entity) };
             switch(sc.blending_mode)
             {

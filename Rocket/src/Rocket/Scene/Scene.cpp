@@ -39,8 +39,6 @@ namespace rke
     bool Entity::operator!=(const Entity& other) const { return !operator==(other); }
 
 // Scene
-    std::function<void(Entity)> Scene::on_entity_selected_{};
-
     Scene::Scene(Project* owner, String name)
         : owner_(owner), name_(std::move(name))
         { registry_ = create_scope<entt::registry>(); }
@@ -186,7 +184,6 @@ namespace rke
         }
         selected_entity_ = entity;
         if(!entity.empty() && entity.has<CameraComponent>()) demo_cam_ = entity;
-        if(on_entity_selected_) on_entity_selected_(selected_entity_);
         // mark_modified();
     }
 

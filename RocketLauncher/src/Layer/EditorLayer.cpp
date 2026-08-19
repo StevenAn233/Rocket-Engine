@@ -47,7 +47,9 @@ namespace rke
                     && editor_setting_panel_->hovering_enabled_editor()
                     && !in_main_viewport_dragging_ && editing()
                     && main_viewport_->is_hovered();
-            }
+            },
+            [this]() -> Entity
+                { if(editing()) return scene_edit_->get_entity(hovering_id_); }
         )};
         hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
 
@@ -60,6 +62,10 @@ namespace rke
                     && editor_setting_panel_->selected_enabled_editor()
                     && !in_main_viewport_dragging_
                     && (selected_id != hovering_id_ || !hovering_outline_->enabled());
+            },
+            [this]() -> Entity {
+                Scene* scene{ current_scene() };
+                return scene ? scene->get_selected_entity() : Entity{};
             }
         )};
         selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
@@ -75,9 +81,6 @@ namespace rke
 
         hovering_outline_ = hovering.get();
         selected_outline_ = selected.get();
-
-        Scene::set_on_entity_selected([this](Entity entity)
-            { selected_outline_->set_target(entity); });
 
     // SceneRenderer
         main_renderer_.add_effect(std::move(hovering));
@@ -357,11 +360,6 @@ namespace rke
                     .get_hovering_id(vp_mouse.x, vp_mouse.y));
             }
             else hovering_id_ = entity_id_null;
-
-            if(scene_edit_) {
-                Entity target{ scene_edit_->get_entity(hovering_id_) };
-                hovering_outline_->set_target(target);
-            }
 
             if(scene_edit_ && cam_viewport_->on() &&
               !cam_viewport_->hidden() && cam_viewport_->visible())

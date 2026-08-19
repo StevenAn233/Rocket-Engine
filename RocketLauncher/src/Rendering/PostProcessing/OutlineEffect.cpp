@@ -6,8 +6,11 @@ import Layout;
 namespace rke
 {
 // public
-    OutlineEffect::OutlineEffect(String name, std::function<bool()> func)
-        : PostProcessEffect(std::move(name), std::move(func))
+    OutlineEffect::OutlineEffect(String name,
+        std::function<bool()> enabled_situation,
+        std::function<Entity()> target_getter)
+        : PostProcessEffect(std::move(name), std::move(enabled_situation))
+        , target_getter_(std::move(target_getter))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         outline_fbo_ = FrameBuffer::create
@@ -17,15 +20,16 @@ namespace rke
 
     bool OutlineEffect::apply(const Texture2D* source, FrameBuffer* destination)
     {
-        if(!source || !destination || !target_.valid()) return false;
-
-        outline_fbo_->clear_to_upload([this]()
+        if(!source || !destination) return false;
+        Entity target{ target_getter_() };
+        if(!target.valid()) return false;
+        outline_fbo_->clear_to_upload([this, target]()
         {
-            if(target_.has<SpriteComponent>())
+            if(target.has<SpriteComponent>())
             {
                 Renderer2D::begin_scene();
 
-                const auto& tc{ target_.get<TransformComponent>() };
+                const auto& tc{ target.get<TransformComponent>() };
                 Renderer2D::draw_quad
                 ({
                     .position{ tc.position },
@@ -73,8 +77,6 @@ namespace rke
         set_color(config->get_at(u8"Color", glm::vec4{}));
         set_thickness(config->get_at(u8"Thickness", 1.0f));
     }
-
-    void OutlineEffect::set_target(Entity target) { target_ = target; }
 
     void OutlineEffect::set_samples(uint32 samples)
         { outline_fbo_->set_samples(samples); }
