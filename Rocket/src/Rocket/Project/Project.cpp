@@ -105,13 +105,31 @@ namespace rke
         return ScriptLoader::load_dylib(dylib_dir, project_config_.name);
     }
 
+    bool Project::create_scene(const String& name)
+    {
+        Path new_scene_path{ get_scenes_dir() / (name + u8".rkscene")};
+        if(new_scene_path.exists()) {
+            CORE_WARN(u8"Project: Scene '{}' already exists! "
+                u8"Please choose an another name.", new_scene_path);
+            return false;
+        }
+        if(name.empty()) {
+            CORE_WARN(u8"Project: Scene name empty!");
+            return false;
+        }
+        SceneSerializer scene_creator_{}; // TO MODIFY
+        Scope<Scene> empty_scene{ create_scope<Scene>(this, name) };
+        scene_creator_.serialize(*empty_scene, new_scene_path);
+        return true;
+    }
+
     Scene* Project::load_scene(const String& name, SceneSerializer& scene_serializer)
     {
         if(scene_map_.contains(name)) return scene_map_.at(name).get();
 
         Path scene_path{ get_scenes_dir() / (name + u8".rkscene") };
         if(!scene_path.exists()) {
-            CORE_ERROR(u8"EditorLayer: Scene '{}' not found!", scene_path);
+            CORE_ERROR(u8"Project: Scene '{}' not found!", scene_path);
             return nullptr;
         }
         Scope<Scene> scene{ create_scope<Scene>(this, name) };

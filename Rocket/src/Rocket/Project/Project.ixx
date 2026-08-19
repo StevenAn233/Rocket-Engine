@@ -64,6 +64,7 @@ export namespace rke
 
         inline AssetsManager& get_assets_manager() { return *assets_manager_; }
 
+        bool create_scene(const String& name);
         Scene* load_scene(const String& name, SceneSerializer& scene_serializer);
         void save_scene(const Scene& scene, SceneSerializer& scene_serializer);
         void save_scene(const String& name, SceneSerializer& scene_serializer);

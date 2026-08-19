@@ -107,6 +107,7 @@ export namespace rke
         {
             AssetData data;
             AssetType type;
+            uint32 version;
         };
 
         AssetHandle allocate_handle();
@@ -122,7 +123,6 @@ export namespace rke
         std::unordered_map<AssetUUID, AssetMeta> asset_registry_{};
         std::unordered_map<AssetUUID, std::vector<AssetUUID>> asset_families_{};
         std::vector<RuntimeAsset> runtime_assets_{};
-        std::vector<uint32> runtime_assets_version_{};
         std::vector<uint32> free_asset_index_stack_{}; // unload not done yet
     };
 }

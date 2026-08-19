@@ -106,8 +106,14 @@ namespace rke
     {
         asset_registry_.clear();
         asset_families_.clear();
-        runtime_assets_.clear();
-        // don't clear version info here!
+        free_asset_index_stack_.clear();
+        for(Size i{}; i < runtime_assets_.size(); i++)
+        {
+            runtime_assets_[i].data = nullptr;
+            runtime_assets_[i].type = AssetType::None;
+            free_asset_index_stack_.push_back(static_cast<uint32>(i));
+            // don't clear version info here!
+        }
     }
 
     void AssetsManager::rescan(const Path& assets_dir)
@@ -312,9 +318,8 @@ namespace rke
         if(handle == asset_handle_null) return false;
         uint32 index{ extract_index(handle) };
         return index < runtime_assets_.size()
-            && index < runtime_assets_version_.size()
             && runtime_assets_[index].data.get() != nullptr
-            && runtime_assets_version_[index] == extract_version(handle);
+            && runtime_assets_[index].version == extract_version(handle);
     }
 
     const Path& AssetsManager::get_asset_path(AssetUUID uuid)
@@ -348,14 +353,18 @@ namespace rke
 // private
     AssetHandle AssetsManager::allocate_handle()
     {
-        runtime_assets_.emplace_back(AssetData(nullptr, nullptr), AssetType::None);
-        while(runtime_assets_version_.size() < runtime_assets_.size())
-            runtime_assets_version_.push_back(0);
-        uint64 index_val{ runtime_assets_.size() - 1 };
-        runtime_assets_version_[index_val]++;
-        uint64 version_val{ static_cast<uint64>(runtime_assets_version_[index_val]) };
+        uint64 index_val{};
+        if(free_asset_index_stack_.empty()) {
+            runtime_assets_.push_back(RuntimeAsset
+                { AssetData(nullptr, nullptr), AssetType::None, 0 });
+            index_val = runtime_assets_.size() - 1;
+        } else {
+            index_val = static_cast<uint64>(free_asset_index_stack_.back());
+            free_asset_index_stack_.pop_back();
+        }
+        uint64 version_val{ static_cast<uint64>(++runtime_assets_[index_val].version) };
         // downside cast should be fine because I don't think someone can load billions of assets...
-        return static_cast<AssetHandle>((version_val << 32) + (index_val & 0xFFFFFFFFull));
+        return static_cast<AssetHandle>((version_val << 32) | (index_val & 0xFFFFFFFFull));
     }
 
     void AssetsManager::register_asset(AssetUUID uuid,

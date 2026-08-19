@@ -19,10 +19,19 @@ export namespace rke
         void load_from(Path filepath);
     private:
         void on_imgui_render() override;
+
+        void new_scene_modal();
         Texture2D* get_file_icon(const String& file_name);
 
         inline void scale_icon(float extent = 1.0f)
             { thumbnail_scale_ *= std::sqrt(extent); }
+
+        void entry_is_directory(this ContentBrowserPanel& self,
+            const String& filename, const Path& path, uint32 icon_handle);
+        void entry_is_rkscene(this ContentBrowserPanel& self,
+            const String& filename, const Path& path, uint32 icon_handle);
+        void entry_is_meta(this ContentBrowserPanel& self,
+            const String& filename, const Path& path, uint32 icon_handle);
     private:
         Path filepath_{};
 
@@ -36,6 +45,5 @@ export namespace rke
         float thumbnail_scale_{ 1.0f };
 
         Scope<std::array<char, 256>> name_buffer_{};
-        SceneSerializer initializer_{};
     };
 }

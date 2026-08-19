@@ -212,16 +212,18 @@ namespace rke
             auto& sc{ view.get<SpriteComponent>(entity) };
             auto& sprite{ sc.sprite }; // texture asset
             AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager() };
-            if(sprite.has_texture() && !sprite.is_texture_loaded()) {
+            if(sprite.has_texture() && !assets_manager.is_handle_valid(sprite.tex_handle))
+            {
                 sprite.tex_handle = assets_manager.load_asset(sprite.tex_uuid);
-                if(auto* tex{ assets_manager.get_asset<Texture2D>(sprite.tex_handle) })
-                    sprite.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
-                else {
-                    CORE_ERROR(u8"SceneRenderer: UUID '{}' invalid! "
-                        u8"It's been reset to 0!", sprite.tex_uuid.value());
+                if(!assets_manager.is_handle_valid(sprite.tex_handle))
+                {
+                    CORE_ERROR(u8"SceneRenderer: Failed to load texture '{}'!", sprite.tex_uuid.value());
                     sprite.tex_uuid = UUID(0); // uuid been reset here!
                     sprite.tex_handle = asset_handle_null;
                 }
+                else if(auto* tex{ assets_manager.get_asset<Texture2D>(sprite.tex_handle) })
+                    sprite.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
+                else CORE_ERROR(u8"SceneRenderer: Failed to get texture reference!");
             }
 
             uint32 handle{ static_cast<uint32>(entity) };
