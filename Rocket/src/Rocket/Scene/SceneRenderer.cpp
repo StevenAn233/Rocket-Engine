@@ -196,9 +196,6 @@ namespace rke
     void SceneRenderer::render_scene(const Scene* scene,
         const glm::mat4& view_projection, glm::vec3 cam_position)
     {
-        CORE_WARN(u8"scene selected entity: {}(render)",
-            scene->get_selected_entity().get_handle());
-
     // frustum culling
         auto planes{ get_planes_normal(view_projection) };
 
