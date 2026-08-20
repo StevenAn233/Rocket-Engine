@@ -48,8 +48,11 @@ namespace rke
                     && !in_main_viewport_dragging_ && editing()
                     && main_viewport_->is_hovered();
             },
-            [this]() -> Entity
-                { if(editing()) return scene_edit_->get_entity(hovering_id_); }
+            [this]() -> Entity {
+                if(editing())
+                    return scene_edit_->get_entity(hovering_id_);
+                return Entity{};
+            }
         )};
         hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
 

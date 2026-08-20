@@ -2,6 +2,7 @@
 module ScriptEngine;
 
 import Log;
+import Project;
 import Script;
 import HeapManager;
 import Components;
@@ -90,7 +91,9 @@ namespace rke
     {
         CORE_ASSERT(s_context && s_context->in_runtime(),
             u8"ScriptEngine: Can only create script within runtime!");
-        auto script{ ScriptRegistry::construct_through_name(name) };
+        Scope<Script> script{ s_context->get_owner()->
+            get_script_registry().construct_script(name) };
+        // TO MODIFY
         if(script) {
             script->context_ = s_context->get_entity(handle);
             script->on_create();

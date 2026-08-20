@@ -493,14 +493,14 @@ namespace rke
         check_then_draw<NativeScriptComponent, u8"Native Script">(entity, [this](Entity ent)
         {
             auto& nsc{ ent.get_mut<NativeScriptComponent>() };
-            const auto& script_registry{ ScriptRegistry::get() };
+            const ScriptRegistry& script_registry
+                { context_->get_owner()->get_script_registry() };
 
             const char* current_script_name{ "No Script" };
             if(!nsc.script_name.empty())
             {
-                auto it{ script_registry.find(nsc.script_name) };
-                if(it != script_registry.end())
-                    current_script_name = it->first.raw();
+                if(script_registry.has_script(nsc.script_name))
+                    current_script_name = nsc.script_name.raw();
                 else current_script_name = "<Missing Script>";
             }
             // script_name  empty : No Script
@@ -518,8 +518,9 @@ namespace rke
                 }
                 if(is_none_selected) ImGui::SetItemDefaultFocus();
 
-                for(const auto& [name, _] : script_registry)
+                for(const char8* c_str : script_registry.get_script_types())
                 {
+                    String name{ c_str };
                     bool is_selected{ nsc.script_name == name };
                     if(ImGui::Selectable(name.raw(), is_selected))
                     {

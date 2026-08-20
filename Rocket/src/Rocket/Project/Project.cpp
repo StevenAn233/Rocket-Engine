@@ -3,10 +3,7 @@ module Project;
 
 import Log;
 import FileUtils;
-import ScriptRegistry;
-import AssetsManager;
 import ConfigProxy;
-import Application;
 
 namespace rke
 {
@@ -18,9 +15,6 @@ namespace rke
     Project::Project(const Path& rkproj_path)
         : rkproj_path_(rkproj_path), project_dir_(rkproj_path.parent_path())
     {
-        assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
-        script_dylib_loader_ = ScriptDylibLoader::create();
-
         Scope<ConfigReader> reader{ ConfigReader::create(rkproj_path) };
         auto& config{ project_config_ };
         config.name = reader->get_at(u8"Project", String{});
@@ -50,14 +44,20 @@ namespace rke
             config.anti_aliasing = static_cast<AntiAliasing>(config_reader->
                 get_at(u8"Anti-Aliasing", static_cast<int>(AntiAliasing::MSAAx4)));
         }
+
+        assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
+        script_registry_ = create_scope<ScriptRegistry>();
+        script_dylib_loader_ = ScriptDylibLoader::create
+            (project_dir_ / u8"bin" / RKE_CONFIG_NAME, project_config_.name);
+
         CORE_INFO(u8"Project: Project '{}' loaded.", rkproj_path_);
         scripts_hot_reloading();
     }
 
     Project::~Project()
     {
-        script_dylib_loader_->unload_all_dylibs();
-        script_dylib_loader_->delete_temp_files(project_dir_ / u8"bin" / RKE_CONFIG_NAME);
+        script_registry_->clear();
+        script_dylib_loader_.reset();
     }
 
     bool Project::save()
@@ -101,8 +101,20 @@ namespace rke
 
     bool Project::scripts_hot_reloading()
     {
-        Path dylib_dir{ project_dir_ / u8"bin" / RKE_CONFIG_NAME };
-        return script_dylib_loader_->load_dylib(dylib_dir, project_config_.name);
+        script_registry_->clear();
+        if(script_dylib_loader_->load_dylib())
+        {
+            auto registar{ script_dylib_loader_->get_register_scripts_func() };
+            if(!registar(script_registry_.get()))
+            {
+                CORE_ERROR(u8"Project: Failed to register scripts!");
+                return false;
+            }
+            CORE_INFO(u8"Project: Scripts Registered.");
+            return true;
+        }
+        CORE_ERROR(u8"Project: Failed to load dylib!");
+        return false;
     }
 
     bool Project::create_scene(const String& name)

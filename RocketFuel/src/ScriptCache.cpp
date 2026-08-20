@@ -1,4 +1,6 @@
-﻿#ifdef RKE_PLATFORM_WINDOWS
+﻿// script-dylib side
+
+#ifdef RKE_PLATFORM_WINDOWS
     #define RKE_GLUE_API __declspec(dllexport)
 #else
     #define RKE_GLUE_API
@@ -9,28 +11,27 @@
 
 import ScriptRegistry;
 
-namespace {
+namespace
+{
     struct ScriptEntry
     {
         const char8_t* name;
         void* (*constructor)();
     };
 
-    static std::vector<ScriptEntry>& get_cache()
-    {
-        static std::vector<ScriptEntry> cache{};
-        return cache;
-    }
+    static std::vector<ScriptEntry> s_script_entries{}; // cache
 }
 
 namespace rke::glue
 {
-    void internal_add_script(const char8_t* name, void* (*constructor)())
-        { get_cache().emplace_back(name, constructor); }
+    void push_script_entry(const char8_t* name, void* (*constructor)())
+        { s_script_entries.emplace_back(name, constructor); }
 
-    extern "C" RKE_GLUE_API void register_scripts()
+    extern "C" RKE_GLUE_API bool register_scripts(ScriptRegistry* reg)
     {
-        for(auto& entry : get_cache())
-            ScriptRegistry::register_script(entry.name, entry.constructor);
+        if(!reg) return false;
+        for(ScriptEntry entry : s_script_entries)
+            reg->register_script(entry.name, entry.constructor);
+        return true;
     }
 }

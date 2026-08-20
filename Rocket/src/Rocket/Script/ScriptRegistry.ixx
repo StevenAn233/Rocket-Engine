@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <vector>
 #include <unordered_map>
 #include "rke_macros.h"
 
@@ -13,19 +14,24 @@ import HeapManager;
 
 export namespace rke
 {
-    class RKE_API ScriptRegistry
+    class ScriptRegistry
     {
     public:
-        using ScriptConstructor = void* (*)();
-        using ScriptMap = std::unordered_map<String, ScriptConstructor>;
+        using ScriptConstructor = void*(*)();
 
-        static void register_script(const char8* name, ScriptConstructor func);
-        // will always be string literals(if not directly called)
+        ScriptRegistry() = default;
+        ~ScriptRegistry() = default;
 
-        static Scope<Script> construct_through_name(const String& name);
-        static const ScriptMap& get() { return get_script_map(); }
-        static void clear();
+        // name will always be string literals(if not directly called)
+        RKE_API void register_script(const char8* name, ScriptConstructor func);
+        RKE_API void clear();
+
+        RKE_API Scope<Script> construct_script(const String& name);
+        RKE_API bool has_script(const String& name) const;
+
+        inline const std::vector<const char8*>& get_script_types() const { return script_types_; }
     private:
-        static ScriptMap& get_script_map();
+        std::vector<const char8*> script_types_{};
+        std::unordered_map<String, ScriptConstructor> script_constructors_{};
     };
 }
