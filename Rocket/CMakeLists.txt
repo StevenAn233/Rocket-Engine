@@ -112,6 +112,7 @@ if(WIN32)
   file(GLOB_RECURSE ROCKET_OPENGL_SOURCES "src/Backends/GraphicsAPI/OpenGL/*.cpp")
   file(GLOB_RECURSE ROCKET_OPENGL_MODULES "src/Backends/GraphicsAPI/OpenGL/*.ixx")
   file(GLOB_RECURSE ROCKET_WINDOWS_SOURCES "src/Backends/OS/Windows/*.cpp")
+  file(GLOB_RECURSE ROCKET_WINDOWS_MODULES "src/Backends/OS/Windows/*.ixx")
 
   set_source_files_properties(${ROCKET_OPENGL_MODULES}
     PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
@@ -122,6 +123,11 @@ if(WIN32)
       TYPE CXX_MODULES
       BASE_DIRS src/Backends/GraphicsAPI/OpenGL
       FILES ${ROCKET_OPENGL_MODULES}
+
+      FILE_SET windows_modules
+      TYPE CXX_MODULES
+      BASE_DIRS src/Backends/OS/Windows
+      FILES ${ROCKET_WINDOWS_MODULES}
     PRIVATE
       ${ROCKET_OPENGL_SOURCES}
       ${ROCKET_WINDOWS_SOURCES}

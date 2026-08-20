@@ -16,6 +16,7 @@ import Path;
 import HeapManager;
 import PhysicsLayers;
 import AssetsManager;
+import ScriptDylibLoader;
 
 export namespace rke
 {
@@ -80,5 +81,7 @@ export namespace rke
         std::unordered_map<String, Scope<Scene>> scene_map_{};
         // SceneManager scene_manager_;
         Scope<AssetsManager> assets_manager_{};
+
+        Scope<ScriptDylibLoader> script_dylib_loader_{};
     };
 }

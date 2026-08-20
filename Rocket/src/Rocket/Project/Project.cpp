@@ -3,7 +3,6 @@ module Project;
 
 import Log;
 import FileUtils;
-import ScriptLoader;
 import ScriptRegistry;
 import AssetsManager;
 import ConfigProxy;
@@ -20,6 +19,7 @@ namespace rke
         : rkproj_path_(rkproj_path), project_dir_(rkproj_path.parent_path())
     {
         assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
+        script_dylib_loader_ = ScriptDylibLoader::create();
 
         Scope<ConfigReader> reader{ ConfigReader::create(rkproj_path) };
         auto& config{ project_config_ };
@@ -56,8 +56,8 @@ namespace rke
 
     Project::~Project()
     {
-        ScriptLoader::unload_all_dylibs();
-        ScriptLoader::delete_temp_files(project_dir_ / u8"bin" / RKE_CONFIG_NAME);
+        script_dylib_loader_->unload_all_dylibs();
+        script_dylib_loader_->delete_temp_files(project_dir_ / u8"bin" / RKE_CONFIG_NAME);
     }
 
     bool Project::save()
@@ -102,7 +102,7 @@ namespace rke
     bool Project::scripts_hot_reloading()
     {
         Path dylib_dir{ project_dir_ / u8"bin" / RKE_CONFIG_NAME };
-        return ScriptLoader::load_dylib(dylib_dir, project_config_.name);
+        return script_dylib_loader_->load_dylib(dylib_dir, project_config_.name);
     }
 
     bool Project::create_scene(const String& name)

@@ -360,10 +360,11 @@ namespace rke
             index_val = runtime_assets_.size() - 1;
         } else {
             index_val = static_cast<uint64>(free_asset_index_stack_.back());
+            ++runtime_assets_[index_val].version;
             free_asset_index_stack_.pop_back();
         }
-        uint64 version_val{ static_cast<uint64>(++runtime_assets_[index_val].version) };
         // downside cast should be fine because I don't think someone can load billions of assets...
+        uint64 version_val{ static_cast<uint64>(runtime_assets_[index_val].version) };
         return static_cast<AssetHandle>((version_val << 32) | (index_val & 0xFFFFFFFFull));
     }
 

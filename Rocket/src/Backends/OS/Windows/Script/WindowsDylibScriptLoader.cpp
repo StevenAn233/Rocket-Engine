@@ -2,7 +2,8 @@
 
 #include <windows.h>
 
-module ScriptLoader;
+module ScriptDylibLoader;
+import :Windows;
 
 import Log;
 import Types;
@@ -10,31 +11,26 @@ import Script;
 import ScriptRegistry;
 import FileUtils;
 
-namespace
-{
-    struct HModuleDeleter{ void operator()(HMODULE h) const { if(h) FreeLibrary(h); }};
-    using SCOPE_HMODULE = std::unique_ptr<std::remove_pointer_t<HMODULE>, HModuleDeleter>;
-
-    static std::vector<SCOPE_HMODULE> s_dll_handles{};
-    static rke::uint32 s_reload_count{};
-}
-
 namespace rke
 {
-    bool ScriptLoader::load_dylib(const Path& dir, const String& name)
+    using RegisterScriptsFunc = void(*)();
+
+    void HModuleDeleter::operator()(HMODULE h) const { if(h) FreeLibrary(h); }
+
+    bool WindowsScriptDylibLoader::load_dylib(const Path& dir, const String& name)
     {
         ScriptRegistry::clear();
 
         if(!dir.exists()) {
-            CORE_ERROR(u8"WindowsScriptLoader: "
+            CORE_ERROR(u8"WindowsScriptDylibLoader: "
                 u8"Directory '{}' doesn't exist!", dir);
             return false;
         }
 
     // Hot-reloading Support
         Path dll_path{ dir / String::format(u8"{}.dll", name) };
-        Path copy_dll_path{ dir / String::format(u8"{}.loaded-{}.dll", name, s_reload_count++) };
-        CORE_ASSERT(dll_path.exists(), u8"WindowsScriptLoader: "
+        Path copy_dll_path{ dir / String::format(u8"{}.loaded-{}.dll", name, reload_count_++) };
+        CORE_ASSERT(dll_path.exists(), u8"WindowsScriptDylibLoader: "
             u8"Dll path '{}' doesn't exist!", dll_path);
 
         try {
@@ -52,48 +48,48 @@ namespace rke
         }
         catch(const fs::filesystem_error& e)
         {
-            CORE_ERROR(u8"WindowsScriptLoader: "
+            CORE_ERROR(u8"WindowsScriptDylibLoader: "
                 u8"Failed to copy DLL for hot-reloading!\n -- {}", e.what());
             return false;
         }
 
-        SCOPE_HMODULE dll_handle{ LoadLibraryA(copy_dll_path.string().raw()) };
-        if(!dll_handle) {
-            CORE_ERROR(u8"WindowsScriptLoader: "
-                u8"Failed to load DLL '{}'! May be occupied.", dir);
+        DylibData dylib{ LoadLibraryA(copy_dll_path.string().raw()) };
+        if(!dylib) {
+            CORE_ERROR(u8"WindowsScriptDylibLoader: "
+                u8"Failed to load .dll file '{}'! May be occupied.", dir);
             return false;
         }
 
-        auto register_scripts{ reinterpret_cast<void(*)()>
-            (GetProcAddress(dll_handle.get(), "register_scripts")) };
+        RegisterScriptsFunc register_scripts{ reinterpret_cast<RegisterScriptsFunc>
+            (GetProcAddress(dylib.get(), "register_scripts")) };
         // function name has to be exactly the same(ScriptRegistry)
         if(register_scripts)
         {
-            CORE_INFO(u8"WindowsScriptLoader: Registering scripts from '{}'...", dir);
+            CORE_INFO(u8"WindowsScriptDylibLoader: Registering scripts from '{}'...", dir);
             register_scripts(); // call the register function
 
-            s_dll_handles.clear();
-            s_dll_handles.push_back(std::move(dll_handle));
+            dylib_stack_.clear();
+            dylib_stack_.push_back(std::move(dylib));
 
-            CORE_INFO(u8"WindowsScriptLoader: Scripts Registered.");
+            CORE_INFO(u8"WindowsScriptDylibLoader: Scripts Registered.");
             return true;
         }
 
-        CORE_ERROR(u8"WindowsScriptLoader: Could not find 'register_scripts' in DLL!");
+        CORE_ERROR(u8"WindowsScriptDylibLoader: Could not find 'register_scripts' in DLL!");
         return false;
     }
 
-    void ScriptLoader::unload_all_dylibs()
+    void WindowsScriptDylibLoader::unload_all_dylibs()
     {
         ScriptRegistry::clear();
-        if(!s_dll_handles.empty())
+        if(!dylib_stack_.empty())
         {
-            s_dll_handles.clear();
-            CORE_INFO(u8"WindowsScriptLoader: Unloaded all script DLLs.");
+            dylib_stack_.clear();
+            CORE_INFO(u8"WindowsScriptDylibLoader: Unloaded all script DLLs.");
         }
     }
 
-    void ScriptLoader::delete_temp_files(const Path& dir)
+    void WindowsScriptDylibLoader::delete_temp_files(const Path& dir)
     {
         if(!dir.exists()) return;
         for(const auto& entry : fs::directory_iterator(dir))
