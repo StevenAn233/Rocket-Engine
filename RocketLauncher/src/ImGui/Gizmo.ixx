@@ -4,22 +4,17 @@ export module Gizmo;
 import rke;
 import EditorCamera;
 
-export namespace rke
+export namespace rke::gizmo
 {
-    class Gizmo
+    enum class Mode
     {
-    public:
-        enum class Mode
-        {
-            Translate,
-            Rotate,
-            Scale
-        };
-
-        static void on_render(Entity selected_entity, Mode mode,
-                              const EditorCamera& cam, bool mouse_blocked);
-
-        static bool is_over ();
-        static bool is_using();
+        Translate,
+        Rotate,
+        Scale
     };
+
+    void on_render(Scene& scene, Mode mode, const EditorCamera& cam, bool mouse_blocked);
+
+    bool is_over();
+    bool is_using();
 }

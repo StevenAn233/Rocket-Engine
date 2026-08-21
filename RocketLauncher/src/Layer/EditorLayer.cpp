@@ -43,7 +43,7 @@ namespace rke
     // Effects
         auto hovering{ create_scope<OutlineEffect>(u8"Hovering",
             [this]() -> bool {
-                return !Gizmo::is_using() && !keyboard_blocked()
+                return !gizmo::is_using() && !keyboard_blocked()
                     && editor_setting_panel_->hovering_enabled_editor()
                     && !in_main_viewport_dragging_ && editing()
                     && main_viewport_->is_hovered();
@@ -61,7 +61,7 @@ namespace rke
                 Entity selected{ current_scene() ?
                     current_scene()->get_selected_entity() : Entity{} };
                 uint32 selected_id{ selected.valid() ? selected.get_handle() : entity_id_null };
-                return !Gizmo::is_using()
+                return !gizmo::is_using()
                     && editor_setting_panel_->selected_enabled_editor()
                     && !in_main_viewport_dragging_
                     && (selected_id != hovering_id_ || !hovering_outline_->enabled());
@@ -143,8 +143,7 @@ namespace rke
         // Gizmo
             if(editing() && self.is_focused())
             {
-                Gizmo::on_render (
-                    scene_edit_->get_selected_entity(),
+                gizmo::on_render(*scene_edit_,
                     editor_setting_panel_->get_gizmo_mode(),
                     editor_cam_, mouse_blocked());
             }
@@ -251,13 +250,13 @@ namespace rke
         switch(e.get_key())
         {
         case Key::Num1:
-            editor_setting_panel_->set_gizmo_mode(Gizmo::Mode::Translate);
+            editor_setting_panel_->set_gizmo_mode(gizmo::Mode::Translate);
             return true;
         case Key::Num2:
-            editor_setting_panel_->set_gizmo_mode(Gizmo::Mode::Rotate);
+            editor_setting_panel_->set_gizmo_mode(gizmo::Mode::Rotate);
             return true;
         case Key::Num3:
-            editor_setting_panel_->set_gizmo_mode(Gizmo::Mode::Scale);
+            editor_setting_panel_->set_gizmo_mode(gizmo::Mode::Scale);
             return true;
         case Key::Keypad5:
             editor_cam_.reset();
@@ -284,9 +283,9 @@ namespace rke
         if(!main_viewport_->is_hovered()) return false;
         if(!scene_edit_ || testing()) return false;
 
-        bool is_gizmo_over{ Gizmo::is_over() &&
+        bool is_gizmo_over{ gizmo::is_over() &&
             scene_edit_->get_selected_entity().valid() };
-        if(is_gizmo_over || Gizmo::is_using()) return false;
+        if(is_gizmo_over || gizmo::is_using()) return false;
 
         if(e.get_mouse_button() == Mouse::Left) {
             scene_edit_->set_selected_entity(hovering_id_);
@@ -356,7 +355,7 @@ namespace rke
             );
 
             if(scene_edit_ && main_viewport_->is_hovered() &&
-             !(Gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
+             !(gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
             {
                 glm::vec2 vp_mouse{ main_viewport_->get_mouse_pos() };
                 hovering_id_ = static_cast<uint32>(main_renderer_
@@ -370,14 +369,19 @@ namespace rke
                 // switch to cam demo viewport size
                 auto size{ cam_viewport_->get_size() };
                 scene_edit_->set_viewport(size.x, size.y);
-                cam_output_ = cam_renderer_.render_demo_cam(scene_edit_);
+                cam_output_ = cam_renderer_.render
+                    (scene_edit_, scene_edit_->get_demo_camera());
                 scene_edit_->set_viewport(size.x, size.y);
             }
             else cam_output_ = nullptr;
         }
         else if(testing())
         {
-            main_output_ = main_renderer_.render_master_cam(scene_test_.get());
+            main_output_ = main_renderer_.render
+            (
+                scene_test_.get(),
+                scene_test_->get_master_camera()
+            );
             cam_output_  = nullptr;
         }
         else { main_output_ = cam_output_ = nullptr; }

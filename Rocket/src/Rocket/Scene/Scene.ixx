@@ -62,7 +62,7 @@ export namespace rke
         RKE_API bool empty() const { return handle_ == entt::null; }
         RKE_API bool valid() const;
         RKE_API void invalidate_if_unavailable();
-        RKE_API bool belongs_to(Scene* scene) const { return scene == owner_scene_; }
+        RKE_API bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
 
         RKE_API bool operator==(const Entity& other) const;
         RKE_API bool operator!=(const Entity& other) const;
@@ -146,9 +146,8 @@ export namespace rke
         bool to_save() const { return !temporary_ && modified_; }
 
     // or these thing should be implemented together with Undoing?
-        void mark_modified() const { if(!temporary_) modified_ = true; }
-        void mark_modified_if(bool condition) const
-            { if(!temporary_ && condition) modified_ = true; }
+        void mark_modified() const { modified_ = true; }
+        void mark_modified_if(bool condition) const { if(condition) modified_ = true; }
 
         glm::vec2  get_gravity() const { return gravity_.get(); }
         glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }

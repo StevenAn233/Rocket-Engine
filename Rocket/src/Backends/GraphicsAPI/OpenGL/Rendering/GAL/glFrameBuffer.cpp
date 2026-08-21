@@ -195,6 +195,7 @@ namespace rke
             u8"glFrameBuffer: Try to access non-valid color attachment!");
         return attachments_[index];
     }
+
     const Texture2D* glFrameBuffer::get_texture(int index) const
     {
         if(zero_sized() || over_sized()) return nullptr;
@@ -263,7 +264,6 @@ namespace rke
 
             pbo_has_pending_request_ = true;
         }
-
         return last_read_pixel_value_;
     }
 

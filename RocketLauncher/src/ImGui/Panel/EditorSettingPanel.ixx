@@ -20,8 +20,8 @@ export namespace rke
         void load_from(Path filepath);
         void set_outline_samples(uint32 samples);
 
-        inline void set_gizmo_mode(Gizmo::Mode mode) { gizmo_mode_ = mode; }
-        inline Gizmo::Mode get_gizmo_mode() const { return gizmo_mode_; }
+        inline void set_gizmo_mode(gizmo::Mode mode) { gizmo_mode_ = mode; }
+        inline gizmo::Mode get_gizmo_mode() const { return gizmo_mode_; }
 
         inline bool selected_enabled_editor() const { return selected_enabled_editor_; }
         inline bool hovering_enabled_editor() const { return hovering_enabled_editor_; }
@@ -37,6 +37,6 @@ export namespace rke
         bool selected_enabled_editor_{ true };
         bool hovering_enabled_editor_{ true };
 
-        Gizmo::Mode gizmo_mode_{ Gizmo::Mode::Translate };
+        gizmo::Mode gizmo_mode_{ gizmo::Mode::Translate };
     };
 }

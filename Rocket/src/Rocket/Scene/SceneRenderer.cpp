@@ -65,64 +65,28 @@ namespace rke
     void SceneRenderer::add_effect(Scope<PostProcessEffect> effect)
         { post_processor_.add_effect(std::move(effect)); }
     
-    const Texture2D* SceneRenderer::render(const Scene* scene,
-        const glm::mat4& vp, glm::vec3 pos)
+    const Texture2D* SceneRenderer::render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
-
         scene_fbo_->clear_to_upload([this, scene, &vp, pos]()
         {
             Renderer2D::begin_camera(vp);
             render_scene(scene, vp, pos);
         });
-
         return post_processor_.process(scene_fbo_->get_texture(0));
     }
 
-    const Texture2D* SceneRenderer::render_master_cam(const Scene* scene)
+    const Texture2D* SceneRenderer::render(const Scene* scene, Entity camera)
     {
-        if(!scene) { scene_fbo_->clear(); return nullptr; }
-
-        scene_fbo_->clear_to_upload([this, scene]()
+        if(camera.valid() && camera.belongs_to(scene) && camera.has<CameraComponent>())
         {
-            Entity master_cam{ scene->get_master_camera() };
-            // Use Projection Matrix to Render
-            if(master_cam.valid())
-            {
-                const auto& tc{ master_cam.get<TransformComponent>() };
-                const auto& proj{ master_cam.get<CameraComponent>().camera.get_proj() };
-                glm::mat4 transform{ tc.get_transform() };
+            const auto& trans_com{ camera.get<TransformComponent>() };
+            const auto& proj{ camera.get<CameraComponent>().camera.get_proj() };
 
-                auto vp{ proj * glm::inverse(transform) };
-                Renderer2D::begin_camera(vp);
-                render_scene(scene, vp, tc.position);
-            }
-        });
-
-        return post_processor_.process(scene_fbo_->get_texture(0));
-    }
-
-    const Texture2D* SceneRenderer::render_demo_cam(const Scene* scene)
-    {
-        if(!scene) { scene_fbo_->clear(); return nullptr; }
-
-        scene_fbo_->clear_to_upload([this, scene]()
-        {
-            Entity demo_cam{ scene->get_demo_camera() };
-            if(demo_cam.valid() && demo_cam.has<CameraComponent>())
-            {
-                const auto& tc{ demo_cam.get<TransformComponent>() };
-                const glm::mat4& projection
-                    { demo_cam.get<CameraComponent>().camera.get_proj() };
-                glm::mat4 transform{ tc.get_transform() };
-
-                auto vp{ projection * glm::inverse(transform) };
-                Renderer2D::begin_camera(vp);
-                render_scene(scene, vp, tc.position);
-            }
-        });
-
-        return post_processor_.process(scene_fbo_->get_texture(0));
+            glm::mat4 view_proj{ proj * glm::inverse(trans_com.get_transform()) };
+            return render(scene, view_proj, trans_com.position);
+        }
+        return nullptr;
     }
 
     void SceneRenderer::on_viewport_resized(uint32 w, uint32 h)

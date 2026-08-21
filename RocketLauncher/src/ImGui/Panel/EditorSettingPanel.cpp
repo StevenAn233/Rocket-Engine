@@ -104,14 +104,14 @@ namespace rke
 
             layout::tree_node_branch<u8"Gizmo">([&]()
             {
-                if(ImGui::RadioButton("Translate", gizmo_mode_ == Gizmo::Mode::Translate))
-                    gizmo_mode_ = Gizmo::Mode::Translate;
+                if(ImGui::RadioButton("Translate", gizmo_mode_ == gizmo::Mode::Translate))
+                    gizmo_mode_ = gizmo::Mode::Translate;
                 ImGui::SameLine();
-                if(ImGui::RadioButton("Rotate", gizmo_mode_ == Gizmo::Mode::Rotate))
-                    gizmo_mode_ = Gizmo::Mode::Rotate;
+                if(ImGui::RadioButton("Rotate", gizmo_mode_ == gizmo::Mode::Rotate))
+                    gizmo_mode_ = gizmo::Mode::Rotate;
                 ImGui::SameLine();
-                if(ImGui::RadioButton("Scale", gizmo_mode_ == Gizmo::Mode::Scale))
-                    gizmo_mode_ = Gizmo::Mode::Scale;
+                if(ImGui::RadioButton("Scale", gizmo_mode_ == gizmo::Mode::Scale))
+                    gizmo_mode_ = gizmo::Mode::Scale;
             });
             
             layout::tree_node_branch<u8"Selected Outline">([&]()

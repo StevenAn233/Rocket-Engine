@@ -31,8 +31,7 @@ export namespace rke
 
         void add_effect(Scope<PostProcessEffect> effect);
         const Texture2D* render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
-        const Texture2D* render_master_cam(const Scene* scene);
-        const Texture2D* render_demo_cam(const Scene* scene);
+        const Texture2D* render(const Scene* scene, Entity camera);
 
         void on_viewport_resized(uint32 w, uint32 h);
 
