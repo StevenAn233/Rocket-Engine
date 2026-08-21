@@ -3,7 +3,7 @@
 #ifdef RKE_DEBUG
     #define CHECK_LAYER(layer) CORE_ASSERT ( \
         layer >= 0 && layer < get_layer_count(), \
-        u8"PhysicsLayer: Layer must be within 0 to {}!", get_layer_count())
+        u8"PhysicsLayers: Layer must be within 0 to {}!", get_layer_count())
 #else
     #define CHECK_LAYER(layer)
 #endif

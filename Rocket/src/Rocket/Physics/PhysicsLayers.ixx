@@ -34,18 +34,12 @@ export namespace rke
         const String& get_name(uint8 layer) const;
         uint16 get_mask(uint8 layer) const;
 
-        void  set_showed_layer_count(uint8 layer);
-        uint8 get_showed_layer_count() const { return showed_layer_count_; }
-        void plus_showed_layer_count()
-        {
-            if(showed_layer_count_ < (get_layer_count() - 1u))
-                showed_layer_count_++;
-        }
-        void minus_showed_layer_count()
-        {
-            if(showed_layer_count_ > 1u)
-                showed_layer_count_--;
-        }
+        void set_showed_layer_count(uint8 layer);
+        inline uint8 get_showed_layer_count() const { return showed_layer_count_; }
+        inline void plus_showed_layer_count()
+            { if(showed_layer_count_ < (get_layer_count() - 1u)) showed_layer_count_++; }
+        inline void minus_showed_layer_count()
+            { if(showed_layer_count_ > 1u) showed_layer_count_--; }
 
         bool if_collides(uint8 layer_a, uint8 layer_b);
     private:
