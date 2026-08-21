@@ -382,7 +382,7 @@ namespace rke
                 scene_test_.get(),
                 scene_test_->get_master_camera()
             );
-            cam_output_  = nullptr;
+            cam_output_ = nullptr;
         }
         else { main_output_ = cam_output_ = nullptr; }
     }
