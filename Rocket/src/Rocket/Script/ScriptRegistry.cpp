@@ -1,6 +1,8 @@
 ﻿module;
 module ScriptRegistry;
 
+import Log;
+
 namespace rke
 {
     void ScriptRegistry::register_script(const char8* name, ScriptConstructor func)
@@ -12,12 +14,11 @@ namespace rke
         script_constructors_.emplace(std::move(name_string), func);
     }
 
-    Scope<Script> ScriptRegistry::construct_script(const String& name)
+    void* ScriptRegistry::construct_script(const String& name)
     {
         if(name.empty()) return nullptr;
         auto it{ script_constructors_.find(name) };
-        if(it != script_constructors_.end()) // will always be Script*
-            return Scope<Script>(static_cast<Script*>(it->second()));
+        if(it != script_constructors_.end()) return it->second();
         CORE_ERROR(u8"ScriptRegistry: Script '{}' is not registered!", name);
         return nullptr;
     }

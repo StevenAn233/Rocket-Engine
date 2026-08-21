@@ -63,6 +63,6 @@ export import ComponentRegistry;
 
 export import Script;
 export import ScriptRegistry;
-export import ScriptEngine;
+export import ScriptManager;
 
 export import Project;

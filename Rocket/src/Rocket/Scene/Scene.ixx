@@ -1,7 +1,11 @@
 ﻿module;
 
-#include <entt/entt.hpp>
+#include <string>
+#include <filesystem>
+#include <vector>
+#include <memory>
 #include <glm/glm.hpp>
+#include <entt/entt.hpp>
 #include "rke_macros.h"
 namespace rke { class Project; }
 
@@ -12,13 +16,12 @@ import UUID;
 import Types;
 import String;
 import Path;
-import Event;
 import MouseEvent;
 import ApplicationEvent;
 import HeapManager;
-import Components;
 import PhysicsLayers;
 import Gravity2D;
+import ScriptManager;
 
 export namespace rke
 {
@@ -28,17 +31,23 @@ export namespace rke
         friend class Scene;
         friend class SceneRenderer;
 
-        RKE_API Entity() = default;
+        RKE_API Entity();
+
         RKE_API Entity(const Entity&) = default;
         RKE_API Entity& operator=(const Entity&) = default;
         RKE_API Entity(Entity&&) = default;
         RKE_API Entity& operator=(Entity&&) = default;
 
-        RKE_API UUID get_uuid() const
-        {
-            if(!valid()) return UUID(0);
-            return get<UUIDComponent>().uuid;
-        }
+        RKE_API UUID get_uuid() const;
+        RKE_API bool valid() const;
+        RKE_API void invalidate_if_unavailable();
+
+        RKE_API bool operator==(const Entity& other) const;
+        RKE_API bool operator!=(const Entity& other) const;
+
+        inline uint32 get_handle() const { return static_cast<uint32>(handle_); }
+        inline bool empty() const { return handle_ == entt::null; }
+        inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
 
         template<typename Component>
         bool has() const;
@@ -57,22 +66,12 @@ export namespace rke
         Component& get_mut();
         template<typename Component>
         void remove();
-
-        RKE_API uint32 get_handle() const { return static_cast<uint32>(handle_); }
-        RKE_API bool empty() const { return handle_ == entt::null; }
-        RKE_API bool valid() const;
-        RKE_API void invalidate_if_unavailable();
-        RKE_API bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
-
-        RKE_API bool operator==(const Entity& other) const;
-        RKE_API bool operator!=(const Entity& other) const;
-        RKE_API bool is_owner(const Scene* scene) const { return owner_scene_ == scene; }
     private:
         RKE_API Entity(entt::entity handle, const Scene* scene);
         RKE_API Entity(uint32 handle, const Scene* scene);
     private:
-        entt::entity handle_{ entt::null }; // version(12bits) + index(20bits)
-        const Scene* owner_scene_{ nullptr };
+        entt::entity handle_; // version(12bits) + index(20bits)
+        const Scene* owner_scene_;
     };
 
     constexpr uint32 entity_id_null{ 0xFFFFFFFFu };
@@ -82,7 +81,7 @@ export namespace rke
     public:
         friend class Entity;
         friend class SceneSerializer;
-        friend class ScriptEngine;
+        friend class ScriptManager;
         friend class PhysicsEngine2D;
         friend class SceneRenderer;
 
@@ -130,6 +129,8 @@ export namespace rke
         void set_demo_camera(uint32 handle) { set_demo_camera(get_entity(handle)); }
         void set_demo_camera(UUID uuid) { set_demo_camera(get_entity(uuid)); }
 
+        void refresh_script(Entity entity);
+
         void clear();
         void on_update(float dt);
 
@@ -142,15 +143,15 @@ export namespace rke
         inline uint32 get_viewport_w() const { return viewport_w_; }
         inline uint32 get_viewport_h() const { return viewport_h_; }
 
-        bool in_runtime() const { return in_runtime_; }
-        bool to_save() const { return !temporary_ && modified_; }
+        inline bool in_runtime() const { return in_runtime_; }
+        inline bool to_save() const { return !temporary_ && modified_; }
 
     // or these thing should be implemented together with Undoing?
-        void mark_modified() const { modified_ = true; }
-        void mark_modified_if(bool condition) const { if(condition) modified_ = true; }
+        inline void mark_modified() const { modified_ = true; }
+        inline void mark_modified_if(bool condition) const { if(condition) modified_ = true; }
 
-        glm::vec2  get_gravity() const { return gravity_.get(); }
-        glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
+        inline glm::vec2 get_gravity() const { return gravity_.get(); }
+        inline glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
     private:
         void flush_destroy_queue();
     private:
@@ -171,6 +172,8 @@ export namespace rke
         Entity master_cam_{};
         Entity demo_cam_{};
         Entity selected_entity_{}; // std::vector<Entity> selected_entities{};
+
+        Scope<ScriptManager> script_manager_{};
     };
 
     template<typename Component>
@@ -204,7 +207,7 @@ export namespace rke
     }
 
     template<typename Component, typename ...Args>
-    Component& Entity::emplace_or_replace(Args && ...args)
+    Component& Entity::emplace_or_replace(Args&& ...args)
     {
         CORE_ASSERT(!has<Component>(), u8"Entity: Try to emplace the same component!");
         owner_scene_->mark_modified();

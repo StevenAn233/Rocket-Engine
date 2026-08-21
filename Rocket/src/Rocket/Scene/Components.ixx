@@ -17,6 +17,7 @@ import HeapManager;
 import SceneCamera;
 import PhysicsLayers;
 import Texture;
+import Script;
 import UUID;
 import AssetsManager;
 
@@ -163,6 +164,7 @@ export namespace rke
 
     struct RKE_API NativeScriptComponent
     {
+        Script* script_handle{};
         String script_name{};
         bool wants_to_update{ true };
 

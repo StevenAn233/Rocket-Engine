@@ -13,9 +13,8 @@ import Project;
 import PhysicsLayers;
 import Application;
 
-namespace {
-    using namespace rke;
-
+namespace rke
+{
     b2Filter get_filter(const PhysicsLayers& layers, uint8 layer_index)
     {
         b2Filter filter{};

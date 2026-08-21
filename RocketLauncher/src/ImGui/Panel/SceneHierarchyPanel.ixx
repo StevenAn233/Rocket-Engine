@@ -78,7 +78,7 @@ export namespace rke
             if(to_delete) {
                 entity.remove<Component>();
                 if constexpr(std::is_same_v<Component, NativeScriptComponent>)
-                    ScriptEngine::update_script(entity);
+                    context_->refresh_script(entity);
             }
         }
     private:

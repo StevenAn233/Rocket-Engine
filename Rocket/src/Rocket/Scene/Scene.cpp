@@ -1,16 +1,18 @@
 ﻿module;
 module Scene;
 
+import Components;
 import Project;
-import ScriptEngine;
 import PhysicsEngine2D;
 import ComponentRegistry;
 
 namespace rke
 {
-// Entity
+    Entity::Entity() : handle_(entt::null), owner_scene_(nullptr) {}
+
     Entity::Entity(entt::entity handle, const Scene* scene)
         : handle_(handle), owner_scene_(scene) {}
+    
     Entity::Entity(uint32 handle, const Scene* scene)
         : handle_(entt::entity(handle)), owner_scene_(scene) {}
 
@@ -38,10 +40,18 @@ namespace rke
 
     bool Entity::operator!=(const Entity& other) const { return !operator==(other); }
 
-// Scene
+    UUID Entity::get_uuid() const
+    {
+        if(!valid()) return UUID(0);
+        return get<UUIDComponent>().uuid;
+    }
+
     Scene::Scene(Project* owner, String name)
         : owner_(owner), name_(std::move(name))
-        { registry_ = create_scope<entt::registry>(); }
+    {
+        registry_ = create_scope<entt::registry>();
+        script_manager_ = create_scope<ScriptManager>(this);
+    }
 
     Scene::~Scene() { if(in_runtime_) on_runtime_stop(); clear(); }
 
@@ -219,6 +229,12 @@ namespace rke
         mark_modified();
     }
 
+    void Scene::refresh_script(Entity entity)
+    {
+        if(!entity.valid() || !entity.belongs_to(this)) return;
+        script_manager_->refresh_script(entity.get_handle());
+    }
+
     void Scene::clear()
     {
         if(in_runtime_) {
@@ -236,8 +252,14 @@ namespace rke
 
     void Scene::on_update(float dt)
     {
-        if(in_runtime_) {
-            ScriptEngine::on_update(dt);
+        if(in_runtime_)
+        {
+            auto view{ registry_->view<NativeScriptComponent>() };
+            for(entt::entity ent : view)
+            {
+                Script* script{ registry_->get<NativeScriptComponent>(ent).script_handle };
+                if(script) script->on_update(dt);
+            }
             PhysicsEngine2D::on_update(dt);
         }
         flush_destroy_queue();
@@ -247,7 +269,7 @@ namespace rke
     {
         CORE_ASSERT(!in_runtime_, u8"Scene: Already in runtime!");
         in_runtime_ = true;
-        ScriptEngine::on_runtime_start(this);
+        script_manager_->on_runtime_start();
         PhysicsEngine2D::on_runtime_start(this);
     }
 
@@ -255,7 +277,7 @@ namespace rke
     {
         CORE_ASSERT(in_runtime_, u8"Scene: Not in runtime!");
         in_runtime_ = false;
-        ScriptEngine::on_runtime_stop();
+        script_manager_->on_runtime_stop();
         PhysicsEngine2D::on_runtime_stop();
     }
 
@@ -273,7 +295,15 @@ namespace rke
     }
 
     void Scene::on_mouse_scrolled_runtime(MouseScrolledEvent& e)
-        { if(in_runtime()) ScriptEngine::on_mouse_scrolled(e); }
+    {
+        if(!in_runtime()) return;
+        auto view{ registry_->view<NativeScriptComponent>() };
+        for(entt::entity ent : view)
+        {
+            Script* script{ registry_->get<NativeScriptComponent>(ent).script_handle };
+            if(script) script->on_mouse_scrolled(e.get_x_offset(), e.get_y_offset());
+        }
+    }
 
     void Scene::flush_destroy_queue()
     {

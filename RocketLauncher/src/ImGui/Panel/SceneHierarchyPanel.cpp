@@ -513,7 +513,7 @@ namespace rke
                 if(ImGui::Selectable("No Script", is_none_selected))
                 {
                     nsc.script_name.clear();
-                    ScriptEngine::update_script(ent);
+                    context_->refresh_script(ent);
                     context_->mark_modified();
                 }
                 if(is_none_selected) ImGui::SetItemDefaultFocus();
@@ -525,7 +525,7 @@ namespace rke
                     if(ImGui::Selectable(name.raw(), is_selected))
                     {
                         nsc.script_name = name;
-                        ScriptEngine::update_script(ent);
+                        context_->refresh_script(ent);
                         context_->mark_modified();
                     }
                     if(is_selected) ImGui::SetItemDefaultFocus();
