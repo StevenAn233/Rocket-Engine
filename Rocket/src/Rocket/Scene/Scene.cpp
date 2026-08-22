@@ -5,6 +5,7 @@ import Components;
 import Project;
 import PhysicsEngine2D;
 import ComponentRegistry;
+import ScriptManager;
 
 namespace rke
 {

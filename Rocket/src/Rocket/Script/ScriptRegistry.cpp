@@ -14,11 +14,12 @@ namespace rke
         script_constructors_.emplace(std::move(name_string), func);
     }
 
-    void* ScriptRegistry::construct_script(const String& name)
+    Scope<Script> ScriptRegistry::construct_script(const String& name)
     {
         if(name.empty()) return nullptr;
         auto it{ script_constructors_.find(name) };
-        if(it != script_constructors_.end()) return it->second();
+        if(it != script_constructors_.end()) return Scope<Script>
+            (reinterpret_cast<Script*>(std::invoke(it->second)));
         CORE_ERROR(u8"ScriptRegistry: Script '{}' is not registered!", name);
         return nullptr;
     }

@@ -25,9 +25,9 @@ namespace rke
     {
         while(!script_cache_.empty())
         {
-            Script* script{ reinterpret_cast<Script*>(script_cache_.back()) };
+            Scope<Script> script{ std::move(script_cache_.back()) };
             if(script) script->on_destroy();
-            delete script;
+            script.reset();
             script_cache_.pop_back();
         }
         auto& registry{ *(owner_->registry_) };
@@ -43,8 +43,8 @@ namespace rke
         auto& script_com{ owner_->registry_->get<NativeScriptComponent>(ent) };
         const auto& name{ script_com.script_name };
         if(!name.empty()) {
-            Script* script{ reinterpret_cast<Script*>
-                (owner_->get_owner()->get_script_registry().construct_script(name)) };
+            Scope<Script> script{ owner_->get_owner()
+                ->get_script_registry().construct_script(name) };
             if(script) {
                 Entity entity{ owner_->get_entity(handle) };
                 if(!entity.valid()) {
@@ -54,8 +54,8 @@ namespace rke
                 else script->owner_ = entity;
                 script->on_create();
             }
-            script_cache_.push_back(static_cast<void*>(script));
-            script_com.script_handle = script;
+            script_com.script_handle = script.get();
+            script_cache_.push_back(std::move(script));
         }
     }
 }

@@ -1,11 +1,14 @@
 ﻿module;
 
+#include <memory>
 #include <vector>
 namespace rke { class Scene; }
 
 export module ScriptManager;
 
+import Script;
 import Types;
+import HeapManager;
 
 export namespace rke
 {
@@ -26,6 +29,6 @@ export namespace rke
         void refresh_script(uint32 handle);
     private:
         Scene* owner_;
-        std::vector<void*> script_cache_{};
+        std::vector<Scope<Script>> script_cache_{};
     };
 }

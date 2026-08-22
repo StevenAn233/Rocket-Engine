@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <entt/entt.hpp>
 #include "rke_macros.h"
-namespace rke { class Project; }
+namespace rke { class Project; class ScriptManager; }
 
 export module Scene;
 
@@ -21,7 +21,6 @@ import ApplicationEvent;
 import HeapManager;
 import PhysicsLayers;
 import Gravity2D;
-import ScriptManager;
 
 export namespace rke
 {
@@ -129,7 +128,7 @@ export namespace rke
         void set_demo_camera(uint32 handle) { set_demo_camera(get_entity(handle)); }
         void set_demo_camera(UUID uuid) { set_demo_camera(get_entity(uuid)); }
 
-        void refresh_script(Entity entity);
+        void refresh_script(Entity entity); // ScriptManager::refresh_script
 
         void clear();
         void on_update(float dt);
