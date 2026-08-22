@@ -18,7 +18,10 @@ namespace rke
         auto& registry{ *(owner_->registry_) };
         auto view{ registry.view<NativeScriptComponent>() };
         for(entt::entity ent : view)
-            refresh_script(static_cast<uint32>(ent));
+        {
+            uint32 handle{ static_cast<uint32>(ent) };
+            script_cache_.emplace(handle, create_script(handle));
+        }
     }
 
     void ScriptManager::on_runtime_stop()
