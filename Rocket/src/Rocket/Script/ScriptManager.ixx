@@ -1,7 +1,7 @@
 ﻿module;
 
 #include <memory>
-#include <vector>
+#include <unordered_map>
 namespace rke { class Scene; }
 
 export module ScriptManager;
@@ -28,7 +28,10 @@ export namespace rke
 
         void refresh_script(uint32 handle);
     private:
+        Scope<Script> create_script(uint32 handle);
+        void destroy_script(Scope<Script> script, uint32 handle);
+    private:
         Scene* owner_;
-        std::vector<Scope<Script>> script_cache_{};
+        std::unordered_map<uint32, Scope<Script>> script_cache_{};
     };
 }

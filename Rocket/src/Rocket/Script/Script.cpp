@@ -1,7 +1,7 @@
 module;
 module Script;
 
-import Log;
+// import Log;
 
 namespace rke
 {
