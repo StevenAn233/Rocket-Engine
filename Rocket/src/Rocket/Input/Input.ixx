@@ -16,16 +16,16 @@ export namespace rke
     class RKE_API Input
     {
     public:
-        static void transition_input_state(bool block_mouse, bool block_keyboard);
+        void transition_input_state(bool block_mouse, bool block_keyboard);
 
-        static constexpr bool is_key_pressed(Key keycode);
-        static constexpr bool is_mouse_button_pressed(Mouse button);
+        bool is_key_pressed(Key keycode) const;
+        bool is_mouse_button_pressed(Mouse button) const;
 
-        static glm::vec2 get_mouse_pos_in_window();
-        static float get_mouse_x_in_window();
-        static float get_mouse_y_in_window();
+        glm::vec2 get_mouse_pos_in_window() const;
+        float get_mouse_x_in_window() const;
+        float get_mouse_y_in_window() const;
     private:
-        static bool s_block_mouse_;
-        static bool s_block_keyboard_;
+        bool block_mouse_{ false };
+        bool block_keyboard_{ false };
     };
 }

@@ -154,31 +154,27 @@ namespace {
 
 namespace rke
 {
-    bool Input::s_block_mouse_	 { false };
-    bool Input::s_block_keyboard_{ false };
-
     void Input::transition_input_state(bool block_mouse, bool block_keyboard)
     {
-        s_block_mouse_	  = block_mouse;
-        s_block_keyboard_ = block_keyboard;
+        block_mouse_ = block_mouse;
+        block_keyboard_ = block_keyboard;
     }
 
-    constexpr bool Input::is_key_pressed(Key key)
+    bool Input::is_key_pressed(Key key) const
     {
-        if(s_block_keyboard_) return false;
+        if(block_keyboard_) return false;
         int state{ glfwGetKey(glfwGetCurrentContext(), rke_to_glfw_key(key)) };
         return (state == GLFW_PRESS || state == GLFW_REPEAT);
     }
 
-    constexpr bool Input::is_mouse_button_pressed(Mouse button)
+    bool Input::is_mouse_button_pressed(Mouse button) const
     {
-        if(s_block_mouse_) return false;
-        int state{ glfwGetMouseButton
-            (glfwGetCurrentContext(), rke_to_glfw_mouse(button)) };
+        if(block_mouse_) return false;
+        int state{ glfwGetMouseButton(glfwGetCurrentContext(), rke_to_glfw_mouse(button)) };
         return (state == GLFW_PRESS);
     }
 
-    glm::vec2 Input::get_mouse_pos_in_window()
+    glm::vec2 Input::get_mouse_pos_in_window() const
     {
         double x{}, y{};
         glfwGetCursorPos(glfwGetCurrentContext(), &x, &y);
@@ -186,14 +182,14 @@ namespace rke
         return { static_cast<float>(x), static_cast<float>(y) };
     }
 
-    float Input::get_mouse_x_in_window()
+    float Input::get_mouse_x_in_window() const
     {
         double x{};
         glfwGetCursorPos(glfwGetCurrentContext(), &x, nullptr);
         return static_cast<float>(x);
     }
 
-    float Input::get_mouse_y_in_window()
+    float Input::get_mouse_y_in_window() const
     {
         double y{};
         glfwGetCursorPos(glfwGetCurrentContext(), nullptr, &y);

@@ -195,8 +195,8 @@ namespace rke
     void DockSpace::on_update()
     {
         ctrl_pressed_ = (
-            Input::is_key_pressed(Key::RightControl) ||
-            Input::is_key_pressed(Key::LeftControl )
+            app().input().is_key_pressed(Key::RightControl) ||
+            app().input().is_key_pressed(Key::LeftControl )
         );
     }
 

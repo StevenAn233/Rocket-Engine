@@ -45,17 +45,16 @@ namespace rke
 
     void EditorCamera::on_update(float dt)
     {
-        glm::vec2 mouse{ Input::get_mouse_pos_in_window() };
+        glm::vec2 mouse{ app().input().get_mouse_pos_in_window() };
         glm::vec2 delta{ (mouse - last_mouse_pos_) * 0.003f };
         last_mouse_pos_ = mouse;
 
-        if(Input::is_mouse_button_pressed(Mouse::Middle))
+        if(app().input().is_mouse_button_pressed(Mouse::Middle))
         {
-            if(Input::is_key_pressed(Key::LeftShift))
+            if(app().input().is_key_pressed(Key::LeftShift))
                 mouse_pan(delta);
             else mouse_rotate(delta);
         }
-
         update_view();
     }
 

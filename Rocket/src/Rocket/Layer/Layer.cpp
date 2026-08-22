@@ -2,10 +2,10 @@
 module Layer;
 
 import Log;
-import Application;
-import EventDispatcher;
 import Window;
 import Input;
+import Application;
+import EventDispatcher;
 
 namespace rke
 {
@@ -13,8 +13,8 @@ namespace rke
         : debug_name_(std::move(name)), owner_(owner)
     { CORE_ASSERT(owner_, u8"Layer: Owner window empty!"); }
 
-    void Layer::on_update(float dt)
-        { Input::transition_input_state(mouse_blocked(), keyboard_blocked()); }
+    void Layer::on_update(float dt) // only method that will write to app().input()
+        { app().input().transition_input_state(mouse_blocked(), keyboard_blocked()); }
 
     const String& Layer::get_owner_name() { return owner_->get_name(); }
 

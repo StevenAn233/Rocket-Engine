@@ -23,7 +23,7 @@ namespace rke::gizmo
 {
     void on_render(Scene& scene, Mode mode, const EditorCamera& cam, bool mouse_blocked)
     {
-        bool snapping{ Input::is_key_pressed(Key::LeftShift) };
+        bool snapping{ app().input().is_key_pressed(Key::LeftShift) };
 
         ImGuizmo::OPERATION gizmo_mode{ to_imguizmo(mode) };
 
