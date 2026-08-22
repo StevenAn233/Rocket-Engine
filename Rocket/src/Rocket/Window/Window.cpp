@@ -23,10 +23,18 @@ namespace rke
         for(auto it{ layer_stack_.rbegin() }; it != layer_stack_.rend(); ++it)
         {
             Layer& layer{ *(it->get()) };
-            if(layer.should_block_mouse())
-                { mouse_blocking_layer_index_ = layer.get_index(); return; }
-            if(layer.should_block_keyboard())
-                { keyboard_blocking_layer_index_ = layer.get_index(); return; }
+            if(layer.should_block_mouse()) {
+                mouse_blocking_layer_index_ = layer.get_index();
+                break;
+            }
+        }
+        for(auto it{ layer_stack_.rbegin() }; it != layer_stack_.rend(); ++it)
+        {
+            Layer& layer{ *(it->get()) };
+            if(layer.should_block_keyboard()) {
+                keyboard_blocking_layer_index_ = layer.get_index();
+                break;
+            }
         }
     }
 

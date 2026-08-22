@@ -10,29 +10,17 @@ import Input;
 namespace rke
 {
     Layer::Layer(String name, Window* owner)
-        : debug_name_(std::move(name)), owner_(owner) {}
+        : debug_name_(std::move(name)), owner_(owner)
+    { CORE_ASSERT(owner_, u8"Layer: Owner window empty!"); }
 
     void Layer::on_update(float dt)
-    {
-        Input::transition_input_state
-            (mouse_blocked(), keyboard_blocked());
-    }
+        { Input::transition_input_state(mouse_blocked(), keyboard_blocked()); }
 
-    const String& Layer::get_owner_name()
-    {
-        CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return owner_->get_name();
-    }
+    const String& Layer::get_owner_name() { return owner_->get_name(); }
 
     bool Layer::mouse_blocked() const
-    {
-        CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return layer_index_ < owner_->get_mouse_blocking_index();
-    }
-
+        { return layer_index_ < owner_->get_mouse_blocking_index(); }
+        
     bool Layer::keyboard_blocked() const
-    {
-        CORE_ASSERT(owner_, u8"Layer: Owner window empty!");
-        return layer_index_ < owner_->get_keyboard_blocking_index();
-    }
+        { return layer_index_ < owner_->get_keyboard_blocking_index(); }
 }
