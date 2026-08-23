@@ -2,6 +2,7 @@
 module Instrumentor;
 
 import Log;
+import Application;
 
 namespace rke
 {
@@ -93,8 +94,11 @@ namespace rke
                 (end_time_point - start_time_point_)
         };
 
-        Instrumentor::get().write_profile
-            ({ name_, high_res_start, elapsed_time, std::this_thread::get_id()});
+        app().instrumentor().write_profile
+        ({
+            name_, high_res_start,
+            elapsed_time, std::this_thread::get_id()
+        });
 
         stopped_ = true;
     }

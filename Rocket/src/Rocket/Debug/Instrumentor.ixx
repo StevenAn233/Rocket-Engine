@@ -28,8 +28,11 @@ export namespace rke
         };
         struct InstrumentationSession { String name; };
 
+        Instrumentor();
+        ~Instrumentor();
+
         Instrumentor(const Instrumentor&) = delete;
-        Instrumentor(Instrumentor&& ____) = delete;
+        Instrumentor(Instrumentor&&) = delete;
 
         // start a session on performance(lasting time)
         void begin_session(const String& name, const Path& filepath);
@@ -41,16 +44,7 @@ export namespace rke
 
         // write the info(ProfileResult) into a json file during the session
         void write_profile(const ProfileResult& result);
-
-        static Instrumentor& get()
-        {
-            static Instrumentor instance{}; // singleton
-            return instance;
-        }
     private:
-        Instrumentor ();
-        ~Instrumentor();
-
         // for write_profile()
         void write_header() { fout_ << "{\"otherData\": {},\"traceEvents\":[{}"; fout_.flush(); }
         void write_footer() { fout_ << "]}"; fout_.flush(); }
@@ -84,7 +78,7 @@ export namespace rke
         bool stopped_;
     };
 
-    export namespace InstrumentorUtils
+    namespace instrumentor_utils
     {
         // static, to support "constexpr"
         template<Size N>

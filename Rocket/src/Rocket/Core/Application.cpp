@@ -2,7 +2,6 @@
 module Application;
 
 import Log;
-import Instrumentor;
 import Renderer2D;
 import PlatformSupport;
 import FileUtils;

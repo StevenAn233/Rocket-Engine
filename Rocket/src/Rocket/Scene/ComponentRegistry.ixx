@@ -23,24 +23,14 @@ namespace {
 
 export namespace rke
 {
-    template<Size N>
-    struct FixedString
-    {
-        char8 buf[N]{};
-        constexpr FixedString(const char8 (&s)[N])
-            { for(Size i{}; i < N; ++i) buf[i] = s[i]; }
-        constexpr operator StringView() const
-            { return StringView(buf, N - 1ui64); }
-    };
-
-    template<typename T, FixedString Name>
+    template<typename T, StringLiteral Name>
     struct TypeID
     {
         using Type = T;
     private:
-        static constexpr FixedString fixed{ Name }; // need to store the buffer
+        static constexpr StringLiteral fixed{ Name }; // need to store the buffer
     public:
-        static constexpr StringView name{ fixed };
+        static constexpr StringView name{ fixed.data };
     };
 
     using ComponentTypes = std::tuple

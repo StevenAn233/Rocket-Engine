@@ -111,12 +111,12 @@
     #endif
 
     #define RKE_PROFILE_BEGIN_SESSION(name, filepath) \
-        ::rke::Instrumentor::get().begin_session(name, filepath)
-    #define RKE_PROFILE_END_SESSION() ::rke::Instrumentor::get().end_session()
+        ::rke::app().instrumentor().begin_session(name, filepath)
+    #define RKE_PROFILE_END_SESSION() ::rke::app().instrumentor().end_session()
 
     #define RKE_PROFILE_SCOPE_LINE_MID(name, line) \
         constexpr auto fixed_name##line \
-            { ::rke::InstrumentorUtils::cleanup_output_string(name, u8"__cdecl ") }; \
+            { ::rke::instrumentor_utils::cleanup_output_string(name, u8"__cdecl ") }; \
         ::rke::InstrumentationTimer timer##line(::rke::StringView(fixed_name##line.data))
     // attach **line** to "fixed_name" and "timer" to prevent redefining issues
     #define RKE_PROFILE_SCOPE_LINE(name, line) RKE_PROFILE_SCOPE_LINE_MID(name, line)

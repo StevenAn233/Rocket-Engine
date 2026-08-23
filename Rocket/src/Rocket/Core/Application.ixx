@@ -23,6 +23,7 @@ import Project;
 import DockSpace;
 import RenderCommand;
 import Input;
+import Instrumentor;
 
 export namespace rke
 {
@@ -43,12 +44,12 @@ export namespace rke
         void send_event(Event& e);
         void load_project(const Path& path);
         void clear_project();
-        
 
         inline RenderCommand& render_command() { return *render_command_; }
         inline WindowsLib& get_windows_lib() { return windows_lib_; }
         inline Project* get_project() { return project_.get(); }
         inline Input& input() { return input_; }
+        inline Instrumentor& instrumentor() { return instrumentor_; }
 
         void register_panel(Panel* handle, PanelRegistry::Attrib attrib = {});
         void unregister_panel(Panel* handle);
@@ -63,6 +64,7 @@ export namespace rke
     private:
         WindowsLib windows_lib_;
         Input input_{};
+        Instrumentor instrumentor_{};
         Scope<Project> project_{};
         Scope<RenderCommand> render_command_{};
 

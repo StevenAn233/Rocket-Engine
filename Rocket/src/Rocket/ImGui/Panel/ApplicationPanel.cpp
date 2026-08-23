@@ -3,6 +3,7 @@ module ApplicationPanel;
 
 import Instrumentor;
 import Renderer2D;
+import Application;
 
 namespace rke
 {
@@ -30,10 +31,11 @@ namespace rke
     #if RKE_ENABLE_PROFILE
         if(ImGui::BeginTabItem("Profiler Controls"))
         {
-            if(Instrumentor::get().is_session_running())
+            if(app().instrumentor().is_session_running())
             {
-                if(ImGui::SmallButton("Stop")) {
-                    if(Instrumentor::get().is_session_running())
+                if(ImGui::SmallButton("Stop"))
+                {
+                    if(app().instrumentor().is_session_running())
                         RKE_PROFILE_END_SESSION();
                 }
                 ImGui::SameLine();
@@ -43,7 +45,7 @@ namespace rke
                 // show green "ACTIVE"
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "ACTIVE");
 
-                ImGui::Text("Duration: %.2f s", Instrumentor::get().get_session_duration_s());
+                ImGui::Text("Duration: %.2f s", app().instrumentor().get_session_duration_s());
             } else {
                 if(ImGui::SmallButton("Begin"))
                 {
