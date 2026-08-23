@@ -59,7 +59,6 @@ export import Scene;
 export import SceneCamera;
 export import SceneSerializer;
 export import Components;
-export import ComponentRegistry;
 
 export import Script;
 export import ScriptRegistry;

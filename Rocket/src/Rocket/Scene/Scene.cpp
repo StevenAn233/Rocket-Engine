@@ -5,7 +5,6 @@ import Log;
 import Components;
 import Project;
 import PhysicsEngine2D;
-import ComponentRegistry;
 import ScriptManager;
 
 namespace rke
@@ -87,7 +86,7 @@ namespace rke
             (void)new_scene->registry_->create(entities_data[i]);
         // make sure orderly creation
 
-        ComponentRegistry::each([&](auto type_id)
+        components::each([&](auto type_id)
         {
             using ComponentType = decltype(type_id)::Type;
             auto view{ registry_->view<ComponentType>() };
@@ -183,7 +182,7 @@ namespace rke
         copied_entity.emplace<UUIDComponent>(); // generate a unique one
         owner->entity_map_[copied_entity.get_uuid()] = copied_entity.handle_;
 
-        ComponentRegistry::each([&](auto type_id)
+        components::each([&](auto type_id)
         {
             using ComponentType = decltype(type_id)::Type;
             if constexpr(!std::is_same_v<ComponentType, UUIDComponent>)

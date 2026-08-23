@@ -1,6 +1,8 @@
 ﻿module;
 
+#include <tuple>
 #include <utility>
+#include <concepts>
 
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -20,6 +22,18 @@ import Texture;
 import Script;
 import UUID;
 import AssetsManager;
+
+namespace
+{
+    template<typename Func, typename Tuple>
+    struct invocable_with_all { static_assert(false); };
+
+    template<typename Func, typename... TypeIDs>
+    struct invocable_with_all<Func, std::tuple<TypeIDs...>>
+    { static constexpr bool value{(std::invocable<Func, TypeIDs> && ...)}; };
+    // (... && ...) ->
+    // (std::invocable<Func, A> && std::invocable<Func, B> && ...)
+}
 
 // put datas that you wanna deal with simultaneously in the same component
 export namespace rke
@@ -170,5 +184,42 @@ export namespace rke
 
         NativeScriptComponent() = default;
         NativeScriptComponent(const NativeScriptComponent&) = default;
+    };
+
+// Registry
+    template<typename T, StringLiteral Name>
+    struct TypeID
+    {
+        using Type = T;
+    private:
+        static constexpr StringLiteral fixed{ Name }; // need to store the buffer
+    public:
+        static constexpr StringView name{ fixed.data };
+    };
+
+    using ComponentTypes = std::tuple
+    <
+        TypeID<UUIDComponent         , u8"UUID"           >,
+        TypeID<TagComponent          , u8"Tag"            >,
+        TypeID<TransformComponent    , u8"Transform"      >,
+        TypeID<SpriteComponent       , u8"Sprite"         >,
+        TypeID<CameraComponent       , u8"Camera"         >,
+        TypeID<Rigidbody2DComponent  , u8"Rigidbody 2D"   >,
+        TypeID<BoxCollider2DComponent, u8"Box Collider 2D">,
+        TypeID<NativeScriptComponent , u8"Native Script"  >
+    >; // for traversing
+
+    namespace components
+    {
+        template<typename Func>
+        requires invocable_with_all<Func, ComponentTypes>::value
+        inline void each(Func&& func)
+        {
+            std::apply([&](auto... type_ids) {
+                (std::invoke(std::forward<Func>(func), type_ids), ...);
+            }, ComponentTypes{});
+            // (..., ...) ->
+            // func(TypeID<A>), func(TypeID<B>), ...
+        };
     };
 }

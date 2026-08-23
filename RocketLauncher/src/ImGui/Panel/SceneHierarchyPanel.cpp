@@ -551,7 +551,7 @@ namespace rke
         if(!menu_opened){ ImGui::EndPopup(); return; }
 
         bool nothing_to_add{ true };
-        ComponentRegistry::each([this, &selected, &nothing_to_add](auto type_id)
+        components::each([this, &selected, &nothing_to_add](auto type_id)
         {
             using Component = decltype(type_id)::Type;
             if(selected.has<Component>()) return;
