@@ -524,7 +524,7 @@ namespace rke
                     bool is_selected{ nsc.script_name == name };
                     if(ImGui::Selectable(name.raw(), is_selected))
                     {
-                        nsc.script_name = name;
+                        nsc.script_name = std::move(name);
                         context_->refresh_script(ent);
                         context_->mark_modified();
                     }

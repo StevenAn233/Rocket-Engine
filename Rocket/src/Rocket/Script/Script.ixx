@@ -22,14 +22,9 @@ export namespace rke
     
         virtual void on_update(float dt) {}
         virtual void on_mouse_scrolled(float x_offset, float y_offset) {};
-
-        template<typename Component>
-        inline const bool has() { return owner_.has<Component>(); }
-        template<typename Component>
-        const Component& get() { return owner_.get<Component>(); }
-        template<typename Component>
-        Component& get_mut() { return owner_.get_mut<Component>(); }
     protected:
+        inline Entity owner() const { return owner_; }
+    private:
         Entity owner_; // init by ScriptManager
     };
 }

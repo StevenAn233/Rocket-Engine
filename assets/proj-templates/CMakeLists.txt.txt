@@ -11,6 +11,25 @@ set(ROCKET_SDK_DIR $ENV{ROCKET_SDK_DIR})
 
 project("%{ProjectName}" CXX)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_definitions (
+    RKE_DEBUG
+    RKE_ENABLE_ASSERTS
+    RKE_ENABLE_STATISTICS
+    RKE_ENABLE_PROFILE
+    RKE_ENABLE_LOG
+  )
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+  add_compile_definitions (
+    RKE_RELEASE
+    RKE_ENABLE_STATISTICS
+    RKE_ENABLE_PROFILE
+    RKE_ENABLE_LOG
+  )
+else()
+  add_compile_definitions(RKE_SHIPPING)
+endif()
+
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${ROCKET_OUTPUT_NAME}")
 foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
   string(TOUPPER ${OUTPUTCONFIG} CONFIG_UPPER)

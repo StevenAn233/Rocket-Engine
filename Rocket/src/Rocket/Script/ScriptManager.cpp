@@ -11,7 +11,11 @@ import ScriptRegistry;
 namespace rke
 {
     ScriptManager::ScriptManager(Scene* owner) : owner_(owner)
-        { CORE_ASSERT(owner_, u8"ScriptManager: Owner scene empty!"); }
+    {
+        CORE_ASSERT(owner_, u8"ScriptManager: Owner scene empty!");
+        owner_->registry_->on_destroy<NativeScriptComponent>()
+            .connect<&on_script_com_destroy>();
+    }
 
     void ScriptManager::on_runtime_start()
     {
@@ -20,7 +24,7 @@ namespace rke
         for(entt::entity ent : view)
         {
             uint32 handle{ static_cast<uint32>(ent) };
-            script_cache_.emplace(handle, create_script(handle));
+            script_cache_[handle] = create_script(handle);
         }
     }
 
@@ -43,10 +47,8 @@ namespace rke
     {
     // check owner entity
         Entity entity{ owner_->get_entity(handle) };
-        if(!entity.valid()) {
-            CORE_ERROR(u8"ScriptManager: Script owner not valid!");
-            return nullptr;
-        }
+        if(!entity.valid() || !entity.has<NativeScriptComponent>())
+            { CORE_ERROR(u8"ScriptManager: Entity not valid!"); return nullptr; }
     // check script name
         auto& script_com{ entity.get_mut<NativeScriptComponent>() };
         const auto& name{ script_com.script_name };
@@ -59,26 +61,38 @@ namespace rke
             CORE_ERROR(u8"ScriptManager: Failed to create script!");
             return nullptr;
         }
-        script->on_create();
     // set mutual refs
         script_com.script_handle = script.get();
         script->owner_ = entity;
-        
+
+        script->on_create();
         return script;
     }
 
     void ScriptManager::destroy_script(Scope<Script> script, uint32 handle)
     {
+        if(script) script->on_destroy();
     // check owner entity
         Entity entity{ owner_->get_entity(handle) };
-        if(!entity.valid()) {
-            CORE_ERROR(u8"ScriptManager: Script owner not valid!");
-            return;
-        }
+        if(!entity.valid() || !entity.has<NativeScriptComponent>())
+            { CORE_ERROR(u8"ScriptManager: Entity not valid!"); return; }
         auto& script_com{ entity.get_mut<NativeScriptComponent>() };
         if(script_com.script_handle != script.get())
             CORE_WARN(u8"ScriptManager: Script and owner Entity don't match!");
         script_com.script_handle = nullptr;
-        if(script) script->on_destroy();
+    }
+
+    void ScriptManager::on_script_com_destroy(entt::registry& reg, entt::entity ent)
+    {
+        auto& ctx{ reg.ctx().get<Scene::RegistryContext>() };
+        CORE_ASSERT(ctx.script_manager, u8"ScriptManager: Null!");
+        auto& script_cache{ ctx.script_manager->script_cache_ };
+        if(script_cache.empty() ||
+          !script_cache.contains(static_cast<uint32>(ent))) return;
+
+        Scope<Script> script{ std::move(script_cache.at(static_cast<uint32>(ent))) };
+        script->on_destroy();
+        script_cache.erase(static_cast<uint32>(ent));
+        reg.get<NativeScriptComponent>(ent).script_handle = nullptr;
     }
 }

@@ -75,11 +75,7 @@ export namespace rke
             },
             0, std::bit_cast<void*>(static_cast<uint64>(type_id)));
 
-            if(to_delete) {
-                entity.remove<Component>();
-                if constexpr(std::is_same_v<Component, NativeScriptComponent>)
-                    context_->refresh_script(entity);
-            }
+            if(to_delete) entity.remove<Component>();
         }
     private:
         void on_imgui_render() override;

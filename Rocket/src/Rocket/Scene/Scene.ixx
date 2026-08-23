@@ -11,7 +11,6 @@ namespace rke { class Project; class ScriptManager; }
 
 export module Scene;
 
-import Log;
 import UUID;
 import Types;
 import String;
@@ -21,6 +20,7 @@ import ApplicationEvent;
 import HeapManager;
 import PhysicsLayers;
 import Gravity2D;
+import PhysicsEngine2D;
 
 export namespace rke
 {
@@ -68,6 +68,8 @@ export namespace rke
     private:
         RKE_API Entity(entt::entity handle, const Scene* scene);
         RKE_API Entity(uint32 handle, const Scene* scene);
+
+        RKE_API void check_assert() const;
     private:
         entt::entity handle_; // version(12bits) + index(20bits)
         const Scene* owner_scene_;
@@ -83,6 +85,12 @@ export namespace rke
         friend class ScriptManager;
         friend class PhysicsEngine2D;
         friend class SceneRenderer;
+
+        struct RegistryContext
+        {
+            ScriptManager* script_manager{};
+            PhysicsEngine2D* physics_engine{};
+        };
 
         Scene(Project* owner, String name = u8"Untitled");
         ~Scene();
@@ -173,33 +181,42 @@ export namespace rke
         Entity selected_entity_{}; // std::vector<Entity> selected_entities{};
 
         Scope<ScriptManager> script_manager_{};
+        Scope<PhysicsEngine2D> physics_engine_{};
     };
 
     template<typename Component>
     bool Entity::has() const
     {
-        CORE_ASSERT(valid(), u8"Entity: Invalid!");
+    #ifdef RKE_DEBUG
+        check_assert();
+    #endif
         return owner_scene_->registry_->all_of<Component>(handle_);
     }
 
     template<typename ...Components>
     bool Entity::has_all_of() const
     {
-        CORE_ASSERT(valid(), u8"Entity: Invalid!");
+    #ifdef RKE_DEBUG
+        check_assert();
+    #endif
         return owner_scene_->registry_->all_of<Components...>(handle_);
     }
 
     template<typename ...Components>
     bool Entity::has_any_of() const
     {
-        CORE_ASSERT(valid(), u8"Entity: Invalid!");
+    #ifdef RKE_DEBUG
+        check_assert();
+    #endif
         return owner_scene_->registry_->any_of<Components...>(handle_);
     }
 
     template<typename Component, typename ...Args>
     Component& Entity::emplace(Args&& ...args)
     {
-        CORE_ASSERT(!has<Component>(), u8"Entity: Try to emplace the same component!");
+    #ifdef RKE_DEBUG
+        check_assert();
+    #endif
         owner_scene_->mark_modified();
         return owner_scene_->registry_->emplace<Component>
             (handle_, std::forward<Args>(args)...);
@@ -208,7 +225,9 @@ export namespace rke
     template<typename Component, typename ...Args>
     Component& Entity::emplace_or_replace(Args&& ...args)
     {
-        CORE_ASSERT(!has<Component>(), u8"Entity: Try to emplace the same component!");
+    #ifdef RKE_DEBUG
+        check_assert();
+    #endif
         owner_scene_->mark_modified();
         return owner_scene_->registry_->emplace_or_replace<Component>
             (handle_, std::forward<Args>(args)...);
@@ -217,21 +236,27 @@ export namespace rke
     template<typename Component>
     const Component& Entity::get() const
     {
-        CORE_ASSERT(has<Component>(), u8"Entity: Try to get non-existed component!");
+    #ifdef RKE_DEBUG
+        check_assert();
+    #endif
         return owner_scene_->registry_->get<Component>(handle_);
     }
 
     template<typename Component>
     Component& Entity::get_mut()
     {
-        CORE_ASSERT(has<Component>(), u8"Entity: Try to get non-existed component!");
+    #ifdef RKE_DEBUG
+        check_assert();
+    #endif
         return owner_scene_->registry_->get<Component>(handle_);
     }
 
     template<typename Component>
     void Entity::remove()
     {
-        CORE_ASSERT(has<Component>(), u8"Entity: Try to get non-existed component!");
+    #ifdef RKE_DEBUG
+        check_assert();
+    #endif
         owner_scene_->registry_->remove<Component>(handle_);
         owner_scene_->mark_modified();
     }

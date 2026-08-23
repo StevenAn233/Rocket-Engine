@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <entt/entt.hpp>
 namespace rke { class Scene; }
 
 export module ScriptManager;
@@ -30,6 +31,7 @@ export namespace rke
     private:
         Scope<Script> create_script(uint32 handle);
         void destroy_script(Scope<Script> script, uint32 handle);
+        static void on_script_com_destroy(entt::registry& reg, entt::entity ent);
     private:
         Scene* owner_;
         std::unordered_map<uint32, Scope<Script>> script_cache_{};

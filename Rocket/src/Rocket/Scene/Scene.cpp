@@ -1,6 +1,7 @@
 ﻿module;
 module Scene;
 
+import Log;
 import Components;
 import Project;
 import PhysicsEngine2D;
@@ -47,11 +48,17 @@ namespace rke
         return get<UUIDComponent>().uuid;
     }
 
+    void Entity::check_assert() const { CORE_ASSERT(valid(), u8"Entity: Invalid!"); }
+
     Scene::Scene(Project* owner, String name)
         : owner_(owner), name_(std::move(name))
     {
         registry_ = create_scope<entt::registry>();
         script_manager_ = create_scope<ScriptManager>(this);
+        physics_engine_ = PhysicsEngine2D::create(this);
+
+        registry_->ctx().emplace<RegistryContext>
+            (script_manager_.get(), physics_engine_.get());
     }
 
     Scene::~Scene() { if(in_runtime_) on_runtime_stop(); clear(); }
@@ -238,7 +245,7 @@ namespace rke
 
     void Scene::clear()
     {
-        if(in_runtime_) {
+        if(in_runtime()) {
             CORE_ERROR(u8"Scene: Can't be cleared while in runtime!");
             return;
         }
@@ -253,7 +260,7 @@ namespace rke
 
     void Scene::on_update(float dt)
     {
-        if(in_runtime_)
+        if(in_runtime())
         {
             auto view{ registry_->view<NativeScriptComponent>() };
             for(entt::entity ent : view)
@@ -261,25 +268,25 @@ namespace rke
                 Script* script{ registry_->get<NativeScriptComponent>(ent).script_handle };
                 if(script) script->on_update(dt);
             }
-            PhysicsEngine2D::on_update(dt);
+            physics_engine_->on_update(dt);
         }
         flush_destroy_queue();
     }
 
     void Scene::on_runtime_start()
     {
-        CORE_ASSERT(!in_runtime_, u8"Scene: Already in runtime!");
+        CORE_ASSERT(!in_runtime(), u8"Scene: Already in runtime!");
         in_runtime_ = true;
         script_manager_->on_runtime_start();
-        PhysicsEngine2D::on_runtime_start(this);
+        physics_engine_->on_runtime_start();
     }
 
     void Scene::on_runtime_stop()
     {
-        CORE_ASSERT(in_runtime_, u8"Scene: Not in runtime!");
+        CORE_ASSERT(in_runtime(), u8"Scene: Not in runtime!");
         in_runtime_ = false;
         script_manager_->on_runtime_stop();
-        PhysicsEngine2D::on_runtime_stop();
+        physics_engine_->on_runtime_stop();
     }
 
     void Scene::set_viewport(uint32 width, uint32 height)

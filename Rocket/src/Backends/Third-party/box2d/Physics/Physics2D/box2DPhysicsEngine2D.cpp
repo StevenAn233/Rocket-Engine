@@ -1,20 +1,21 @@
-﻿module;
+module;
 
 #include <box2d/box2d.h>
 #include <box2d/math_functions.h>
 
 module PhysicsEngine2D;
+import :box2D;
 
-import Types;
 import Log;
+import Types;
 import Gravity2D;
 import Components;
 import Project;
-import PhysicsLayers;
 import Application;
 
-namespace rke
-{
+namespace {
+    using namespace rke;
+
     b2Filter get_filter(const PhysicsLayers& layers, uint8 layer_index)
     {
         b2Filter filter{};
@@ -35,11 +36,104 @@ namespace rke
         return b2_staticBody;
     }
 
-    static Scene* s_context{};
-    static b2WorldId s_physics_world{ b2_nullWorldId };
-
-    static void create_body(Entity entity, const PhysicsLayers& layers)
+    static void on_physics_com_destroy(entt::registry& reg, entt::entity ent)
     {
+        auto& ctx{ reg.ctx().get<Scene::RegistryContext>() };
+        CORE_ASSERT(ctx.physics_engine, u8"box2DPhysicsEngine2D: Null!");
+        if(ctx.physics_engine->empty()) return;
+
+        auto& rbc{ reg.get<Rigidbody2DComponent>(ent) };
+        if(B2_IS_NULL(std::bit_cast<b2BodyId>(rbc.body_id))) return;
+        
+        b2DestroyBody(std::bit_cast<b2BodyId>(rbc.body_id));
+        rbc.body_id = std::bit_cast<uint64>(b2_nullBodyId);
+        if(reg.all_of<BoxCollider2DComponent>(ent))
+        {
+            auto& bcc{ reg.get<BoxCollider2DComponent>(ent) };
+            bcc.shape_id = std::bit_cast<uint64>(b2_nullShapeId);
+        }
+    }
+}
+
+namespace rke
+{
+    box2DPhysicsEngine2D::box2DPhysicsEngine2D(Scene* owner)
+        : PhysicsEngine2D(owner), physics_world_(b2_nullWorldId)
+    {
+        get_registry().on_destroy<Rigidbody2DComponent>()
+            .connect<&on_physics_com_destroy>();
+    }
+
+    void box2DPhysicsEngine2D::on_runtime_start()
+    {
+    // Create physics world
+        b2WorldDef world_def{ b2DefaultWorldDef() };
+        world_def.gravity = std::bit_cast<b2Vec2>(get_owner().get_gravity());
+        physics_world_ = b2CreateWorld(&world_def);
+
+    // Instantiate bodies
+        auto rbc_view{ get_registry().view<Rigidbody2DComponent>() };
+        for(auto entt : rbc_view)
+        {
+            Entity entity{ get_owner().get_entity(static_cast<uint32>(entt)) };
+            const auto& physics_layers{ app().get_project()->get_config().physics_layers };
+            create_body(entity, physics_layers);
+        }
+    }
+
+    void box2DPhysicsEngine2D::on_runtime_stop()
+    {
+        if(B2_IS_NON_NULL(physics_world_))
+        {
+            b2DestroyWorld(physics_world_);
+            physics_world_ = b2_nullWorldId;
+        }
+    }
+
+    void box2DPhysicsEngine2D::on_update(float dt)
+    {
+        if(!get_owner().in_runtime() || B2_IS_NULL(physics_world_)) return;
+
+        b2World_Step(physics_world_, dt, 4);
+
+        // Sync Box2D bodies back to TransformComponent
+        auto view{ get_registry().view<Rigidbody2DComponent>() };
+        for(auto entt : view)
+        {
+            Entity entity{ get_owner().get_entity(static_cast<uint32>(entt)) };
+
+            const auto& rbc{ entity.get<Rigidbody2DComponent>() };
+            if(B2_IS_NULL(std::bit_cast<b2ShapeId>(rbc.body_id))) continue;
+
+            if(rbc.type != Rigidbody2DComponent::BodyType::Static)
+            {
+                b2Vec2 position{ b2Body_GetPosition(std::bit_cast<b2BodyId>(rbc.body_id)) };
+                b2Rot  rotation{ b2Body_GetRotation(std::bit_cast<b2BodyId>(rbc.body_id)) };
+
+                // update rigid body position & rotation in TransformComponent
+                auto& tc{ entity.get_mut<TransformComponent>() };
+                tc.position.x = position.x;
+                tc.position.y = position.y;
+
+                float radians{ b2Rot_GetAngle(rotation) };
+                tc.rotation.z = glm::degrees(radians);
+            }
+            else
+            {
+                // Need to update BoxCollider
+                // When entity moved by Gizmo or Panel
+            }
+        }
+    }
+
+    bool box2DPhysicsEngine2D::empty() const
+        { return B2_IS_NULL(physics_world_); }
+
+    void box2DPhysicsEngine2D::create_body(Entity entity, const PhysicsLayers& layers)
+    {
+        if(!entity.valid() || !entity.has<Rigidbody2DComponent>())
+            { CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!"); return; }
+
         auto& tc { entity.get<TransformComponent>() }; // must have
         auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
 
@@ -50,7 +144,7 @@ namespace rke
         body_def.fixedRotation = rbc.rotation_fixed;
         // body_def.xx = ...
 
-        rbc.body_id = std::bit_cast<uint64>(b2CreateBody(s_physics_world, &body_def));
+        rbc.body_id = std::bit_cast<uint64>(b2CreateBody(physics_world_, &body_def));
 
         float size_x{ std::abs(tc.size.x) };
         float size_y{ std::abs(tc.size.y) };
@@ -79,8 +173,11 @@ namespace rke
         }
     }
 
-    static void destroy_body(Entity entity)
+    void box2DPhysicsEngine2D::destroy_body(Entity entity)
     {
+        if(!entity.valid() || !entity.has<Rigidbody2DComponent>())
+            { CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!"); return; }
+        
         auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
         if(B2_IS_NON_NULL(std::bit_cast<b2BodyId>(rbc.body_id)))
         {
@@ -90,86 +187,6 @@ namespace rke
             {
                 auto& bcc{ entity.get_mut<BoxCollider2DComponent>() };
                 bcc.shape_id = std::bit_cast<uint64>(b2_nullShapeId);
-            }
-        }
-    }
-
-    static void on_physics_component_destroyed(entt::registry&, entt::entity entt)
-    {
-        if(!s_context || !s_context->in_runtime()) return;
-        destroy_body(s_context->get_entity(static_cast<uint32>(entt)));
-    }
-}
-
-namespace rke
-{
-    void PhysicsEngine2D::on_runtime_start(Scene* scene)
-    {
-        s_context = scene;
-
-        auto& registry{ *scene->registry_ };
-        registry.on_destroy<Rigidbody2DComponent>()
-            .connect<&on_physics_component_destroyed>();
-
-    // Create physics world
-        b2WorldDef world_def{ b2DefaultWorldDef() };
-        world_def.gravity = { scene->get_gravity().x, scene->get_gravity().y };
-        s_physics_world = b2CreateWorld(&world_def);
-
-    // Instantiate bodies
-        auto rbc_view{ registry.view<Rigidbody2DComponent>() };
-        for(auto entt : rbc_view)
-        {
-            Entity entity{ s_context->get_entity(static_cast<uint32>(entt)) };
-            const auto& physics_layers{ app().get_project()->get_config().physics_layers };
-            create_body(entity, physics_layers);
-        }
-    }
-
-    void PhysicsEngine2D::on_runtime_stop()
-    {
-        if(B2_IS_NON_NULL(s_physics_world))
-        {
-            b2DestroyWorld(s_physics_world);
-            s_physics_world = b2_nullWorldId;
-        }
-        s_context = nullptr;
-    }
-
-    void PhysicsEngine2D::on_update(float dt)
-    {
-        if(!s_context || !s_context->in_runtime_) return;
-        if(B2_IS_NON_NULL(s_physics_world))
-        {
-            b2World_Step(s_physics_world, dt, 4);
-
-            // Sync Box2D bodies back to TransformComponent
-            auto view{ s_context->registry_->view<Rigidbody2DComponent>() };
-            for(auto entt : view)
-            {
-                Entity entity{ s_context->get_entity(static_cast<uint32>(entt)) };
-
-                const auto& rbc{ entity.get<Rigidbody2DComponent>() };
-                if(B2_IS_NULL(std::bit_cast<b2ShapeId>(rbc.body_id))) continue;
-
-                if(rbc.type != Rigidbody2DComponent::BodyType::Static)
-                {
-                    b2Vec2 position{ b2Body_GetPosition(std::bit_cast<b2BodyId>(rbc.body_id)) };
-                    b2Rot  rotation{ b2Body_GetRotation(std::bit_cast<b2BodyId>(rbc.body_id)) };
-
-                    // update rigid body position & rotation in TransformComponent
-                    auto& tc{ entity.get_mut<TransformComponent>() };
-                    tc.position.x = position.x;
-                    tc.position.y = position.y;
-
-                    float radians{ b2Rot_GetAngle(rotation) };
-                    tc.rotation.z = glm::degrees(radians);
-                }
-                else
-                {
-                    // Need to update BoxCollider
-                    // When entity moved by Gizmo or Panel
-                }
             }
         }
     }
