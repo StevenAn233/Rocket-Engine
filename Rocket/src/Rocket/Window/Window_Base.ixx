@@ -6,10 +6,11 @@
 
 export module Window:Base;
 
+import Log;
+import Time;
 import Types;
 import HeapManager;
 import Event;
-import Log;
 import String;
 import Path;
 import Layer;
@@ -49,13 +50,13 @@ export namespace rke
         inline uint32 get_height() const { return props_->height; }
         inline StringView get_title() const { return props_->title; }
         inline const Path& get_icon_path() const { return props_->icon_path; }
+        inline double get_last_elapsed() const { return timer_.get_last_elapsed(); }
 
         inline Size get_mouse_blocking_index() const
             { return mouse_blocking_layer_index_; }
         inline Size get_keyboard_blocking_index() const
             { return keyboard_blocking_layer_index_; }
-        void check_layer_blocking();
-
+        
         inline void push_layer(Scope<Layer> layer)
             { layer_stack_.push_layer(std::move(layer)); }
         inline void push_overlay(Scope<Layer> overlay)
@@ -70,6 +71,7 @@ export namespace rke
         inline void should_close(bool judge) { should_close_ = judge; }
         inline bool should_close() const { return should_close_; }
 
+        void check_layer_blocking();
         void make_context_current() const;
 
     // context related
@@ -87,17 +89,19 @@ export namespace rke
         virtual ~Window();
     private:
         void on_event(Event& e);
-        void on_update(float dt);
+        void on_update();
         void on_render();
     protected:
         Scope<Props> props_;
         NativeWindow context_{};
     private:
         String name_;
+        Timer timer_;
+        Ticker ticker_;
         LayerStack layer_stack_{};
         Size mouse_blocking_layer_index_{};
         Size keyboard_blocking_layer_index_{};
         bool should_close_{ false };
-        WindowSettingPanel setting_panel_{ name_ };
+        WindowSettingPanel setting_panel_;
     };
 }

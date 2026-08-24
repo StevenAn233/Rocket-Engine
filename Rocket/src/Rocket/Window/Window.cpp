@@ -8,10 +8,9 @@ namespace rke
 {
     Window::Window(String name, Scope<Props> props)
         : name_(std::move(name)), props_(std::move(props))
-    {
-        setting_panel_.set_context(this);
-        app().register_panel(&setting_panel_);
-    }
+        , timer_(), ticker_(90) // hard-coded, may modify
+        , setting_panel_(name_, this)
+        { app().register_panel(&setting_panel_); }
 
     Window::~Window() { app().unregister_panel(&setting_panel_); }
 
@@ -50,11 +49,15 @@ namespace rke
         }
     }
 
-    void Window::on_update(float dt)
+    void Window::on_update()
     {
         check_layer_blocking();
-        for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
-            it->get()->on_update(dt);
+        timer_.update();
+        ticker_.tick(timer_.get_last_elapsed(), [this](double dt)
+        {
+            for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
+                it->get()->on_update(static_cast<float>(dt));
+        });
     }
 
     void Window::on_render()

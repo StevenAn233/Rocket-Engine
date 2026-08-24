@@ -6,7 +6,6 @@ import HeapManager;
 import EventDispatcher;
 import ApplicationEvent;
 
-import DeltaTime;   // TO REMOVE
 import Renderer2D;  // TO REMOVE
 
 namespace rke
@@ -17,8 +16,7 @@ namespace rke
         {
             window->make_context_current();
 
-            DeltaTime::update();
-            window->on_update(DeltaTime::get());
+            window->on_update();
 
             Renderer2D::reset_stats();
             window->on_render();

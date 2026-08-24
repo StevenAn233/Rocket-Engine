@@ -8,7 +8,7 @@ export import String;
 export import Path;
 
 export import Types;
-export import DeltaTime;
+export import Time;
 export import HeapManager;
 export import Instrumentor;
 

@@ -7,6 +7,7 @@ namespace rke { class Window; }
 
 export module WindowSettingPanel;
 
+import Types;
 import String;
 import Panel;
 
@@ -15,13 +16,12 @@ export namespace rke
     class WindowSettingPanel : public Panel
     {
     public:
-        friend class Window;
-        WindowSettingPanel(String name)
-            : Panel(String::format(u8"Window: '{}'", std::move(name))) {}
+        WindowSettingPanel(String name, Window* owner);
     private:
         RKE_API void on_imgui_render() override;
-        void set_context(Window* window);
+        void update_smoothed_fps();
     private:
-        Window* context_{};
+        Window* owner_{};
+        double smoothed_fps_;
     };
 }

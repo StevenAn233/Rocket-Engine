@@ -121,7 +121,7 @@ export namespace rke
 
     struct RKE_API CameraComponent
     {
-        SceneCamera camera {};
+        SceneCamera camera{};
         bool aspect_ratio_fixed{ false };
 
         CameraComponent() = default;
