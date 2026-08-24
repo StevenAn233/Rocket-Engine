@@ -9,7 +9,7 @@ namespace rke
 {
     static String s_cmake_lists_txt{};
     static String s_cmake_presets_json{};
-    static String s_myscript_ixx{};
+    static String s_myscript_cpp{};
     static String s_editorconfig{};
 
     Project::Project(const Path& rkproj_path)
@@ -189,8 +189,8 @@ namespace rke
             file::read_file_string(templates_path / u8"CMakeLists.txt.txt"); }
         if(s_cmake_presets_json.empty()) { s_cmake_presets_json =
             file::read_file_string(templates_path / u8"CMakePresets.json.txt"); }
-        if(s_myscript_ixx.empty()) { s_myscript_ixx =
-            file::read_file_string(templates_path / u8"MyScript.ixx.txt"); }
+        if(s_myscript_cpp.empty()) { s_myscript_cpp =
+            file::read_file_string(templates_path / u8"MyScript.cpp.txt"); }
         if(s_editorconfig.empty()) { s_editorconfig =
             file::read_file_string(templates_path / u8".editorconfig.txt"); }
     }
@@ -224,7 +224,7 @@ namespace rke
 
         file::write_file_string(project_dir / u8"CMakePresets.json", s_cmake_presets_json);
         file::write_file_string(project_dir / u8".editorconfig", s_editorconfig);
-        file::write_file_string(src_dir     / u8"MyScript.ixx" , s_myscript_ixx);
+        file::write_file_string(src_dir     / u8"MyScript.cpp" , s_myscript_cpp);
 
         Scope<ConfigWriter> writer{ ConfigWriter::create() };
         writer->begin_map();
