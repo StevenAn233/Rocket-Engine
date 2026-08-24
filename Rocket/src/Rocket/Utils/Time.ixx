@@ -15,7 +15,12 @@ export namespace rke
     {
     public:
         Timer();
-        virtual ~Timer() = default;
+        ~Timer() = default;
+
+        Timer(const Timer&) = delete;
+        Timer& operator=(const Timer&) = delete;
+        Timer(Timer&&) = delete;
+        Timer& operator=(Timer&&) = delete;
 
         void update();
         inline double get_last_elapsed() const
@@ -29,8 +34,15 @@ export namespace rke
     {
     public:
         Ticker(uint32 tps) : sec_per_tick_(1.0 / tps) {}
-        inline void reset(uint32 tps) { sec_per_tick_ = 1.0 / tps; }
+        ~Ticker() = default;
+        
+        Ticker(const Ticker&) = delete;
+        Ticker& operator=(const Ticker&) = delete;
+        Ticker(Ticker&&) = delete;
+        Ticker& operator=(Ticker&&) = delete;
 
+        inline void reset(uint32 tps) { sec_per_tick_ = 1.0 / tps; }
+        
         template<typename Func> // void func(double delta_time)
         requires std::invocable<Func, double>
         inline void tick(double addon_time, Func&& func)
