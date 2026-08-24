@@ -92,7 +92,7 @@ namespace rke
         }
 
         if(opened) {
-            // draw something
+            // Sub-Entity?
             ImGui::TreePop();
         }
         ImGui::PopID();
@@ -116,8 +116,6 @@ namespace rke
 
     void SceneHierarchyPanel::draw_scene_settings()
     {
-        CORE_ASSERT(context_, u8"SceneHierarchy: No scene context set!");
-
         layout::tree_node_branch<u8"Name">([this]()
         {
             const String& name{ context_->get_name() };
@@ -139,8 +137,6 @@ namespace rke
 
     void SceneHierarchyPanel::draw_components(Entity entity)
     {
-        CORE_ASSERT(context_, u8"SceneHierarchy: No scene context set!");
-        
         check_then_draw<TagComponent, u8"Tag">(entity, [this](Entity ent)
         {
             String& tag{ ent.get_mut<TagComponent>().tag };

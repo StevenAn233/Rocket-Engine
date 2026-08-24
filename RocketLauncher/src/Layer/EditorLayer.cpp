@@ -9,12 +9,13 @@ namespace {
     static void entity_right_click_popup_content(Scene* scene)
     {
         if(!scene) return;
-        if(ImGui::MenuItem("Delete")) scene->destroy_selected_entity();
         if(ImGui::MenuItem("Copy")) {
             Entity selected{ scene->get_selected_entity() };
             Entity copied{ scene->copy_entity(selected) };
             scene->set_selected_entity(copied);
         }
+        ImGui::Separator();
+        if(ImGui::MenuItem("Delete")) scene->destroy_selected_entity();
     }
 }
 

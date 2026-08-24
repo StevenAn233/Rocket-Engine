@@ -52,6 +52,7 @@ export namespace rke
                 {
                     if(ImGui::MenuItem("Make Master"))
                         context_->set_master_camera(entity);
+                    ImGui::Separator();
                     if(ImGui::MenuItem("Delete"))
                         to_delete = true;
                 }

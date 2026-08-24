@@ -195,20 +195,27 @@ namespace rke
 
     void Scene::set_selected_entity(Entity entity)
     {
-        if(!entity.empty() && !entity.belongs_to(this)) {
+        if(entity.empty())
+        {
+            selected_entity_ = {};
+            set_demo_camera({});
+            return;
+        }
+        if(!entity.valid() || !entity.belongs_to(this)) {
             CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
             return;
         }
         selected_entity_ = entity;
-        if(!entity.empty() && entity.has<CameraComponent>()) demo_cam_ = entity;
-        // mark_modified();
+        if(entity.has<CameraComponent>()) set_demo_camera(entity);
     }
 
     void Scene::set_master_camera(Entity entity)
     {
         if(entity.empty()) goto set;
-        if(!entity.belongs_to(this)) {
-            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+        if(entity == master_cam_) return;
+        if(!entity.valid() || !entity.belongs_to(this))
+        {
+            CORE_ERROR(u8"Scene: Entity invalid!");
             return;
         }
         if(!entity.has<CameraComponent>()) {
@@ -223,17 +230,19 @@ namespace rke
     void Scene::set_demo_camera(Entity entity)
     {
         if(entity.empty()) goto set;
-        if(!entity.belongs_to(this)) {
-            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+        if(entity == demo_cam_) return;
+        if(!entity.valid() || !entity.belongs_to(this))
+        {
+            CORE_ERROR(u8"Scene: Entity invalid!");
             return;
         }
-        if(!entity.has<CameraComponent>()) {
+        if(!entity.has<CameraComponent>())
+        {
             CORE_ERROR(u8"Scene: Entity isn't a camera!");
             return;
         }
     set:
         demo_cam_ = entity;
-        mark_modified();
     }
 
     void Scene::refresh_script(Entity entity)

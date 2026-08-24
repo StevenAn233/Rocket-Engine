@@ -7,11 +7,7 @@ import Log;
 namespace rke
 {
     ScriptDylibLoader::ScriptDylibLoader(Path dir, String name)
-        : dylib_dir_(std::move(dir)), dylib_name_(std::move(name))
-    {
-        CORE_ASSERT(dylib_dir_.exists(),
-            u8"ScriptDylibLoader: Directory '{}' doesn't exist!", dylib_dir_);
-    }
+        : dylib_dir_(std::move(dir)), dylib_name_(std::move(name)) {}
 }
 
 #ifdef RKE_PLATFORM_WINDOWS

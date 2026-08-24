@@ -25,11 +25,14 @@ namespace rke
     {
     // Hot-reloading Support
         Path dll_path{ dylib_dir_ / String::format(u8"{}.dll", dylib_name_) };
-        Path copy_dll_path{ dylib_dir_ /
-            String::format(u8"{}.loaded-{}.dll", dylib_name_, reload_count_++) };
-        CORE_ASSERT(dll_path.exists(), u8"WindowsScriptDylibLoader: "
-            u8"Dll path '{}' doesn't exist!", dll_path);
+        if(!dll_path.exists()) {
+            CORE_ERROR(u8"WindowsScriptDylibLoader: "
+                u8"Dylib path '{}' doesn't exist!", dll_path);
+            return false;
+        }
 
+        Path copy_dll_path{ dylib_dir_ / String::format
+            (u8"{}.loaded-{}.dll", dylib_name_, reload_count_++) };
         try {
             // copy DLL
             fs::copy_file(dll_path, copy_dll_path,

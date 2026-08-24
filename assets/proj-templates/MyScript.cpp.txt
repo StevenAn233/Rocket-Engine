@@ -1,4 +1,4 @@
-#include <rke_fule.h>
+#include <rke_fuel.h>
 import rke;
 
 class MyScript : public rke::Script
