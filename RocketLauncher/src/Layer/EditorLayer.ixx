@@ -54,10 +54,10 @@ export namespace rke
     private:
         EditorCamera editor_cam_{};
 
-        SceneRenderer main_renderer_{ math::srgb_to_linear
-            (glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
-        SceneRenderer cam_renderer_ { math::srgb_to_linear
-            (glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
+        SceneRenderer main_renderer_{ &get_owner(),
+            math::srgb_to_linear(glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
+        SceneRenderer cam_renderer_ { &get_owner(),
+            math::srgb_to_linear(glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
         OutlineEffect* hovering_outline_{};
         OutlineEffect* selected_outline_{};
 

@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 #include <functional>
+#include "rke_macros.h"
 
 export module Window:Base;
 
@@ -17,15 +18,15 @@ import Layer;
 import LayerStack;
 import NativeWindow;
 import WindowSettingPanel;
+import Renderer2D;
 
 export namespace rke
 {
-    class Window
+    class RKE_API Window
     {
     public:
         friend class Application;
         friend class WindowsLib;
-        friend struct std::default_delete<Window>;
 
         struct Props
         {
@@ -38,6 +39,9 @@ export namespace rke
             uint32 x_coord{ 100 };
             uint32 y_coord{ 100 };
         };
+    public:        
+        Window(String name, Scope<Props> props);
+        virtual ~Window();
 
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;
@@ -51,6 +55,8 @@ export namespace rke
         inline StringView get_title() const { return props_->title; }
         inline const Path& get_icon_path() const { return props_->icon_path; }
         inline double get_last_elapsed() const { return timer_.get_last_elapsed(); }
+
+        inline Renderer2D& renderer_2d() { return *renderer_2d_; }
 
         inline Size get_mouse_blocking_index() const
             { return mouse_blocking_layer_index_; }
@@ -83,25 +89,26 @@ export namespace rke
         virtual bool minimized() const = 0;
         virtual void update_vsync() = 0;
 
-        static Scope<Window> create(String name, Scope<Props> props, NativeWindow context);
-    protected:
-        Window(String name, Scope<Props> props);
-        virtual ~Window();
+        static Scope<Window> create(String name,
+            Scope<Props> props, NativeWindow context);
     private:
         void on_event(Event& e);
         void on_update();
         void on_render();
     protected:
-        Scope<Props> props_;
         NativeWindow context_{};
+        Scope<Props> props_;
+        Scope<Renderer2D> renderer_2d_{};
     private:
         String name_;
         Timer timer_;
         Ticker ticker_;
+        bool should_close_{ false };
+
         LayerStack layer_stack_{};
         Size mouse_blocking_layer_index_{};
         Size keyboard_blocking_layer_index_{};
-        bool should_close_{ false };
+
         WindowSettingPanel setting_panel_;
     };
 }

@@ -170,25 +170,16 @@ namespace {
 
 namespace rke
 {
-    glfwWindow::glfwWindow(String name, Scope<Props> window_props, NativeWindow shared)
+    glfwWindow::glfwWindow(String name,
+        Scope<Props> window_props, NativeWindow shared)
         : Window(std::move(name), std::move(window_props))
         , data_({ get_name(), *props_})
     {
-        Props& props{ data_.props };
-        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        glfwWindowHint(GLFW_SAMPLES, 4);			   // IMPORTANT
-        glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_FALSE); // Manually applied in ToneMapping
-        glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_FALSE);
-        context_ = NativeWindow(glfwCreateWindow(props.width, props.height,
-            props.title.raw(), nullptr, shared.as<GLFWwindow>()));
-        CORE_ASSERT(context_, u8"glfwWindow: Failed to create window '{}'!", props.title);
-        glfwSetWindowPos(context_.as<GLFWwindow>(), props.x_coord, props.y_coord);
-        glfwShowWindow(context_.as<GLFWwindow>());
-
-        make_context_current();
-        render_backend::init_window_context(context_);
+        create_context(shared);
+        renderer_2d_ = create_scope<Renderer2D>(this);
 
     // set window icon(after glfwCreateWindow)
+        Props& props{ data_.props };
         if(props.icon_path.exists())
         {
             int width{}, height{}, channels{};
@@ -325,6 +316,23 @@ namespace rke
     {
         glfwSetWindowShouldClose(context_.as<GLFWwindow>(), 1);
         glfwDestroyWindow(context_.as<GLFWwindow>());
+    }
+
+    void glfwWindow::create_context(NativeWindow shared_context)
+    {
+        Props& props{ data_.props };
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_SAMPLES, 4);			   // IMPORTANT
+        glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_FALSE); // Manually applied in ToneMapping
+        glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_FALSE);
+        context_ = NativeWindow(glfwCreateWindow(props.width, props.height,
+            props.title.raw(), nullptr, shared_context.as<GLFWwindow>()));
+        CORE_ASSERT(context_, u8"glfwWindow: Failed to create window '{}'!", props.title);
+        glfwSetWindowPos(context_.as<GLFWwindow>(), props.x_coord, props.y_coord);
+        glfwShowWindow(context_.as<GLFWwindow>());
+
+        make_context_current();
+        render_backend::init_window_context(context_);
     }
 
     std::pair<int, int> glfwWindow::get_window_pos() const

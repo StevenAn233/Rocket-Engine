@@ -1,10 +1,4 @@
-﻿module;
-
-#include <utility>
-#include <GLFW/glfw3.h>
-#include "rke_macros.h"
-
-export module Window:glfw;
+﻿export module Window:glfw;
 import :Base;
 
 import Types;
@@ -27,6 +21,8 @@ namespace rke
         float& get_vsync_extent_mut() override  { return data_.vsync_extent; }
         bool minimized() const override { return data_.minimized; }
         void update_vsync() override;
+    private:
+        void create_context(NativeWindow shared_context);
     private:
         // For glfwSetWindowUserPointer(only expose necessary data)
         struct WindowData

@@ -2,7 +2,6 @@
 module Application;
 
 import Log;
-import Renderer2D;
 import PlatformSupport;
 import FileUtils;
 import Layer;
@@ -19,6 +18,8 @@ namespace rke
 
     void Application::init()
     {
+        platform_support::begin();
+
         Window& main_window{ get_windows_lib().load_main
         (
             create_scope<Window::Props>(Window::Props
@@ -29,9 +30,6 @@ namespace rke
                 .x_coord{ 50 }, .y_coord{ 100 }
             })
         )};
-
-        platform_support::begin();
-        Renderer2D::init();
 
         Scope<DockSpaceLayer> ds_layer{ create_scope<DockSpaceLayer>
         (
@@ -45,11 +43,7 @@ namespace rke
         register_panel(&main_window.setting_panel_);
     }
 
-    void Application::shutdown()
-    {
-        Renderer2D::shutdown();
-        platform_support::end();
-    }
+    void Application::shutdown() { platform_support::end(); }
 
     void Application::run()
     {
@@ -124,8 +118,7 @@ namespace rke
         { dockspace_->editor_runtime_ = std::move(func); }
 
 // callbacks
-    void Application::on_window_loaded(Window& window)
-        { Renderer2D::register_context(window.get_context()); }
+    void Application::on_window_loaded(Window& window) {}
 }
 
 namespace rke

@@ -10,22 +10,22 @@ import Scene;
 import HeapManager;
 import Texture;
 import FrameBuffer;
-
+import Window;
 import Shader;
 import PostProcessor;
 import PostProcessEffect;
 import MathUtils;
-
-namespace rke { struct Renderable; }
 
 export namespace rke
 {
     class RKE_API SceneRenderer
     {
     public:
-        SceneRenderer(glm::vec4 clear_col);
+        SceneRenderer(Window* context, glm::vec4 col);
         SceneRenderer(const SceneRenderer&) = delete;
+        SceneRenderer& operator=(const SceneRenderer&) = delete;
         SceneRenderer(SceneRenderer&&) = delete;
+        SceneRenderer& operator=(SceneRenderer&&) = delete;
 
         inline void set_samples(uint32 samples) { scene_fbo_->set_samples(samples); }
 
@@ -55,6 +55,7 @@ export namespace rke
         void draw_renderable(const Scene* scene, const Renderable& renderable);
         void render_scene(const Scene* scene, const glm::mat4& view_projection, glm::vec3 cam_postion);
     private:
+        Window* context_;
         glm::vec4 clear_color_;
         PostProcessor post_processor_{ clear_color_ };
 

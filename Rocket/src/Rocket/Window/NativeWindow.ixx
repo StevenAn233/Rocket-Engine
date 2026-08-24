@@ -1,10 +1,14 @@
-﻿export module NativeWindow;
+﻿module;
+
+#include "rke_macros.h"
+
+export module NativeWindow;
 
 import Types;
 
 export namespace rke
 {
-    class NativeWindow
+    class RKE_API NativeWindow
     {
     public:
         explicit NativeWindow(void* window = nullptr) : ctx_(window) {}

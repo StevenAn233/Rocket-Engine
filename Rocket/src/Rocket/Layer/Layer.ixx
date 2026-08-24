@@ -37,9 +37,9 @@ export namespace rke
         virtual bool should_block_keyboard() = 0;
         // depends on THIS layer
 
-        const String& get_owner_name();
         inline StringView get_debug_name() const { return debug_name_; }
         inline Size get_index() const { return layer_index_; }
+        inline Window& get_owner() const { return *owner_; }
     protected:
         bool mouse_blocked() const;
         bool keyboard_blocked() const;

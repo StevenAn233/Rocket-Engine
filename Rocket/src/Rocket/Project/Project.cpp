@@ -7,10 +7,10 @@ import ConfigProxy;
 
 namespace rke
 {
-    static String s_cmake_lists_txt{};
-    static String s_cmake_presets_json{};
-    static String s_myscript_cpp{};
-    static String s_editorconfig{};
+    String Project::s_cmake_lists_txt{};
+    String Project::s_cmake_presets_json{};
+    String Project::s_myscript_cpp{};
+    String Project::s_editorconfig{};
 
     Project::Project(const Path& rkproj_path)
         : rkproj_path_(rkproj_path), project_dir_(rkproj_path.parent_path())

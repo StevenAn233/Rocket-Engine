@@ -16,8 +16,6 @@ namespace rke
     void Layer::on_update(float dt) // only method that will write to app().input()
         { app().input().transition_input_state(mouse_blocked(), keyboard_blocked()); }
 
-    const String& Layer::get_owner_name() { return owner_->get_name(); }
-
     bool Layer::mouse_blocked() const
         { return layer_index_ < owner_->get_mouse_blocking_index(); }
         

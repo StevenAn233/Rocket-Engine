@@ -51,8 +51,10 @@ namespace {
 namespace rke
 {
 // public
-    SceneRenderer::SceneRenderer(glm::vec4 col) : clear_color_(col)
+    SceneRenderer::SceneRenderer(Window* context, glm::vec4 col)
+        : context_(context), clear_color_(col)
     {
+        CORE_ASSERT(context_, u8"SceneRenderer: Window context null!");
         scene_fbo_ = FrameBuffer::create ({
             .attachment_spec {
                 { Texture::Format::RGBA16F, clear_color_ },
@@ -70,7 +72,7 @@ namespace rke
         if(!scene) { scene_fbo_->clear(); return nullptr; }
         scene_fbo_->clear_to_upload([this, scene, &vp, pos]()
         {
-            Renderer2D::begin_camera(vp);
+            context_->renderer_2d().begin_camera(vp);
             render_scene(scene, vp, pos);
         });
         return post_processor_.process(scene_fbo_->get_texture(0));
@@ -124,7 +126,7 @@ namespace rke
             const auto& sprite{ sc.sprite }; // texture asset
             auto* tex{ scene->get_owner()->get_assets_manager()
                 .get_asset<Texture2D>(sprite.tex_handle) };
-            Renderer2D::draw_quad
+            context_->renderer_2d().draw_quad
             ({
                 .position{ tc.position }, .rotation{ tc.rotation },
                 .size{ tc.size.x, tc.size.y }, .color { sc.color },
@@ -218,29 +220,28 @@ namespace rke
     //  for(auto entity : view) {...}
 
     // render in-sight entities(in sorted order)
-        Renderer2D::begin_scene();
+        context_->renderer_2d().begin_scene();
 
         for(const auto& renderable : opaque_queue_)
             draw_renderable(scene, renderable);
         for(const auto& renderable : cutout_queue_)
             draw_renderable(scene, renderable);
 
-        Renderer2D::end_scene();
+        context_->renderer_2d().end_scene();
 
-        if(!transparent_queue_.empty())
-        {
-            app().render_command().set_depth_write(false);
-            app().render_command().blend_func_transparent();
+        if(transparent_queue_.empty()) return;
+        
+        app().render_command().set_depth_write(false);
+        app().render_command().blend_func_transparent();
 
-            Renderer2D::begin_scene();
+        context_->renderer_2d().begin_scene();
 
-            for(const auto& renderable : transparent_queue_)
-                draw_renderable(scene, renderable);
+        for(const auto& renderable : transparent_queue_)
+            draw_renderable(scene, renderable);
 
-            Renderer2D::end_scene();
+        context_->renderer_2d().end_scene();
 
-            app().render_command().blend_func_default();
-            app().render_command().set_depth_write(true);
-        }
+        app().render_command().blend_func_default();
+        app().render_command().set_depth_write(true);
     }
 }

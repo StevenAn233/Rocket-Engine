@@ -42,7 +42,7 @@ namespace rke
     //      { editor_cam_.deserialize_from(reader); });
 
     // Effects
-        auto hovering{ create_scope<OutlineEffect>(u8"Hovering",
+        auto hovering{ create_scope<OutlineEffect>(u8"Hovering", &get_owner(),
             [this]() -> bool {
                 return !gizmo::is_using() && !keyboard_blocked()
                     && editor_setting_panel_->hovering_enabled_editor()
@@ -57,7 +57,7 @@ namespace rke
         )};
         hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
 
-        auto selected{ create_scope<OutlineEffect>(u8"Selected",
+        auto selected{ create_scope<OutlineEffect>(u8"Selected", &get_owner(),
             [this]() -> bool {
                 Entity selected{ current_scene() ?
                     current_scene()->get_selected_entity() : Entity{} };

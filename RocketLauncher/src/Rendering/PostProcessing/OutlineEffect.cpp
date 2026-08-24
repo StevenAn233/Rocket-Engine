@@ -6,12 +6,13 @@ import Layout;
 namespace rke
 {
 // public
-    OutlineEffect::OutlineEffect(String name,
+    OutlineEffect::OutlineEffect(String name, Window* context,
         std::function<bool()> enabled_situation,
         std::function<Entity()> target_getter)
         : PostProcessEffect(std::move(name), std::move(enabled_situation))
-        , target_getter_(std::move(target_getter))
+        , context_(context), target_getter_(std::move(target_getter))
     {
+        CORE_ASSERT(context_, u8"OutlineEffect: Context window null!");
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         outline_fbo_ = FrameBuffer::create
             ({ .attachment_spec{{ Texture::Format::R8, 0.0f }} });
@@ -27,10 +28,10 @@ namespace rke
         {
             if(target.has<SpriteComponent>())
             {
-                Renderer2D::begin_scene();
+                context_->renderer_2d().begin_scene();
 
                 const auto& tc{ target.get<TransformComponent>() };
-                Renderer2D::draw_quad
+                context_->renderer_2d().draw_quad
                 ({
                     .position{ tc.position },
                     .rotation{ tc.rotation },
@@ -38,7 +39,7 @@ namespace rke
                     .color   { glm::vec4(1.0f) },
                 });
 
-                Renderer2D::end_scene();
+                context_->renderer_2d().end_scene();
             }
         //  else if(target_.has<MeshComponent>()) {...}
         });

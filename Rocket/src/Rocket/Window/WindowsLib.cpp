@@ -2,11 +2,10 @@
 module WindowsLib;
 
 import Log;
+import Renderer2D;
 import HeapManager;
 import EventDispatcher;
 import ApplicationEvent;
-
-import Renderer2D;  // TO REMOVE
 
 namespace rke
 {
@@ -15,10 +14,7 @@ namespace rke
         for(auto& [_, window] : map_)
         {
             window->make_context_current();
-
             window->on_update();
-
-            Renderer2D::reset_stats();
             window->on_render();
         }
         refresh();
@@ -57,6 +53,7 @@ namespace rke
     {
         Scope<Window> window{ Window::create
             (u8"main", std::move(props), NativeWindow()) };
+        Renderer2D::init();
         main_window_ = window.get();
         return add(std::move(window));
     }

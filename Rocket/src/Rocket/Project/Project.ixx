@@ -86,5 +86,10 @@ export namespace rke
 
         Scope<ScriptDylibLoader> script_dylib_loader_{};
         Scope<ScriptRegistry> script_registry_{};
+
+        static String s_cmake_lists_txt;
+        static String s_cmake_presets_json;
+        static String s_myscript_cpp;
+        static String s_editorconfig;
     };
 }

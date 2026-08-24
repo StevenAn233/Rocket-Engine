@@ -63,6 +63,7 @@ namespace rke
     void Window::on_render()
     {
         if(minimized()) return;
+        renderer_2d().reset_stats();
         for(const auto& layer : layer_stack_)
             layer->on_render();
     }
@@ -74,10 +75,10 @@ import :glfw;
 namespace rke
 {
     Scope<Window> Window::create(String name,
-        Scope<Props> props, NativeWindow context)
+        Scope<Props> props, NativeWindow shared)
     {
         return create_scope<glfwWindow>
-            (std::move(name), std::move(props), context);
+            (std::move(name), std::move(props), shared);
     }
 }
 #endif

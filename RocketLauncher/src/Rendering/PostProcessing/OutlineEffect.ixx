@@ -14,7 +14,7 @@ export namespace rke
             alignas(16) float thickness{ 1.0f };
         };
 
-        OutlineEffect(String name,
+        OutlineEffect(String name, Window* context,
             std::function<bool()> enabled_situation,
             std::function<Entity()> target_getter);
 
@@ -33,6 +33,7 @@ export namespace rke
     private:
         Scope<FrameBuffer> outline_fbo_{};
         Uniforms uniforms_{};
+        Window* context_;
         std::function<Entity()> target_getter_;
     };
 }

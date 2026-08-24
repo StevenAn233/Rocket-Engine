@@ -1,6 +1,7 @@
 ﻿module;
 module ApplicationPanel;
 
+import Layout;
 import Instrumentor;
 import Renderer2D;
 import Application;
@@ -13,23 +14,8 @@ namespace rke
 
         ImGui::Begin("Application");
 
-        bool opened{ ImGui::BeginTabBar("##application_tabbar") };
-        if(!opened) return;
-
-    #ifdef RKE_ENABLE_STATISTICS
-        if(ImGui::BeginTabItem("Statistics"))
-        {
-            ImGui::Text("CamSets  : %d", Renderer2D::get_stats().cam_set_count );
-            ImGui::Text("DrawCalls: %d", Renderer2D::get_stats().drawcall_count);
-            ImGui::Text("Quads    : %d", Renderer2D::get_stats().quad_count    );
-            ImGui::Text("Vertices : %d", Renderer2D::get_stats().vertex_count());
-            ImGui::Text("Indices  : %d", Renderer2D::get_stats().index_count ());
-
-            ImGui::EndTabItem();
-        }
-    #endif // RKE_ENABLE_STATISTICS
     #if RKE_ENABLE_PROFILE
-        if(ImGui::BeginTabItem("Profiler Controls"))
+        layout::tree_node_branch<u8"Instrumentation">([&]()
         {
             if(app().instrumentor().is_session_running())
             {
@@ -59,11 +45,9 @@ namespace rke
                 // show red "INACTIVE"
                 ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "INACTIVE");
             }
-            ImGui::EndTabItem();
-        }
+        });
     #endif // RKE_ENABLE_PROFILE
 
-        ImGui::EndTabBar();
         ImGui::End();
     }
 }
