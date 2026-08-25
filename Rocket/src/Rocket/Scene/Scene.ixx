@@ -45,6 +45,8 @@ export namespace rke
         RKE_API bool operator!=(const Entity& other) const;
 
         inline Scene* get_owner() { return owner_scene_; } // mutable
+        RKE_API void refresh_script();
+
         inline uint32 get_handle() const { return static_cast<uint32>(handle_); }
         inline bool empty() const { return handle_ == entt::null; }
         inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }

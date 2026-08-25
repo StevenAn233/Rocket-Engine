@@ -41,6 +41,12 @@ namespace rke
 
     bool Entity::operator!=(const Entity& other) const { return !operator==(other); }
 
+    void Entity::refresh_script()
+    {
+        if(!owner_scene_) return;
+        owner_scene_->refresh_script(*this);
+    }
+
     UUID Entity::get_uuid() const
     {
         if(!valid()) return UUID(0);
@@ -333,14 +339,17 @@ namespace rke
 
     void Scene::flush_destroy_queue()
     {
-        if(to_destroy_.empty()) return;
-        for(Entity entity : to_destroy_)
+        while(!to_destroy_.empty())
         {
-            UUID uuid{ entity.get_uuid() };
+            Entity curr{ to_destroy_.back() };
+            to_destroy_.pop_back();
+            if(!curr.valid()) continue;
+
+            UUID uuid{ curr.get_uuid() };
             if(!uuid.empty()) entity_map_.erase(uuid);
-            registry_->destroy(entity.handle_);
+
+            registry_->destroy(curr.handle_);
             mark_modified();
         }
-        to_destroy_.clear();
     }
 }

@@ -29,6 +29,7 @@ namespace rke
 
     void ScriptRegistry::clear()
     {
+        script_types_.clear();
         script_constructors_.clear();
         CORE_INFO(u8"ScriptRegistry: All registered scripts cleared.");
     }
