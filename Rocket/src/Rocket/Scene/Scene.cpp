@@ -198,7 +198,6 @@ namespace rke
         if(entity.empty())
         {
             selected_entity_ = {};
-            set_demo_camera({});
             return;
         }
         if(!entity.valid() || !entity.belongs_to(this)) {
@@ -211,7 +210,6 @@ namespace rke
 
     void Scene::set_master_camera(Entity entity)
     {
-        if(entity.empty()) goto set;
         if(entity == master_cam_) return;
         if(!entity.valid() || !entity.belongs_to(this))
         {
@@ -222,14 +220,12 @@ namespace rke
             CORE_ERROR(u8"Scene: Entity isn't a camera!");
             return;
         }
-    set:
         master_cam_ = entity;
         mark_modified();
     }
 
     void Scene::set_demo_camera(Entity entity)
     {
-        if(entity.empty()) goto set;
         if(entity == demo_cam_) return;
         if(!entity.valid() || !entity.belongs_to(this))
         {
@@ -241,7 +237,6 @@ namespace rke
             CORE_ERROR(u8"Scene: Entity isn't a camera!");
             return;
         }
-    set:
         demo_cam_ = entity;
     }
 

@@ -121,7 +121,8 @@ namespace rke
             const String& name{ context_->get_name() };
             char buffer[256]{};
             std::memcpy(buffer, name.raw(), sizeof(buffer) - 1);
-            if(ImGui::InputText("##tag", buffer, sizeof(buffer)))
+            if(ImGui::InputText("##tag", buffer, sizeof(buffer),
+                ImGuiInputTextFlags_EnterReturnsTrue))
                 context_->set_name(String(str::to_char8(buffer)));
         });
 
@@ -141,9 +142,9 @@ namespace rke
         {
             String& tag{ ent.get_mut<TagComponent>().tag };
             char buffer[256]{};
-            std::memcpy(buffer, tag.raw(), tag.length());
-            buffer[sizeof(buffer) - 1] = '\0';
-            if(ImGui::InputText("##tag", buffer, sizeof(buffer)))
+            std::memcpy(buffer, tag.raw(), sizeof(buffer) - 1);
+            if(ImGui::InputText("##tag", buffer, sizeof(buffer),
+                ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 tag = String(str::to_char8(buffer), strlen(buffer));
                 context_->mark_modified();

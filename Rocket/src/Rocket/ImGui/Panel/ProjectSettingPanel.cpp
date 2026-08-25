@@ -63,8 +63,9 @@ namespace rke
                 {
                     const String& name{ app().get_project()->get_name() };
                     char name_buffer[256]{};
-                    std::memcpy(name_buffer, name.raw(), sizeof(name_buffer) - 1); // TO MODIFY
-                    if(ImGui::InputText("##tag", name_buffer, sizeof(name_buffer)))
+                    std::memcpy(name_buffer, name.raw(), sizeof(name_buffer) - 1);
+                    if(ImGui::InputText("##tag", name_buffer, sizeof(name_buffer),
+                        ImGuiInputTextFlags_EnterReturnsTrue))
                         app().get_project()->set_name(String(str::to_char8(name_buffer)));
                 });
                 ImGui::EndTabItem();
@@ -157,10 +158,11 @@ namespace rke
             float text_w{ ImGui::CalcTextSize(row_name.raw()).x };
             ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x);
 
-            std::memcpy(name_buffer, row_name.raw(), sizeof(name_buffer) - 1); // TO MODIFY
+            std::memcpy(name_buffer, row_name.raw(), sizeof(name_buffer) - 1);
             ImGui::PushID(row);
             ImGui::SetNextItemWidth(label_width - spacing);
-            if(ImGui::InputText("##Name", name_buffer, sizeof(name_buffer)))
+            if(ImGui::InputText("##Name", name_buffer, sizeof(name_buffer),
+                ImGuiInputTextFlags_EnterReturnsTrue))
                 layers.set_name(row, String(str::to_char8(name_buffer), strlen(name_buffer)));
             ImGui::PopID();
 

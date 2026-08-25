@@ -158,8 +158,7 @@ namespace rke
         if(ImGui::BeginPopupModal("New Scene Name", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::Text("Enter Scene Name:");
-            ImGui::InputText("##SceneName", name_buffer_->data(), name_buffer_->size(),
-                ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::InputText("##SceneName", name_buffer_->data(), name_buffer_->size());
             if(ImGui::Button("Create")) {
                 context_->create_scene(String(str::to_char8(name_buffer_->data())));
                 ImGui::CloseCurrentPopup();
