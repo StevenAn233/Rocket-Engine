@@ -138,6 +138,7 @@ namespace rke
 
     void Scene::destroy_entity(Entity entity)
     {
+        if(entity.empty()) return;
         if(!entity.belongs_to(this)) {
             CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
             return;
