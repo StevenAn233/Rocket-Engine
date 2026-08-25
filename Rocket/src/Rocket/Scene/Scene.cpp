@@ -11,10 +11,10 @@ namespace rke
 {
     Entity::Entity() : handle_(entt::null), owner_scene_(nullptr) {}
 
-    Entity::Entity(entt::entity handle, const Scene* scene)
+    Entity::Entity(entt::entity handle, Scene* scene)
         : handle_(handle), owner_scene_(scene) {}
     
-    Entity::Entity(uint32 handle, const Scene* scene)
+    Entity::Entity(uint32 handle, Scene* scene)
         : handle_(entt::entity(handle)), owner_scene_(scene) {}
 
     bool Entity::valid() const
@@ -157,19 +157,34 @@ namespace rke
         return entity_map_.find(uuid) != entity_map_.end();
     }
 
-    Entity Scene::get_entity(uint32 handle) const
+    Entity Scene::get_entity(uint32 handle)
     {
         entt::entity entt{ static_cast<entt::entity>(handle) };
         if(registry_->valid(entt)) return Entity(entt, this);
-        return Entity{};
+        return {};
     }
 
-    Entity Scene::get_entity(UUID uuid) const
+    Entity Scene::get_entity(UUID uuid)
     {
         if(uuid.empty()) return {};
         if(has_entity(uuid)) return Entity(entity_map_.at(uuid), this);
         CORE_ERROR(u8"Scene: Entity UUID '{}' not found!", uuid.value());
-        return Entity{};
+        return {};
+    }
+
+    const Entity Scene::get_entity(uint32 handle) const
+    {
+        entt::entity entt{ static_cast<entt::entity>(handle) };
+        if(registry_->valid(entt)) return Entity(entt, const_cast<Scene*>(this));
+        return {};
+    }
+
+    const Entity Scene::get_entity(UUID uuid) const
+    {
+        if(uuid.empty()) return {};
+        if(has_entity(uuid)) return Entity(entity_map_.at(uuid), const_cast<Scene*>(this));
+        CORE_ERROR(u8"Scene: Entity UUID '{}' not found!", uuid.value());
+        return {};
     }
 
     Entity Scene::copy_entity_towards(Entity entity, Scene* owner)

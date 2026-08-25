@@ -77,13 +77,13 @@ namespace {
         }
         if(entity.has<Rigidbody2DComponent>())
         {
-             writer.begin_map(u8"Rigidbody 2D Component");
+            writer.begin_map(u8"Rigidbody 2D Component");
 
-             const auto& rbc{ entity.get<Rigidbody2DComponent>() };
-             writer.write(u8"Type", static_cast<uint32>(rbc.type));
-             writer.write(u8"Rotation Fixed", ConfigValue(rbc.rotation_fixed));
+            const auto& rbc{ entity.get<Rigidbody2DComponent>() };
+            writer.write(u8"Type", static_cast<uint32>(rbc.type));
+            writer.write(u8"Rotation Fixed", ConfigValue(rbc.rotation_fixed));
 
-             writer.end_map();
+            writer.end_map();
         }
         if(entity.has<BoxCollider2DComponent>())
         {

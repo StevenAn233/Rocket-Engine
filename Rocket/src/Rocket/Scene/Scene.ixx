@@ -44,6 +44,7 @@ export namespace rke
         RKE_API bool operator==(const Entity& other) const;
         RKE_API bool operator!=(const Entity& other) const;
 
+        inline Scene* get_owner() { return owner_scene_; } // mutable
         inline uint32 get_handle() const { return static_cast<uint32>(handle_); }
         inline bool empty() const { return handle_ == entt::null; }
         inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
@@ -66,13 +67,13 @@ export namespace rke
         template<typename Component>
         void remove();
     private:
-        RKE_API Entity(entt::entity handle, const Scene* scene);
-        RKE_API Entity(uint32 handle, const Scene* scene);
+        RKE_API Entity(entt::entity handle, Scene* scene);
+        RKE_API Entity(uint32 handle, Scene* scene);
 
         RKE_API void check_assert() const;
     private:
         entt::entity handle_; // version(12bits) + index(20bits)
-        const Scene* owner_scene_;
+        Scene* owner_scene_;
     };
 
     constexpr uint32 entity_id_null{ 0xFFFFFFFFu };
@@ -117,8 +118,10 @@ export namespace rke
         Entity copy_entity(Entity entity) { return copy_entity_towards(entity, this); }
         Entity copy_entity_towards(Entity entity, Scene* owner);
 
-        Entity get_entity(uint32 handle) const;
-        Entity get_entity(UUID uuid) const;
+        Entity get_entity(uint32 handle);
+        Entity get_entity(UUID uuid);
+        const Entity get_entity(uint32 handle) const;
+        const Entity get_entity(UUID uuid) const;
 
         Entity get_selected_entity() const { return selected_entity_; }
         void destroy_selected_entity() { destroy_entity(selected_entity_); }
