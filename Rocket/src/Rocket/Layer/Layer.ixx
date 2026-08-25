@@ -30,7 +30,7 @@ export namespace rke
         virtual void on_detach() {};
 
         virtual void on_event(Event& e) = 0;
-        virtual void on_update(float dt);
+        virtual void on_update(double dt);
         virtual void on_render() {}
 
         virtual bool should_block_mouse() = 0;

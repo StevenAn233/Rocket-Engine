@@ -90,7 +90,7 @@ namespace rke
         }
     }
 
-    void box2DPhysicsEngine2D::on_update(float dt)
+    void box2DPhysicsEngine2D::on_update(double dt)
     {
         if(!get_owner().in_runtime() || B2_IS_NULL(physics_world_)) return;
 

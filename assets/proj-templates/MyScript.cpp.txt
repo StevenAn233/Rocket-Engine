@@ -6,7 +6,7 @@ class MyScript : public rke::Script
 public:
     void on_create () override { RKE_INFO(u8"MyScript created."  ); }
     void on_destroy() override { RKE_INFO(u8"MyScript destroyed."); }
-    void on_update(float dt) override {}
+    void on_update(double dt) override {}
 };
 
 RKE_REGISTER_SCRIPT(MyScript);

@@ -144,7 +144,7 @@ export namespace rke
         void refresh_script(Entity entity); // ScriptManager::refresh_script
 
         void clear();
-        void on_update(float dt);
+        void on_update(double dt);
 
         void on_runtime_start();
         void on_runtime_stop ();

@@ -56,7 +56,7 @@ namespace rke
         ticker_.tick(timer_.get_last_elapsed(), [this](double dt)
         {
             for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
-                it->get()->on_update(static_cast<float>(dt));
+                it->get()->on_update(dt);
         });
     }
 

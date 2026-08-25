@@ -13,7 +13,7 @@ namespace rke
         : debug_name_(std::move(name)), owner_(owner)
     { CORE_ASSERT(owner_, u8"Layer: Owner window empty!"); }
 
-    void Layer::on_update(float dt) // only method that will write to app().input()
+    void Layer::on_update(double dt) // only method that will write to app().input()
         { app().input().transition_input_state(mouse_blocked(), keyboard_blocked()); }
 
     bool Layer::mouse_blocked() const

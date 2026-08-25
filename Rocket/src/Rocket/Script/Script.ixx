@@ -20,7 +20,7 @@ export namespace rke
         virtual void on_create () {}
         virtual void on_destroy() {}
     
-        virtual void on_update(float dt) {}
+        virtual void on_update(double dt) {}
         virtual void on_mouse_scrolled(float x_offset, float y_offset) {};
     protected:
         inline Entity owner() const { return owner_; }

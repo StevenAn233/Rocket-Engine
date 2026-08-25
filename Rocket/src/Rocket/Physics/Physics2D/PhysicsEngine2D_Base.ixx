@@ -18,7 +18,7 @@ export namespace rke
         virtual void on_runtime_start() = 0;
         virtual void on_runtime_stop () = 0;
 
-        virtual void on_update(float dt) = 0;
+        virtual void on_update(double dt) = 0;
 
         virtual bool empty() const = 0;
         static Scope<PhysicsEngine2D> create(Scene* owner);

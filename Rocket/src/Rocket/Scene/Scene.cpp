@@ -283,7 +283,7 @@ namespace rke
         selected_entity_ = {};
     }
 
-    void Scene::on_update(float dt)
+    void Scene::on_update(double dt)
     {
         if(in_runtime())
         {

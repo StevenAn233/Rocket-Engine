@@ -25,7 +25,7 @@ export namespace rke
         void on_detach() override;
 
         void on_event(Event& e) override;
-        void on_update(float dt) override;
+        void on_update(double dt) override;
         void on_render() override;
 
         bool should_block_mouse() override;

@@ -317,7 +317,7 @@ namespace rke
         return true;     
     }
 
-    void EditorLayer::on_update(float dt)
+    void EditorLayer::on_update(double dt)
     {
         RKE_PROFILE_FUNCTION();
 

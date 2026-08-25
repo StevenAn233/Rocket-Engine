@@ -19,7 +19,7 @@ namespace rke
         void on_runtime_start() override;
         void on_runtime_stop () override;
 
-        void on_update(float dt) override;
+        void on_update(double dt) override;
 
         bool empty() const override;
     private:

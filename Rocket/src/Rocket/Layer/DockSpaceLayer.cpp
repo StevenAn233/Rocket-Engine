@@ -26,7 +26,7 @@ namespace rke
             dispacher.mark_completed_if(should_block_keyboard());
     }
 
-    void DockSpaceLayer::on_update(float dt)
+    void DockSpaceLayer::on_update(double dt)
     {
         Layer::on_update(dt);
         dockspace_.on_update();

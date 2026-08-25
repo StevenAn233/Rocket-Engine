@@ -43,7 +43,7 @@ namespace rke
                              glm::mat4_cast(get_orientation()));
     }
 
-    void EditorCamera::on_update(float dt)
+    void EditorCamera::on_update(double dt)
     {
         glm::vec2 mouse{ app().input().get_mouse_pos_in_window() };
         glm::vec2 delta{ (mouse - last_mouse_pos_) * 0.003f };

@@ -14,7 +14,7 @@ export namespace rke
         EditorCamera(float fov, float aspect_ratio, float near_clip, float far_clip);
         ~EditorCamera();
 
-        void on_update(float dt);
+        void on_update(double dt);
         bool on_mouse_scrolled(MouseScrolledEvent& e);
 
         float get_distance() const { return distance_; }
