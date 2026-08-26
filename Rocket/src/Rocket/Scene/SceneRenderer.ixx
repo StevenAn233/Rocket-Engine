@@ -15,6 +15,7 @@ import Shader;
 import PostProcessor;
 import PostProcessEffect;
 import MathUtils;
+import AssetsManager;
 
 export namespace rke
 {
@@ -40,9 +41,9 @@ export namespace rke
     private:
         struct Renderable
         {
-            uint32 entity{ static_cast<uint32>(-1) };
-            int layer{};
-            float distance_sqr{};
+            uint32 handle;
+            int layer;
+            float distance_sqr;
 
             bool operator<(const Renderable& other) const
             {
@@ -52,7 +53,7 @@ export namespace rke
             }
         };
 
-        void draw_renderable(const Scene* scene, const Renderable& renderable);
+        void draw_entity(AssetsManager& manager, const Scene* scene, uint32 handle);
         void render_scene(const Scene* scene, const glm::mat4& view_projection, glm::vec3 cam_postion);
     private:
         Window* context_;

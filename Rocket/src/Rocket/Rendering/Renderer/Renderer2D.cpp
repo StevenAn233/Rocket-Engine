@@ -123,13 +123,6 @@ namespace rke
         if(data.index_count >= max_indices || texture_slot_index_ >= max_texture_slots)
             { flush(); start_batch(); }
 
-        // calculate position(CPU side)
-        glm::mat4 transform {
-            glm::translate(glm::mat4(1.0f), props.position) *
-            glm::mat4_cast(glm::quat(glm::radians(props.rotation))) *
-            glm::scale(glm::mat4(1.0f), { props.size.x, props.size.y, 0.0f })
-        };
-
         // find texture id
         int tex_index{ 0 }; // white texture(default)
         if(props.texture)
@@ -143,7 +136,6 @@ namespace rke
                     found = true; break;
                 }
             }
-
             if(!found) {
                 tex_index = texture_slot_index_;
                 texture_slots_[texture_slot_index_] = props.texture;
@@ -153,7 +145,7 @@ namespace rke
 
         for(int i{}; i < 4; i++)
         {
-            quad_vertex_ptr_->position = glm::vec3(transform * quad_vertex_pos[i]);
+            quad_vertex_ptr_->position = glm::vec3(props.transform * quad_vertex_pos[i]);
             quad_vertex_ptr_->color	   = math::srgb_to_linear(props.color);
             quad_vertex_ptr_->uv_coord = props.uv_coords[i];
             quad_vertex_ptr_->tiling_factor = props.tiling_factor;
@@ -185,16 +177,20 @@ namespace rke
 
             if(*c == ' ') continue;
 
-            QuadProps props{};
-            props.position = {
+            glm::vec3 position {
                 ( (quad.x0 + quad.x1) * (scale / font.get_font_size()) / 2.0f) + pos.x,
                 (-(quad.y0 + quad.y1) * (scale / font.get_font_size()) / 2.0f) + pos.y, // flip manully
                 pos.z
             };
-            props.size = {
+            glm::vec3 size {
                 -(quad.x1 - quad.x0) * (scale / font.get_font_size()), // flip manully
-                 (quad.y1 - quad.y0) * (scale / font.get_font_size())
+                 (quad.y1 - quad.y0) * (scale / font.get_font_size()),
+                0.0f
             };
+            QuadProps props{};
+            props.transform = glm::translate(glm::mat4(1.0f), position)
+                            * glm::scale(glm::mat4(1.0f), size);
+
             props.color = color;
             props.texture = font.get_font_atlas();
 

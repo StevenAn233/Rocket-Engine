@@ -70,9 +70,9 @@ export namespace rke
 
         glm::mat4 get_transform() const
         {
-            return glm::translate(glm::mat4{ 1.0f }, position)
+            return glm::translate(glm::mat4(1.0f), position)
                  * glm::mat4_cast(glm::quat(glm::radians(rotation)))
-                 * glm::scale	 (glm::mat4{ 1.0f }, size);
+                 * glm::scale	 (glm::mat4(1.0f), size);
         }
     };
 // ---

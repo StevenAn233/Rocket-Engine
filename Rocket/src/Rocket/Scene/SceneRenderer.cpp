@@ -113,45 +113,42 @@ namespace rke
         scene_fbo_->clear();
         post_processor_.clean_up();
     }
+    
 // private
-    void SceneRenderer::draw_renderable(const Scene* scene, const Renderable& renderable)
+    void SceneRenderer::draw_entity(AssetsManager& manager, const Scene* scene, uint32 handle)
     {
-        const auto& tc{ scene->registry_->
-            get<TransformComponent>(static_cast<entt::entity>(renderable.entity)) };
-        if(scene->registry_->all_of<SpriteComponent>
-            (static_cast<entt::entity>(renderable.entity)))
+        constexpr std::array<glm::vec2, 4> default_uv
         {
-            const auto& sc{ scene->registry_->
-                get<SpriteComponent>(static_cast<entt::entity>(renderable.entity)) };
-            const auto& sprite{ sc.sprite }; // texture asset
-            auto* tex{ scene->get_owner()->get_assets_manager()
-                .get_asset<Texture2D>(sprite.tex_handle) };
+            glm::vec2(1.0f, 1.0f),
+            glm::vec2(0.0f, 1.0f),
+            glm::vec2(0.0f, 0.0f),
+            glm::vec2(1.0f, 0.0f)
+        };
+
+        entt::entity entity{ static_cast<entt::entity>(handle) };
+        entt::registry& reg{ *(scene->registry_) };
+        const auto& tc{ reg.get<TransformComponent>(entity) };
+        if(reg.all_of<SpriteComponent>(entity))
+        {
+            const auto& sc{ reg.get<SpriteComponent>(entity) };
+            const auto& sprite{ sc.sprite };
+            auto* tex{ manager.get_asset<Texture2D>(sprite.tex_handle) };
             context_->renderer_2d().draw_quad
             ({
-                .position{ tc.position }, .rotation{ tc.rotation },
-                .size{ tc.size.x, tc.size.y }, .color { sc.color },
+                .transform{ tc.get_transform() }, .color{ sc.color },
                 .uv_coords{ tex ?
                     tex->calc_uv (
                         sprite.cell_coords,
                         sprite.cell_pixels,
                         sprite.cell_counts
-                    ) :
-                    std::array<glm::vec2, 4>
-                    {
-                        glm::vec2(1.0f, 1.0f),
-                        glm::vec2(0.0f, 1.0f),
-                        glm::vec2(0.0f, 0.0f),
-                        glm::vec2(1.0f, 0.0f)
-                    }
+                    ) : default_uv
                 },
-                .tiling_factor{ sprite.tiling_factor }, .texture{ tex },
-                .entity_id{ static_cast<int>(renderable.entity) }
+                .tiling_factor{ sprite.tiling_factor },
+                .texture{ tex },
+                .entity_id{ static_cast<int>(handle) }
             });
-        }
-    //  else if(scene->registry_->all_of<MeshComponent>(renderable.entity)) {...}
-        else {
-            const auto& id_com{ scene->registry_->
-                get<IdentityComponent>(static_cast<entt::entity>(renderable.entity)) };
+        } else {
+            const auto& id_com{ reg.get<IdentityComponent>(entity) };
             CORE_ASSERT(false, u8"SceneRenderer: Entity '{}'(UUID:{}) "
                 u8"is not renderable!", id_com.tag, id_com.uuid.value());
         }
@@ -168,14 +165,17 @@ namespace rke
         cutout_queue_.clear();
         transparent_queue_.clear();
 
+        AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager() };
         auto view{ scene->registry_->view<TransformComponent, SpriteComponent>() };
-        for(entt::entity entity : view) {
+        for(entt::entity entity : view)
+        {
             const auto& tc{ view.get<TransformComponent>(entity) };
             if(should_cull(tc.position, glm::vec2(tc.size), planes)) continue;
 
             auto& sc{ view.get<SpriteComponent>(entity) };
+            if(sc.color.a < 0.01f) continue;
+
             auto& sprite{ sc.sprite }; // texture asset
-            AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager() };
             if(sprite.has_texture() && !assets_manager.is_handle_valid(sprite.tex_handle))
             {
                 sprite.tex_handle = assets_manager.load_asset(sprite.tex_uuid);
@@ -193,9 +193,9 @@ namespace rke
             switch(sc.blending_mode)
             {
             case SpriteComponent::BlendingMode::Opaque:
-                opaque_queue_.emplace_back(handle, sc.rendering_layer); break;
+                opaque_queue_.emplace_back(handle, sc.rendering_layer, 0.0f); break;
             case SpriteComponent::BlendingMode::Cutout:
-                cutout_queue_.emplace_back(handle, sc.rendering_layer); break;
+                cutout_queue_.emplace_back(handle, sc.rendering_layer, 0.0f); break;
             case SpriteComponent::BlendingMode::Transparent: // Depends on camera distance
             {
                 glm::vec3 dist{ tc.position - cam_position };
@@ -217,13 +217,13 @@ namespace rke
     //  auto view{ scene->registry_->view<TransformComponent, MeshComponent>() };
     //  for(auto entity : view) {...}
 
-    // render in-sight entities(in sorted order)
+    // render entities
         context_->renderer_2d().begin_scene();
 
         for(const auto& renderable : opaque_queue_)
-            draw_renderable(scene, renderable);
+            draw_entity(assets_manager, scene, renderable.handle);
         for(const auto& renderable : cutout_queue_)
-            draw_renderable(scene, renderable);
+            draw_entity(assets_manager, scene, renderable.handle);
 
         context_->renderer_2d().end_scene();
 
@@ -235,7 +235,7 @@ namespace rke
         context_->renderer_2d().begin_scene();
 
         for(const auto& renderable : transparent_queue_)
-            draw_renderable(scene, renderable);
+            draw_entity(assets_manager, scene, renderable.handle);
 
         context_->renderer_2d().end_scene();
 

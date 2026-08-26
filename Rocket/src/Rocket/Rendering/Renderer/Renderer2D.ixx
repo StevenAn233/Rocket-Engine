@@ -26,22 +26,14 @@ export namespace rke
     public:
         struct RKE_API QuadProps
         {
-            glm::vec3 position{ 0.0f };
-            glm::vec3 rotation{ 0.0f }; // in radian
-            glm::vec2 size { 1.0f };
-            glm::vec4 color{ 1.0f };	// sRGB(need to linearlize)
-            std::array<glm::vec2, 4> uv_coords
-            {
-                glm::vec2(1.0f, 1.0f),
-                glm::vec2(0.0f, 1.0f),
-                glm::vec2(0.0f, 0.0f),
-                glm::vec2(1.0f, 0.0f)
-            };
+            glm::mat4 transform;
+            glm::vec4 color; // sRGB(need to linearlize)
+            std::array<glm::vec2, 4> uv_coords;
+
             float tiling_factor{ 1.0f };
             Texture2D* texture{};
             bool make_tex_gray{ false };
             bool is_font{ false };
-
             int entity_id{ -1 };
         };
 
@@ -81,7 +73,7 @@ export namespace rke
             uint32 index_count () const { return quad_count * 6; }
         };
     public:
-        static constexpr uint32 max_quads{ 10000 };
+        static constexpr uint32 max_quads{ 500000 };
         static constexpr uint32 max_vertices{ max_quads * 4 };
         static constexpr uint32 max_indices { max_quads * 6 };
         static constexpr uint32 max_texture_slots{ 32 };

@@ -33,10 +33,8 @@ namespace rke
                 const auto& tc{ target.get<TransformComponent>() };
                 context_->renderer_2d().draw_quad
                 ({
-                    .position{ tc.position },
-                    .rotation{ tc.rotation },
-                    .size	 { tc.size	   },
-                    .color   { glm::vec4(1.0f) },
+                    .transform{ tc.get_transform() },
+                    .color{ glm::vec4(1.0f) },
                 });
 
                 context_->renderer_2d().end_scene();
