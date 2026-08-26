@@ -22,6 +22,8 @@ export namespace rke
     
         virtual void on_update(double dt) {}
         virtual void on_mouse_scrolled(float x_offset, float y_offset) {};
+        virtual void on_contact_begin(Entity other) {}
+        virtual void on_contact_end  (Entity other) {}
     protected:
         inline Entity owner() const { return owner_; }
     private:

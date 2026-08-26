@@ -85,9 +85,9 @@ export namespace rke
     public:
         friend class Entity;
         friend class SceneSerializer;
+        friend class SceneRenderer;
         friend class ScriptManager;
         friend class PhysicsEngine2D;
-        friend class SceneRenderer;
 
         struct RegistryContext
         {

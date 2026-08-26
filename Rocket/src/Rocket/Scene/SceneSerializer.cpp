@@ -84,6 +84,7 @@ namespace {
             writer.begin_map(u8"Box Collider 2D Component");
 
             const auto& bcc{ entity.get<BoxCollider2DComponent>() };
+            writer.write(u8"Collider Type", static_cast<uint32>(bcc.type));
             writer.write(u8"Physics Layer", static_cast<uint32>(bcc.layer_index));
             writer.write(u8"Offset", ConfigValue(bcc.offset));
             writer.write(u8"Size", ConfigValue(bcc.size));
@@ -158,19 +159,19 @@ namespace {
         Scope<ConfigReader> rbc_reader{ reader.get_child(u8"Rigidbody 2D Component") };
         if(rbc_reader) {
             auto& rbc{ entity.emplace<Rigidbody2DComponent>() };
-            rbc.type = static_cast<Rigidbody2DComponent::BodyType>
-                (rbc_reader->get_at(u8"Type", 0ui32));
+            rbc.type = static_cast<BodyType>(rbc_reader->get_at(u8"Type", 0ui32));
             rbc.rotation_fixed = rbc_reader->get_at(u8"Rotation Fixed", false);
         }
 
         Scope<ConfigReader> bcc_reader{ reader.get_child(u8"Box Collider 2D Component") };
         if(bcc_reader) {
             auto& bcc{ entity.emplace<BoxCollider2DComponent>() };
+            bcc.type = static_cast<ColliderType>(bcc_reader->get_at(u8"Collider Type", 0u));
             bcc.layer_index = bcc_reader->get_at(u8"Physics Layer", 0ui32);
-            bcc.offset = bcc_reader->get_at(u8"Offset", glm::vec2(0.0f));
-            bcc.size = bcc_reader->get_at(u8"Size", glm::vec2(0.5f));
-            bcc.density = bcc_reader->get_at(u8"Density", 1.0f);
-            bcc.friction = bcc_reader->get_at(u8"Friction", 0.5f);
+            bcc.offset      = bcc_reader->get_at(u8"Offset", glm::vec2(0.0f));
+            bcc.size        = bcc_reader->get_at(u8"Size", glm::vec2(0.5f));
+            bcc.density     = bcc_reader->get_at(u8"Density", 1.0f);
+            bcc.friction    = bcc_reader->get_at(u8"Friction", 0.5f);
             bcc.restitution = bcc_reader->get_at(u8"Restitution", 0.0f);
         }
 

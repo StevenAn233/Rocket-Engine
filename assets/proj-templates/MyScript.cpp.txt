@@ -7,6 +7,11 @@ public:
     void on_create () override { RKE_INFO(u8"MyScript created."  ); }
     void on_destroy() override { RKE_INFO(u8"MyScript destroyed."); }
     void on_update(double dt) override {}
+
+    void on_contact_begin(rke::Entity other) override
+        { RKE_INFO(u8"MyScript touched entity '{}'!", other.get<IdentityComponent>().tag); }
+    void on_contact_end(rke::Entity other) override
+        { RKE_INFO(u8"MyScript stopped touching."); }
 };
 
 RKE_REGISTER_SCRIPT(MyScript);

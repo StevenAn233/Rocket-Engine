@@ -295,6 +295,10 @@ namespace rke
                 if(script) script->on_update(dt);
             }
             physics_engine_->on_update(dt);
+            script_manager_->dispatch_contacts (
+                physics_engine_->get_begin_contacts(),
+                physics_engine_->get_end_contacts()
+            );
         }
         flush_destroy_queue();
     }

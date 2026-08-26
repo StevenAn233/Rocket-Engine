@@ -430,7 +430,7 @@ namespace rke
                 ImGui::SetNextItemWidth(available_width);
                 if(ImGui::Combo("##body_type", &option, items, (int)std::size(items)))
                 {
-                    rbc.type = static_cast<Rigidbody2DComponent::BodyType>(option);
+                    rbc.type = static_cast<BodyType>(option);
                     context_->mark_modified();
                 }
             });
@@ -441,6 +441,20 @@ namespace rke
         check_then_draw<BoxCollider2DComponent, u8"Box Collider 2D">(entity, [this](Entity ent)
         {
             auto& bcc{ ent.get_mut<BoxCollider2DComponent>() };
+
+            layout::two_columns_table<u8"Collider Type">([&]()
+            {
+                constexpr const char* items[]{ "Solid", "Sensor", "One-Way" };
+                int option{ static_cast<int>(bcc.type) };
+
+                float available_width{ ImGui::GetContentRegionAvail().x };
+                ImGui::SetNextItemWidth(available_width);
+                if(ImGui::Combo("##collider_type", &option, items, (int)std::size(items)))
+                {
+                    bcc.type = static_cast<ColliderType>(option);
+                    context_->mark_modified();
+                }
+            });
 
             layout::two_columns_table<u8"Physics Layer">([&]()
             {

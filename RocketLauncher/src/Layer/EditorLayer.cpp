@@ -44,7 +44,7 @@ namespace rke
     // Effects
         auto hovering{ create_scope<OutlineEffect>(u8"Hovering", &get_owner(),
             [this]() -> bool {
-                return !gizmo::is_using() && !keyboard_blocked()
+                return !gizmo::is_using() && !mouse_blocked()
                     && editor_setting_panel_->hovering_enabled_editor()
                     && !in_main_viewport_dragging_ && editing()
                     && main_viewport_->is_hovered();
@@ -288,8 +288,12 @@ namespace rke
             scene_edit_->get_selected_entity().valid() };
         if(is_gizmo_over || gizmo::is_using()) return false;
 
-        if(e.get_mouse_button() == Mouse::Left) {
-            scene_edit_->set_selected_entity(hovering_id_);
+        if(e.get_mouse_button() == Mouse::Left)
+        {
+            if(hovering_id_ != entity_id_null)
+                scene_edit_->set_selected_entity(hovering_id_);
+            else if(main_viewport_->is_focused())
+                scene_edit_->set_selected_entity(Entity{});
             return true;
         }
         return false;

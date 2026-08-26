@@ -7,6 +7,7 @@ import Project;
 import Script;
 import Components;
 import ScriptRegistry;
+import PhysicsEngine2D;
 
 namespace rke
 {
@@ -41,6 +42,45 @@ namespace rke
         if(script_cache_.contains(handle))
             destroy_script(std::move(script_cache_[handle]), handle);
         script_cache_[handle] = create_script(handle);
+    }
+
+    void ScriptManager::dispatch_contacts (
+        const std::vector<Contact>& begin_events,
+        const std::vector<Contact>& end_events)
+    {
+        if(!owner_->in_runtime()) return;
+        for(const auto& ev : begin_events)
+        {
+            contact_begin(ev.entity_a, ev.entity_b);
+            contact_begin(ev.entity_b, ev.entity_a);
+        }
+        for(const auto& ev : end_events)
+        {
+            contact_end(ev.entity_a, ev.entity_b);
+            contact_end(ev.entity_b, ev.entity_a);
+        }
+    }
+
+    void ScriptManager::contact_begin(uint32 owner_handle, uint32 other_handle)
+    {
+        auto it{ script_cache_.find(owner_handle) };
+        if(it == script_cache_.end() || !it->second) return;
+
+        Entity other{ owner_->get_entity(other_handle) };
+        if(!other.valid()) return;
+
+        it->second->on_contact_begin(other);
+    }
+
+    void ScriptManager::contact_end(uint32 owner_handle, uint32 other_handle)
+    {
+        auto it{ script_cache_.find(owner_handle) };
+        if(it == script_cache_.end() || !it->second) return;
+
+        Entity other{ owner_->get_entity(other_handle) };
+        if(!other.valid()) return;
+
+        it->second->on_contact_end(other);
     }
 
     Scope<Script> ScriptManager::create_script(uint32 handle)

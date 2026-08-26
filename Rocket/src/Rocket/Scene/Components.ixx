@@ -128,19 +128,19 @@ export namespace rke
 // ---
 
 // Requires to have SpriteComponent!
+    enum class BodyType : uint32
+    {
+        Static = 0,
+        Dynamic,
+        Kinematic
+    };
+
     struct RKE_API Rigidbody2DComponent
     {
-        enum class BodyType : uint32
-        {
-            Static = 0,
-            Dynamic,
-            Kinematic
-        };
+        uint64 body_id{};
 
         BodyType type{ BodyType::Static };
         bool rotation_fixed{ false };
-
-        uint64 body_id{};
 
         Rigidbody2DComponent() = default;
         Rigidbody2DComponent(const Rigidbody2DComponent& other)
@@ -148,22 +148,31 @@ export namespace rke
             , rotation_fixed(other.rotation_fixed) {}
     };
 
+    enum class ColliderType : uint32
+    {
+        Solid  = 0, // physical collision + contact events
+        Sensor = 1, // contact events only, no physical response
+        OneWay = 2  // one-way platform: only collides from above
+    };
+
     struct RKE_API BoxCollider2DComponent
     {
+        uint64 shape_id{};
+
+        ColliderType type{ ColliderType::Solid };
         uint8 layer_index{ 0 }; // 0 for default
 
         glm::vec2 offset{ 0.0f, 0.0f };
         glm::vec2 size  { 0.5f, 0.5f }; // half w, half h (0.0 to 1.0)
-
+        
         float density	 { 1.0f };
         float friction	 { 0.5f };
         float restitution{ 0.0f }; // 'bounciness'
 
-        uint64 shape_id{};
-
         BoxCollider2DComponent() = default;
         BoxCollider2DComponent(const BoxCollider2DComponent& other)
-            : layer_index(other.layer_index)
+            : type		 (other.type	   )
+            , layer_index(other.layer_index)
             , offset	 (other.offset	   )
             , size		 (other.size	   )
             , density	 (other.density	   )
