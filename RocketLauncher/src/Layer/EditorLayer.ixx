@@ -53,6 +53,7 @@ export namespace rke
         Scene* current_scene();
     private:
         EditorCamera editor_cam_{};
+        Ticker ticker_{ 90 }; // hard-coded, may modify
 
         SceneRenderer main_renderer_{ &get_owner(),
             math::srgb_to_linear(glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };

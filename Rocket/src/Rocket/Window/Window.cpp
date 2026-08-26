@@ -8,9 +8,10 @@ namespace rke
 {
     Window::Window(String name, Scope<Props> props)
         : name_(std::move(name)), props_(std::move(props))
-        , timer_(), ticker_(90) // hard-coded, may modify
         , setting_panel_(name_, this)
-        { app().register_panel(&setting_panel_); }
+    {
+        app().register_panel(&setting_panel_);
+    }
 
     Window::~Window() { app().unregister_panel(&setting_panel_); }
 
@@ -52,12 +53,11 @@ namespace rke
     void Window::on_update()
     {
         check_layer_blocking();
-        timer_.update();
-        ticker_.tick(timer_.get_last_elapsed(), [this](double dt)
-        {
-            for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
-                it->get()->on_update(dt);
-        });
+        if(!timer_) timer_ = create_scope<Timer>();
+        timer_->update();
+        update_smoothed_fps();
+        for(auto it{ layer_stack_.rbegin() }; it < layer_stack_.rend(); ++it)
+            it->get()->on_update(get_last_elapsed());
     }
 
     void Window::on_render()
@@ -66,6 +66,17 @@ namespace rke
         renderer_2d().reset_stats();
         for(const auto& layer : layer_stack_)
             layer->on_render();
+    }
+
+    void Window::update_smoothed_fps()
+    {
+        constexpr float alpha{ 5.0f };
+
+        double dt{ get_last_elapsed() };
+        double current_fps{ 1.0 / dt };
+
+        double lerp_alpha{ glm::clamp(dt * alpha, 0.0, 1.0) };
+        smoothed_fps_ = glm::mix(smoothed_fps_, current_fps, lerp_alpha);
     }
 }
 

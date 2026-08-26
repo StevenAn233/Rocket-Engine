@@ -54,9 +54,11 @@ export namespace rke
         inline uint32 get_height() const { return props_->height; }
         inline StringView get_title() const { return props_->title; }
         inline const Path& get_icon_path() const { return props_->icon_path; }
-        inline double get_last_elapsed() const { return timer_.get_last_elapsed(); }
+        inline double get_last_elapsed() const
+            { return timer_ ? timer_->get_last_elapsed() : 0.0; }
 
         inline Renderer2D& renderer_2d() { return *renderer_2d_; }
+        inline double get_smoothed_fps() const { return smoothed_fps_; }
 
         inline Size get_mouse_blocking_index() const
             { return mouse_blocking_layer_index_; }
@@ -95,19 +97,20 @@ export namespace rke
         void on_event(Event& e);
         void on_update();
         void on_render();
+        void update_smoothed_fps();
     protected:
         NativeWindow context_{};
         Scope<Props> props_;
         Scope<Renderer2D> renderer_2d_{};
     private:
         String name_;
-        Timer timer_;
-        Ticker ticker_;
+        Scope<Timer> timer_{};
         bool should_close_{ false };
 
         LayerStack layer_stack_{};
         Size mouse_blocking_layer_index_{};
         Size keyboard_blocking_layer_index_{};
+        double smoothed_fps_{};
 
         WindowSettingPanel setting_panel_;
     };

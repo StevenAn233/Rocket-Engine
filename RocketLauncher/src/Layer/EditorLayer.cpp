@@ -322,7 +322,14 @@ namespace rke
         RKE_PROFILE_FUNCTION();
 
         Layer::on_update(dt);
+        if(editing()) editor_cam_.on_update(dt);
 
+        ticker_.tick(dt, [this](double dt)
+            { if(current_scene()) current_scene()->on_update(dt); }); // entity deleted here
+    }
+
+    void EditorLayer::on_render()
+    {
         if(main_viewport_->resized())
         {
             auto w{ static_cast<uint32>(main_viewport_->get_size().x) };
@@ -340,12 +347,6 @@ namespace rke
             cam_renderer_.on_viewport_resized(w, h);
         }
 
-        if(editing()) editor_cam_.on_update(dt);
-        if(current_scene()) current_scene()->on_update(dt); // entity deleted here
-    }
-
-    void EditorLayer::on_render()
-    {
         if(editing())
         {
             main_output_ = main_renderer_.render

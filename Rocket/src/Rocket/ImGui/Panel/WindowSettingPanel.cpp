@@ -32,9 +32,8 @@ namespace rke
                 }
             });
 
-            update_smoothed_fps();
             layout::tree_node_branch<u8"FPS">([&]()
-                { ImGui::Text("Smoothed: %.2f", smoothed_fps_); });
+                { ImGui::Text("Smoothed: %.2f", owner_->get_smoothed_fps()); });
 
             ImGui::EndTabItem();
         }
@@ -55,16 +54,5 @@ namespace rke
 
         ImGui::EndTabBar();
         ImGui::End();
-    }
-
-    void WindowSettingPanel::update_smoothed_fps()
-    {
-        constexpr float alpha{ 5.0f };
-
-        double dt{ owner_->get_last_elapsed() };
-        double current_fps{ 1.0 / dt };
-
-        double lerp_alpha{ glm::clamp(dt * alpha, 0.0, 1.0) };
-        smoothed_fps_ = glm::mix(smoothed_fps_, current_fps, lerp_alpha);
     }
 }

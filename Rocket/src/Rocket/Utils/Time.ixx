@@ -33,7 +33,7 @@ export namespace rke
     class RKE_API Ticker
     {
     public:
-        Ticker(uint32 tps) : sec_per_tick_(1.0 / tps) {}
+        Ticker(uint32 tps, uint32 multiple = 4);
         ~Ticker() = default;
         
         Ticker(const Ticker&) = delete;
@@ -41,21 +41,25 @@ export namespace rke
         Ticker(Ticker&&) = delete;
         Ticker& operator=(Ticker&&) = delete;
 
-        inline void reset(uint32 tps) { sec_per_tick_ = 1.0 / tps; }
-        
+        void reset(uint32 tps, uint32 multiple = 4);
+
         template<typename Func> // void func(double delta_time)
         requires std::invocable<Func, double>
         inline void tick(double addon_time, Func&& func)
         {
             time_accumulator_ += addon_time;
-            if(time_accumulator_ > sec_per_tick_)
+            if(time_accumulator_ > max_accumulated_)
+                time_accumulator_ = max_accumulated_;
+            while(time_accumulator_ > sec_per_tick_)
             {
                 time_accumulator_ -= sec_per_tick_;
                 std::invoke(std::forward<Func>(func), sec_per_tick_);
             }
         }
     private:
-        double sec_per_tick_; // second
-        double time_accumulator_{}; // second
+    // second
+        double sec_per_tick_;
+        double max_accumulated_;
+        double time_accumulator_{};
     };
 }
