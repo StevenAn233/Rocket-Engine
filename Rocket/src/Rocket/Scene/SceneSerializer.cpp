@@ -13,17 +13,11 @@ namespace {
     {
         CORE_ASSERT(entity.valid(), u8"SceneSerializer: Entity invalid!");
         writer.begin_map();
-        writer.write(u8"Entity", ConfigValue(entity.get_uuid().value()));
+
+        auto& id_com{ entity.get<IdentityComponent>() };
+        writer.write(u8"Entity", ConfigValue(id_com.uuid.value()));
+        writer.write(u8"Tag", ConfigValue(id_com.tag));
         
-        if(entity.has<TagComponent>())
-        {
-            writer.begin_map(u8"Tag Component");
-
-            const auto& tag_com{ entity.get<TagComponent>() };
-            writer.write(u8"Tag", ConfigValue(tag_com.tag));
-
-            writer.end_map();
-        }
         if(entity.has<TransformComponent>())
         {
             writer.begin_map(u8"Transform Component");
@@ -115,10 +109,9 @@ namespace {
 
     static void deserialize_entity(Scene& scene, const ConfigReader& reader)
     {
-        Scope<ConfigReader> name_config{ reader.get_child(u8"Tag Component") };
-        String name{ name_config->get_at(u8"Tag", String{}) };
-        UUID id{ reader.get_at(u8"Entity", 0ui64) };
-        Entity entity{ scene.create_entity(name, id) };
+        UUID uuid{ reader.get_at(u8"Entity", 0ui64) };
+        String name{ reader.get_at(u8"Tag", String{}) };
+        Entity entity{ scene.create_entity(name, uuid) };
 
         Scope<ConfigReader> tc_reader{ reader.get_child(u8"Transform Component") };
         if(tc_reader) {
@@ -201,7 +194,7 @@ namespace rke
         writer->write(u8"Gravity", scene.get_gravity());
 
         writer->begin_array(u8"Entities");
-        auto view{ scene.registry_->view<UUIDComponent>() };
+        auto view{ scene.registry_->view<IdentityComponent>() };
         for(auto it{ view.rbegin() }; it != view.rend(); ++it)
         {
             Entity entity{ scene.get_entity(static_cast<uint32>(*it)) };

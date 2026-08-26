@@ -68,7 +68,7 @@ namespace rke
     void SceneHierarchyPanel::draw_entity_node(Entity entity, Entity selected)
     {
         ImGui::PushID(static_cast<int>(entity.get_handle()) + 1);
-        const String& tag{ entity.get<TagComponent>().tag };
+        const String& tag{ entity.get<IdentityComponent>().tag };
         ImGuiTreeNodeFlags flags {
         ((selected == entity) ? ImGuiTreeNodeFlags_Selected : 0)
           | ImGuiTreeNodeFlags_OpenOnArrow
@@ -138,9 +138,9 @@ namespace rke
 
     void SceneHierarchyPanel::draw_components(Entity entity)
     {
-        check_then_draw<TagComponent, u8"Tag">(entity, [this](Entity ent)
+        check_then_draw<IdentityComponent, u8"Tag">(entity, [this](Entity ent)
         {
-            String& tag{ ent.get_mut<TagComponent>().tag };
+            String& tag{ ent.get_mut<IdentityComponent>().tag };
             char buffer[256]{};
             std::memcpy(buffer, tag.raw(), sizeof(buffer) - 1);
             if(ImGui::InputText("##tag", buffer, sizeof(buffer),

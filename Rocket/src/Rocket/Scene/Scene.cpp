@@ -50,7 +50,7 @@ namespace rke
     UUID Entity::get_uuid() const
     {
         if(!valid()) return UUID(0);
-        return get<UUIDComponent>().uuid;
+        return get<IdentityComponent>().uuid;
     }
 
     void Entity::check_assert() const { CORE_ASSERT(valid(), u8"Entity: Invalid!"); }
@@ -107,11 +107,11 @@ namespace rke
 
         new_scene->gravity_ = gravity_;
 
-        // after UUIDComponents are copied
-        auto uuid_view{ new_scene->registry_->view<UUIDComponent>() };
+        // after IndentityComponents are copied
+        auto uuid_view{ new_scene->registry_->view<IdentityComponent>() };
         for(auto entt : uuid_view)
         {
-            UUID uuid{ new_scene->registry_->get<UUIDComponent>(entt).uuid };
+            UUID uuid{ new_scene->registry_->get<IdentityComponent>(entt).uuid };
             new_scene->entity_map_[uuid] = entt;
         }
         Entity master_cam{ get_master_camera() }; // refresh
@@ -126,13 +126,12 @@ namespace rke
     Entity Scene::create_entity(String tag, UUID uuid)
     {
         Entity entity(registry_->create(), this);
-        mark_modified();
-
-        entity.emplace<UUIDComponent>(uuid);
+        
+        entity.emplace<IdentityComponent>(std::move(tag), uuid);
         if(!uuid.empty()) entity_map_[entity.get_uuid()] = entity.handle_;
-
-        entity.emplace<TagComponent>(std::move(tag));
         entity.emplace<TransformComponent>();
+
+        mark_modified();
         return entity;
     }
 
@@ -152,7 +151,7 @@ namespace rke
     std::vector<Entity> Scene::get_all_entities()
     {
         std::vector<Entity> entities{};
-        auto all_entities{ registry_->view<TagComponent>() };
+        auto all_entities{ registry_->view<IdentityComponent>() };
         for(auto entt : all_entities)
             entities.push_back({ entt, this });
         return entities;
@@ -196,18 +195,20 @@ namespace rke
 
     Entity Scene::copy_entity_towards(Entity entity, Scene* owner)
     {
-        if(!entity.belongs_to(this))
-            CORE_WARN(u8"Scene: Entity doesn't belong to this scene!");
+        if(!entity.belongs_to(this)) {
+            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+            return Entity{};
+        }
         Entity copied_entity{ owner->registry_->create(), owner };
-        mark_modified();
+        owner->mark_modified();
 
-        copied_entity.emplace<UUIDComponent>(); // generate a unique one
+        copied_entity.emplace<IdentityComponent>(entity.get<IdentityComponent>().tag);
         owner->entity_map_[copied_entity.get_uuid()] = copied_entity.handle_;
 
         components::each([&](auto type_id)
         {
             using ComponentType = decltype(type_id)::Type;
-            if constexpr(!std::is_same_v<ComponentType, UUIDComponent>)
+            if constexpr(!std::is_same_v<ComponentType, IdentityComponent>)
                 if(entity.has<ComponentType>()) copied_entity
                     .emplace_or_replace<ComponentType>(entity.get<ComponentType>());
         });

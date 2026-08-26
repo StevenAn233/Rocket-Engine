@@ -29,9 +29,7 @@ export namespace rke
             {
                 if(!ImGui::BeginPopupContextItem()) goto invoking;
                 
-                if constexpr(std::is_same_v<Component, TagComponent>)
-                    { ImGui::CloseCurrentPopup(); }
-                else if constexpr(std::is_same_v<Component, UUIDComponent>)
+                else if constexpr(std::is_same_v<Component, IdentityComponent>)
                     { ImGui::CloseCurrentPopup(); }
                 else if constexpr(std::is_same_v<Component, TransformComponent>)
                 {

@@ -150,12 +150,10 @@ namespace rke
         }
     //  else if(scene->registry_->all_of<MeshComponent>(renderable.entity)) {...}
         else {
-            const auto& tag_com { scene->registry_->
-                get<TagComponent >(static_cast<entt::entity>(renderable.entity)) };
-            const auto& uuid_com{ scene->registry_->
-                get<UUIDComponent>(static_cast<entt::entity>(renderable.entity)) };
+            const auto& id_com{ scene->registry_->
+                get<IdentityComponent>(static_cast<entt::entity>(renderable.entity)) };
             CORE_ASSERT(false, u8"SceneRenderer: Entity '{}'(UUID:{}) "
-                u8"is not renderable!", tag_com.tag, uuid_com.uuid.value());
+                u8"is not renderable!", id_com.tag, id_com.uuid.value());
         }
     }
 

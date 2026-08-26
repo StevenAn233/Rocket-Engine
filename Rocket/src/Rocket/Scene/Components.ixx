@@ -39,22 +39,18 @@ namespace
 export namespace rke
 {
 // MUST OWNED
-    struct RKE_API UUIDComponent
+    struct RKE_API IdentityComponent
     {
-        UUID uuid{};
+        String tag;
+        UUID uuid;
 
-        UUIDComponent() = default;
-        UUIDComponent(UUID specified) : uuid(specified) {}
-        UUIDComponent(const UUIDComponent&) = default;
-    };
-
-    struct RKE_API TagComponent
-    {
-        String tag{ u8"None" };
-
-        TagComponent() = default;
-        TagComponent(const TagComponent&) = default;
-        TagComponent(String str) : tag(std::move(str)) {}
+        IdentityComponent()
+            : tag(u8"None"), uuid() {}
+        IdentityComponent(String str)
+            : tag(std::move(str)), uuid() {}
+        IdentityComponent(String str, UUID specified)
+            : tag(std::move(str)), uuid(specified) {}
+        IdentityComponent(const IdentityComponent&) = default;
     };
 
     struct RKE_API TransformComponent
@@ -199,8 +195,7 @@ export namespace rke
 
     using ComponentTypes = std::tuple
     <
-        TypeID<UUIDComponent         , u8"UUID"           >,
-        TypeID<TagComponent          , u8"Tag"            >,
+        TypeID<IdentityComponent     , u8"Identity"       >,
         TypeID<TransformComponent    , u8"Transform"      >,
         TypeID<SpriteComponent       , u8"Sprite"         >,
         TypeID<CameraComponent       , u8"Camera"         >,
