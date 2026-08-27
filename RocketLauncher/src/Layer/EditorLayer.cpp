@@ -339,7 +339,7 @@ namespace rke
             auto w{ static_cast<uint32>(main_viewport_->get_size().x) };
             auto h{ static_cast<uint32>(main_viewport_->get_size().y) };
 
-            editor_cam_.set_viewport(w, h);
+            editor_cam_.set_viewport_size(main_viewport_->get_size());
             if(current_scene()) current_scene()->set_viewport(w, h);
             main_renderer_.on_viewport_resized(w, h);
         }
@@ -357,7 +357,7 @@ namespace rke
             (
                 scene_edit_,
                 editor_cam_.get_view_proj(),
-                editor_cam_.get_pos()
+                editor_cam_.calculate_pos()
             );
 
             if(scene_edit_ && main_viewport_->is_hovered() &&

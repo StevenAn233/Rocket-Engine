@@ -82,11 +82,11 @@ namespace rke
     {
         if(camera.valid() && camera.belongs_to(scene) && camera.has<CameraComponent>())
         {
-            const auto& trans_com{ camera.get<TransformComponent>() };
+            const auto& tc{ camera.get<TransformComponent>() };
             const auto& proj{ camera.get<CameraComponent>().camera.get_proj() };
 
-            glm::mat4 view_proj{ proj * glm::inverse(trans_com.get_transform()) };
-            return render(scene, view_proj, trans_com.position);
+            glm::mat4 view_proj{ proj * glm::inverse(tc.get_transform()) };
+            return render(scene, view_proj, tc.translation + Renderer2D::quad_centre);
         }
         return nullptr;
     }
@@ -154,11 +154,11 @@ namespace rke
         }
     }
 
-    void SceneRenderer::render_scene(const Scene* scene,
-        const glm::mat4& view_projection, glm::vec3 cam_position)
+    void SceneRenderer::render_scene
+        (const Scene* scene, const glm::mat4& vp, glm::vec3 cam_pos)
     {
     // frustum culling
-        auto planes{ get_planes_normal(view_projection) };
+        auto planes{ get_planes_normal(vp) };
 
     // sort in-sight entities
         opaque_queue_.clear();
@@ -170,7 +170,10 @@ namespace rke
         for(entt::entity entity : view)
         {
             const auto& tc{ view.get<TransformComponent>(entity) };
-            if(should_cull(tc.position, glm::vec2(tc.size), planes)) continue;
+            glm::vec3 pos { tc.translation + Renderer2D::quad_centre };
+            glm::vec3 size{ tc.scale * Renderer2D::quad_size };
+
+            if(should_cull(pos, size, planes)) continue;
 
             auto& sc{ view.get<SpriteComponent>(entity) };
             if(sc.color.a < 0.01f) continue;
@@ -198,7 +201,7 @@ namespace rke
                 cutout_queue_.emplace_back(handle, sc.rendering_layer, 0.0f); break;
             case SpriteComponent::BlendingMode::Transparent: // Depends on camera distance
             {
-                glm::vec3 dist{ tc.position - cam_position };
+                glm::vec3 dist{ pos - cam_pos };
                 float dist_sqr{ glm::dot(dist, dist) };
                 transparent_queue_.emplace_back(handle, sc.rendering_layer, dist_sqr);
             } break;

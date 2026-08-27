@@ -55,24 +55,24 @@ export namespace rke
 
     struct RKE_API TransformComponent
     {
-        glm::vec3 position{ 0.0f };
+        glm::vec3 translation{ 0.0f };
         glm::vec3 rotation{ 0.0f };
-        glm::vec3 size	  { 1.0f };
+        glm::vec3 scale{ 1.0f };
 
         bool locked{ false };
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
-        TransformComponent(glm::vec3 pos, glm::vec3 rot, glm::vec3 siz)
-            : position(std::move(pos))
+        TransformComponent(glm::vec3 tra, glm::vec3 rot, glm::vec3 scl)
+            : translation(std::move(tra))
             , rotation(std::move(rot))
-            , size	  (std::move(siz)) {}
+            , scale(std::move(scl)) {}
 
         glm::mat4 get_transform() const
         {
-            return glm::translate(glm::mat4(1.0f), position)
+            return glm::translate(glm::mat4(1.0f), translation)
                  * glm::mat4_cast(glm::quat(glm::radians(rotation)))
-                 * glm::scale	 (glm::mat4(1.0f), size);
+                 * glm::scale(glm::mat4(1.0f), scale);
         }
     };
 // ---
@@ -163,10 +163,10 @@ export namespace rke
         uint8 layer_index{ 0 }; // 0 for default
 
         glm::vec2 offset{ 0.0f, 0.0f };
-        glm::vec2 size  { 0.5f, 0.5f }; // half w, half h (0.0 to 1.0)
+        glm::vec2 half_extent{ 0.5f, 0.5f }; // half w, half h (0.0 to 1.0)
         
-        float density	 { 1.0f };
-        float friction	 { 0.5f };
+        float density{ 1.0f };
+        float friction{ 0.5f };
         float restitution{ 0.0f }; // 'bounciness'
 
         BoxCollider2DComponent() = default;
@@ -174,7 +174,7 @@ export namespace rke
             : type		 (other.type	   )
             , layer_index(other.layer_index)
             , offset	 (other.offset	   )
-            , size		 (other.size	   )
+            , half_extent(other.half_extent)
             , density	 (other.density	   )
             , friction	 (other.friction   )
             , restitution(other.restitution) {}

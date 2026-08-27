@@ -153,33 +153,33 @@ namespace rke
 
         check_then_draw<TransformComponent, u8"Transform">(entity, [&](Entity ent)
         {
-            auto& transform_com{ ent.get_mut<TransformComponent>() };
+            auto& tc{ ent.get_mut<TransformComponent>() };
             bool has_sprite{ ent.has<SpriteComponent>() };
             bool has_camera{ ent.has<CameraComponent>() };
 
-            if(transform_com.locked) {
+            if(tc.locked) {
                 context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Position">
+                    layout::drag_float3_control<u8"Translation">
                     (
-                        transform_com.position, 0.0f, glm::vec3(0.0f),
+                        tc.translation, 0.0f, glm::vec3(0.0f),
                         std::nullopt, std::nullopt, std::nullopt
                     )
                 );
             } else {
                 context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Position">
+                    layout::drag_float3_control<u8"Translation">
                     (
-                        transform_com.position, 0.1f, glm::vec3(0.0f),
+                        tc.translation, 0.1f, glm::vec3(0.0f),
                         glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
                     )
                 );
             }
 
-            if(transform_com.locked) {
+            if(tc.locked) {
                 context_->mark_modified_if (
                     layout::drag_float3_control<u8"Rotation">
                     (
-                        transform_com.rotation, 0.0f, glm::vec3(0.0f),
+                        tc.rotation, 0.0f, glm::vec3(0.0f),
                         std::nullopt, std::nullopt, std::nullopt
                     )
                 );
@@ -187,35 +187,25 @@ namespace rke
                 context_->mark_modified_if (
                     layout::drag_float3_control<u8"Rotation">
                     (
-                        transform_com.rotation, 0.5f, glm::vec3(0.0f),
+                        tc.rotation, 0.5f, glm::vec3(0.0f),
                         glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
                     )
                 );
             }
 
-            if(transform_com.locked || ent.has<CameraComponent>())
+            if(tc.locked || ent.has<CameraComponent>())
             {
                 context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Size">
+                    layout::drag_float3_control<u8"Scale">
                     (
-                        transform_com.size, 0.0f, glm::vec3(1.0f),
+                        tc.scale, 0.0f, glm::vec3(1.0f),
                         std::nullopt, std::nullopt, std::nullopt
-                    )
-                );
-            }
-            else if(ent.has<SpriteComponent>())
-            {
-                context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Size">
-                    (
-                        transform_com.size, 0.1f, glm::vec3(1.0f, 1.0f, 0.0f),
-                        glm::vec2(0.0f), glm::vec2(0.0f), std::nullopt
                     )
                 );
             } else {
                 context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Size">
-                        (transform_com.size, 0.1f, glm::vec3(1.0f))
+                    layout::drag_float3_control<u8"Scale">
+                        (tc.scale, 0.1f, glm::vec3(1.0f))
                 );
             }
         });
@@ -485,8 +475,8 @@ namespace rke
                 ));
 
             context_->mark_modified_if (
-                layout::drag_float2_control<u8"Size"> (
-                    bcc.size, 0.01f, glm::vec2(0.5f, 0.5f),
+                layout::drag_float2_control<u8"Half-Extent"> (
+                    bcc.half_extent, 0.01f, glm::vec2( 0.5f, 0.5f),
                     glm::vec2(0.01f, 1.0f), glm::vec2(0.01f, 1.0f)
                 ));
 
@@ -578,9 +568,6 @@ namespace rke
                         selected.get_mut<CameraComponent>().camera
                             .set_viewport(context_->get_viewport_h(), context_->get_viewport_w());
 
-                        auto& tc{ selected.get_mut<TransformComponent>() };
-                        tc.size = glm::vec3(1.0f);
-
                         ImGui::CloseCurrentPopup();
                     }
                 }
@@ -593,10 +580,6 @@ namespace rke
                     if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                     {
                         selected.emplace<SpriteComponent>();
-
-                        auto& tc{ selected.get_mut<TransformComponent>() };
-                        tc.size.z = 0.0f;
-
                         ImGui::CloseCurrentPopup();
                     }
                 }

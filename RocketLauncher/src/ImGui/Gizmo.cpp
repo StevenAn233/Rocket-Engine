@@ -60,19 +60,19 @@ namespace rke::gizmo
 
         if(ImGuizmo::IsUsing() && !mouse_blocked)
         {
-            glm::vec3 position{}, rotation{}, scale{};
+            glm::vec3 translation{}, rotation{}, scale{};
             ImGuizmo::DecomposeMatrixToComponents
             (
                 glm::value_ptr(transform),
-                glm::value_ptr(position ),
-                glm::value_ptr(rotation ),
-                glm::value_ptr(scale	)
+                glm::value_ptr(translation),
+                glm::value_ptr(rotation),
+                glm::value_ptr(scale)
             );
 
             switch(gizmo_mode)
             {
             case ImGuizmo::OPERATION::TRANSLATE:
-                tc.position = position;
+                tc.translation = translation;
                 break;
             case ImGuizmo::OPERATION::ROTATE:
             {
@@ -81,8 +81,7 @@ namespace rke::gizmo
             } break;
             case ImGuizmo::OPERATION::SCALE:
                 if(selected_entity.has<CameraComponent>()) break;
-                tc.size = scale;
-                if(selected_entity.has<SpriteComponent>()) scale.z = 0.0f;
+                tc.scale = scale;
                 break;
             }
         }

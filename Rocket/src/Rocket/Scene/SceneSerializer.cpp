@@ -23,10 +23,10 @@ namespace {
             writer.begin_map(u8"Transform Component");
 
             const auto& tc{ entity.get<TransformComponent>() };
-            writer.write(u8"Position", ConfigValue(tc.position));
-            writer.write(u8"Rotation", ConfigValue(tc.rotation));
-            writer.write(u8"Size", ConfigValue(tc.size));
-            writer.write(u8"Locked", ConfigValue(tc.locked));
+            writer.write(u8"Translation", ConfigValue(tc.translation));
+            writer.write(u8"Rotation",    ConfigValue(tc.rotation   ));
+            writer.write(u8"Scale",       ConfigValue(tc.scale      ));
+            writer.write(u8"Locked",      ConfigValue(tc.locked     ));
 
             writer.end_map();
         }
@@ -59,9 +59,9 @@ namespace {
             {
                 writer.begin_map(u8"Settings");
                 writer.write(u8"Tiling Factor", ConfigValue(sc.sprite.tiling_factor));
-                writer.write(u8"Cell Pixels", ConfigValue(sc.sprite.cell_pixels));
-                writer.write(u8"Cell Coords", ConfigValue(sc.sprite.cell_coords));
-                writer.write(u8"Cell Counts", ConfigValue(sc.sprite.cell_counts));
+                writer.write(u8"Cell Pixels",   ConfigValue(sc.sprite.cell_pixels  ));
+                writer.write(u8"Cell Coords",   ConfigValue(sc.sprite.cell_coords  ));
+                writer.write(u8"Cell Counts",   ConfigValue(sc.sprite.cell_counts  ));
                 writer.end_map();
             }
             writer.write(u8"Blending Mode", static_cast<uint32>(sc.blending_mode));
@@ -86,11 +86,11 @@ namespace {
             const auto& bcc{ entity.get<BoxCollider2DComponent>() };
             writer.write(u8"Collider Type", static_cast<uint32>(bcc.type));
             writer.write(u8"Physics Layer", static_cast<uint32>(bcc.layer_index));
-            writer.write(u8"Offset", ConfigValue(bcc.offset));
-            writer.write(u8"Size", ConfigValue(bcc.size));
-            writer.write(u8"Density", ConfigValue(bcc.density));
-            writer.write(u8"Friction", ConfigValue(bcc.friction));
-            writer.write(u8"Restitution", ConfigValue(bcc.restitution));
+            writer.write(u8"Offset",        ConfigValue(bcc.offset     ));
+            writer.write(u8"Half-Extent",   ConfigValue(bcc.half_extent));
+            writer.write(u8"Density",       ConfigValue(bcc.density    ));
+            writer.write(u8"Friction",      ConfigValue(bcc.friction   ));
+            writer.write(u8"Restitution",   ConfigValue(bcc.restitution));
 
             writer.end_map();
         }
@@ -117,10 +117,10 @@ namespace {
         Scope<ConfigReader> tc_reader{ reader.get_child(u8"Transform Component") };
         if(tc_reader) {
             auto& tc{ entity.get_mut<TransformComponent>() };
-            tc.position = tc_reader->get_at(u8"Position", tc.position);
+            tc.translation = tc_reader->get_at(u8"Translation", tc.translation);
             tc.rotation = tc_reader->get_at(u8"Rotation", tc.rotation);
-            tc.size     = tc_reader->get_at(u8"Size"    , tc.size    );
-            tc.locked   = tc_reader->get_at(u8"Locked"  , tc.locked  );
+            tc.scale  = tc_reader->get_at(u8"Scale" , tc.scale );
+            tc.locked = tc_reader->get_at(u8"Locked", tc.locked);
         }
 
         Scope<ConfigReader> cc_reader{ reader.get_child(u8"Camera Component") };
@@ -168,10 +168,10 @@ namespace {
             auto& bcc{ entity.emplace<BoxCollider2DComponent>() };
             bcc.type = static_cast<ColliderType>(bcc_reader->get_at(u8"Collider Type", 0u));
             bcc.layer_index = bcc_reader->get_at(u8"Physics Layer", 0ui32);
-            bcc.offset      = bcc_reader->get_at(u8"Offset", glm::vec2(0.0f));
-            bcc.size        = bcc_reader->get_at(u8"Size", glm::vec2(0.5f));
-            bcc.density     = bcc_reader->get_at(u8"Density", 1.0f);
-            bcc.friction    = bcc_reader->get_at(u8"Friction", 0.5f);
+            bcc.offset      = bcc_reader->get_at(u8"Offset"     , glm::vec2(0.0f));
+            bcc.half_extent = bcc_reader->get_at(u8"Half-Extent", glm::vec2(0.5f));
+            bcc.density     = bcc_reader->get_at(u8"Density"    , 1.0f);
+            bcc.friction    = bcc_reader->get_at(u8"Friction"   , 0.5f);
             bcc.restitution = bcc_reader->get_at(u8"Restitution", 0.0f);
         }
 

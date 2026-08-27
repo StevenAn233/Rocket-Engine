@@ -85,6 +85,8 @@ export namespace rke
             glm::vec4(-0.5f, -0.5f, 0.0f, 1.0f),
             glm::vec4( 0.5f, -0.5f, 0.0f, 1.0f)
         };
+        static constexpr glm::vec3 quad_centre{ 0.0f, 0.0f, 0.0f };
+        static constexpr glm::vec3 quad_size  { 1.0f, 1.0f, 0.0f };
     public:
         Renderer2D(Window* context);
         ~Renderer2D();

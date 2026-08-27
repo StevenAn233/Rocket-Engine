@@ -8,27 +8,12 @@ import MouseButtons;
 
 namespace rke
 {
-    EditorCamera::EditorCamera() {}
     EditorCamera::EditorCamera(float fov, float aspect_ratio, float near_clip, float far_clip)
-        : vertical_fov_(fov), aspect_ratio_(aspect_ratio)
-        , near_clip_(near_clip), far_clip_(far_clip)
-        , Camera(glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip))
-    { update_view(); }
+        : Camera(glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip))
+        , vertical_fov_(fov), aspect_ratio_(aspect_ratio)
+        , near_clip_(near_clip), far_clip_(far_clip) { update_view(); }
 
     EditorCamera::~EditorCamera() {}
-
-    void EditorCamera::update_proj()
-    {
-        if(viewport_w_ == 0u || viewport_h_ == 0u)
-        {
-            aspect_ratio_ = 0.0f;
-            proj_ = glm::mat4(1.0f);
-            return;
-        }
-        aspect_ratio_ = static_cast<float>(viewport_w_) / viewport_h_;
-        proj_ = glm::perspective(glm::radians(vertical_fov_),
-                                 aspect_ratio_, near_clip_, far_clip_);
-    }
 
     void EditorCamera::update_view()
     {
@@ -38,9 +23,10 @@ namespace rke
         while(yaw_   < 0) yaw_   += twopi;
         while(pitch_ > twopi) pitch_ -= twopi;
         while(yaw_   > twopi) yaw_   -= twopi;
-        position_ = calculate_pos();
-        view_ = glm::inverse(glm::translate(glm::mat4(1.0f), position_) *
-                             glm::mat4_cast(get_orientation()));
+        view_ = glm::inverse (
+            glm::translate(glm::mat4(1.0f), calculate_pos()) *
+            glm::mat4_cast(get_orientation())
+        );
     }
 
     void EditorCamera::on_update(double dt)
@@ -66,11 +52,21 @@ namespace rke
         return false;
     }
 
-    void EditorCamera::set_viewport(uint32 width, uint32 height)
+    void EditorCamera::set_viewport_size(glm::vec2 size)
     {
-        viewport_w_ = width;
-        viewport_h_ = height;
-        update_proj();
+        if(size.x < 0.01f || size.y < 0.01f)
+        {
+            viewport_size_ = glm::vec2(0.0f);
+            aspect_ratio_  = 0.0f;
+            proj_ = glm::mat4(1.0f);
+            return;
+        }
+        viewport_size_ = size;
+        aspect_ratio_ = size.x / size.y;
+        proj_ = glm::perspective (
+            glm::radians(vertical_fov_),
+            aspect_ratio_, near_clip_, far_clip_
+        );
     }
 
     void EditorCamera::mouse_pan(glm::vec2 delta)
@@ -99,10 +95,10 @@ namespace rke
 
     std::pair<float, float> EditorCamera::pan_speed() const
     {
-        float x{ std::min(viewport_w_ / 1000.0f, 2.4f) }; // max = 2.4f
+        float x{ std::min(viewport_size_.x / 1000.0f, 2.4f) }; // max = 2.4f
         float x_factor{ 0.0366f * (x * x) - 0.1778f * x + 0.3021f };
 
-        float y{ std::min(viewport_h_ / 1000.0f, 2.4f) }; // max = 2.4f
+        float y{ std::min(viewport_size_.y / 1000.0f, 2.4f) }; // max = 2.4f
         float y_factor{ 0.0366f * (y * y) - 0.1778f * y + 0.3021f };
 
         return { x_factor, y_factor };

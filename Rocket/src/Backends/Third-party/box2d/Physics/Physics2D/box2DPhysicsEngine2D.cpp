@@ -9,6 +9,7 @@ import :box2D;
 import Log;
 import Types;
 import Gravity2D;
+import Renderer2D;
 import Components;
 import Project;
 import Application;
@@ -52,7 +53,8 @@ namespace {
         b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
 
         // allow only when the other body's center is above the platform top
-        float platform_half_height{ bcc.size.y * std::abs(tc.size.y) };
+        float platform_half_height{ bcc.half_extent.y *
+            std::abs(tc.scale.y) * Renderer2D::quad_size.y };
         return other_pos.y > platform_pos.y + platform_half_height;
     }
 
@@ -157,8 +159,8 @@ namespace rke
 
                 // update rigid body position & rotation in TransformComponent
                 auto& tc{ entity.get_mut<TransformComponent>() };
-                tc.position.x = position.x;
-                tc.position.y = position.y;
+                tc.translation.x = position.x - Renderer2D::quad_centre.x;
+                tc.translation.y = position.y - Renderer2D::quad_centre.y;
 
                 float radians{ b2Rot_GetAngle(rotation) };
                 tc.rotation.z = glm::degrees(radians);
@@ -183,23 +185,26 @@ namespace rke
 
         b2BodyDef body_def{ b2DefaultBodyDef() };
         body_def.type     = to_b2_body_type(rbc.type);
-        body_def.position = { tc.position.x, tc.position.y };
+        body_def.position = {
+            tc.translation.x + Renderer2D::quad_centre.x,
+            tc.translation.y + Renderer2D::quad_centre.y
+        };
         body_def.rotation = b2MakeRot(glm::radians(tc.rotation.z));
         body_def.fixedRotation = rbc.rotation_fixed;
         // body_def.xx = ...
 
         rbc.body_id = std::bit_cast<uint64>(b2CreateBody(physics_world_, &body_def));
 
-        float size_x{ std::abs(tc.size.x) };
-        float size_y{ std::abs(tc.size.y) };
+        float size_x{ std::abs(tc.scale.x) * Renderer2D::quad_size.x };
+        float size_y{ std::abs(tc.scale.y) * Renderer2D::quad_size.y };
         if(entity.has<BoxCollider2DComponent>() && (size_x >= 0.001f) && (size_y >= 0.001f))
         {
             auto& bcc{ entity.get_mut<BoxCollider2DComponent>() };
 
             b2Polygon box_geometry {
                 b2MakeOffsetBox (
-                    bcc.size.x * size_x,
-                    bcc.size.y * size_y,
+                    bcc.half_extent.x * size_x,
+                    bcc.half_extent.y * size_y,
                     { bcc.offset.x, bcc.offset.y }, // centre
                     b2MakeRot(0.0f)
                 )
