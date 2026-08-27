@@ -45,23 +45,29 @@ namespace rke
     }
 
     void ScriptManager::dispatch_contacts (
-        const std::vector<Contact>& begin_events,
-        const std::vector<Contact>& end_events)
+        const std::vector<Contact>& begin_contacts_solid,
+        const std::vector<Contact>& end_contacts_solid,
+        const std::vector<Contact>& begin_contacts_sensor,
+        const std::vector<Contact>& end_contacts_sensor)
     {
         if(!owner_->in_runtime()) return;
-        for(const auto& ev : begin_events)
+        for(Contact contact : begin_contacts_solid)
         {
-            contact_begin(ev.entity_a, ev.entity_b);
-            contact_begin(ev.entity_b, ev.entity_a);
+            contact_callback(contact.entity_a, contact.entity_b, ContactType::SolidBegin);
+            contact_callback(contact.entity_b, contact.entity_a, ContactType::SolidBegin);
         }
-        for(const auto& ev : end_events)
+        for(Contact contact : end_contacts_solid)
         {
-            contact_end(ev.entity_a, ev.entity_b);
-            contact_end(ev.entity_b, ev.entity_a);
+            contact_callback(contact.entity_a, contact.entity_b, ContactType::SolidEnd);
+            contact_callback(contact.entity_b, contact.entity_a, ContactType::SolidEnd);
         }
+        for(Contact contact : begin_contacts_sensor)
+            contact_callback(contact.entity_a, contact.entity_b, ContactType::SensorBegin);
+        for(Contact contact : end_contacts_sensor)
+            contact_callback(contact.entity_a, contact.entity_b, ContactType::SensorEnd);
     }
 
-    void ScriptManager::contact_begin(uint32 owner_handle, uint32 other_handle)
+    void ScriptManager::contact_callback(uint32 owner_handle, uint32 other_handle, ContactType type)
     {
         auto it{ script_cache_.find(owner_handle) };
         if(it == script_cache_.end() || !it->second) return;
@@ -69,18 +75,14 @@ namespace rke
         Entity other{ owner_->get_entity(other_handle) };
         if(!other.valid()) return;
 
-        it->second->on_contact_begin(other);
-    }
-
-    void ScriptManager::contact_end(uint32 owner_handle, uint32 other_handle)
-    {
-        auto it{ script_cache_.find(owner_handle) };
-        if(it == script_cache_.end() || !it->second) return;
-
-        Entity other{ owner_->get_entity(other_handle) };
-        if(!other.valid()) return;
-
-        it->second->on_contact_end(other);
+        switch(type)
+        {
+        case ContactType::SolidBegin:  it->second->on_contact_solid_begin (other); break;
+        case ContactType::SolidEnd:    it->second->on_contact_solid_end   (other); break;
+        case ContactType::SensorBegin: it->second->on_contact_sensor_begin(other); break;
+        case ContactType::SensorEnd:   it->second->on_contact_sensor_end  (other); break;
+        default: break;
+        }
     }
 
     Scope<Script> ScriptManager::create_script(uint32 handle)

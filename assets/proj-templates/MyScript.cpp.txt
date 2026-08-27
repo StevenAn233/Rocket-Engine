@@ -1,4 +1,4 @@
-#include <rke_fuel.h>
+﻿#include <rke_fuel.h>
 import rke;
 
 class MyScript : public rke::Script
@@ -6,11 +6,15 @@ class MyScript : public rke::Script
 public:
     void on_create () override { RKE_INFO(u8"MyScript created."  ); }
     void on_destroy() override { RKE_INFO(u8"MyScript destroyed."); }
-    void on_update(double dt) override {}
+    void on_update(double dt) override
+    {
+        owner_scene().grip_move_entity(owner(),
+            { 0.5f * static_cast<float>(dt), 0.0f, 0.0f }, dt);
+    }
 
-    void on_contact_begin(rke::Entity other) override
+    void on_contact_solid_begin(rke::Entity other) override
         { RKE_INFO(u8"MyScript touched entity '{}'!", other.get<IdentityComponent>().tag); }
-    void on_contact_end(rke::Entity other) override
+    void on_contact_solid_end(rke::Entity other) override
         { RKE_INFO(u8"MyScript stopped touching."); }
 };
 

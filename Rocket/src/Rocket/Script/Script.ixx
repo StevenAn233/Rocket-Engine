@@ -1,6 +1,7 @@
 ﻿module;
 
 #include "rke_macros.h"
+#include <glm/glm.hpp>
 
 export module Script;
 
@@ -21,11 +22,15 @@ export namespace rke
         virtual void on_destroy() {}
     
         virtual void on_update(double dt) {}
+
         virtual void on_mouse_scrolled(float x_offset, float y_offset) {};
-        virtual void on_contact_begin(Entity other) {}
-        virtual void on_contact_end  (Entity other) {}
+        virtual void on_contact_solid_begin(Entity other) {}
+        virtual void on_contact_solid_end  (Entity other) {}
+        virtual void on_contact_sensor_begin(Entity other) {}
+        virtual void on_contact_sensor_end  (Entity other) {}
     protected:
         inline Entity owner() const { return owner_; }
+        Scene& owner_scene();
     private:
         Entity owner_; // init by ScriptManager
     };

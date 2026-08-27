@@ -76,6 +76,8 @@ namespace {
             const auto& rbc{ entity.get<Rigidbody2DComponent>() };
             writer.write(u8"Type", static_cast<uint32>(rbc.type));
             writer.write(u8"Rotation Fixed", ConfigValue(rbc.rotation_fixed));
+            writer.write(u8"Velocity", ConfigValue(rbc.velocity));
+            writer.write(u8"Angular Velocity", ConfigValue(rbc.angular_velocity));
 
             writer.end_map();
         }
@@ -161,6 +163,8 @@ namespace {
             auto& rbc{ entity.emplace<Rigidbody2DComponent>() };
             rbc.type = static_cast<BodyType>(rbc_reader->get_at(u8"Type", 0ui32));
             rbc.rotation_fixed = rbc_reader->get_at(u8"Rotation Fixed", false);
+            rbc.velocity = rbc_reader->get_at(u8"Velocity", glm::vec2(0.0f));
+            rbc.angular_velocity = rbc_reader->get_at(u8"Angular Velocity", 0.0f);
         }
 
         Scope<ConfigReader> bcc_reader{ reader.get_child(u8"Box Collider 2D Component") };

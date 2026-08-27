@@ -127,25 +127,31 @@ export namespace rke
     // struct RKE_API MeshComponent {...};
 // ---
 
-// Requires to have SpriteComponent!
+// Requires to have SpriteComponent(2D)!
     enum class BodyType : uint32
     {
-        Static = 0,
-        Dynamic,
-        Kinematic
+        Unsimulated = 0,
+        Simulated   = 1
     };
 
     struct RKE_API Rigidbody2DComponent
     {
         uint64 body_id{};
 
-        BodyType type{ BodyType::Static };
+        BodyType type{ BodyType::Unsimulated };
         bool rotation_fixed{ false };
+
+        float mass{ 0.0f };
+        glm::vec2 velocity{ 0.0f };
+        float angular_velocity{ 0.0f };
 
         Rigidbody2DComponent() = default;
         Rigidbody2DComponent(const Rigidbody2DComponent& other)
             : type(other.type)
-            , rotation_fixed(other.rotation_fixed) {}
+            , rotation_fixed(other.rotation_fixed)
+            , mass(other.mass)
+            , velocity(other.velocity)
+            , angular_velocity(other.angular_velocity) {}
     };
 
     enum class ColliderType : uint32

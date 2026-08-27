@@ -45,7 +45,6 @@ export namespace rke
         RKE_API bool operator!=(const Entity& other) const;
 
         inline Scene* get_owner() { return owner_scene_; } // mutable
-        RKE_API void refresh_script();
 
         inline uint32 get_handle() const { return static_cast<uint32>(handle_); }
         inline bool empty() const { return handle_ == entt::null; }
@@ -142,6 +141,10 @@ export namespace rke
         void set_demo_camera(UUID uuid) { set_demo_camera(get_entity(uuid)); }
 
         void refresh_script(Entity entity); // ScriptManager::refresh_script
+
+        void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
+        void set_entity_transform(Entity entity, glm::vec3 translation, glm::vec3 rotation);
+        void apply_force(Entity entity, glm::vec2 force);
 
         void clear();
         void on_update(double dt);

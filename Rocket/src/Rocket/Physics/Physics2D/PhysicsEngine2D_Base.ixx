@@ -1,9 +1,10 @@
-module;
+﻿module;
 
 #include <vector>
 #include <unordered_map>
 #include <entt/entt.hpp>
-namespace rke { class Scene; }
+#include <glm/glm.hpp>
+namespace rke { class Scene; class Entity; }
 
 export module PhysicsEngine2D:Base;
 
@@ -29,15 +30,16 @@ export namespace rke
 
         virtual void on_update(double dt) = 0;
         virtual bool empty() const = 0;
+        virtual void apply_force(Entity entity, glm::vec2 force) = 0;
 
-        inline const std::vector<Contact>& get_begin_contacts() const
-            { return begin_contacts_; }
-        inline const std::vector<Contact>& get_end_contacts() const
-            { return end_contacts_; }
-
-        void register_shape_entity(uint64 shape_id, uint32 entity_handle);
-        void unregister_shape_entity(uint64 shape_id);
-        uint32 get_entity_from_shape(uint64 shape_id) const;
+        inline const std::vector<Contact>& get_begin_contacts_solid() const
+            { return begin_contacts_solid_; }
+        inline const std::vector<Contact>& get_end_contacts_solid() const
+            { return end_contacts_solid_; }
+        inline const std::vector<Contact>& get_begin_contacts_sensor() const
+            { return begin_contacts_sensor_; }
+        inline const std::vector<Contact>& get_end_contacts_sensor() const
+            { return end_contacts_sensor_; }
 
         static Scope<PhysicsEngine2D> create(Scene* owner);
     protected:
@@ -45,10 +47,11 @@ export namespace rke
         entt::registry& get_registry();
     protected:
     // synced/refreshed in on_update
-        std::vector<Contact> begin_contacts_{};
-        std::vector<Contact> end_contacts_{};
+        std::vector<Contact> begin_contacts_solid_{};
+        std::vector<Contact> end_contacts_solid_{};
+        std::vector<Contact> begin_contacts_sensor_{};
+        std::vector<Contact> end_contacts_sensor_{};
     private:
         Scene* owner_;
-        std::unordered_map<uint64, uint32> shape_to_entity_{};
     };
 }

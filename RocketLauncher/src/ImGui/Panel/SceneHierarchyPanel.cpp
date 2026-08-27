@@ -157,39 +157,34 @@ namespace rke
             bool has_sprite{ ent.has<SpriteComponent>() };
             bool has_camera{ ent.has<CameraComponent>() };
 
+            bool tra_changed{ false };
+            bool rot_changed{ false };
+
             if(tc.locked) {
-                context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Translation">
-                    (
-                        tc.translation, 0.0f, glm::vec3(0.0f),
-                        std::nullopt, std::nullopt, std::nullopt
-                    )
+                tra_changed = layout::drag_float3_control<u8"Translation">
+                (
+                    tc.translation, 0.0f, glm::vec3(0.0f),
+                    std::nullopt, std::nullopt, std::nullopt
                 );
             } else {
-                context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Translation">
-                    (
-                        tc.translation, 0.1f, glm::vec3(0.0f),
-                        glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-                    )
+                tra_changed = layout::drag_float3_control<u8"Translation">
+                (
+                    tc.translation, 0.1f, glm::vec3(0.0f),
+                    glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
                 );
             }
 
             if(tc.locked) {
-                context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Rotation">
-                    (
-                        tc.rotation, 0.0f, glm::vec3(0.0f),
-                        std::nullopt, std::nullopt, std::nullopt
-                    )
+                rot_changed = layout::drag_float3_control<u8"Rotation">
+                (
+                    tc.rotation, 0.0f, glm::vec3(0.0f),
+                    std::nullopt, std::nullopt, std::nullopt
                 );
             } else {
-                context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Rotation">
-                    (
-                        tc.rotation, 0.5f, glm::vec3(0.0f),
-                        glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-                    )
+                rot_changed = layout::drag_float3_control<u8"Rotation">
+                (
+                    tc.rotation, 0.5f, glm::vec3(0.0f),
+                    glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
                 );
             }
 
@@ -208,6 +203,10 @@ namespace rke
                         (tc.scale, 0.1f, glm::vec3(1.0f))
                 );
             }
+            context_->mark_modified_if(tra_changed || rot_changed);
+
+            if((tra_changed || rot_changed))
+                context_->set_entity_transform(ent, tc.translation, tc.rotation);
         });
 
         check_then_draw<CameraComponent, u8"Camera">(entity, [&](Entity ent)
@@ -411,9 +410,20 @@ namespace rke
         {
             auto& rbc{ ent.get_mut<Rigidbody2DComponent>() };
 
+            layout::drag_float_control<u8"Mass">(rbc.mass, 0.0f, 0.0f, std::nullopt);
+            if(rbc.type == BodyType::Simulated) {
+                layout::drag_float2_control<u8"Velocity">(rbc.velocity, 0.1f, glm::vec2(0.0f));
+                layout::drag_float_control<u8"Angular Vel">(rbc.angular_velocity, 0.1f, 0.0f);
+            } else {
+                layout::drag_float2_control<u8"Velocity">
+                    (rbc.velocity, 0.0f, glm::vec2(0.0f), std::nullopt, std::nullopt);
+                layout::drag_float_control<u8"Angular Vel">
+                    (rbc.angular_velocity, 0.0f, 0.0f, std::nullopt);
+            }
+
             layout::two_columns_table<u8"Body Type">([&]()
             {
-                constexpr const char* items[]{ "Static", "Dynamic", "Kinematic" };
+                constexpr const char* items[]{ "Unsimulated", "Simulated" };
                 int option{ static_cast<int>(rbc.type) };
 
                 float available_width{ ImGui::GetContentRegionAvail().x };
@@ -424,7 +434,6 @@ namespace rke
                     context_->mark_modified();
                 }
             });
-
             context_->mark_modified_if(ImGui::Checkbox("Rotation Fixed", &rbc.rotation_fixed));
         });
 

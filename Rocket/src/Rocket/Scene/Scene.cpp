@@ -1,4 +1,6 @@
 ﻿module;
+#include <glm/glm.hpp>
+
 module Scene;
 
 import Log;
@@ -40,12 +42,6 @@ namespace rke
     }
 
     bool Entity::operator!=(const Entity& other) const { return !operator==(other); }
-
-    void Entity::refresh_script()
-    {
-        if(!owner_scene_) return;
-        owner_scene_->refresh_script(*this);
-    }
 
     UUID Entity::get_uuid() const
     {
@@ -269,6 +265,44 @@ namespace rke
         script_manager_->refresh_script(entity.get_handle());
     }
 
+    void Scene::grip_move_entity(Entity entity, glm::vec3 delta, double dt)
+    {
+        if(!entity.valid() || !entity.belongs_to(this)) return;
+        entity.get_mut<TransformComponent>().translation += delta;
+
+    // clear previously-accumulated(force/mass * dt) velocity
+        if(entity.has<Rigidbody2DComponent>())
+        {
+            auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
+            if(dt > 0.0) {
+                rbc.velocity = { delta.x / dt, delta.y / dt };
+                rbc.angular_velocity = 0.0f;
+            }
+        }
+    }
+
+    void Scene::set_entity_transform(Entity entity, glm::vec3 tra, glm::vec3 rot)
+    {
+        if(!entity.valid() || !entity.belongs_to(this)) return;
+
+        auto& tc{ entity.get_mut<TransformComponent>() };
+        tc.translation = tra; tc.rotation = rot;
+
+    // clear velocity completely
+        if(entity.has<Rigidbody2DComponent>())
+        {
+            auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
+            rbc.velocity = { 0.0f, 0.0f };
+            rbc.angular_velocity = 0.0f;
+        }
+    }
+
+    void Scene::apply_force(Entity entity, glm::vec2 force)
+    {
+        if(!in_runtime() || !entity.valid() || !entity.belongs_to(this)) return;
+        physics_engine_->apply_force(entity, force);
+    }
+
     void Scene::clear()
     {
         if(in_runtime()) {
@@ -288,17 +322,20 @@ namespace rke
     {
         if(in_runtime())
         {
+            physics_engine_->on_update(dt);
+            script_manager_->dispatch_contacts
+            (
+                physics_engine_->get_begin_contacts_solid(),
+                physics_engine_->get_end_contacts_solid(),
+                physics_engine_->get_begin_contacts_sensor(),
+                physics_engine_->get_end_contacts_sensor()
+            );
             auto view{ registry_->view<NativeScriptComponent>() };
             for(entt::entity ent : view)
             {
                 Script* script{ registry_->get<NativeScriptComponent>(ent).script_handle };
                 if(script) script->on_update(dt);
             }
-            physics_engine_->on_update(dt);
-            script_manager_->dispatch_contacts (
-                physics_engine_->get_begin_contacts(),
-                physics_engine_->get_end_contacts()
-            );
         }
         flush_destroy_queue();
     }
