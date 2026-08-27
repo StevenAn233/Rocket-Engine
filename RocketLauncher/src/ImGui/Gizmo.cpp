@@ -60,30 +60,13 @@ namespace rke::gizmo
 
         if(ImGuizmo::IsUsing() && !mouse_blocked)
         {
-            glm::vec3 translation{}, rotation{}, scale{};
             ImGuizmo::DecomposeMatrixToComponents
             (
                 glm::value_ptr(transform),
-                glm::value_ptr(translation),
-                glm::value_ptr(rotation),
-                glm::value_ptr(scale)
+                glm::value_ptr(tc.translation),
+                glm::value_ptr(tc.rotation),
+                glm::value_ptr(tc.scale)
             );
-
-            switch(gizmo_mode)
-            {
-            case ImGuizmo::OPERATION::TRANSLATE:
-                tc.translation = translation;
-                break;
-            case ImGuizmo::OPERATION::ROTATE:
-            {
-                glm::vec3 delta_rotation{ rotation - tc.rotation };
-                tc.rotation += delta_rotation;
-            } break;
-            case ImGuizmo::OPERATION::SCALE:
-                if(selected_entity.has<CameraComponent>()) break;
-                tc.scale = scale;
-                break;
-            }
         }
     }
 

@@ -184,7 +184,7 @@ namespace rke
         auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
 
         b2BodyDef body_def{ b2DefaultBodyDef() };
-        body_def.type     = to_b2_body_type(rbc.type);
+        body_def.type = to_b2_body_type(rbc.type);
         body_def.position = {
             tc.translation.x + Renderer2D::quad_centre.x,
             tc.translation.y + Renderer2D::quad_centre.y
