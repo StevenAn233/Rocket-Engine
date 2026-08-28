@@ -176,7 +176,7 @@ namespace rke
         b2BodyId body{ std::bit_cast<b2BodyId>(rbc.body_id) };
         if(B2_IS_NULL(body)) return;
 
-        b2Body_ApplyForceToCenter(body, { force.x, force.y }, true);
+        b2Body_ApplyForceToCenter(body, b2Vec2(force.x, force.y), true);
     }
 
 // private

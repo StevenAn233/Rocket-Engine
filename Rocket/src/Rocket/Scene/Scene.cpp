@@ -303,6 +303,14 @@ namespace rke
         physics_engine_->apply_force(entity, force);
     }
 
+    void Scene::apply_acceleration(Entity entity, glm::vec2 acceleration)
+    {
+        if(!in_runtime() || !entity.valid() || !entity.belongs_to(this)) return;
+        if(!entity.has<Rigidbody2DComponent>()) return;
+        const auto& rbc{ entity.get<Rigidbody2DComponent>() };
+        physics_engine_->apply_force(entity, acceleration * rbc.mass);
+    }
+
     void Scene::clear()
     {
         if(in_runtime()) {
