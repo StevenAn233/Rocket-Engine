@@ -272,18 +272,20 @@ namespace rke
         shape_def.material.friction = bcc.friction;
         shape_def.material.restitution = bcc.restitution;
         shape_def.filter = get_filter(layers, bcc.layer_index);
+        
         switch(bcc.type)
         {
         case ColliderType::Sensor:
             shape_def.isSensor = true;
-            shape_def.enableSensorEvents = true;
             break;
         case ColliderType::OneWay:
             shape_def.enablePreSolveEvents = true;
             break;
         default: break;
         }
+
         shape_def.enableContactEvents = true;
+        shape_def.enableSensorEvents  = true; // always on for now
         shape_def.userData = reinterpret_cast<void*>(static_cast<uintptr>(entity.get_handle()));
 
         b2ShapeId shape_id{ b2CreatePolygonShape(body_id, &shape_def, &box_geometry) };
