@@ -57,7 +57,7 @@ namespace rke
             { u8"a_uv_coord", rke::ShaderDataType::Float2 },
 
             { u8"a_tex_id"	   , rke::ShaderDataType::Int },
-            { u8"a_if_tex_grey", rke::ShaderDataType::Int },
+            { u8"a_is_tex_grey", rke::ShaderDataType::Int },
             { u8"a_entity_id"  , rke::ShaderDataType::Int }
         };
         data_.vao->add_vbo(data_.vbo, vertex_props_layout);
