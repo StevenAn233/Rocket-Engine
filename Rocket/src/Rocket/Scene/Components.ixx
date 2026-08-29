@@ -84,9 +84,9 @@ export namespace rke
         AssetHandle tex_handle{ asset_handle_null };
 
         float tiling_factor{ 1.0f };
-        glm::vec2 cell_pixels{ 1.0f, 1.0f };
-        glm::vec2 cell_coords{ 0.0f, 0.0f }; // left-bottom (0, 0)
-        glm::vec2 cell_counts{ 1.0f, 1.0f };
+        glm::vec2 cell_pixels{ 1.0f, 1.0f }; // scale
+        glm::vec2 cell_coords{ 0.0f, 0.0f }; // translate
+        glm::vec2 cell_counts{ 1.0f, 1.0f }; 
 
         Sprite() : tex_uuid(0) {};
         Sprite(AssetUUID id) : tex_uuid(id) {}

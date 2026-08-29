@@ -20,8 +20,8 @@ namespace {
     using namespace rke;
     static_assert(Renderer2D::max_texture_slots >= 2,
         u8"Renderer2D: Texture slots must be more than 2!");
-    static_assert(Renderer2D::max_quads >= 0,
-        u8"Renderer2D: Max quads must be more than 0!");
+    static_assert(Renderer2D::max_faces >= 0,
+        u8"Renderer2D: Max faces must be more than 0!");
 }
 
 namespace rke
@@ -45,11 +45,11 @@ namespace rke
 
         context_data_ = create_scope<ContextData>();
         context_data_->vao = VertexArray ::create();
-        context_data_->vbo = VertexBuffer::create(max_vertices * sizeof(QuadVertexProps));
+        context_data_->vbo = VertexBuffer::create(max_vertices * sizeof(VertexProps));
         // huge, empty vbo(only with size)
         context_data_->ubo = UniformBuffer::create(sizeof(CameraData));
 
-        rke::BufferLayout quad_vertex_layout
+        rke::BufferLayout vertex_props_layout
         {
             { u8"a_position", rke::ShaderDataType::Float3 },
             { u8"a_color"   , rke::ShaderDataType::Float4 },
@@ -61,26 +61,8 @@ namespace rke
             { u8"a_is_font"	   , rke::ShaderDataType::Int },
             { u8"a_entity_id"  , rke::ShaderDataType::Int }
         };
-        context_data_->vao->add_vbo(context_data_->vbo, quad_vertex_layout);
-
-        auto* indices{ new uint32[max_indices] }; // only malloc during init
-        uint32 offset{};
-        for(uint32 i{}; i < max_indices; i += 6)
-        {
-            indices[i + 0] = offset + 0;
-            indices[i + 1] = offset + 1;
-            indices[i + 2] = offset + 2;
-
-            indices[i + 3] = offset + 2;
-            indices[i + 4] = offset + 3;
-            indices[i + 5] = offset + 0;
-
-            offset += 4;
-            // 4 for 4 vertices of a quad
-            // 6 for 6 vertices of two triangles
-        }
-        context_data_->ibo = IndexBuffer::create(indices, max_indices);
-        delete[] indices; // per-context
+        context_data_->vao->add_vbo(context_data_->vbo, vertex_props_layout);
+        context_data_->ibo = IndexBuffer::create(nullptr, max_indices);
         context_data_->vao->set_ibo(context_data_->ibo);
     }
 
@@ -145,15 +127,15 @@ namespace rke
 
         for(int i{}; i < 4; i++)
         {
-            quad_vertex_ptr_->position = glm::vec3(props.transform * quad_vertex_pos[i]);
-            quad_vertex_ptr_->color	   = math::srgb_to_linear(props.color);
-            quad_vertex_ptr_->uv_coord = props.uv_coords[i];
-            quad_vertex_ptr_->tiling_factor = props.tiling_factor;
-            quad_vertex_ptr_->tex_id      = tex_index;
-            quad_vertex_ptr_->if_tex_grey = static_cast<int>(props.make_tex_gray);
-            quad_vertex_ptr_->is_font	  = static_cast<int>(props.is_font);
-            quad_vertex_ptr_->entity_id	  = props.entity_id;
-            quad_vertex_ptr_++; // stride: QuadVertexProps
+            vertex_props_it_->position = glm::vec3(props.transform * quad_vertex_pos[i]);
+            vertex_props_it_->color	   = math::srgb_to_linear(props.color);
+            vertex_props_it_->uv_coord = props.uv_coords[i];
+            vertex_props_it_->tiling_factor = props.tiling_factor;
+            vertex_props_it_->tex_id      = tex_index;
+            vertex_props_it_->if_tex_grey = static_cast<int>(props.make_tex_gray);
+            vertex_props_it_->is_font	  = static_cast<int>(props.is_font);
+            vertex_props_it_->entity_id	  = props.entity_id;
+            vertex_props_it_++; // stride: VertexProps
         }
         data.index_count += 6;
     #ifdef RKE_ENABLE_STATISTICS
@@ -214,16 +196,16 @@ namespace rke
         data.index_count = 0;
         texture_slot_index_ = 1; // set to the head
 
-        if(quad_vertex_ptr_ != nullptr) 
+        if(vertex_props_it_ != nullptr) 
         {
             data.vbo->unmap();
-            quad_vertex_ptr_ = nullptr;
+            vertex_props_it_ = nullptr;
             CORE_ERROR(u8"Renderer2D: VBO was explicitly "
                 u8"unmapped before re-mapping. Check flush logic!");
         }
-        quad_vertex_ptr_ = reinterpret_cast<QuadVertexProps*>
+        vertex_props_it_ = reinterpret_cast<VertexProps*>
             (data.vbo->map(GBuffer::Access::Write));
-        CORE_ASSERT(quad_vertex_ptr_, u8"Renderer2D: Failed to map vertex buffer!");
+        CORE_ASSERT(vertex_props_it_, u8"Renderer2D: Failed to map vertex buffer!");
     }
 
     void Renderer2D::flush()
@@ -232,10 +214,10 @@ namespace rke
 
         auto& data{ *context_data_ };
 
-        if(quad_vertex_ptr_)
+        if(vertex_props_it_)
         {
             data.vbo->unmap();
-            quad_vertex_ptr_ = nullptr;
+            vertex_props_it_ = nullptr;
         }
         if(data.index_count == 0) return;
 

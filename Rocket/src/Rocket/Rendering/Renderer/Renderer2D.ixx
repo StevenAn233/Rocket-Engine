@@ -37,7 +37,7 @@ export namespace rke
             int entity_id{ -1 };
         };
 
-        struct QuadVertexProps // within VertexBuffer
+        struct VertexProps
         {
             glm::vec3 position { 0.0f };
             glm::vec4 color	   { 0.0f };
@@ -73,9 +73,9 @@ export namespace rke
             uint32 index_count () const { return quad_count * 6; }
         };
     public:
-        static constexpr uint32 max_quads{ 500000 };
-        static constexpr uint32 max_vertices{ max_quads * 4 };
-        static constexpr uint32 max_indices { max_quads * 6 };
+        static constexpr uint32 max_faces{ 5000000 };
+        static constexpr uint32 max_vertices{ max_faces * 3 };
+        static constexpr uint32 max_indices { max_faces * 5 };
         static constexpr uint32 max_texture_slots{ 32 };
 
         static constexpr std::array<glm::vec4, 4> quad_vertex_pos
@@ -123,7 +123,9 @@ export namespace rke
 
         Scope<ContextData> context_data_{};
         Scope<Texture2D> default_texture_{};
-        QuadVertexProps* quad_vertex_ptr_{ nullptr };
+
+        VertexProps* vertex_props_it_{ nullptr };
+
 
         Statistics stats_{};
 
