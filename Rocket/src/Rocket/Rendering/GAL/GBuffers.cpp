@@ -1,5 +1,5 @@
 ﻿module;
-module Buffers;
+module GBuffers;
 import :OpenGL;
 
 import Log;

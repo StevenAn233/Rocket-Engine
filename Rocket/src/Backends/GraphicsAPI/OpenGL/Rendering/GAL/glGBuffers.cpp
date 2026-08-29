@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 
-module Buffers;
+module GBuffers;
 import :OpenGL;
 
 import Log;

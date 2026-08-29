@@ -12,7 +12,7 @@ import HeapManager;
 import Types;
 import String;
 import Texture;
-import Buffers;
+import GBuffers;
 import FrameBuffer;
 import ConfigProxy;
 

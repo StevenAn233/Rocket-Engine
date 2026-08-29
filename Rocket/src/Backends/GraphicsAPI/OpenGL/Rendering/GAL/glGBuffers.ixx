@@ -5,7 +5,7 @@
     void* map(Access access) override; \
     void unmap() override
 
-export module Buffers:OpenGL;
+export module GBuffers:OpenGL;
 
 import :Base;
 import Types;

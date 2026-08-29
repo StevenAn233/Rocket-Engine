@@ -6,7 +6,7 @@ export module FrameBuffer:OpenGL;
 
 import :Base;
 import Types;
-import Buffers;
+import GBuffers;
 
 namespace rke
 {

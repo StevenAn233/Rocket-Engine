@@ -6,7 +6,7 @@ module VertexArray;
 import :OpenGL;
 
 import Log;
-import Buffers;
+import GBuffers;
 import Instrumentor;
 
 namespace {
@@ -44,7 +44,7 @@ namespace rke
     glVertexArray::~glVertexArray()
         { glDeleteVertexArrays(1, &renderer_id_); }
 
-    void glVertexArray::add_vbo(Ref<VertexBuffer> vbo, const BufferLayout& layout)
+    void glVertexArray::add_vbo(Ref<VertexBuffer> vbo, const GBufferLayout& layout)
     {
         CORE_ASSERT(layout.get_elements().size(),
             u8"VertexBuffer: Layout has no elements!");

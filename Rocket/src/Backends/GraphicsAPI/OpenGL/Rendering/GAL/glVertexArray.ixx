@@ -11,7 +11,7 @@ namespace rke
         glVertexArray();
         ~glVertexArray() override;
 
-        void add_vbo(Ref<VertexBuffer> vbo, const BufferLayout& layout) override;
+        void add_vbo(Ref<VertexBuffer> vbo, const GBufferLayout& layout) override;
         void set_ibo(Ref<IndexBuffer > ibo) override;
 
         uint32 get() const override { return renderer_id_; }

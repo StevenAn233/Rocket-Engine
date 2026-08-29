@@ -7,7 +7,7 @@ export module VertexArray:Base;
 
 import Types;
 import HeapManager;
-import Buffers;
+import GBuffers;
 
 export namespace rke
 {
@@ -22,7 +22,7 @@ export namespace rke
         VertexArray(VertexArray&&) = delete;
         VertexArray& operator=(VertexArray&&) = delete;
 
-        virtual void add_vbo(Ref<VertexBuffer> vbo, const BufferLayout& layout) = 0;
+        virtual void add_vbo(Ref<VertexBuffer> vbo, const GBufferLayout& layout) = 0;
         virtual void set_ibo(Ref<IndexBuffer > ibo) = 0;
 
         virtual uint32 get() const = 0;

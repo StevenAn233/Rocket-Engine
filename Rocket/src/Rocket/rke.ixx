@@ -41,7 +41,7 @@ export import Gravity2D;
 export import PhysicsLayers;
 
 export import AssetsManager;
-export import Buffers;
+export import GBuffers;
 export import FrameBuffer;
 export import VertexArray;
 export import Shader;

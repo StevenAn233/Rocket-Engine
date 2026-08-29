@@ -2,7 +2,7 @@
 module ToneMapping;
 
 import BindingPoint;
-import Buffers;
+import GBuffers;
 import AssetsManager;
 import Application;
 import RenderCommand;

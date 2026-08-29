@@ -50,7 +50,7 @@ namespace rke
         // huge, empty vbo(only with size)
         data_.ubo = UniformBuffer::create(sizeof(CameraData));
 
-        rke::BufferLayout vertex_props_layout
+        rke::GBufferLayout vertex_props_layout
         {
             { u8"a_position", rke::ShaderDataType::Float4 },
             { u8"a_color"   , rke::ShaderDataType::Float4 },

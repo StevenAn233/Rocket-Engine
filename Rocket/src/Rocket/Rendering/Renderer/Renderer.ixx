@@ -17,7 +17,7 @@ import Texture;
 import Shader;
 import String;
 import NativeWindow;
-import Buffers;
+import GBuffers;
 import VertexArray;
 
 export namespace rke

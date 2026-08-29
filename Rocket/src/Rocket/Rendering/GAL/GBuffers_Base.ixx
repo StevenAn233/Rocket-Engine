@@ -4,7 +4,7 @@
 #include <initializer_list>
 #include "rke_macros.h"
 
-export module Buffers:Base;
+export module GBuffers:Base;
 
 import String;
 import Types;
@@ -65,7 +65,7 @@ namespace {
 export namespace rke
 {
 // Buffer Layout
-    struct RKE_API BufferElements
+    struct RKE_API GBufferElements
     {
         String name;
         ShaderDataType type;
@@ -74,24 +74,24 @@ export namespace rke
         bool normalized;
         uint32 offset;
 
-        BufferElements(const String&  _name,
+        GBufferElements(const String&  _name,
                        ShaderDataType _type,
                        bool _normalized = false)
             : name(_name), type(_type)
             , count(countoftype(_type))
             , normalized( _normalized), offset(0) {}
-        // offset will be set in BufferLayout::
+        // offset will be set in GBufferLayout::
         // set_elements_offset_and_my_stride();
-        BufferElements(const BufferElements&) = default;
+        GBufferElements(const GBufferElements&) = default;
     };
 
-    class RKE_API BufferLayout
+    class RKE_API GBufferLayout
     {
     public:
-        BufferLayout(std::initializer_list<BufferElements> elements)
+        GBufferLayout(std::initializer_list<GBufferElements> elements)
             : elements_(elements) { set_elements_offset_and_my_stride(); }
 
-        const std::vector<BufferElements>& get_elements() const { return elements_; }
+        const std::vector<GBufferElements>& get_elements() const { return elements_; }
         uint32 get_stride() const { return stride_; } // for constexpr obj
     private:
         void set_elements_offset_and_my_stride()
@@ -105,11 +105,11 @@ export namespace rke
             }
         }
     private:
-        std::vector<BufferElements> elements_;
+        std::vector<GBufferElements> elements_;
         uint32 stride_{};
     };
 
-// Buffers
+// GBuffers
     class RKE_API GBuffer
     {
     public:
