@@ -570,29 +570,14 @@ namespace rke
             
             if constexpr(std::is_same_v<Component, CameraComponent>)
             {
-                if(!selected.has<SpriteComponent>()) // !has_any_of<Sprite, Mesh>
+                nothing_to_add = false;
+                if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                 {
-                    nothing_to_add = false;
-                    if(ImGui::MenuItem(type_id.name.raw_unsafe()))
-                    {
-                        selected.emplace<CameraComponent>();
-                        selected.get_mut<CameraComponent>().camera
-                            .set_viewport(context_->get_viewport_h(), context_->get_viewport_w());
+                    selected.emplace<CameraComponent>();
+                    selected.get_mut<CameraComponent>().camera
+                        .set_viewport(context_->get_viewport_h(), context_->get_viewport_w());
 
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-            }
-            else if constexpr(std::is_same_v<Component, SpriteComponent>)
-            {
-                if(!selected.has<CameraComponent>()) // !has_any_of<Cam, Mesh>
-                {
-                    nothing_to_add = false;
-                    if(ImGui::MenuItem(type_id.name.raw_unsafe()))
-                    {
-                        selected.emplace<SpriteComponent>();
-                        ImGui::CloseCurrentPopup();
-                    }
+                    ImGui::CloseCurrentPopup();
                 }
             }
             else if constexpr(std::is_same_v<Component, Rigidbody2DComponent>)

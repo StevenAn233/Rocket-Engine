@@ -11,6 +11,7 @@ namespace rke { class Project; class ScriptManager; }
 
 export module Scene;
 
+import Mesh;
 import UUID;
 import Types;
 import String;
@@ -38,6 +39,7 @@ export namespace rke
         RKE_API Entity& operator=(Entity&&) = default;
 
         RKE_API UUID get_uuid() const;
+        RKE_API const Mesh* get_mesh() const;
         RKE_API bool valid() const;
         RKE_API void invalidate_if_unavailable();
 

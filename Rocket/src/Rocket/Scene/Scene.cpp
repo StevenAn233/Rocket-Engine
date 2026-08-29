@@ -49,6 +49,14 @@ namespace rke
         return get<IdentityComponent>().uuid;
     }
 
+    const Mesh* Entity::get_mesh() const
+    {
+        if(!valid()) return nullptr;
+        if(has<SpriteComponent>()) return get<SpriteComponent>().quad;
+        // if(has<ModelComponent>()) return get<ModelComponent>().mesh; // future
+        return nullptr;
+    }
+
     void Entity::check_assert() const { CORE_ASSERT(valid(), u8"Entity: Invalid!"); }
 
     Scene::Scene(Project* owner, String name)

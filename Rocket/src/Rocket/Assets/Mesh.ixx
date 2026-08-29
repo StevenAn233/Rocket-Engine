@@ -1,6 +1,8 @@
 ﻿module;
 
+#include <memory>
 #include <glm/glm.hpp>
+#include "rke_macros.h"
 
 export module Mesh;
 
@@ -9,7 +11,7 @@ import HeapManager;
 
 export namespace rke
 {
-    class Mesh
+    class RKE_API Mesh
     {
     public:
         Mesh(uint32 vc, uint32 ic,
