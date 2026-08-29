@@ -117,6 +117,10 @@ namespace rke
     void box2DPhysicsEngine2D::on_update(double dt)
     {
         if(empty()) return;
+
+        b2Vec2 gravity{ std::bit_cast<b2Vec2>(get_owner().get_gravity()) };
+        if(gravity != b2World_GetGravity(physics_world_))
+            b2World_SetGravity(physics_world_, gravity);
         
     // sync: towards b2Body
         sync_all_to_body();
