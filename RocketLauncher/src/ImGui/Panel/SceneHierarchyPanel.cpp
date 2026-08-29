@@ -297,7 +297,6 @@ namespace rke
                 sc.tex_uuid = uuid;
                 sc.tex_handle = asset_handle_null;
 
-                sc.tiling_factor = 1.0f;
                 sc.uv_offset = glm::vec2(0.0f);
                 sc.uv_scale  = glm::vec2(1.0f);
             }};
@@ -356,17 +355,15 @@ namespace rke
                     }
                 });
 
-                context_->mark_modified_if(layout::drag_float_control<u8"Tiling">
-                    (sc.tiling_factor, 0.5f, 1.0f, glm::vec2(0.0f, 100.0f)));
                 context_->mark_modified_if (
                     layout::drag_float2_control<u8"UV Offset"> (
-                        sc.uv_offset, 1.0f, { 0.0f, 0.0f },
-                        glm::vec2(0.0f, 100.0f), glm::vec2(0.0f, 100.0f), u8"%.1f"
+                        sc.uv_offset, 0.01f, { 0.0f, 0.0f },
+                        glm::vec2(0.0f, 1.0f), glm::vec2(0.0f, 1.0f), u8"%.2f"
                     ));
                 context_->mark_modified_if (
                     layout::drag_float2_control<u8"UV Scale"> (
                         sc.uv_scale, 0.1f, { 1.0f, 1.0f },
-                        glm::vec2(-100.0f, 100.0f), glm::vec2(-100.0f, 100.0f), u8"%.1f"
+                        glm::vec2(0.0f, 1000.0f), glm::vec2(0.0f, 1000.0f), u8"%.1f"
                     ));
             }
             if(tex_opened) ImGui::TreePop();

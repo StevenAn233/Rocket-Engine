@@ -130,8 +130,6 @@ namespace rke
                 .uv_offset{ sc.uv_offset },
                 .uv_scale { sc.uv_scale  },
                 .color{ sc.color },
-                
-                .tiling_factor{ sc.tiling_factor },
                 .entity_id{ handle }
             });
         } else {

@@ -29,7 +29,6 @@ export namespace rke
         glm::vec2 uv_scale;
         glm::vec4 color; // sRGB(need to linearlize)
 
-        float tiling_factor{ 1.0f };
         bool make_tex_gray{ false };
         uint32 entity_id{ 0xFFFFFFFFu };
     };
@@ -43,7 +42,6 @@ export namespace rke
             glm::vec4 color{ 0.0f };
             glm::vec2 uv{ 0.0f };
 
-            float tiling_factor{ 1.0f };
             int tex_id{ 0 };
             int is_tex_grey{ 0 };
             int entity_id{-1 };

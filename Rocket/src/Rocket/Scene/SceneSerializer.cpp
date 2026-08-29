@@ -58,7 +58,6 @@ namespace {
             if(sc.has_texture())
             {
                 writer.begin_map(u8"Settings");
-                writer.write(u8"Tiling Factor", ConfigValue(sc.tiling_factor));
                 writer.write(u8"UV Offset", ConfigValue(sc.uv_offset));
                 writer.write(u8"UV Scale",  ConfigValue(sc.uv_scale ));
                 writer.end_map();
@@ -146,7 +145,6 @@ namespace {
                 (AssetUUID(sc_reader->get_at(u8"Texture", 0ui64)))};
             Scope<ConfigReader> tex_config{ sc_reader->get_child(u8"Settings") };
             if(sc.has_texture() && tex_config) {
-                sc.tiling_factor = tex_config->get_at(u8"Tiling Factor", 1.0f);
                 sc.uv_offset = tex_config->get_at(u8"UV Offset", glm::vec2(0.0f));
                 sc.uv_scale  = tex_config->get_at(u8"UV Scale",  glm::vec2(1.0f));
             }

@@ -55,7 +55,6 @@ namespace rke
             { u8"a_position", rke::ShaderDataType::Float4 },
             { u8"a_color"   , rke::ShaderDataType::Float4 },
             { u8"a_uv_coord", rke::ShaderDataType::Float2 },
-            { u8"a_tiling_factor", rke::ShaderDataType::Float },
 
             { u8"a_tex_id"	   , rke::ShaderDataType::Int },
             { u8"a_if_tex_grey", rke::ShaderDataType::Int },
@@ -138,7 +137,6 @@ namespace rke
             data_.vertex_props_it->color = math::srgb_to_linear(props.color); // to GPU: merge with vertex color
             data_.vertex_props_it->uv = props.uv_scale * (*(mesh->get_uv(i))) + props.uv_offset; // to GPU
 
-            data_.vertex_props_it->tiling_factor = props.tiling_factor;
             data_.vertex_props_it->tex_id      = static_cast<int>(tex_index);
             data_.vertex_props_it->is_tex_grey = static_cast<int>(props.make_tex_gray);
             data_.vertex_props_it->entity_id   = static_cast<int>(props.entity_id);
