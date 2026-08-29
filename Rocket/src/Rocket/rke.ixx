@@ -49,7 +49,7 @@ export import Texture;
 export import Font;
 
 export import Camera;
-export import Renderer2D;
+export import Renderer;
 export import RenderCommand;
 export import SceneRenderer;
 export import PostProcessor;

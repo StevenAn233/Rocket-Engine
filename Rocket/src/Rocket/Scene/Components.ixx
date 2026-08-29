@@ -15,13 +15,12 @@ export module Components;
 
 import Types;
 import String;
-import HeapManager;
 import SceneCamera;
 import PhysicsLayers;
-import Texture;
-import Script;
-import UUID;
 import AssetsManager;
+import Script;
+import Mesh;
+import UUID;
 
 namespace
 {
@@ -75,26 +74,8 @@ export namespace rke
                  * glm::scale(glm::mat4(1.0f), scale);
         }
     };
-// ---
 
-// Rendering(Can only own one of them at most!)
-    struct RKE_API Sprite // TO REMOVE
-    {
-        AssetUUID tex_uuid;
-        AssetHandle tex_handle{ asset_handle_null };
-
-        float tiling_factor{ 1.0f };
-        glm::vec2 cell_pixels{ 1.0f, 1.0f }; // scale
-        glm::vec2 cell_coords{ 0.0f, 0.0f }; // translate
-        glm::vec2 cell_counts{ 1.0f, 1.0f }; 
-
-        Sprite() : tex_uuid(0) {};
-        Sprite(AssetUUID id) : tex_uuid(id) {}
-
-        bool has_texture() const { return !tex_uuid.empty(); }
-        bool is_texture_loaded() const { return tex_handle != asset_handle_null; }
-    };
-
+// Rendering
     struct RKE_API SpriteComponent
     {
         enum class BlendingMode : uint32
@@ -104,16 +85,35 @@ export namespace rke
             Transparent
         };
 
-        Sprite sprite{};
+        const Mesh* quad; // may modify
 
-        glm::vec4 color{ 1.0f };
+        AssetUUID tex_uuid;
+        AssetHandle tex_handle{ asset_handle_null };
+        glm::vec4 color{ 1.0f }; // may modify
+
+        float tiling_factor{ 1.0f };
+        glm::vec2 uv_offset{ 0.0f, 0.0f };
+        glm::vec2 uv_scale { 1.0f, 1.0f };
+
         BlendingMode blending_mode{ BlendingMode::Opaque };
         int rendering_layer{ 0 };
 
-        SpriteComponent() = default;
-        SpriteComponent(AssetUUID uuid) : sprite(uuid) {}
+        SpriteComponent(AssetUUID uuid = UUID(0));
         SpriteComponent(const SpriteComponent&) = default;
+
+        bool has_texture() const { return !tex_uuid.empty(); }
+        bool is_texture_loaded() const { return tex_handle != asset_handle_null; }
     };
+
+    // struct RKE_API ModelComponent
+    // {
+    //     
+    // };
+
+    // struct RKE_API TextComponent
+    // {
+    //     
+    // };
 
     struct RKE_API CameraComponent
     {
@@ -124,8 +124,6 @@ export namespace rke
         CameraComponent(const CameraComponent&) = default;
     };
 
-    // struct RKE_API MeshComponent {...};
-// ---
 
 // Requires to have SpriteComponent(2D)!
     enum class BodyType : uint32

@@ -41,12 +41,11 @@ namespace rke
     #ifdef RKE_ENABLE_STATISTICS
         if(ImGui::BeginTabItem("Statistics"))
         {
-            const auto& stats{ owner_->renderer_2d().get_stats() };
+            const auto& stats{ owner_->renderer().get_stats() };
             ImGui::Text("CamSets  : %d", stats.cam_set_count );
             ImGui::Text("DrawCalls: %d", stats.drawcall_count);
-            ImGui::Text("Quads    : %d", stats.quad_count    );
-            ImGui::Text("Vertices : %d", stats.vertex_count());
-            ImGui::Text("Indices  : %d", stats.index_count ());
+            ImGui::Text("Vertices : %d", stats.vertex_count  );
+            ImGui::Text("Indices  : %d", stats.index_count   );
 
             ImGui::EndTabItem();
         }

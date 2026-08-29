@@ -88,6 +88,7 @@ namespace {
     template<typename T>
     static AssetData to_asset_data(Scope<T> asset)
     {
+        if(!asset) return AssetData{ nullptr, nullptr };
         return AssetData(asset.release(),
             [](void* ptr) { delete static_cast<T*>(ptr); } );
     }
@@ -237,6 +238,10 @@ namespace rke
         case AssetType::Font: {
             Scope<Font> font{ load_font(meta) };
             loaded_resource = to_asset_data(std::move(font));
+        } break;
+        case AssetType::Mesh: {
+            Scope<Mesh> mesh{ load_mesh(meta) };
+            loaded_resource = to_asset_data(std::move(mesh));
         } break;
         default:
             CORE_ERROR(u8"AssetsManager: Unknown asset type!");
@@ -408,5 +413,11 @@ namespace rke
         const Path& path{ meta.asset_path };
         if(path.empty() || !path.exists()) return nullptr;
         return create_scope<Font>(path);
+    }
+
+    Scope<Mesh> AssetsManager::load_mesh(const AssetMeta& meta)
+    {
+        // to be implemented
+        return nullptr;
     }
 }

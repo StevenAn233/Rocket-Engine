@@ -18,7 +18,7 @@ import Layer;
 import LayerStack;
 import NativeWindow;
 import WindowSettingPanel;
-import Renderer2D;
+import Renderer;
 
 export namespace rke
 {
@@ -57,7 +57,7 @@ export namespace rke
         inline double get_last_elapsed() const
             { return timer_ ? timer_->get_last_elapsed() : 0.0; }
 
-        inline Renderer2D& renderer_2d() { return *renderer_2d_; }
+        inline Renderer& renderer() { return *renderer_; }
         inline double get_smoothed_fps() const { return smoothed_fps_; }
 
         inline Size get_mouse_blocking_index() const
@@ -101,7 +101,7 @@ export namespace rke
     protected:
         NativeWindow context_{};
         Scope<Props> props_;
-        Scope<Renderer2D> renderer_2d_{};
+        Scope<Renderer> renderer_{};
     private:
         String name_;
         Scope<Timer> timer_{};

@@ -273,7 +273,7 @@ namespace rke
             AssetsManager& assets_manager{ context_->get_owner()->get_assets_manager() };
 
         // Texture
-            bool no_texture{ !sc.sprite.has_texture() };
+            bool no_texture{ !sc.has_texture() };
             constexpr ImGuiTreeNodeFlags tree_flags
             {   ImGuiTreeNodeFlags_SpanFullWidth
               | ImGuiTreeNodeFlags_AllowOverlap 
@@ -290,12 +290,22 @@ namespace rke
 
             float available_width{ ImGui::GetContentRegionAvail().x };
             String display_name{ no_texture ? u8"<No Texture>" :
-                assets_manager.get_asset_path(sc.sprite.tex_uuid).filename().string() };
+                assets_manager.get_asset_path(sc.tex_uuid).filename().string() };
+
+            auto refresh_sprite{ [](UUID uuid, SpriteComponent& sc)
+            {
+                sc.tex_uuid = uuid;
+                sc.tex_handle = asset_handle_null;
+
+                sc.tiling_factor = 1.0f;
+                sc.uv_offset = glm::vec2(0.0f);
+                sc.uv_scale  = glm::vec2(1.0f);
+            }};
 
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
             if(ImGui::Button(display_name.raw(), ImVec2(available_width, 0.0f)))
             {
-                sc.sprite = {};
+                refresh_sprite(0, sc);
                 context_->mark_modified();
             }
             ImGui::PopStyleColor();
@@ -304,19 +314,17 @@ namespace rke
                 if(const auto* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ASSET") })
                 {
                     AssetUUID dropped_uuid{ *reinterpret_cast<const AssetUUID*>(payload->Data) };
-                    sc.sprite = Sprite(dropped_uuid);
+                    refresh_sprite(dropped_uuid, sc);
                     context_->mark_modified();
                 }
                 ImGui::EndDragDropTarget();
             }
 
             ImGui::Columns(1);
-        // ---
 
-            if(tex_opened && sc.sprite.is_texture_loaded())
+            if(tex_opened && sc.is_texture_loaded())
             {
-                AssetSettings settings{ assets_manager.
-                    get_asset_settings(sc.sprite.tex_uuid) }; // copied!
+                AssetSettings settings{ assets_manager.get_asset_settings(sc.tex_uuid) }; // copied!
                 TextureSettings& tex_settings{ settings.tex };
 
                 layout::two_columns_table<u8"Filter">([&]()
@@ -328,7 +336,7 @@ namespace rke
                     if(ImGui::Combo("##filt", &option, items, (int)std::size(items)))
                     {
                         tex_settings.filt = static_cast<Texture::FiltFormat>(option);
-                        sc.sprite = Sprite(assets_manager.get_sub_uuid(sc.sprite.tex_uuid, settings));
+                        refresh_sprite(assets_manager.get_sub_uuid(sc.tex_uuid, settings), sc);
                         context_->mark_modified();
                     }
                 });
@@ -343,32 +351,22 @@ namespace rke
                     if(ImGui::Combo("##wrap", &option, items, (int)std::size(items)))
                     {
                         tex_settings.wrap = static_cast<Texture::WrapFormat>(option);
-                        sc.sprite = Sprite(assets_manager.get_sub_uuid(sc.sprite.tex_uuid, settings));
+                        refresh_sprite(assets_manager.get_sub_uuid(sc.tex_uuid, settings), sc);
                         context_->mark_modified();
                     }
                 });
 
-                Texture2D* tex{ assets_manager.get_asset<Texture2D>(sc.sprite.tex_handle) };
                 context_->mark_modified_if(layout::drag_float_control<u8"Tiling">
-                    (sc.sprite.tiling_factor, 0.5f, 1.0f, glm::vec2(0.0f, 100.0f)));
+                    (sc.tiling_factor, 0.5f, 1.0f, glm::vec2(0.0f, 100.0f)));
                 context_->mark_modified_if (
-                    layout::drag_float2_control<u8"Cell Pixels"> (
-                        sc.sprite.cell_pixels, 1.0f,
-                        {
-                            tex ? static_cast<float>(tex->get_width ()) : 1.0f,
-                            tex ? static_cast<float>(tex->get_height()) : 1.0f
-                        },
-                        glm::vec2(1.0f, 4096.0f), glm::vec2(1.0f, 4096.0f), u8"%.0f"
+                    layout::drag_float2_control<u8"UV Offset"> (
+                        sc.uv_offset, 1.0f, { 0.0f, 0.0f },
+                        glm::vec2(0.0f, 100.0f), glm::vec2(0.0f, 100.0f), u8"%.1f"
                     ));
                 context_->mark_modified_if (
-                    layout::drag_float2_control<u8"Cell Coords"> (
-                        sc.sprite.cell_coords, 1.0f, { 0.0f, 0.0f },
-                        glm::vec2(0.0f, 100.0f), glm::vec2(0.0f, 100.0f), u8"%.0f"
-                    ));
-                context_->mark_modified_if (
-                    layout::drag_float2_control<u8"Cell Counts"> (
-                        sc.sprite.cell_counts, 1.0f, { 1.0f, 1.0f },
-                        glm::vec2(1.0f, 100.0f), glm::vec2(1.0f, 100.0f), u8"%.0f"
+                    layout::drag_float2_control<u8"UV Scale"> (
+                        sc.uv_scale, 0.1f, { 1.0f, 1.0f },
+                        glm::vec2(-100.0f, 100.0f), glm::vec2(-100.0f, 100.0f), u8"%.1f"
                     ));
             }
             if(tex_opened) ImGui::TreePop();

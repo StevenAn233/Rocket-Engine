@@ -61,7 +61,7 @@ namespace rke
     void Window::on_render()
     {
         if(minimized()) return;
-        renderer_2d().reset_stats();
+        renderer().reset_stats();
         for(const auto& layer : layer_stack_)
             layer->on_render();
     }

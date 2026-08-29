@@ -1,0 +1,2 @@
+Vertex: "src/renderer.vert"
+Fragment: "src/renderer.frag"

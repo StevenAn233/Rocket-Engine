@@ -3,7 +3,7 @@ module SceneRenderer;
 
 import Log;
 import Project;
-import Renderer2D;
+import Renderer;
 import Application;
 import RenderCommand;
 import Components;
@@ -72,7 +72,7 @@ namespace rke
         if(!scene) { scene_fbo_->clear(); return nullptr; }
         scene_fbo_->clear_to_upload([this, scene, &vp, pos]()
         {
-            context_->renderer_2d().begin_camera(vp);
+            context_->renderer().begin_camera(vp);
             render_scene(scene, vp, pos);
         });
         return post_processor_.process(scene_fbo_->get_texture(0));
@@ -86,7 +86,7 @@ namespace rke
             const auto& proj{ camera.get<CameraComponent>().camera.get_proj() };
 
             glm::mat4 view_proj{ proj * glm::inverse(tc.get_transform()) };
-            return render(scene, view_proj, tc.translation + Renderer2D::quad_centre);
+            return render(scene, view_proj, tc.translation + glm::vec3(0.0f));
         }
         return nullptr;
     }
@@ -117,35 +117,22 @@ namespace rke
 // private
     void SceneRenderer::draw_entity(AssetsManager& manager, const Scene* scene, uint32 handle)
     {
-        constexpr std::array<glm::vec2, 4> default_uv
-        {
-            glm::vec2(1.0f, 1.0f),
-            glm::vec2(0.0f, 1.0f),
-            glm::vec2(0.0f, 0.0f),
-            glm::vec2(1.0f, 0.0f)
-        };
-
         entt::entity entity{ static_cast<entt::entity>(handle) };
         entt::registry& reg{ *(scene->registry_) };
         const auto& tc{ reg.get<TransformComponent>(entity) };
         if(reg.all_of<SpriteComponent>(entity))
         {
             const auto& sc{ reg.get<SpriteComponent>(entity) };
-            const auto& sprite{ sc.sprite };
-            auto* tex{ manager.get_asset<Texture2D>(sprite.tex_handle) };
-            context_->renderer_2d().draw_quad
-            ({
-                .transform{ tc.get_transform() }, .color{ sc.color },
-                .uv_coords{ tex ?
-                    tex->calc_uv (
-                        sprite.cell_coords,
-                        sprite.cell_pixels,
-                        sprite.cell_counts
-                    ) : default_uv
-                },
-                .tiling_factor{ sprite.tiling_factor },
-                .texture{ tex },
-                .entity_id{ static_cast<int>(handle) }
+            auto* tex{ manager.get_asset<Texture2D>(sc.tex_handle) };
+            context_->renderer().push(sc.quad, tex, RenderProps
+            {
+                .transform{ tc.get_transform() },
+                .uv_offset{ sc.uv_offset },
+                .uv_scale { sc.uv_scale  },
+                .color{ sc.color },
+                
+                .tiling_factor{ sc.tiling_factor },
+                .entity_id{ handle }
             });
         } else {
             const auto& id_com{ reg.get<IdentityComponent>(entity) };
@@ -170,28 +157,15 @@ namespace rke
         for(entt::entity entity : view)
         {
             const auto& tc{ view.get<TransformComponent>(entity) };
-            glm::vec3 pos { tc.translation + Renderer2D::quad_centre };
-            glm::vec3 size{ tc.scale * Renderer2D::quad_size };
-
-            if(should_cull(pos, size, planes)) continue;
-
             auto& sc{ view.get<SpriteComponent>(entity) };
+            if(sc.has_texture() && !sc.is_texture_loaded())
+                sc.tex_handle = assets_manager.load_asset(sc.tex_uuid);
             if(sc.color.a < 0.01f) continue;
 
-            auto& sprite{ sc.sprite }; // texture asset
-            if(sprite.has_texture() && !assets_manager.is_handle_valid(sprite.tex_handle))
-            {
-                sprite.tex_handle = assets_manager.load_asset(sprite.tex_uuid);
-                if(!assets_manager.is_handle_valid(sprite.tex_handle)) {
-                    CORE_ERROR(u8"SceneRenderer: Failed to load texture '{}'!", sprite.tex_uuid.value());
-                    sprite.tex_uuid = UUID(0); // uuid been reset here!
-                    sprite.tex_handle = asset_handle_null;
-                } else {
-                    Texture2D* tex{ assets_manager.get_asset<Texture2D>(sprite.tex_handle) };
-                    if(tex) sprite.cell_pixels = glm::vec2(tex->get_width(), tex->get_height());
-                    else CORE_ERROR(u8"SceneRenderer: Failed to get texture reference!");
-                }
-            }
+            glm::vec3 pos { tc.translation + sc.quad->get_centre() };
+            glm::vec3 size{ tc.scale * sc.quad->get_size() };
+            if(should_cull(pos, size, planes)) continue;
+
             uint32 handle{ static_cast<uint32>(entity) };
             switch(sc.blending_mode)
             {
@@ -221,26 +195,26 @@ namespace rke
     //  for(auto entity : view) {...}
 
     // render entities
-        context_->renderer_2d().begin_scene();
+        context_->renderer().begin_scene();
 
         for(const auto& renderable : opaque_queue_)
             draw_entity(assets_manager, scene, renderable.handle);
         for(const auto& renderable : cutout_queue_)
             draw_entity(assets_manager, scene, renderable.handle);
 
-        context_->renderer_2d().end_scene();
+        context_->renderer().end_scene();
 
         if(transparent_queue_.empty()) return;
         
         app().render_command().set_depth_write(false);
         app().render_command().blend_func_transparent();
 
-        context_->renderer_2d().begin_scene();
+        context_->renderer().begin_scene();
 
         for(const auto& renderable : transparent_queue_)
             draw_entity(assets_manager, scene, renderable.handle);
 
-        context_->renderer_2d().end_scene();
+        context_->renderer().end_scene();
 
         app().render_command().blend_func_default();
         app().render_command().set_depth_write(true);

@@ -28,16 +28,18 @@ namespace rke
         {
             if(target.has<SpriteComponent>())
             {
-                context_->renderer_2d().begin_scene();
+                context_->renderer().begin_scene();
 
                 const auto& tc{ target.get<TransformComponent>() };
-                context_->renderer_2d().draw_quad
-                ({
-                    .transform{ tc.get_transform() },
-                    .color{ glm::vec4(1.0f) },
-                });
+                const auto& sc{ target.get<SpriteComponent>() };
+                context_->renderer().push(sc.quad, nullptr,
+                    RenderProps {
+                        .transform{ tc.get_transform() },
+                        .color{ glm::vec4(1.0f) }
+                    }
+                );
 
-                context_->renderer_2d().end_scene();
+                context_->renderer().end_scene();
             }
         //  else if(target_.has<MeshComponent>()) {...}
         });

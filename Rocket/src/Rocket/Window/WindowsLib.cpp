@@ -2,7 +2,7 @@
 module WindowsLib;
 
 import Log;
-import Renderer2D;
+import Renderer;
 import HeapManager;
 import EventDispatcher;
 import ApplicationEvent;
@@ -53,7 +53,7 @@ namespace rke
     {
         Scope<Window> window{ Window::create
             (u8"main", std::move(props), NativeWindow()) };
-        Renderer2D::init();
+        Renderer::init();
         main_window_ = window.get();
         return add(std::move(window));
     }

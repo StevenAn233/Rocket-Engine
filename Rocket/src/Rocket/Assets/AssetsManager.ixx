@@ -13,6 +13,7 @@ import HeapManager;
 import Texture;
 import Shader;
 import Font;
+import Mesh;
 import String;
 import Path;
 import UUID;
@@ -31,10 +32,11 @@ export namespace rke
         None = 0,
         Texture,
         Shader,
-        Font
-        // Mesh...
+        Font,
+        Mesh
     };
 
+// Settings(meta data)
     struct RKE_API EmptySettings { uint64 padding{}; };
 
     struct RKE_API TextureSettings
@@ -43,9 +45,6 @@ export namespace rke
         Texture::WrapFormat wrap{ Texture::WrapFormat::Clamp2Edge };
         bool srgb{ true };
     };
-
-//  struct RKE_API MeshSettings  {...}
-//  struct RKE_API AudioSettings {...}
 
     union AssetSettings
     {
@@ -79,6 +78,8 @@ export namespace rke
                 return AssetType::Shader;
             else if constexpr(std::is_same_v<T, Font>)
                 return AssetType::Font;
+            else if constexpr(std::is_same_v<T, Mesh>)
+                return AssetType::Mesh;
             else return AssetType::None;
         }
 
@@ -119,6 +120,7 @@ export namespace rke
         Scope<Texture2D> load_texture(const AssetMeta& meta);
         Scope<Shader> load_shader(const AssetMeta& meta);
         Scope<Font> load_font(const AssetMeta& meta);
+        Scope<Mesh> load_mesh(const AssetMeta& meta);
     private:
         std::unordered_map<AssetUUID, AssetMeta> asset_registry_{};
         std::unordered_map<AssetUUID, std::vector<AssetUUID>> asset_families_{};

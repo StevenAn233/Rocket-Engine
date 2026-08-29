@@ -11,21 +11,14 @@ layout(location = 2) in float v_tiling_factor;
 
 layout(location = 3) in flat int v_tex_id;
 layout(location = 4) in flat int v_if_tex_grey;
-layout(location = 5) in flat int v_is_font;
-layout(location = 6) in flat int v_entity_id;
+layout(location = 5) in flat int v_entity_id;
 
 layout(binding = Sampler2D_0) uniform sampler2D u_textures[32];
 
 void main()
 {
 	o_entity_id = v_entity_id;
-
-	vec4 tex_color;
-	if(bool(v_is_font)) {
-		tex_color = vec4(1.0, 1.0, 1.0, texture(u_textures[v_tex_id], v_uv_coord).r);
-	} else {
-		tex_color = texture(u_textures[v_tex_id], v_uv_coord * v_tiling_factor);
-	}
+	vec4 tex_color = texture(u_textures[v_tex_id], v_uv_coord * v_tiling_factor);
 
 //	const float alpha_threshold = 0.05; // hard-coded
 //  if(tex_color.a < alpha_threshold) { discard; }

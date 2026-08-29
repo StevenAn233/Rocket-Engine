@@ -3,7 +3,7 @@ module ApplicationPanel;
 
 import Layout;
 import Instrumentor;
-import Renderer2D;
+import Renderer;
 import Application;
 
 namespace rke

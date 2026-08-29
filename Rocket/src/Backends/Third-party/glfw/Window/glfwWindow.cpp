@@ -176,7 +176,7 @@ namespace rke
         , data_({ get_name(), *props_})
     {
         create_context(shared);
-        renderer_2d_ = create_scope<Renderer2D>(this);
+        renderer_ = create_scope<Renderer>(this);
 
     // set window icon(after glfwCreateWindow)
         Props& props{ data_.props };

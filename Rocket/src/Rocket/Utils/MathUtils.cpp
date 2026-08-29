@@ -3,16 +3,6 @@ module MathUtils;
 
 namespace rke::math
 {
-    std::array<glm::vec2, 4> calc_uv(glm::vec2 min, glm::vec2 max)
-    {
-        return {
-            glm::vec2(max.x, max.y),
-            glm::vec2(min.x, max.y),
-            glm::vec2(min.x, min.y),
-            glm::vec2(max.x, min.y)
-        };
-    }
-
     glm::vec4 srgb_to_linear(glm::vec4 color, float gamma)
     {
         float r{ std::pow(color.x, gamma) };

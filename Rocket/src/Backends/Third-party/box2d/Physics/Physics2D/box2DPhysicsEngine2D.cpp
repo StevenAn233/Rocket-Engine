@@ -9,7 +9,7 @@ import :box2D;
 import Log;
 import Types;
 import Gravity2D;
-import Renderer2D;
+import Renderer;
 import Components;
 import Project;
 import Application;
@@ -47,14 +47,14 @@ namespace {
     static bool is_one_way_allowed(Entity platform, b2ShapeId other_shape)
     {
         const auto& tc { platform.get<TransformComponent>() };
+        const auto& sc { platform.get<SpriteComponent>() };
         const auto& bcc{ platform.get<BoxCollider2DComponent>() };
 
         b2Vec2 platform_pos{ b2Body_GetPosition(b2Shape_GetBody(std::bit_cast<b2ShapeId>(bcc.shape_id))) };
         b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
 
         // allow only when the other body's center is above the platform top
-        float platform_half_height{ bcc.half_extent.y *
-            std::abs(tc.scale.y) * Renderer2D::quad_size.y };
+        float platform_half_height{ bcc.half_extent.y * std::abs(tc.scale.y) * sc.quad->get_size().y };
         return other_pos.y > platform_pos.y + platform_half_height;
     }
 }
@@ -209,11 +209,12 @@ namespace rke
         if(B2_IS_NON_NULL(std::bit_cast<b2BodyId>(rbc.body_id))) return;
 
         const auto& tc{ entity.get<TransformComponent>() };
+        const auto& sc{ entity.get<SpriteComponent>() };
         b2BodyDef body_def{ b2DefaultBodyDef() };
         body_def.type = to_b2_body_type(rbc.type);
         body_def.position = {
-            tc.translation.x + Renderer2D::quad_centre.x,
-            tc.translation.y + Renderer2D::quad_centre.y
+            tc.translation.x + sc.quad->get_centre().x,
+            tc.translation.y + sc.quad->get_centre().y
         };
         body_def.rotation = b2MakeRot(glm::radians(tc.rotation.z));
         body_def.fixedRotation = rbc.rotation_fixed;
@@ -259,8 +260,9 @@ namespace rke
             { CORE_ERROR(u8"box2DPhysicsEngine2D: Already has shape!"); return; }
 
         const auto& tc{ entity.get<TransformComponent>() };
-        float size_x{ std::abs(tc.scale.x) * Renderer2D::quad_size.x };
-        float size_y{ std::abs(tc.scale.y) * Renderer2D::quad_size.y };
+        const auto& sc{ entity.get<SpriteComponent>() };
+        float size_x{ std::abs(tc.scale.x) * sc.quad->get_size().x };
+        float size_y{ std::abs(tc.scale.y) * sc.quad->get_size().y };
         if(size_x < 0.001f || size_y < 0.001f) return;
 
         b2Polygon box_geometry{ b2MakeOffsetBox
@@ -353,9 +355,10 @@ namespace rke
         if(b2Shape_GetRestitution(shape) != bcc.restitution) return true;
 
         const auto& tc{ entity.get<TransformComponent>() };
+        const auto& sc{ entity.get<SpriteComponent>() };
         glm::vec2 expected {
-            bcc.half_extent.x * std::abs(tc.scale.x) * Renderer2D::quad_size.x,
-            bcc.half_extent.y * std::abs(tc.scale.y) * Renderer2D::quad_size.y
+            bcc.half_extent.x * std::abs(tc.scale.x) * sc.quad->get_size().x,
+            bcc.half_extent.y * std::abs(tc.scale.y) * sc.quad->get_size().y
         };
         CORE_ASSERT(shape.index1 < shape_size_cache_.size(),
             u8"box2DPhysicsEngine2D: Out of bound of size-cache!");
@@ -398,10 +401,8 @@ namespace rke
             float last_rot{ b2Rot_GetAngle(b2Body_GetRotation(body)) }; // radian
 
             const auto& tc{ entity.get<TransformComponent>() };
-            glm::vec2 pos {
-                tc.translation.x + Renderer2D::quad_centre.x,
-                tc.translation.y + Renderer2D::quad_centre.y
-            };
+            const auto& sc{ entity.get<SpriteComponent>() };
+            glm::vec2 pos { tc.translation + sc.quad->get_centre() };
             float rot{ glm::radians(tc.rotation.z) }; // radian
             
             if(last_pos != pos || std::abs(last_rot - rot) > 0.01f)
@@ -452,8 +453,9 @@ namespace rke
                 b2Rot  rotation{ b2Body_GetRotation(body) };
 
                 auto& tc{ entity.get_mut<TransformComponent>() };
-                tc.translation.x = position.x - Renderer2D::quad_centre.x;
-                tc.translation.y = position.y - Renderer2D::quad_centre.y;
+                const auto& sc{ entity.get<SpriteComponent>() };
+                tc.translation.x = position.x - sc.quad->get_centre().x;
+                tc.translation.y = position.y - sc.quad->get_centre().y;
                 tc.rotation.z = glm::degrees(b2Rot_GetAngle(rotation));
             }
         }

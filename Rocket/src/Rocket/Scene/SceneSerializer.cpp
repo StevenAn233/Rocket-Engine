@@ -54,14 +54,13 @@ namespace {
 
             const auto& sc{ entity.get<SpriteComponent>() };
             writer.write(u8"Color"  , ConfigValue(sc.color));
-            writer.write(u8"Texture", ConfigValue(sc.sprite.tex_uuid.value()));
-            if(sc.sprite.has_texture())
+            writer.write(u8"Texture", ConfigValue(sc.tex_uuid.value()));
+            if(sc.has_texture())
             {
                 writer.begin_map(u8"Settings");
-                writer.write(u8"Tiling Factor", ConfigValue(sc.sprite.tiling_factor));
-                writer.write(u8"Cell Pixels",   ConfigValue(sc.sprite.cell_pixels  ));
-                writer.write(u8"Cell Coords",   ConfigValue(sc.sprite.cell_coords  ));
-                writer.write(u8"Cell Counts",   ConfigValue(sc.sprite.cell_counts  ));
+                writer.write(u8"Tiling Factor", ConfigValue(sc.tiling_factor));
+                writer.write(u8"UV Offset", ConfigValue(sc.uv_offset));
+                writer.write(u8"UV Scale",  ConfigValue(sc.uv_scale ));
                 writer.end_map();
             }
             writer.write(u8"Blending Mode", static_cast<uint32>(sc.blending_mode));
@@ -146,11 +145,10 @@ namespace {
             auto& sc{ entity.emplace<SpriteComponent>
                 (AssetUUID(sc_reader->get_at(u8"Texture", 0ui64)))};
             Scope<ConfigReader> tex_config{ sc_reader->get_child(u8"Settings") };
-            if(sc.sprite.has_texture() && tex_config) {
-                sc.sprite.tiling_factor = tex_config->get_at(u8"Tiling Factor", 1.0f);
-                sc.sprite.cell_pixels = tex_config->get_at(u8"Cell Pixels", glm::vec2(1.0f));
-                sc.sprite.cell_coords = tex_config->get_at(u8"Cell Coords", glm::vec2(0.0f));
-                sc.sprite.cell_counts = tex_config->get_at(u8"Cell Counts", glm::vec2(1.0f));
+            if(sc.has_texture() && tex_config) {
+                sc.tiling_factor = tex_config->get_at(u8"Tiling Factor", 1.0f);
+                sc.uv_offset = tex_config->get_at(u8"UV Offset", glm::vec2(0.0f));
+                sc.uv_scale  = tex_config->get_at(u8"UV Scale",  glm::vec2(1.0f));
             }
             sc.color = sc_reader->get_at(u8"Color", glm::vec4(1.0f));
             sc.blending_mode = static_cast<SpriteComponent::BlendingMode>
