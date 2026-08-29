@@ -328,8 +328,8 @@ namespace rke
         Layer::on_update(dt);
         if(editing()) editor_cam_.on_update(dt);
 
-        ticker_.tick(dt, [this](double dt)
-            { if(current_scene()) current_scene()->on_update(dt); }); // entity deleted here
+        ticker_.tick(dt, [this](double delta)
+            { if(current_scene()) current_scene()->on_update(delta); }); // entity deleted here
     }
 
     void EditorLayer::on_render()

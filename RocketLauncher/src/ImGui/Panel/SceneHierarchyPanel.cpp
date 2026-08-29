@@ -188,6 +188,14 @@ namespace rke
                 );
             }
 
+            context_->mark_modified_if(tra_changed || rot_changed);
+            if(context_->in_runtime() && ent.has<Rigidbody2DComponent>()) // may modify
+            {
+                auto& rbc{ ent.get_mut<Rigidbody2DComponent>() };
+                if(tra_changed) rbc.velocity = glm::vec2(0.0f);
+                if(rot_changed) rbc.angular_velocity = 0.0f;
+            }
+
             if(tc.locked || ent.has<CameraComponent>())
             {
                 context_->mark_modified_if (
@@ -203,10 +211,6 @@ namespace rke
                         (tc.scale, 0.1f, glm::vec3(1.0f))
                 );
             }
-            context_->mark_modified_if(tra_changed || rot_changed);
-
-            if((tra_changed || rot_changed))
-                context_->set_entity_transform(ent, tc.translation, tc.rotation);
         });
 
         check_then_draw<CameraComponent, u8"Camera">(entity, [&](Entity ent)
