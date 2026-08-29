@@ -385,18 +385,28 @@ namespace rke
                 rbc.mass = b2Body_GetMass(body);
             }
 
+        // Fixed rotation -> b2Body
+            if(b2Body_IsFixedRotation(body) != rbc.rotation_fixed)
+                b2Body_SetFixedRotation(body, rbc.rotation_fixed);
+
         // Transform -> b2Body
+            glm::vec2 last_pos{ std::bit_cast<glm::vec2>(b2Body_GetPosition(body)) };
+            float last_rot{ b2Rot_GetAngle(b2Body_GetRotation(body)) }; // radian
+
             const auto& tc{ entity.get<TransformComponent>() };
-            b2Body_SetTransform(body,
-                b2Vec2 (
-                    tc.translation.x + Renderer2D::quad_centre.x,
-                    tc.translation.y + Renderer2D::quad_centre.y
-                ),
-                b2MakeRot(glm::radians(tc.rotation.z))
-            );
+            glm::vec2 pos {
+                tc.translation.x + Renderer2D::quad_centre.x,
+                tc.translation.y + Renderer2D::quad_centre.y
+            };
+            float rot{ glm::radians(tc.rotation.z) }; // radian
+            
+            if(last_pos != pos || std::abs(last_rot - rot) > 0.01f)
+                b2Body_SetTransform(body, std::bit_cast<b2Vec2>(pos), b2MakeRot(rot));
 
         // Velocity -> b2Body
-            b2Body_SetLinearVelocity(body, { rbc.velocity.x, rbc.velocity.y });
+            b2Vec2 velocity{ rbc.velocity.x, rbc.velocity.y };
+            if(b2Body_GetLinearVelocity(body) != velocity)
+                b2Body_SetLinearVelocity(body, velocity);
             b2Body_SetAngularVelocity(body, rbc.angular_velocity);
 
         // Shape create or rebuild
