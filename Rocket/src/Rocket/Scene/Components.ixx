@@ -185,10 +185,10 @@ export namespace rke
 
     struct RKE_API NativeScriptComponent
     {
-        ScriptType script_type{};
+        ScriptType script_type{ script_type_null };
 
     /* runtime cache(do not serialize) */
-        ScriptType resolved_script_type{};
+        ScriptType resolved_script_type{ script_type_null };
         Script* script_handle{}; // will be cleared by ScriptManager
 
         NativeScriptComponent() = default;
