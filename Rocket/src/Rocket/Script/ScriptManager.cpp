@@ -101,6 +101,9 @@ namespace rke
         Scope<Script> script{ script_reg.construct_script(type) };
         if(!script) {
             CORE_ERROR(u8"ScriptManager: Failed to create script!");
+            nsc.script_type = script_type_null;
+            nsc.script_handle = nullptr;
+            nsc.resolved_script_type = script_type_null;
             return nullptr;
         }
     // set mutual refs

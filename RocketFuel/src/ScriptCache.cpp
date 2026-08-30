@@ -6,9 +6,11 @@
     #define RKE_GLUE_API
 #endif
 
+#include <bit>
 #include <vector>
 #include <memory>
 
+import Script;
 import ScriptRegistry;
 
 namespace
@@ -35,7 +37,7 @@ namespace rke::glue
     {
         if(!reg) return false;
         for(ScriptEntry entry : get_entires_cache())
-            reg->register_script(uintptr_t(entry.name), entry.constructor);
+            reg->register_script(std::bit_cast<ScriptType>(entry.name), entry.constructor);
         return true;
     }
 }

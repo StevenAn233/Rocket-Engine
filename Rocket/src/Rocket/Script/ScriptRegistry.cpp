@@ -5,12 +5,11 @@ import Log;
 
 namespace rke
 {
-    void ScriptRegistry::register_script(uintptr type_id, ScriptConstructor func)
+    void ScriptRegistry::register_script(ScriptType type, ScriptConstructor func)
     {
-        ScriptType type{ static_cast<ScriptType>(type_id) };
         CORE_ASSERT(!has_script_type(type), u8"ScriptRegistry: Script has already been registered!");
         script_types_.push_back(type);
-        script_constructors_.emplace(type_id, func);
+        script_constructors_.emplace(static_cast<uintptr>(type), func);
     }
 
     Scope<Script> ScriptRegistry::construct_script(ScriptType type)
@@ -27,7 +26,10 @@ namespace rke
         { return script_constructors_.contains(static_cast<uintptr>(type)); }
 
     String ScriptRegistry::get_script_name(ScriptType type) const
-        { return String(std::bit_cast<const char8*>(type)); }
+    {
+        if(type == script_type_null) return {};
+        return String(std::bit_cast<const char8*>(type));
+    }
 
     ScriptType ScriptRegistry::get_script_type(const String& name) const
     {

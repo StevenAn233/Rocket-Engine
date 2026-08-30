@@ -321,6 +321,7 @@ namespace rke
         for(entt::entity ent : view)
         {
             auto& nsc{ registry_->get<NativeScriptComponent>(ent) };
+            if(nsc.script_type == script_type_null) continue;
             String name{ std::bit_cast<const char8*>(nsc.script_type) };
             nsc.script_type = script_reg.get_script_type(name);
         }
@@ -402,7 +403,10 @@ namespace rke
         auto view{ registry_->view<NativeScriptComponent>() };
         for(entt::entity ent : view)
         {
-            Script* script{ registry_->get<NativeScriptComponent>(ent).script_handle };
+            auto& nsc{ registry_->get<NativeScriptComponent>(ent) };
+            if(nsc.script_type != nsc.resolved_script_type)
+                script_manager_->refresh_script(static_cast<uint32>(ent));
+            Script* script{ nsc.script_handle };
             if(script) script->on_mouse_scrolled(e.get_x_offset(), e.get_y_offset());
         }
     }

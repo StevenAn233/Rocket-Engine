@@ -21,7 +21,7 @@ export namespace rke
         ~ScriptRegistry() = default;
 
         // name will always be string literals(if not directly called)
-        RKE_API void register_script(uintptr type_id, ScriptConstructor func);
+        RKE_API void register_script(ScriptType type, ScriptConstructor func);
         RKE_API void clear();
 
         RKE_API Scope<Script> construct_script(ScriptType type);
