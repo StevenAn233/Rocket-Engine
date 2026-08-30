@@ -41,9 +41,10 @@ namespace rke
         stbtt_PackEnd(&pack_context);
 
     // create texture
-        font_atlas_ = Texture2D::create(atlas_size_, atlas_size_, Texture::Format::R8);
-        font_atlas_->set_data(temp_bitmap, atlas_size_ * atlas_size_);
-
+        font_atlas_ = GTexture2D::create (
+            atlas_size_, atlas_size_,
+            GTexture::Format::R8, temp_bitmap, {}, {}
+        );
         delete[] temp_bitmap;
     }
 

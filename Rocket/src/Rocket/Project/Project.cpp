@@ -107,12 +107,18 @@ namespace rke
             auto registar{ script_dylib_loader_->get_register_scripts_func() };
             if(!registar(script_registry_.get()))
             {
+                for(auto& [_, scene] : scene_map_)
+                    scene->on_script_dylib_hot_reloading(*script_registry_);
                 CORE_ERROR(u8"Project: Failed to register scripts!");
                 return false;
             }
+            for(auto& [_, scene] : scene_map_)
+                scene->on_script_dylib_hot_reloading(*script_registry_);
             CORE_INFO(u8"Project: Scripts Registered.");
             return true;
         }
+        for(auto& [_, scene] : scene_map_)
+            scene->on_script_dylib_hot_reloading(*script_registry_);
         CORE_ERROR(u8"Project: Failed to load dylib!");
         return false;
     }

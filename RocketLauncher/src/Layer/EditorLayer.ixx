@@ -67,8 +67,8 @@ export namespace rke
         Scope<Scene> scene_test_{}; // A copy of scene_edit_; Temporary.
         SceneSerializer scene_serializer_{};
 
-        const Texture2D* main_output_{};
-        const Texture2D* cam_output_ {};
+        const GTexture2D* main_output_{};
+        const GTexture2D* cam_output_ {};
 
     // Panels
         Scope<EditorSettingPanel> editor_setting_panel_{};

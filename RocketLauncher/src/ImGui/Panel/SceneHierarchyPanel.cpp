@@ -270,10 +270,9 @@ namespace rke
         check_then_draw<SpriteComponent, u8"Sprite">(entity, [this](Entity ent)
         {
             auto& sc{ ent.get_mut<SpriteComponent>() };
-            AssetsManager& assets_manager{ context_->get_owner()->get_assets_manager() };
+            AssetsManager& assets_manager{ context_->get_owner()->get_assets_manager_mut() };
 
         // Texture
-            bool no_texture{ !sc.has_texture() };
             constexpr ImGuiTreeNodeFlags tree_flags
             {   ImGuiTreeNodeFlags_SpanFullWidth
               | ImGuiTreeNodeFlags_AllowOverlap 
@@ -283,7 +282,8 @@ namespace rke
             };
 
             ImGui::PushID("TextureAssetNode");
-            bool tex_opened{ false };
+        
+            bool no_texture{ sc.tex_uuid.empty() }, tex_opened{ false };
             if(no_texture) ImGui::Text("Texture:");
             else tex_opened = ImGui::TreeNodeEx("##TextureTree", tree_flags, "Texture:");
             ImGui::SameLine();
@@ -297,6 +297,7 @@ namespace rke
                 sc.tex_uuid = uuid;
                 sc.tex_handle = asset_handle_null;
 
+                sc.gtex_settings = {};
                 sc.uv_offset = glm::vec2(0.0f);
                 sc.uv_scale  = glm::vec2(1.0f);
             }};
@@ -309,7 +310,8 @@ namespace rke
             }
             ImGui::PopStyleColor();
 
-            if(ImGui::BeginDragDropTarget()) { // Attached to button ^
+            if(ImGui::BeginDragDropTarget())
+            {
                 if(const auto* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ASSET") })
                 {
                     AssetUUID dropped_uuid{ *reinterpret_cast<const AssetUUID*>(payload->Data) };
@@ -321,21 +323,17 @@ namespace rke
 
             ImGui::Columns(1);
 
-            if(tex_opened && sc.is_texture_loaded())
+            if(tex_opened)
             {
-                AssetSettings settings{ assets_manager.get_asset_settings(sc.tex_uuid) }; // copied!
-                TextureSettings& tex_settings{ settings.tex };
-
                 layout::two_columns_table<u8"Filter">([&]()
                 {
                     static constexpr const char* items[]{ "Linear", "Nearest" };
-                    int option{ static_cast<int>(tex_settings.filt) };
+                    int option{ static_cast<int>(sc.gtex_settings.filt) };
 
                     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                     if(ImGui::Combo("##filt", &option, items, (int)std::size(items)))
                     {
-                        tex_settings.filt = static_cast<Texture::FiltFormat>(option);
-                        refresh_sprite(assets_manager.get_sub_uuid(sc.tex_uuid, settings), sc);
+                        sc.gtex_settings.filt = static_cast<GTexture::FiltFormat>(option);
                         context_->mark_modified();
                     }
                 });
@@ -343,14 +341,13 @@ namespace rke
                 layout::two_columns_table<u8"Wrapping">([&]()
                 {
                     static constexpr const char* items[]{ "Clamp to Edge", "Repeat" };
-                    int option{ static_cast<int>(tex_settings.wrap) };
+                    int option{ static_cast<int>(sc.gtex_settings.wrap) };
                 
                     float available_width{ ImGui::GetContentRegionAvail().x };
                     ImGui::SetNextItemWidth(available_width);
                     if(ImGui::Combo("##wrap", &option, items, (int)std::size(items)))
                     {
-                        tex_settings.wrap = static_cast<Texture::WrapFormat>(option);
-                        refresh_sprite(assets_manager.get_sub_uuid(sc.tex_uuid, settings), sc);
+                        sc.gtex_settings.wrap = static_cast<GTexture::WrapFormat>(option);
                         context_->mark_modified();
                     }
                 });
@@ -362,8 +359,8 @@ namespace rke
                     ));
                 context_->mark_modified_if (
                     layout::drag_float2_control<u8"UV Scale"> (
-                        sc.uv_scale, 0.1f, { 1.0f, 1.0f },
-                        glm::vec2(0.0f, 1000.0f), glm::vec2(0.0f, 1000.0f), u8"%.1f"
+                        sc.uv_scale, 0.01f, { 1.0f, 1.0f },
+                        glm::vec2(0.0f, 100.0f), glm::vec2(0.0f, 100.0f), u8"%.2f"
                     ));
             }
             if(tex_opened) ImGui::TreePop();
@@ -505,36 +502,32 @@ namespace rke
             const ScriptRegistry& script_registry
                 { context_->get_owner()->get_script_registry() };
 
-            const char* current_script_name{ "No Script" };
-            if(!nsc.script_name.empty())
-            {
-                if(script_registry.has_script(nsc.script_name))
-                    current_script_name = nsc.script_name.raw();
-                else current_script_name = "<Missing Script>";
+            const char* curr_script_name{ "No Script" };
+            bool no_script{ nsc.script_type == script_type_null };
+            if(!no_script) {
+                if(script_registry.has_script_type(nsc.script_type))
+                    curr_script_name = std::bit_cast<const char*>(nsc.script_type);
+                else curr_script_name = "<Missing Script>";
             }
             // script_name  empty : No Script
             // script_name !empty && name  found : <Script Name>
             // script_name !empty && name !found : <Missing Script>
 
-            if(ImGui::BeginCombo("##script", current_script_name))
+            if(ImGui::BeginCombo("##script", curr_script_name))
             {
-                bool is_none_selected{ nsc.script_name.empty() };
-                if(ImGui::Selectable("No Script", is_none_selected))
+                if(ImGui::Selectable("No Script", no_script))
                 {
-                    nsc.script_name.clear();
-                    context_->refresh_script(ent);
+                    nsc.script_type = script_type_null;
                     context_->mark_modified();
                 }
-                if(is_none_selected) ImGui::SetItemDefaultFocus();
+                if(no_script) ImGui::SetItemDefaultFocus();
 
-                for(const char8* c_str : script_registry.get_script_types())
+                for(ScriptType type : script_registry.get_script_types())
                 {
-                    String name{ c_str };
-                    bool is_selected{ nsc.script_name == name };
-                    if(ImGui::Selectable(name.raw(), is_selected))
+                    bool is_selected{ nsc.script_type == type };
+                    if(ImGui::Selectable(std::bit_cast<const char*>(type), is_selected))
                     {
-                        nsc.script_name = std::move(name);
-                        context_->refresh_script(ent);
+                        nsc.script_type = type;
                         context_->mark_modified();
                     }
                     if(is_selected) ImGui::SetItemDefaultFocus();

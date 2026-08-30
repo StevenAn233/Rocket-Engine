@@ -64,8 +64,10 @@ export namespace rke
         inline const Config& get_config() const { return project_config_; }
         inline Config& get_config_mut() { return project_config_; }
 
-        inline AssetsManager& get_assets_manager() { return *assets_manager_; }
-        inline ScriptRegistry& get_script_registry() { return *script_registry_; }
+        inline const AssetsManager& get_assets_manager() const { return *assets_manager_; }
+        inline const ScriptRegistry& get_script_registry() const { return *script_registry_; }
+        inline AssetsManager& get_assets_manager_mut() { return *assets_manager_; }
+        inline ScriptRegistry& get_script_registry_mut() { return *script_registry_; }
 
         bool create_scene(const String& name);
         Scene* load_scene(const String& name, SceneSerializer& scene_serializer);

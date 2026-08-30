@@ -8,7 +8,7 @@
 export module FrameBuffer:Base;
 
 import Types;
-import Texture;
+import GTexture;
 import HeapManager;
 
 export namespace rke
@@ -22,21 +22,21 @@ export namespace rke
             enum class LoadOp { CLEAR, LOAD };
 
             TextureSpecification()
-                : format(Texture::Format::None), clear_value({})
-                , load_op(LoadOp::CLEAR), filtering(Texture::FiltFormat::Linear) {};
-            TextureSpecification(Texture::Format tex_format,
+                : format(GTexture::Format::None), clear_value({})
+                , load_op(LoadOp::CLEAR), filtering(GTexture::FiltFormat::Linear) {};
+            TextureSpecification(GTexture::Format tex_format,
                                  ClearValue clear_value = {},
                                  LoadOp op = LoadOp::CLEAR,
-                                 Texture::FiltFormat filt = Texture::FiltFormat::Linear)
+                                 GTexture::FiltFormat filt = GTexture::FiltFormat::Linear)
                 : format(tex_format), clear_value(std::move(clear_value))
                 , load_op(op), filtering(filt) {}
 
-            Texture::Format format;
+            GTexture::Format format;
             ClearValue clear_value;
             LoadOp load_op;
 
-            Texture::FiltFormat filtering;
-        //  Texture::WrapFormat wrapping;
+            GTexture::FiltFormat filtering;
+        //  GTexture::WrapFormat wrapping;
         };
 
         struct RKE_API AttachmentSpecification
@@ -84,9 +84,8 @@ export namespace rke
         virtual int  read_pixel(uint32 attach_index, int x, int y) = 0;
         virtual void clear_pbo() = 0;
 
-        virtual uint32 get_renderer_id() const = 0;
-        virtual uint32 get_attachment(int index = 0) const = 0;
-        virtual const Texture2D* get_texture(int index = 0) const = 0;
+        virtual uint32 get_gal_id() const = 0;
+        virtual const GTexture2D* get_gtexture_attached(int index = 0) const = 0;
         virtual const Specification& get_specification() const = 0;
 
         static Scope<FrameBuffer> create(Specification spec);

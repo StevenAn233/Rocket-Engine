@@ -5,11 +5,13 @@ import Types;
 import Log;
 import Components;
 import FileUtils;
+import GTexture;
+import Project;
 
 namespace {
     using namespace rke;
 
-    static void serialize_entity(ConfigWriter& writer, Entity entity)
+    static void serialize_entity(const Scene& scene, ConfigWriter& writer, Entity entity)
     {
         CORE_ASSERT(entity.valid(), u8"SceneSerializer: Entity invalid!");
         writer.begin_map();
@@ -53,15 +55,19 @@ namespace {
             writer.begin_map(u8"Sprite Component");
 
             const auto& sc{ entity.get<SpriteComponent>() };
-            writer.write(u8"Color"  , ConfigValue(sc.color));
+            
             writer.write(u8"Texture", ConfigValue(sc.tex_uuid.value()));
-            if(sc.has_texture())
+            if(!sc.tex_uuid.empty())
             {
                 writer.begin_map(u8"Settings");
                 writer.write(u8"UV Offset", ConfigValue(sc.uv_offset));
                 writer.write(u8"UV Scale",  ConfigValue(sc.uv_scale ));
+                writer.write(u8"Filt", static_cast<int>(sc.gtex_settings.filt));
+                writer.write(u8"Wrap", static_cast<int>(sc.gtex_settings.wrap));
+                writer.write(u8"sRGB", sc.gtex_settings.srgb);
                 writer.end_map();
             }
+            writer.write(u8"Color"  , ConfigValue(sc.color));
             writer.write(u8"Blending Mode", static_cast<uint32>(sc.blending_mode));
             writer.write(u8"Rendering Layer", ConfigValue(sc.rendering_layer));
 
@@ -99,8 +105,9 @@ namespace {
             writer.begin_map(u8"Native-Script Component");
 
             const auto& nsc{ entity.get<NativeScriptComponent>() };
-            writer.write(u8"Script Name", ConfigValue(nsc.script_name));
-            writer.write(u8"Wants to Update", ConfigValue(nsc.wants_to_update));
+            const auto& script_reg{ scene.get_owner()->get_script_registry() };
+            String name{ script_reg.get_script_name(nsc.script_type) };
+            writer.write(u8"Script Name", ConfigValue(name));
 
             writer.end_map();
         }
@@ -144,9 +151,14 @@ namespace {
             auto& sc{ entity.emplace<SpriteComponent>
                 (AssetUUID(sc_reader->get_at(u8"Texture", 0ui64)))};
             Scope<ConfigReader> tex_config{ sc_reader->get_child(u8"Settings") };
-            if(sc.has_texture() && tex_config) {
+            if(!sc.tex_uuid.empty() && tex_config) {
                 sc.uv_offset = tex_config->get_at(u8"UV Offset", glm::vec2(0.0f));
-                sc.uv_scale  = tex_config->get_at(u8"UV Scale",  glm::vec2(1.0f));
+                sc.uv_scale  = tex_config->get_at(u8"UV Scale" , glm::vec2(1.0f));
+                sc.gtex_settings.filt = static_cast<GTexture::FiltFormat>
+                    (tex_config->get_at(u8"Filt", static_cast<int>(sc.gtex_settings.filt)));
+                sc.gtex_settings.wrap = static_cast<GTexture::WrapFormat>
+                    (tex_config->get_at(u8"Wrap", static_cast<int>(sc.gtex_settings.wrap)));
+                sc.gtex_settings.srgb = tex_config->get_at(u8"sRGB", sc.gtex_settings.srgb);
             }
             sc.color = sc_reader->get_at(u8"Color", glm::vec4(1.0f));
             sc.blending_mode = static_cast<SpriteComponent::BlendingMode>
@@ -178,8 +190,9 @@ namespace {
         Scope<ConfigReader> nsc_reader{ reader.get_child(u8"Native-Script Component") };
         if(nsc_reader) {
             auto& nsc{ entity.emplace<NativeScriptComponent>() };
-            nsc.script_name     = nsc_reader->get_at(u8"Script Name", String{});
-            nsc.wants_to_update = nsc_reader->get_at(u8"Wants to Update", true);
+            const auto& script_reg{ scene.get_owner()->get_script_registry() };
+            String name{ nsc_reader->get_at(u8"Script Name", String{}) };
+            nsc.script_type = script_reg.get_script_type(name);
         }
     }
 }
@@ -200,7 +213,7 @@ namespace rke
         {
             Entity entity{ scene.get_entity(static_cast<uint32>(*it)) };
             if(!entity.valid()) continue;
-            serialize_entity(*(writer.get()), entity);
+            serialize_entity(scene, *(writer.get()), entity);
         }
         writer->end_array();
 

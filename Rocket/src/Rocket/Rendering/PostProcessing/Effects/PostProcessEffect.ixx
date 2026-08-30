@@ -11,7 +11,7 @@ import Shader;
 import HeapManager;
 import Types;
 import String;
-import Texture;
+import GTexture;
 import GBuffers;
 import FrameBuffer;
 import ConfigProxy;
@@ -34,8 +34,8 @@ export namespace rke
         const String& get_name() const { return name_; }
         bool enabled() const { return enabled_situation_(); }
 
-        virtual bool apply(const Texture2D* source, FrameBuffer* destination) = 0;
-        // if returns true , use destination->get_texture();
+        virtual bool apply(const GTexture2D* source, FrameBuffer* destination) = 0;
+        // if returns true , use destination->get_gtexture_attached();
         // if returns false, use (original)source
 
         virtual void serialize_to(ConfigWriter& writer) const {}

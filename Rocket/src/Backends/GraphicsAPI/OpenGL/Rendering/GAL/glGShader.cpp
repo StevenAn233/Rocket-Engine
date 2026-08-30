@@ -6,7 +6,7 @@
 
 #include <glad/glad.h>
 
-module Shader;
+module GShader;
 import :OpenGL;
 
 import Log;
@@ -97,85 +97,82 @@ namespace {
 
 namespace rke
 {
-    glShader::glShader(const String& name, const ShaderPathMap& paths)
+    glGShader::glGShader(const String& name, const ShaderSources& sources)
         : name_(std::move(name))
     {
-        ShaderSources sources {};
-        ShaderPaths   gl_paths{};
+        ShaderGLSources gl_sources{};
+        ShaderGLPaths   gl_paths{};
 
-        for(const auto& [stage, path] : paths)
+        for(const auto& [stage, source] : sources)
         {
-            CORE_ASSERT(path.exists(), u8"glShader: "
-                u8"Shader path '{}' doesn't exist!", path.string());
-        
             GLenum gl_type{ to_gl_enum(stage) };
-            sources [gl_type] = { path, file::read_file_string(path) };
-            gl_paths[gl_type] = path;
+            gl_sources[gl_type] = source; // std::pair<...>(path, code)
+            gl_paths  [gl_type] = source.first;
         }
 
-        compile_or_get_vulkan_spirv(sources );
+        compile_or_get_vulkan_spirv(gl_sources);
         compile_or_get_opengl_spirv(gl_paths);
         create_program();
     }
 
-    glShader::~glShader()
+    glGShader::~glGShader()
     {
         opengl_spirv_.clear();
         vulkan_spirv_.clear();
-        glDeleteProgram(renderer_id_);
+        glDeleteProgram(gal_id_);
     }
 
-    void glShader::bind  () const { glUseProgram(renderer_id_); }
-    void glShader::unbind() const { glUseProgram(0); }
+    void glGShader::bind() const { glUseProgram(gal_id_); }
+    void glGShader::unbind() const { glUseProgram(0); }
 
-    const Shader& glShader::upload(StringView name, int v) const
+    const GShader& glGShader::upload(StringView name, int v) const
     {
         glUniform1i(get_uniform_location(name), v);
         return *this;
     }
-    const Shader& glShader::upload(StringView name, float v) const
+    const GShader& glGShader::upload(StringView name, float v) const
     {
         glUniform1f(get_uniform_location(name), v);
         return *this;
     }
-    const Shader& glShader::upload(StringView name, int count, int* data) const
+    const GShader& glGShader::upload(StringView name, int count, int* data) const
     {
         glUniform1iv(get_uniform_location(name), count, data);
         return *this;
     }
-    const Shader& glShader::upload(StringView name, float v0, float v1, float v2) const
+    const GShader& glGShader::upload(StringView name, float v0, float v1, float v2) const
     {
         glUniform3f(get_uniform_location(name), v0, v1, v2);
         return *this;
     }
-    const Shader& glShader::upload(StringView name, glm::vec2 vec) const
+    const GShader& glGShader::upload(StringView name, glm::vec2 vec) const
     {
         glUniform2f(get_uniform_location(name), vec.x, vec.y);
         return *this;
     }
-    const Shader& glShader::upload(StringView name, glm::vec3 vec) const
+    const GShader& glGShader::upload(StringView name, glm::vec3 vec) const
     {
         glUniform3f(get_uniform_location(name), vec.x, vec.y, vec.z);
         return *this;
     }
-    const Shader& glShader::upload(StringView name, glm::vec4 vec) const
+    const GShader& glGShader::upload(StringView name, glm::vec4 vec) const
     {
         glUniform4f(get_uniform_location(name), vec[0], vec[1], vec[2], vec[3]);
         return *this;
     }
-    const Shader& glShader::upload(StringView name,
-                                   float v0, float v1, float v2, float v3) const
+    const GShader& glGShader::upload(StringView name,
+        float v0, float v1, float v2, float v3) const
     {
         glUniform4f(get_uniform_location(name), v0, v1, v2, v3);
         return *this;
     }
 
-    int glShader::get_uniform_location(const String& name) const
+    int glGShader::get_uniform_location(const String& name) const
     {
         auto it{ uniform_location_cache_.find(name) };
         if(it != uniform_location_cache_.end()) return it->second;
 
-        GLint location{ glGetUniformLocation(renderer_id_, name.raw()) };
+        GLint location{ glGetUniformLocation(gal_id_, name.raw()) };
         if(location == -1) CORE_WARN(u8"Shader: Uniform '{}' not found!", name);
         uniform_location_cache_[name] = location;
         return location;
@@ -183,7 +180,7 @@ namespace rke
         // there won't be any errors, so we just call a CORE_WARN
     }
 
-    void glShader::compile_or_get_vulkan_spirv(const ShaderSources& sources)
+    void glGShader::compile_or_get_vulkan_spirv(const ShaderGLSources& sources)
     {
         shaderc::Compiler compiler{};
         shaderc::CompileOptions options{};
@@ -240,7 +237,7 @@ namespace rke
         }
     }
 
-    void glShader::compile_or_get_opengl_spirv(const ShaderPaths& paths)
+    void glGShader::compile_or_get_opengl_spirv(const ShaderGLPaths& paths)
     {
         shaderc::Compiler compiler{};
         shaderc::CompileOptions options{};
@@ -295,7 +292,7 @@ namespace rke
         }
     }
 
-    void glShader::create_program()
+    void glGShader::create_program()
     {
         GLuint program{ glCreateProgram() };
 
@@ -332,10 +329,11 @@ namespace rke
         }
     // ---
 
-        for(auto id : shader_ids) {
+        for(auto id : shader_ids)
+        {
             glDetachShader(program, id);
             glDeleteShader(id);
         }
-        renderer_id_ = program;
+        gal_id_ = program;
     }
 }

@@ -7,10 +7,10 @@ namespace rke
         : PostProcessEffect(std::move(name), std::move(func))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
-        shader_ = Shader::create(file::assets_dir() / u8"shaders" / u8"fxaa.rkshdr");
+        shader_ = create_scope<Shader>(file::assets_dir() / u8"shaders" / u8"fxaa.rkshdr");
     }
 
-    bool FXAAEffect::apply(const Texture2D* source, FrameBuffer* destination)
+    bool FXAAEffect::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
 
@@ -19,9 +19,9 @@ namespace rke
             source->bind(BindingPoint::Sampler2D_0);
             ubo_->bind(BindingPoint::UBO_PostProcess);
 
-            shader_->bind();
+            shader_->get_gshader()->bind();
             app().render_command().draw_quad();
-            shader_->unbind();
+            shader_->get_gshader()->unbind();
         });
         return true;
     }

@@ -40,6 +40,7 @@ namespace rke
 
         void apply_force(Entity entity, glm::vec2 force) override;
     private:
+        void register_shape_entity(b2ShapeId shape_id, uint32 handle);
         void unregister_shape_entity(b2ShapeId shape_id);
         uint32 get_entity_from_shape(b2ShapeId shape_id) const;
 
@@ -64,7 +65,5 @@ namespace rke
     private:
         b2WorldId physics_world_;
         std::unordered_map<b2ShapeId, uint32> shape_to_entity_{};
-        // for sync from transform(to see what't been changed)
-        std::vector<glm::vec2> shape_size_cache_{}; 
     };
 }

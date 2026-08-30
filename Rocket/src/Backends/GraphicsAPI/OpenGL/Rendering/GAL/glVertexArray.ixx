@@ -14,14 +14,14 @@ namespace rke
         void add_vbo(Ref<VertexBuffer> vbo, const GBufferLayout& layout) override;
         void set_ibo(Ref<IndexBuffer > ibo) override;
 
-        uint32 get() const override { return renderer_id_; }
+        uint32 get() const override { return gal_id_; }
         const VertexBuffer& get_vbo(Size index) const override;
         const IndexBuffer& get_ibo() const override;
 
         void bind  () const override;
         void unbind() const override;
     private:
-        uint32 renderer_id_{};
+        uint32 gal_id_{};
 
         std::vector<Ref<VertexBuffer>> vbos_{}; // keep vbos alive
         Ref<IndexBuffer> ibo_{}; // keep the ibo alive(for draw-call)

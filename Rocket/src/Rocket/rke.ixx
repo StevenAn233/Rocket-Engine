@@ -8,10 +8,10 @@ export import String;
 export import Path;
 
 export import Types;
-export import Time;
 export import HeapManager;
 export import Instrumentor;
 
+export import Time;
 export import Random;
 export import FileUtils;
 export import MathUtils;
@@ -41,12 +41,16 @@ export import Gravity2D;
 export import PhysicsLayers;
 
 export import AssetsManager;
-export import GBuffers;
-export import FrameBuffer;
-export import VertexArray;
 export import Shader;
 export import Texture;
 export import Font;
+export import Mesh;
+
+export import GBuffers;
+export import GTexture;
+export import GShader;
+export import FrameBuffer;
+export import VertexArray;
 
 export import Camera;
 export import Renderer;

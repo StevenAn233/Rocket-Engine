@@ -8,10 +8,9 @@ export module SceneRenderer;
 import Types;
 import Scene;
 import HeapManager;
-import Texture;
+import GTexture;
 import FrameBuffer;
 import Window;
-import Shader;
 import PostProcessor;
 import PostProcessEffect;
 import MathUtils;
@@ -31,8 +30,8 @@ export namespace rke
         inline void set_samples(uint32 samples) { scene_fbo_->set_samples(samples); }
 
         void add_effect(Scope<PostProcessEffect> effect);
-        const Texture2D* render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
-        const Texture2D* render(const Scene* scene, Entity camera);
+        const GTexture2D* render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
+        const GTexture2D* render(const Scene* scene, Entity camera);
 
         void on_viewport_resized(uint32 w, uint32 h);
 

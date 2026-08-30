@@ -2,23 +2,33 @@
 module Toolbar;
 
 namespace {
+    static const rke::GTextureSettings s_icon_settings
+    {
+        rke::GTexture::FiltFormat::Linear,
+        rke::GTexture::WrapFormat::Clamp2Edge,
+        false
+    };
+
     static void ImGui_ImplOpenGL3_DisableBindSampler(const ImDrawList*, const ImDrawCmd*)
         { rke::imgui::disable_bind_sampler(); }
 }
 
 namespace rke
 {
-    IconButton::IconButton(String name, String str_id, Scope<Texture2D> icon,
+    IconButton::IconButton(String name, String str_id, Scope<Texture> icon,
                            std::function<void(IconButton*)> on_click,
                            std::function<bool()> is_enabled, bool visible)
         : name_(std::move(name)), str_id_(std::move(str_id)), icon_(std::move(icon))
         , on_click_(std::move(on_click)), is_enabled_(std::move(is_enabled))
-        , visible_(visible) {}
+        , visible_(visible)
+    {
+        CORE_ASSERT(icon_, u8"IconButton: Icon null!");
+        gtex_cache_ = icon_->get_gtexture(s_icon_settings);
+        CORE_ASSERT(gtex_cache_, u8"IconButton: Failed to generate GTexture!");
+    }
 
     void IconButton::render(float size)
     {
-        CORE_ASSERT(icon_, u8"IconButton: Icon invalid!");
-
         bool now_disabled{ !is_enabled_() };
         if(visible_ || !now_disabled)
         {
@@ -27,7 +37,7 @@ namespace rke
             ImGui::GetWindowDrawList()->AddCallback
                 (ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
             if(ImGui::ImageButton(str_id_.raw(),
-                ImTextureRef(static_cast<ImTextureID>(icon_->get_renderer_id())),
+                ImTextureRef(static_cast<ImTextureID>(gtex_cache_->get_gal_id())),
                 { size, size }, { 0.0f, 1.0f }, { 1.0f, 0.0f },
                 { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }
             ))	{ if(on_click_) on_click_(this); }
@@ -87,13 +97,13 @@ namespace rke
     }
 
     void Toolbar::emplace_icon_button(String name, 
-        Scope<Texture2D> icon, std::function<void(IconButton*)> on_click,
+        const Path& icon_path, std::function<void(IconButton*)> on_click,
         std::function<bool()> is_enabled, bool visible)
     {
         Size count{ icon_buttons_.size() + 1 };
         icon_buttons_.emplace_back(std::move(name),
             String::format(u8"##{}@icon_button@{}", get_name(), count),
-            std::move(icon), std::move(on_click),
+            create_scope<Texture>(icon_path), std::move(on_click),
             is_enabled ? std::move(is_enabled) : []() { return true; },
             visible);
     }

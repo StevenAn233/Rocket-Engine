@@ -75,8 +75,7 @@ namespace rke
 
     void box2DPhysicsEngine2D::on_runtime_start()
     {
-        shape_to_entity_ .clear();
-        shape_size_cache_.clear();
+        shape_to_entity_.clear();
 
     // Create physics world
         b2WorldDef world_def{ b2DefaultWorldDef() };
@@ -92,8 +91,7 @@ namespace rke
 
     void box2DPhysicsEngine2D::on_runtime_stop()
     {
-        shape_to_entity_ .clear();
-        shape_size_cache_.clear();
+        shape_to_entity_.clear();
 
         if(empty()) return;
         sync_all_from_body();
@@ -186,13 +184,16 @@ namespace rke
     }
 
 // private
+    void box2DPhysicsEngine2D::register_shape_entity(b2ShapeId shape_id, uint32 handle)
+    {
+        if(B2_IS_NULL(shape_id)) return;
+        shape_to_entity_.emplace(shape_id, handle);
+    }
+    
     void box2DPhysicsEngine2D::unregister_shape_entity(b2ShapeId shape_id)
     {
         if(B2_IS_NULL(shape_id)) return;
         shape_to_entity_.erase(shape_id);
-        CORE_ASSERT(shape_id.index1 < shape_size_cache_.size(),
-            u8"box2DPhysicsEngine2D: Out of bound of size-cache!");
-        shape_size_cache_[shape_id.index1] = glm::vec2(0.0f);
     }
 
     uint32 box2DPhysicsEngine2D::get_entity_from_shape(b2ShapeId shape_id) const
@@ -302,14 +303,12 @@ namespace rke
         CORE_ASSERT(B2_IS_NON_NULL(shape_id), u8"box2dPhysicsEngine: Shape id null!");
 
         bcc.shape_id = std::bit_cast<uint64>(shape_id);
+        bcc.resolved_shape_size = glm::vec2
+            (bcc.half_extent.x * size_x, bcc.half_extent.y * size_y);
         rbc.mass = b2Body_GetMass(body_id);
 
     // register: null id will NEVER be registered
-        shape_to_entity_.emplace(shape_id, entity.get_handle());
-        if(shape_id.index1 >= shape_size_cache_.size())
-            shape_size_cache_.resize(2 * shape_id.index1, glm::vec2(0.0f));
-        shape_size_cache_[shape_id.index1] =
-            glm::vec2(bcc.half_extent.x * size_x, bcc.half_extent.y * size_y);
+        register_shape_entity(shape_id, entity.get_handle());
     }
 
     void box2DPhysicsEngine2D::destroy_shape(Entity entity)
@@ -324,6 +323,7 @@ namespace rke
         unregister_shape_entity(shape_id);
         b2DestroyShape(shape_id, true);
         bcc.shape_id = std::bit_cast<uint64>(b2_nullShapeId);
+        bcc.resolved_shape_size = glm::vec2(0.0f);
 
         if(entity.has<Rigidbody2DComponent>())
         {
@@ -365,9 +365,7 @@ namespace rke
             bcc.half_extent.x * std::abs(tc.scale.x) * mesh->get_size().x,
             bcc.half_extent.y * std::abs(tc.scale.y) * mesh->get_size().y
         };
-        CORE_ASSERT(shape.index1 < shape_size_cache_.size(),
-            u8"box2DPhysicsEngine2D: Out of bound of size-cache!");
-        if(shape_size_cache_[shape.index1] != expected) return true;
+        if(bcc.resolved_shape_size != expected) return true;
         
         return false;
     }

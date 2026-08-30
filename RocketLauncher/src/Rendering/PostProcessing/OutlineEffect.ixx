@@ -19,7 +19,7 @@ export namespace rke
             std::function<Entity()> target_getter);
 
         Category get_category() const override { return Category::Helper; }
-        bool apply(const Texture2D* source, FrameBuffer* destination) override;
+        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
         void serialize_to(ConfigWriter& writer) const override;
         void deserialize_from(const ConfigReader& reader) override;
 

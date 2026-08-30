@@ -9,7 +9,7 @@ export namespace rke
     {
     public:
         using ViewportCallback = std::function<void(Viewport&)>;
-        using TargetGetter = std::function<const Texture2D*()>;
+        using TargetGetter = std::function<const GTexture2D*()>;
 
         Viewport(String name, TargetGetter getter);
 

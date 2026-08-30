@@ -9,11 +9,10 @@ namespace rke { class Window; }
 export module Renderer;
 
 import Types;
-import Font;
 import Mesh;
 import Camera;
 import HeapManager;
-import Texture;
+import GTexture;
 import Shader;
 import String;
 import NativeWindow;
@@ -72,7 +71,7 @@ export namespace rke
     public:
         static constexpr uint32 max_vertices{ 1000000 };
         static constexpr uint32 max_indices { 1500000 };
-        static constexpr uint32 max_texture_slots{ 32 };
+        static constexpr uint32 max_gtex_slots{ 32 };
     public:
         Renderer(Window* context);
         ~Renderer();
@@ -86,7 +85,7 @@ export namespace rke
         RKE_API void begin_scene();
         RKE_API void end_scene();
 
-        RKE_API void push(const Mesh* mesh, const Texture2D* texture, const RenderProps& props);
+        RKE_API void push(const Mesh* mesh, const GTexture* gtex, const RenderProps& props);
     
         static void init(); // requires main window context current
 
@@ -100,12 +99,12 @@ export namespace rke
     private:
         Window* context_;
 
-        std::array<const Texture2D*, max_texture_slots> texture_slots_{};
-        uint32 texture_slot_index_{ 1 }; // 0 for default texture
+        std::array<const GTexture*, max_gtex_slots> gtex_slots_{};
+        uint32 gtex_slot_index_{ 1 }; // 0 for default texture
         bool in_scene_{ false };
 
         ContextData data_{};
-        Scope<Texture2D> default_texture_{};
+        Scope<GTexture2D> default_texture_{};
     #ifdef RKE_ENABLE_STATISTICS
         Statistics stats_{};
     #endif

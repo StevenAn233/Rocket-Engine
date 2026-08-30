@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <entt/entt.hpp>
 #include "rke_macros.h"
-namespace rke { class Project; class ScriptManager; }
+namespace rke { class Project; class ScriptRegistry; class ScriptManager; }
 
 export module Scene;
 
@@ -142,12 +142,13 @@ export namespace rke
         void set_demo_camera(uint32 handle) { set_demo_camera(get_entity(handle)); }
         void set_demo_camera(UUID uuid) { set_demo_camera(get_entity(uuid)); }
 
-        void refresh_script(Entity entity); // ScriptManager::refresh_script
-
         void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
         void set_entity_transform(Entity entity, glm::vec3 translation, glm::vec3 rotation);
         void apply_force(Entity entity, glm::vec2 force);
         void apply_acceleration(Entity entity, glm::vec2 acceleration);
+
+        // previous dylib can't be already unloaded when calling this function!
+        void on_script_dylib_hot_reloading(ScriptRegistry& script_reg);
 
         void clear();
         void on_update(double dt);

@@ -107,35 +107,15 @@ namespace rke
 
     // Toolbar
         toolbar_.emplace_icon_button(u8"Play",
-            Texture2D::create (
-                assets_dir / u8"icons" / u8"play.png",
-                Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false),
+            assets_dir / u8"icons" / u8"play.png",
             [this](IconButton*) { on_runtime_start(); },
             [this]() { return editing(); }
         );
 
         toolbar_.emplace_icon_button(u8"Stop",
-            Texture2D::create (
-                assets_dir / u8"icons" / u8"stop.png",
-                Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false
-            ),
+            assets_dir / u8"icons" / u8"stop.png",
             [this](IconButton*) { on_runtime_stop(); },
             [this]() { return testing(); }
-        );
-
-        toolbar_.emplace_icon_button(u8"Reload Script",
-            Texture2D::create (
-                assets_dir / u8"icons" / u8"refresh.png",
-                Texture::FiltFormat::Linear,
-                Texture::WrapFormat::Clamp2Edge, false
-            ),
-            [this](IconButton*) {
-                Project* project{ app().get_project() };
-                if(project) project->scripts_hot_reloading();
-            },
-            [this]() { return editing(); }
         );
 
     // Viewports

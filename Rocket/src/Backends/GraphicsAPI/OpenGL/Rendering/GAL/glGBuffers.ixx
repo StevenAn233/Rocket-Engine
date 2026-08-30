@@ -1,7 +1,7 @@
 ﻿module;
 
 #define GBUFFER_GENERAL_DECL \
-    uint32 get_renderer_id() const override { return renderer_id_; } \
+    uint32 get_gal_id() const override { return gal_id_; } \
     void* map(Access access) override; \
     void unmap() override
 
@@ -23,7 +23,7 @@ namespace rke
 
         GBUFFER_GENERAL_DECL;
     private:
-        uint32 renderer_id_{};
+        uint32 gal_id_{};
     };
 
     class glIndexBuffer : public IndexBuffer
@@ -37,7 +37,7 @@ namespace rke
 
         GBUFFER_GENERAL_DECL;
     private:
-        uint32 renderer_id_{};
+        uint32 gal_id_{};
         uint32 count_;
     };
 
@@ -52,7 +52,7 @@ namespace rke
 
         GBUFFER_GENERAL_DECL;
     private:
-        uint32 renderer_id_{};
+        uint32 gal_id_{};
     };
 
     class glPixelBuffer : public PixelBuffer
@@ -68,6 +68,6 @@ namespace rke
 
         GBUFFER_GENERAL_DECL;
     private:
-        uint32 renderer_id_{};
+        uint32 gal_id_{};
     };
 }

@@ -5,7 +5,7 @@
 export module Font;
 
 import Types;
-import Texture;
+import GTexture;
 import FileUtils;
 import HeapManager;
 import String;
@@ -21,7 +21,7 @@ export namespace rke
         Font(Font&&) = default;
         ~Font();
 
-        Texture2D* get_font_atlas() const { return font_atlas_.get(); }
+        GTexture2D* get_font_atlas() const { return font_atlas_.get(); }
         const void* get_char_data() const { return char_data_; }
 
         uint32 get_sampling() const { return sampling_; }
@@ -32,7 +32,7 @@ export namespace rke
         uint32 sampling_;
         uint32 atlas_size_;
 
-        Scope<Texture2D> font_atlas_{};
+        Scope<GTexture2D> font_atlas_{};
         void* char_data_{}; // stbtt_packedchar*
     };
 }

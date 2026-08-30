@@ -5,7 +5,7 @@
 export module ToneMapping;
 
 import PostProcessEffect;
-import Texture;
+import GTexture;
 import FrameBuffer;
 
 export namespace rke
@@ -21,7 +21,7 @@ export namespace rke
 
         ToneMapping(String name);
 
-        bool apply(const Texture2D* source, FrameBuffer* destination) override;
+        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
         void set_uniform(const Uniforms& uniforms);
     };
 }

@@ -2,26 +2,28 @@
 
 #include <glad/glad.h>
 
-export module Texture:OpenGL;
+export module GTexture:OpenGL;
 
 import :Base;
 import Types;
 
 namespace rke
 {
-    class glTexture2D : public Texture2D
+    class glGTexture2D : public GTexture2D
     {
     public:
-        glTexture2D(uint32 w, uint32 h, Format format, FiltFormat filt);
-        glTexture2D(const Path& filepath, FiltFormat filt, WrapFormat wrap, bool srgb);
-        glTexture2D(uint32 renderer_id, uint32 w, uint32 h, Format format);
-        ~glTexture2D() override;
+        glGTexture2D(uint32 w, uint32 h, Format format,
+            const void* data = nullptr,
+            FiltFormat filt = FiltFormat::Linear,
+            WrapFormat wrap = WrapFormat::Clamp2Edge);
+        glGTexture2D(uint32 gal_id, uint32 w, uint32 h, Format format);
+        ~glGTexture2D() override;
 
         uint32 get_width () const override { return width_;  }
         uint32 get_height() const override { return height_; }
 
         uint32 get_channels() const override { return channels_; }
-        uint32 get_renderer_id() const override { return renderer_id_; }
+        uint32 get_gal_id() const override { return gal_id_; }
 
         void set_data(void* data, uint32 size) override;
 
@@ -31,7 +33,7 @@ namespace rke
         bool owns_texture_; // TO MODIFY
 
         uint32 width_{}, height_{};
-        uint32 renderer_id_{};
+        uint32 gal_id_{};
 
         GLenum internal_format_{};
         GLenum data_format_{};

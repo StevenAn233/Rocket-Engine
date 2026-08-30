@@ -15,11 +15,11 @@ namespace rke
         CORE_ASSERT(context_, u8"OutlineEffect: Context window null!");
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         outline_fbo_ = FrameBuffer::create
-            ({ .attachment_spec{{ Texture::Format::R8, 0.0f }} });
-        shader_ = Shader::create(file::assets_dir() / u8"shaders" / u8"composite.rkshdr");
+            ({ .attachment_spec{{ GTexture::Format::R8, 0.0f }} });
+        shader_ = create_scope<Shader>(file::assets_dir() / u8"shaders" / u8"composite.rkshdr");
     }
 
-    bool OutlineEffect::apply(const Texture2D* source, FrameBuffer* destination)
+    bool OutlineEffect::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
         Entity target{ target_getter_() };
@@ -44,7 +44,7 @@ namespace rke
         //  else if(target_.has<MeshComponent>()) {...}
         });
 
-        auto* silhouette{ outline_fbo_->get_texture() };
+        auto* silhouette{ outline_fbo_->get_gtexture_attached() };
         if(!silhouette) return false;
 
         destination->clear_to_upload([this, source, silhouette]()
@@ -53,9 +53,9 @@ namespace rke
             source->bind(BindingPoint::Sampler2D_0);
             silhouette->bind(BindingPoint::Sampler2D_1);
 
-            shader_->bind();
+            shader_->get_gshader()->bind();
             app().render_command().draw_quad();
-            shader_->unbind();
+            shader_->get_gshader()->unbind();
         });
         return true;
     }

@@ -7,16 +7,17 @@ import AssetsManager;
 import Application;
 import RenderCommand;
 import FileUtils;
+import GShader;
 
 namespace rke
 {
     ToneMapping::ToneMapping(String name) : PostProcessEffect(std::move(name))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
-        shader_ = Shader::create(file::assets_dir() / u8"shaders" / u8"tone_mapping.rkshdr");
+        shader_ = create_scope<Shader>(file::assets_dir() / u8"shaders" / u8"tone_mapping.rkshdr");
     }
 
-    bool ToneMapping::apply(const Texture2D* source, FrameBuffer* destination)
+    bool ToneMapping::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
 
@@ -25,9 +26,9 @@ namespace rke
             source->bind(BindingPoint::Sampler2D_0);
             ubo_->bind(BindingPoint::UBO_PostProcess);
 
-            shader_->bind();
+            shader_->get_gshader()->bind();
             app().render_command().draw_quad();
-            shader_->unbind();
+            shader_->get_gshader()->unbind();
         });
         return true;
     }

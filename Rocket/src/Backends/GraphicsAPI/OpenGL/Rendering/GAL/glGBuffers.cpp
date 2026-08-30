@@ -46,85 +46,85 @@ namespace rke
 // glVertexBuffer
     glVertexBuffer::glVertexBuffer(const void* data, uint32 size)
     {
-        glCreateBuffers(1, &renderer_id_);
+        glCreateBuffers(1, &gal_id_);
         // requires version 4.5+, directly arrange memory while generating id
-        glNamedBufferStorage(renderer_id_, size, data, GL_MAP_ALL_ACCESS);
+        glNamedBufferStorage(gal_id_, size, data, GL_MAP_ALL_ACCESS);
     }
     glVertexBuffer::glVertexBuffer(uint32 size)
     {
-        glCreateBuffers(1, &renderer_id_);
-        glNamedBufferStorage(renderer_id_, size, nullptr, GL_MAP_ALL_ACCESS);
+        glCreateBuffers(1, &gal_id_);
+        glNamedBufferStorage(gal_id_, size, nullptr, GL_MAP_ALL_ACCESS);
     }
-    glVertexBuffer::~glVertexBuffer() { glDeleteBuffers(1, &renderer_id_); }
+    glVertexBuffer::~glVertexBuffer() { glDeleteBuffers(1, &gal_id_); }
 
     void glVertexBuffer::set_data(const void* new_data, uint32 new_size)
-        { glNamedBufferSubData(renderer_id_, 0, new_size, new_data); }
+        { glNamedBufferSubData(gal_id_, 0, new_size, new_data); }
 
     void* glVertexBuffer::map(Access access)
-        { return glMapNamedBuffer(renderer_id_, get_gl_access(access)); }
+        { return glMapNamedBuffer(gal_id_, get_gl_access(access)); }
 
-    void glVertexBuffer::unmap() { glUnmapNamedBuffer(renderer_id_); }
+    void glVertexBuffer::unmap() { glUnmapNamedBuffer(gal_id_); }
 
 // glIndexBuffer
     glIndexBuffer::glIndexBuffer(const void* data, uint32 count) : count_(count)
     {
-        glCreateBuffers(1, &renderer_id_);
-        glNamedBufferStorage(renderer_id_,
+        glCreateBuffers(1, &gal_id_);
+        glNamedBufferStorage(gal_id_,
             count * sizeof(uint32), data, GL_MAP_ALL_ACCESS);
     }
-    glIndexBuffer::~glIndexBuffer() { glDeleteBuffers(1, &renderer_id_); }
+    glIndexBuffer::~glIndexBuffer() { glDeleteBuffers(1, &gal_id_); }
 
     void glIndexBuffer::set_data(const void* new_data, uint32 new_count)
-        { glNamedBufferSubData(renderer_id_, 0, new_count * sizeof(uint32), new_data); }
+        { glNamedBufferSubData(gal_id_, 0, new_count * sizeof(uint32), new_data); }
 
     void* glIndexBuffer::map(Access access)
-        { return glMapNamedBuffer(renderer_id_, get_gl_access(access)); }
+        { return glMapNamedBuffer(gal_id_, get_gl_access(access)); }
 
-    void glIndexBuffer::unmap() { glUnmapNamedBuffer(renderer_id_); }
+    void glIndexBuffer::unmap() { glUnmapNamedBuffer(gal_id_); }
 
 // glUniformBuffer
     glUniformBuffer::glUniformBuffer(uint32 size)
     {
-        glCreateBuffers(1, &renderer_id_);
-        glNamedBufferStorage(renderer_id_, size, nullptr, GL_MAP_ALL_ACCESS);
+        glCreateBuffers(1, &gal_id_);
+        glNamedBufferStorage(gal_id_, size, nullptr, GL_MAP_ALL_ACCESS);
     }
-    glUniformBuffer::~glUniformBuffer() { glDeleteBuffers(1, &renderer_id_); }
+    glUniformBuffer::~glUniformBuffer() { glDeleteBuffers(1, &gal_id_); }
 
     void glUniformBuffer::set_data(const void* data, uint32 size, uint32 offset)
-        { glNamedBufferSubData(renderer_id_, offset, size, data); }
+        { glNamedBufferSubData(gal_id_, offset, size, data); }
 
     void glUniformBuffer::bind(BindingPoint point)
-        { glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<uint32>(point), renderer_id_); }
+        { glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<uint32>(point), gal_id_); }
 
     void* glUniformBuffer::map(Access access)
-        { return glMapNamedBuffer(renderer_id_, get_gl_access(access)); }
+        { return glMapNamedBuffer(gal_id_, get_gl_access(access)); }
 
-    void glUniformBuffer::unmap() { glUnmapNamedBuffer(renderer_id_); }
+    void glUniformBuffer::unmap() { glUnmapNamedBuffer(gal_id_); }
 
 // glPixelBuffer
     glPixelBuffer::glPixelBuffer(uint32 size)
     {
-        glCreateBuffers(1, &renderer_id_);
-        glNamedBufferStorage(renderer_id_, size, nullptr, GL_MAP_ALL_ACCESS);
+        glCreateBuffers(1, &gal_id_);
+        glNamedBufferStorage(gal_id_, size, nullptr, GL_MAP_ALL_ACCESS);
     }
     glPixelBuffer::glPixelBuffer(const void* data, uint32 size)
     {
-        glCreateBuffers(1, &renderer_id_);
-        glNamedBufferStorage(renderer_id_, size, data, GL_MAP_ALL_ACCESS);
+        glCreateBuffers(1, &gal_id_);
+        glNamedBufferStorage(gal_id_, size, data, GL_MAP_ALL_ACCESS);
     }
-    glPixelBuffer::~glPixelBuffer() { glDeleteBuffers(1, &renderer_id_); }
+    glPixelBuffer::~glPixelBuffer() { glDeleteBuffers(1, &gal_id_); }
 
     void glPixelBuffer::set_data(const void* data, uint32 size)
-        { glNamedBufferSubData(renderer_id_, 0, size, data); }
+        { glNamedBufferSubData(gal_id_, 0, size, data); }
 
     void glPixelBuffer::bind(PixelBuffer::Usage usage)
-        { glBindBuffer(usage_to_gl_target(usage), renderer_id_); }
+        { glBindBuffer(usage_to_gl_target(usage), gal_id_); }
 
     void glPixelBuffer::unbind(PixelBuffer::Usage usage)
         { glBindBuffer(usage_to_gl_target(usage), 0); }
 
     void* glPixelBuffer::map(Access access)
-        { return glMapNamedBuffer(renderer_id_, get_gl_access(access)); }
+        { return glMapNamedBuffer(gal_id_, get_gl_access(access)); }
 
-    void glPixelBuffer::unmap() { glUnmapNamedBuffer(renderer_id_); }
+    void glPixelBuffer::unmap() { glUnmapNamedBuffer(gal_id_); }
 }

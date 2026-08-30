@@ -156,6 +156,13 @@ namespace rke
                 
                 if(ImGui::MenuItem("Save Project", "Ctrl+S",
                     false, !running && app().get_project())) save_project();
+                
+                ImGui::Separator();
+
+                if(ImGui::MenuItem("Reload Scripts...", nullptr,
+                    false, !running && app().get_project()))
+                    app().get_project()->scripts_hot_reloading();
+
                 ImGui::EndMenu();
             }
 

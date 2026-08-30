@@ -36,20 +36,15 @@ export namespace rke
         Mesh
     };
 
-// Settings(meta data)
+// Settings(meta data); variants are cached inside each asset now
     struct RKE_API EmptySettings { uint64 padding{}; };
-
-    struct RKE_API TextureSettings
-    {
-        Texture::FiltFormat filt{ Texture::FiltFormat::Linear };
-        Texture::WrapFormat wrap{ Texture::WrapFormat::Clamp2Edge };
-        bool srgb{ true };
-    };
 
     union AssetSettings
     {
         EmptySettings empty;
-        TextureSettings tex;
+     // ShaderSettings
+     // FontSettings
+     // ...
     };
 
     class RKE_API AssetsManager
@@ -67,12 +62,11 @@ export namespace rke
         void rescan(const Path& assets_dir);
 
         AssetHandle load_asset(AssetUUID uuid);
-        AssetUUID get_sub_uuid(AssetUUID uuid, AssetSettings settings);
 
         template<typename T>
         consteval AssetType get_asset_type()
         {
-            if constexpr(std::is_same_v<T, Texture2D>)
+            if constexpr(std::is_same_v<T, Texture>)
                 return AssetType::Texture;
             else if constexpr(std::is_same_v<T, Shader>)
                 return AssetType::Shader;
@@ -97,11 +91,11 @@ export namespace rke
         struct AssetMeta
         {
             Path asset_path{};
+        // within .meta file
             AssetType type{ AssetType::None };
             AssetSettings settings{};
-
+        // check if loaded & get from uuid
             AssetHandle handle{ asset_handle_null };
-            AssetUUID parent_uuid{ 0 };
         };
 
         struct RuntimeAsset
@@ -113,18 +107,16 @@ export namespace rke
 
         AssetHandle allocate_handle();
         void register_asset(AssetUUID uuid,
-            const Path& path, AssetType type,
-            AssetSettings settings, AssetUUID parent);
+            const Path& path, AssetType type, AssetSettings settings);
 
         void* get_asset_impl(AssetHandle handle, AssetType type);
-        Scope<Texture2D> load_texture(const AssetMeta& meta);
+        Scope<Texture> load_texture(const AssetMeta& meta);
         Scope<Shader> load_shader(const AssetMeta& meta);
         Scope<Font> load_font(const AssetMeta& meta);
         Scope<Mesh> load_mesh(const AssetMeta& meta);
     private:
         std::unordered_map<AssetUUID, AssetMeta> asset_registry_{};
-        std::unordered_map<AssetUUID, std::vector<AssetUUID>> asset_families_{};
         std::vector<RuntimeAsset> runtime_assets_{};
-        std::vector<uint32> free_asset_index_stack_{}; // unload not done yet
+        std::vector<uint32> free_asset_index_stack_{};
     };
 }

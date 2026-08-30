@@ -21,7 +21,7 @@ export namespace rke
         void on_imgui_render() override;
 
         void new_scene_modal();
-        Texture2D* get_file_icon(const String& file_name);
+        GTexture* get_file_icon_gtex(const String& file_name);
 
         inline void scale_icon(float extent = 1.0f)
             { thumbnail_scale_ *= std::sqrt(extent); }
@@ -39,11 +39,18 @@ export namespace rke
         Path assets_dir_{}; // project assets dir
         Path current_dir_{};
 
-        Scope<Texture2D> folder_icon_{};
-        Scope<Texture2D> image_icon_ {};
-        Scope<Texture2D> file_icon_  {};
         float thumbnail_scale_{ 1.0f };
 
+        Scope<Texture> folder_icon_{};
+        Scope<Texture> image_icon_{};
+        Scope<Texture> file_icon_{};
+    // may modify
+        GTexture* folder_gtex_cache_{};
+        GTexture* image_gtex_cache_{};
+        GTexture* file_gtex_cache_{};
+
+        Scope<GTexture2D> default_icon_gtex_{};
+        
         Scope<std::array<char, 256>> name_buffer_{};
     };
 }

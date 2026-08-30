@@ -5,27 +5,39 @@ import Log;
 
 namespace rke
 {
-    void ScriptRegistry::register_script(const char8* name, ScriptConstructor func)
+    void ScriptRegistry::register_script(uintptr type_id, ScriptConstructor func)
     {
-        script_types_.push_back(name);
-        String name_string{ name };
-        CORE_ASSERT(!has_script(name_string),
-            u8"ScriptRegistry: Script has already been registered!");
-        script_constructors_.emplace(std::move(name_string), func);
+        ScriptType type{ static_cast<ScriptType>(type_id) };
+        CORE_ASSERT(!has_script_type(type), u8"ScriptRegistry: Script has already been registered!");
+        script_types_.push_back(type);
+        script_constructors_.emplace(type_id, func);
     }
 
-    Scope<Script> ScriptRegistry::construct_script(const String& name)
+    Scope<Script> ScriptRegistry::construct_script(ScriptType type)
     {
-        if(name.empty()) return nullptr;
-        auto it{ script_constructors_.find(name) };
-        if(it != script_constructors_.end()) return Scope<Script>
-            (reinterpret_cast<Script*>(std::invoke(it->second)));
-        CORE_ERROR(u8"ScriptRegistry: Script '{}' is not registered!", name);
+        // ONLY do address compare, not string compare!
+        if(type == script_type_null) return nullptr;
+        auto it{ script_constructors_.find(static_cast<uintptr>(type)) };
+        if(it != script_constructors_.end())
+            return Scope<Script>(reinterpret_cast<Script*>(std::invoke(it->second)));
         return nullptr;
     }
 
+    bool ScriptRegistry::has_script_type(ScriptType type) const
+        { return script_constructors_.contains(static_cast<uintptr>(type)); }
+
+    String ScriptRegistry::get_script_name(ScriptType type) const
+        { return String(std::bit_cast<const char8*>(type)); }
+
+    ScriptType ScriptRegistry::get_script_type(const String& name) const
+    {
+        for(ScriptType type : script_types_)
+            if(String(std::bit_cast<const char8*>(type)) == name) return type;
+        return script_type_null;
+    }
+
     bool ScriptRegistry::has_script(const String& name) const
-        { return script_constructors_.contains(name); }
+        { return static_cast<bool>(get_script_type(name)); }
 
     void ScriptRegistry::clear()
     {

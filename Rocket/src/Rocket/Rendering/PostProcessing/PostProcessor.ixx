@@ -8,7 +8,7 @@ export module PostProcessor;
 import Types;
 import String;
 import HeapManager;
-import Texture;
+import GTexture;
 import FrameBuffer;
 import PostProcessEffect;
 import ToneMapping;
@@ -28,7 +28,7 @@ export namespace rke
         PostProcessEffect* get_effect(const String& name);
         const EffectMap& get_all_effects() const { return effects_; }
 
-        const Texture2D* process(const Texture2D* source);
+        const GTexture2D* process(const GTexture2D* source);
 
         void on_viewport_resized(uint32 w, uint32 h);
         void clean_up() { fbos_[0]->clear(); fbos_[1]->clear(); }

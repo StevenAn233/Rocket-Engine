@@ -21,6 +21,7 @@ import AssetsManager;
 import Script;
 import Mesh;
 import UUID;
+import GTexture;
 
 namespace
 {
@@ -85,31 +86,26 @@ export namespace rke
             Transparent
         };
 
-        const Mesh* quad; // may modify
-
         AssetUUID tex_uuid;
-        AssetHandle tex_handle{ asset_handle_null };
-        glm::vec4 color{ 1.0f }; // may modify
 
+        GTextureSettings gtex_settings{};
         glm::vec2 uv_offset{ 0.0f, 0.0f };
         glm::vec2 uv_scale { 1.0f, 1.0f };
 
+        glm::vec4 color{ 1.0f }; // may modify
         BlendingMode blending_mode{ BlendingMode::Opaque };
         int rendering_layer{ 0 };
 
+    /* runtime cache(do not serialize) */
+        const Mesh* quad; // may modify
+        AssetUUID resolved_uuid{};
+        AssetHandle tex_handle{ asset_handle_null };
+
         SpriteComponent(AssetUUID uuid = UUID(0));
         SpriteComponent(const SpriteComponent&) = default;
-
-        bool has_texture() const { return !tex_uuid.empty(); }
-        bool is_texture_loaded() const { return tex_handle != asset_handle_null; }
     };
 
     // struct RKE_API ModelComponent
-    // {
-    //     
-    // };
-
-    // struct RKE_API TextComponent
     // {
     //     
     // };
@@ -133,14 +129,15 @@ export namespace rke
 
     struct RKE_API Rigidbody2DComponent
     {
-        uint64 body_id{};
-
         BodyType type{ BodyType::Unsimulated };
         bool rotation_fixed{ false };
 
         float mass{ 0.0f };
         glm::vec2 velocity{ 0.0f };
         float angular_velocity{ 0.0f };
+
+    /* runtime cache(do not serialize) */
+        uint64 body_id{};
 
         Rigidbody2DComponent() = default;
         Rigidbody2DComponent(const Rigidbody2DComponent& other)
@@ -160,8 +157,6 @@ export namespace rke
 
     struct RKE_API BoxCollider2DComponent
     {
-        uint64 shape_id{};
-
         ColliderType type{ ColliderType::Solid };
         uint8 layer_index{ 0 }; // 0 for default
 
@@ -171,6 +166,10 @@ export namespace rke
         float density{ 1.0f };
         float friction{ 0.5f };
         float restitution{ 0.0f }; // 'bounciness'
+
+    /* runtime cache(do not serialize) */
+        uint64 shape_id{};
+        glm::vec2 resolved_shape_size{};
 
         BoxCollider2DComponent() = default;
         BoxCollider2DComponent(const BoxCollider2DComponent& other)
@@ -186,9 +185,11 @@ export namespace rke
 
     struct RKE_API NativeScriptComponent
     {
-        Script* script_handle{};
-        String script_name{};
-        bool wants_to_update{ true };
+        ScriptType script_type{};
+
+    /* runtime cache(do not serialize) */
+        ScriptType resolved_script_type{};
+        Script* script_handle{}; // will be cleared by ScriptManager
 
         NativeScriptComponent() = default;
         NativeScriptComponent(const NativeScriptComponent&) = default;

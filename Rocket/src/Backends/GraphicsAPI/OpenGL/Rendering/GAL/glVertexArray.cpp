@@ -12,21 +12,21 @@ import Instrumentor;
 namespace {
     using namespace rke;
 
-    static inline GLenum shader_data_type_to_GLenum(ShaderDataType type)
+    static inline GLenum shader_data_type_to_GLenum(GShaderDataType type)
     {
         switch(type)
         {
-        case ShaderDataType::Float:  return GL_FLOAT;
-        case ShaderDataType::Float2: return GL_FLOAT;
-        case ShaderDataType::Float3: return GL_FLOAT;
-        case ShaderDataType::Float4: return GL_FLOAT;
-        case ShaderDataType::Int:	 return GL_INT;
-        case ShaderDataType::Int2:	 return GL_INT;
-        case ShaderDataType::Int3:	 return GL_INT;
-        case ShaderDataType::Int4:	 return GL_INT;
-        case ShaderDataType::Mat3:	 return GL_FLOAT;
-        case ShaderDataType::Mat4:	 return GL_FLOAT;
-        case ShaderDataType::Bool:	 return GL_BOOL;
+        case GShaderDataType::Float:  return GL_FLOAT;
+        case GShaderDataType::Float2: return GL_FLOAT;
+        case GShaderDataType::Float3: return GL_FLOAT;
+        case GShaderDataType::Float4: return GL_FLOAT;
+        case GShaderDataType::Int:	 return GL_INT;
+        case GShaderDataType::Int2:	 return GL_INT;
+        case GShaderDataType::Int3:	 return GL_INT;
+        case GShaderDataType::Int4:	 return GL_INT;
+        case GShaderDataType::Mat3:	 return GL_FLOAT;
+        case GShaderDataType::Mat4:	 return GL_FLOAT;
+        case GShaderDataType::Bool:	 return GL_BOOL;
         default:
             CORE_ASSERT(false, u8"glVertexArray: Unknown shader data type!");
             std::unreachable();
@@ -38,22 +38,22 @@ namespace rke
 {
     glVertexArray::glVertexArray()
     {
-        glCreateVertexArrays(1, &renderer_id_);
+        glCreateVertexArrays(1, &gal_id_);
         // A VAO can be for multiple VBOs
     }
     glVertexArray::~glVertexArray()
-        { glDeleteVertexArrays(1, &renderer_id_); }
+        { glDeleteVertexArrays(1, &gal_id_); }
 
     void glVertexArray::add_vbo(Ref<VertexBuffer> vbo, const GBufferLayout& layout)
     {
         CORE_ASSERT(layout.get_elements().size(),
             u8"VertexBuffer: Layout has no elements!");
 
-        glBindVertexArray(renderer_id_);
+        glBindVertexArray(gal_id_);
         glVertexArrayVertexBuffer ( // bind the vertex buffer to the vertex array
-            renderer_id_,           // VAO ID
+            gal_id_,           // VAO ID
             binding_index_,         // binding index
-            vbo->get_renderer_id(), // VBO ID
+            vbo->get_gal_id(), // VBO ID
             0,                      // offset(of the first element of the buffer)
             layout.get_stride()     // stride
         );
@@ -69,35 +69,35 @@ namespace rke
 
             switch(elements[i].type)
             {
-            case ShaderDataType::Float:
-            case ShaderDataType::Float2:
-            case ShaderDataType::Float3:
-            case ShaderDataType::Float4:
-            case ShaderDataType::Mat3: // Mat is composed of floats
-            case ShaderDataType::Mat4:
+            case GShaderDataType::Float:
+            case GShaderDataType::Float2:
+            case GShaderDataType::Float3:
+            case GShaderDataType::Float4:
+            case GShaderDataType::Mat3: // Mat is composed of floats
+            case GShaderDataType::Mat4:
                 glVertexArrayAttribFormat (
-                    renderer_id_,
+                    gal_id_,
                     attrib_index,
                     elements[i].count, // component count
                     shader_data_type_to_GLenum(elements[i].type),
                     elements[i].normalized ? GL_TRUE : GL_FALSE,
                     elements[i].offset);
                 break;
-            case ShaderDataType::Int:
-            case ShaderDataType::Int2:
-            case ShaderDataType::Int3:
-            case ShaderDataType::Int4:
-            case ShaderDataType::Bool:
+            case GShaderDataType::Int:
+            case GShaderDataType::Int2:
+            case GShaderDataType::Int3:
+            case GShaderDataType::Int4:
+            case GShaderDataType::Bool:
                 glVertexArrayAttribIFormat (
-                    renderer_id_,
+                    gal_id_,
                     attrib_index,
                     elements[i].count, // component count
                     shader_data_type_to_GLenum(elements[i].type),
                     elements[i].offset);
                 break;
             }
-            glVertexArrayAttribBinding(renderer_id_, attrib_index, binding_index_);
-            glEnableVertexArrayAttrib (renderer_id_, attrib_index);
+            glVertexArrayAttribBinding(gal_id_, attrib_index, binding_index_);
+            glEnableVertexArrayAttrib (gal_id_, attrib_index);
         }
         binding_index_++;
 
@@ -106,7 +106,7 @@ namespace rke
 
     void glVertexArray::set_ibo(Ref<IndexBuffer> ibo)
     {
-        glVertexArrayElementBuffer(renderer_id_, ibo->get_renderer_id());
+        glVertexArrayElementBuffer(gal_id_, ibo->get_gal_id());
         ibo_ = std::move(ibo); // keep it alive
     }
 
@@ -127,11 +127,11 @@ namespace rke
 
     void glVertexArray::bind() const
     {
-        glBindVertexArray(renderer_id_);
-        glEnableVertexArrayAttrib(renderer_id_, 0);
-        glEnableVertexArrayAttrib(renderer_id_, 1);
-        // glVertexArrayAttribBinding(renderer_id_, 0, 0);
-        // glVertexArrayAttribBinding(renderer_id_, 1, 0);
+        glBindVertexArray(gal_id_);
+        glEnableVertexArrayAttrib(gal_id_, 0);
+        glEnableVertexArrayAttrib(gal_id_, 1);
+        // glVertexArrayAttribBinding(gal_id_, 0, 0);
+        // glVertexArrayAttribBinding(gal_id_, 1, 0);
     }
 
     void glVertexArray::unbind() const { glBindVertexArray(0); }

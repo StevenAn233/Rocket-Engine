@@ -13,7 +13,7 @@ import BindingPoint;
 
 export namespace rke
 {
-    enum class ShaderDataType
+    enum class GShaderDataType
     {
         None = 0, Float, Float2, Float3, Float4,
         Int, Int2, Int3, Int4, Mat3, Mat4, Bool
@@ -23,40 +23,40 @@ export namespace rke
 namespace {
     using namespace rke;
 
-    static inline uint32 sizeoftype(ShaderDataType type)
+    static inline uint32 sizeoftype(GShaderDataType type)
     {
         switch(type)
         {
-        case ShaderDataType::Float:  return 4;
-        case ShaderDataType::Float2: return 8;
-        case ShaderDataType::Float3: return 12;
-        case ShaderDataType::Float4: return 16;
-        case ShaderDataType::Int:	 return 4;
-        case ShaderDataType::Int2:	 return 8;
-        case ShaderDataType::Int3:	 return 12;
-        case ShaderDataType::Int4:	 return 16;
-        case ShaderDataType::Mat3:	 return 36;
-        case ShaderDataType::Mat4:	 return 64;
-        case ShaderDataType::Bool:	 return 1;
+        case GShaderDataType::Float:  return 4;
+        case GShaderDataType::Float2: return 8;
+        case GShaderDataType::Float3: return 12;
+        case GShaderDataType::Float4: return 16;
+        case GShaderDataType::Int:	 return 4;
+        case GShaderDataType::Int2:	 return 8;
+        case GShaderDataType::Int3:	 return 12;
+        case GShaderDataType::Int4:	 return 16;
+        case GShaderDataType::Mat3:	 return 36;
+        case GShaderDataType::Mat4:	 return 64;
+        case GShaderDataType::Bool:	 return 1;
         }
         return 0;
     }
 
-    static inline uint32 countoftype(ShaderDataType type)
+    static inline uint32 countoftype(GShaderDataType type)
     {
         switch(type)
         {
-        case ShaderDataType::Float:  return 1;
-        case ShaderDataType::Float2: return 2;
-        case ShaderDataType::Float3: return 3;
-        case ShaderDataType::Float4: return 4;
-        case ShaderDataType::Int:	 return 1;
-        case ShaderDataType::Int2:	 return 2;
-        case ShaderDataType::Int3:	 return 3;
-        case ShaderDataType::Int4:	 return 4;
-        case ShaderDataType::Mat3:	 return 9;
-        case ShaderDataType::Mat4:	 return 16;
-        case ShaderDataType::Bool:	 return 1;
+        case GShaderDataType::Float:  return 1;
+        case GShaderDataType::Float2: return 2;
+        case GShaderDataType::Float3: return 3;
+        case GShaderDataType::Float4: return 4;
+        case GShaderDataType::Int:	 return 1;
+        case GShaderDataType::Int2:	 return 2;
+        case GShaderDataType::Int3:	 return 3;
+        case GShaderDataType::Int4:	 return 4;
+        case GShaderDataType::Mat3:	 return 9;
+        case GShaderDataType::Mat4:	 return 16;
+        case GShaderDataType::Bool:	 return 1;
         }
         return 0;
     }
@@ -68,14 +68,14 @@ export namespace rke
     struct RKE_API GBufferElements
     {
         String name;
-        ShaderDataType type;
+        GShaderDataType type;
 
         uint32 count;
         bool normalized;
         uint32 offset;
 
         GBufferElements(const String&  _name,
-                       ShaderDataType _type,
+                       GShaderDataType _type,
                        bool _normalized = false)
             : name(_name), type(_type)
             , count(countoftype(_type))
@@ -120,7 +120,7 @@ export namespace rke
         GBuffer(GBuffer&&) = delete;
         GBuffer& operator=(GBuffer&&) = delete;
 
-        virtual uint32 get_renderer_id() const = 0;
+        virtual uint32 get_gal_id() const = 0;
 
         virtual void* map(Access access) = 0;
         virtual void unmap() = 0;

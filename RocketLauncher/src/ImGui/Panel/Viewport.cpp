@@ -14,8 +14,8 @@ namespace rke
 
         refresh_state();
 
-        if(const Texture2D* target{ getter_() }) {
-            ImGui::Image(ImTextureRef(static_cast<ImTextureID>(target->get_renderer_id())),
+        if(const GTexture2D* target{ getter_() }) {
+            ImGui::Image(ImTextureRef(static_cast<ImTextureID>(target->get_gal_id())),
                 std::bit_cast<ImVec2>(get_size()), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
         } else {
             ImVec2 cursor_pos{ ImGui::GetCursorScreenPos() };

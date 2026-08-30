@@ -7,6 +7,7 @@ import Log;
 import Components;
 import Project;
 import PhysicsEngine2D;
+import ScriptRegistry;
 import ScriptManager;
 
 namespace rke
@@ -70,7 +71,7 @@ namespace rke
             (script_manager_.get(), physics_engine_.get());
     }
 
-    Scene::~Scene() { if(in_runtime_) on_runtime_stop(); clear(); }
+    Scene::~Scene() { if(in_runtime()) on_runtime_stop(); clear(); }
 
     void Scene::set_name(String name)
     {
@@ -267,12 +268,6 @@ namespace rke
         demo_cam_ = entity;
     }
 
-    void Scene::refresh_script(Entity entity)
-    {
-        if(!entity.valid() || !entity.belongs_to(this)) return;
-        script_manager_->refresh_script(entity.get_handle());
-    }
-
     void Scene::grip_move_entity(Entity entity, glm::vec3 delta, double dt)
     {
         if(!entity.valid() || !entity.belongs_to(this)) return;
@@ -319,6 +314,18 @@ namespace rke
         physics_engine_->apply_force(entity, acceleration * rbc.mass);
     }
 
+    void Scene::on_script_dylib_hot_reloading(ScriptRegistry& script_reg)
+    {
+        CORE_ASSERT(!in_runtime(), u8"Scene: Can't reload during runtime!");
+        auto view{ registry_->view<NativeScriptComponent>() };
+        for(entt::entity ent : view)
+        {
+            auto& nsc{ registry_->get<NativeScriptComponent>(ent) };
+            String name{ std::bit_cast<const char8*>(nsc.script_type) };
+            nsc.script_type = script_reg.get_script_type(name);
+        }
+    }
+
     void Scene::clear()
     {
         if(in_runtime()) {
@@ -349,7 +356,11 @@ namespace rke
             auto view{ registry_->view<NativeScriptComponent>() };
             for(entt::entity ent : view)
             {
-                Script* script{ registry_->get<NativeScriptComponent>(ent).script_handle };
+                auto& nsc{ registry_->get<NativeScriptComponent>(ent) };
+                if(nsc.script_type != nsc.resolved_script_type)
+                    script_manager_->refresh_script(static_cast<uint32>(ent));
+                
+                Script* script{ nsc.script_handle };
                 if(script) script->on_update(dt);
             }
         }

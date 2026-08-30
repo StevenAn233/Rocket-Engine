@@ -5,6 +5,13 @@ namespace {
     constexpr float padding{ 16.0f };
     constexpr float basic_thumbnail_size{ 96.0f };
 
+    static const rke::GTextureSettings s_icon_settings
+    {
+        rke::GTexture::FiltFormat::Linear,
+        rke::GTexture::WrapFormat::Clamp2Edge,
+        false
+    };
+
     static void ImGui_ImplOpenGL3_DisableBindSampler(const ImDrawList*, const ImDrawCmd*)
         { rke::imgui::disable_bind_sampler(); }
 }
@@ -16,6 +23,18 @@ namespace rke
     {
         name_buffer_ = create_scope<std::array<char, 256>>();
         std::memcpy(name_buffer_->data(), "Untitled", 9);
+
+        uint32 pixels[4]
+        {
+            0xFF000000, 0xFFFF00FF,
+            0xFFFF00FF, 0xFF000000
+        };
+        default_icon_gtex_ = GTexture2D::create
+        (
+            2, 2, GTexture::Format::RGBA8, pixels,
+            GTexture::FiltFormat::Nearest,
+            GTexture::WrapFormat::Clamp2Edge
+        );
     }
 
     ContentBrowserPanel::~ContentBrowserPanel()
@@ -98,7 +117,7 @@ namespace rke
             }
             ImGui::Separator();
             if(ImGui::MenuItem("Refresh"))
-                context_->get_assets_manager().rescan(assets_dir_); // TO MODIFY
+                context_->get_assets_manager_mut().rescan(assets_dir_); // TO MODIFY
             ImGui::EndPopup();
         }
         if(to_create_new_scene) ImGui::OpenPopup("New Scene Name");
@@ -118,19 +137,21 @@ namespace rke
             if(entry.is_directory())
             {
                 filename = Path(path.filename()).string();
-                icon_handle = folder_icon_->get_renderer_id();
+                icon_handle = folder_gtex_cache_ ?
+                    folder_gtex_cache_->get_gal_id() :
+                    default_icon_gtex_->get_gal_id();
                 image_button_attachment = &ContentBrowserPanel::entry_is_directory;
             }
             else if(path.extension() == u8".rkscene")
             {
                 filename = Path(path.filename()).string();
-                icon_handle = get_file_icon(filename)->get_renderer_id();
+                icon_handle = get_file_icon_gtex(filename)->get_gal_id();
                 image_button_attachment = &ContentBrowserPanel::entry_is_rkscene;
             }
             else if(path.extension() == u8".meta")
             {
                 filename = Path(path.stem()).string(); // with suffix
-                icon_handle = get_file_icon(filename)->get_renderer_id();
+                icon_handle = get_file_icon_gtex(filename)->get_gal_id();
                 image_button_attachment = &ContentBrowserPanel::entry_is_meta;
             }
             else continue;
@@ -170,26 +191,33 @@ namespace rke
         }
     }
 
+    GTexture* ContentBrowserPanel::get_file_icon_gtex(const String& file_name)
+    {
+        GTexture* res{ default_icon_gtex_.get() };
+        if(file_name.ends_with(u8".png") || file_name.ends_with(u8".jpg"))
+            { if(image_gtex_cache_) res = image_gtex_cache_; }
+        else { if(file_gtex_cache_) res = file_gtex_cache_; }
+        CORE_ASSERT(res, u8"ContentBrowerPanel: GTexture null!");
+        return res;
+    }
+
     // srgb has to be false!!!(and only srgb textures are supported here)
     void ContentBrowserPanel::set_folder_icon(const Path& filepath)
     {
-        folder_icon_ = Texture2D::create(filepath,
-            Texture::FiltFormat::Linear,
-            Texture::WrapFormat::Clamp2Edge, false);
+        folder_icon_ = create_scope<Texture>(filepath);
+        folder_gtex_cache_ = folder_icon_ ? folder_icon_->get_gtexture(s_icon_settings) : nullptr;
     }
 
     void ContentBrowserPanel::set_image_icon(const Path& filepath)
     {
-        image_icon_ = Texture2D::create(filepath,
-            Texture::FiltFormat::Linear,
-            Texture::WrapFormat::Clamp2Edge, false);
+        image_icon_ = create_scope<Texture>(filepath);
+        image_gtex_cache_ = image_icon_ ? image_icon_->get_gtexture(s_icon_settings) : nullptr;
     }
 
     void ContentBrowserPanel::set_file_icon(const Path& filepath)
     {
-        file_icon_ = Texture2D::create(filepath,
-            Texture::FiltFormat::Linear,
-            Texture::WrapFormat::Clamp2Edge, false);
+        file_icon_ = create_scope<Texture>(filepath);
+        file_gtex_cache_ = file_icon_ ? file_icon_->get_gtexture(s_icon_settings) : nullptr;
     }
 
     void ContentBrowserPanel::load_from(Path filepath)
@@ -205,13 +233,6 @@ namespace rke
             return;
         }
         thumbnail_scale_ = reader->get_at(u8"Thumbnail Scale", thumbnail_scale_);
-    }
-
-    Texture2D* ContentBrowserPanel::get_file_icon(const String& file_name)
-    {
-        if(file_name.ends_with(u8".png") || file_name.ends_with(u8".jpg"))
-            return image_icon_.get();
-        return file_icon_.get();
     }
 
     void ContentBrowserPanel::entry_is_directory(this ContentBrowserPanel& self,
@@ -236,6 +257,8 @@ namespace rke
         }
 
         ImGui::PushID(filename.raw());
+        ImGui::GetWindowDrawList()->AddCallback
+            (ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
         if(ImGui::BeginDragDropSource())
         {
             String scene_name{ path.stem().string() };
@@ -243,12 +266,15 @@ namespace rke
                 scene_name.raw(), scene_name.size() + 1, ImGuiCond_Once);
 
             float thumbnail_size{ basic_thumbnail_size * self.thumbnail_scale_ };
-            ImGui::Image(std::bit_cast<void*>(static_cast<uint64>(icon_handle)),
-                { thumbnail_size, thumbnail_size }, { 0, 1 }, { 1, 0 });
+            ImGui::Image(static_cast<ImTextureID>(icon_handle),
+                { thumbnail_size, thumbnail_size }, { 0.0f, 1.0f }, { 1.0f, 0.0f });            
+            
             ImGui::Text("%s", filename.raw());
 
             ImGui::EndDragDropSource();
         }
+        ImGui::GetWindowDrawList()->AddCallback
+            (ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
         ImGui::PopID();
     }
 
@@ -260,7 +286,7 @@ namespace rke
         if(ImGui::BeginDragDropSource())
         {
             AssetUUID asset_uuid{ self.context_ ?
-                self.context_->get_assets_manager()
+                self.context_->get_assets_manager_mut()
                     .get_asset_uuid(asset_path) : AssetUUID(0)
             };
             if(!asset_uuid.empty()) {

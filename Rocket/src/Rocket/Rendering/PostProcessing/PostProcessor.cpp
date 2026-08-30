@@ -10,7 +10,7 @@ namespace rke
     PostProcessor::PostProcessor(glm::vec4 clear_color)
     {
         FrameBuffer::Specification spec
-            { .attachment_spec{{ Texture::Format::RGBA16F, clear_color }}};
+            { .attachment_spec{{ GTexture::Format::RGBA16F, clear_color }}};
         fbos_[0] = FrameBuffer::create(spec);
         fbos_[1] = FrameBuffer::create(spec);
 
@@ -27,7 +27,7 @@ namespace rke
         return nullptr;
     }
 
-    const Texture2D* PostProcessor::process(const Texture2D* source)
+    const GTexture2D* PostProcessor::process(const GTexture2D* source)
     {
         if(!source) return nullptr;
 
@@ -42,13 +42,13 @@ namespace rke
         app().render_command().disable_blend();
         app().render_command().disable_depth_test();
 
-        const Texture2D* ping_pong{ source };
+        const GTexture2D* ping_pong{ source };
         uint32 fbo_index{ 0 };
         for(Size i{}; i < active_effects.size(); i++)
         {
             if(active_effects[i]->apply(ping_pong, fbos_[fbo_index].get()))
             {
-                ping_pong = fbos_[fbo_index]->get_texture();
+                ping_pong = fbos_[fbo_index]->get_gtexture_attached();
                 fbo_index ^= 1u;
             }
         }
@@ -59,7 +59,7 @@ namespace rke
         app().render_command().enable_depth_test(); // default
         app().render_command().enable_blend();		// default
 
-        return fbos_[fbo_index]->get_texture();
+        return fbos_[fbo_index]->get_gtexture_attached();
     }
 
     void PostProcessor::on_viewport_resized(uint32 w, uint32 h)

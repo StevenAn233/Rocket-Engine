@@ -10,28 +10,6 @@ import ConfigProxy;
 namespace {
     using namespace rke;
 
-// Hash support(for sub-asset)
-    struct SettingsHashers
-    {
-        Size operator()(const EmptySettings&) const { return 0ull; }
-        Size operator()(const TextureSettings& s) const
-        {
-            Size h1{ std::hash<int >{}(static_cast<int>(s.filt)) };
-            Size h2{ std::hash<int >{}(static_cast<int>(s.wrap)) };
-            Size h3{ std::hash<bool>{}(s.srgb) };
-            return h1 ^ (h2 << 1) ^ (h3 << 2);
-        }
-    };
-
-    static Size get_settings_hash(AssetType type, const AssetSettings& settings)
-    {
-        switch(type)
-        {
-        case AssetType::Texture: return SettingsHashers()(settings.tex);
-        default: return SettingsHashers()(settings.empty);
-        }
-    }
-
 // Helpers
     static AssetType get_asset_type_from_extension(const Path& filepath)
     {
@@ -44,45 +22,10 @@ namespace {
         return AssetType::None;
     }
 
-    static AssetSettings extract_settings(AssetType type, const ConfigReader& reader)
+    static AssetSettings extract_settings(AssetType, const ConfigReader&)
     {
-        AssetSettings settings{ .empty{} };
-        switch(type)
-        {
-        case AssetType::Texture:
-        {
-            Scope<ConfigReader> settings_reader{ reader.get_child(u8"Settings") };
-            if(settings_reader) {
-                TextureSettings& tex_settings{ settings.tex };
-                tex_settings.filt = static_cast<Texture::FiltFormat>
-                    (settings_reader->get_at(u8"Filt", 0ui32));
-                tex_settings.wrap = static_cast<Texture::WrapFormat>
-                    (settings_reader->get_at(u8"Wrap", 0ui32));
-                tex_settings.srgb = settings_reader->get_at(u8"sRGB", true);
-            }
-        } break;
-        default: break;
-        }
-        return settings;
-    }
-
-    static void write_settings(AssetType type, const AssetSettings& settings, ConfigDocument& doc)
-    {
-        if(!doc.is_map()) {
-            CORE_ERROR(u8"AssetsManager: Doc is not a map!");
-            return;
-        }
-        switch(type) {
-        case AssetType::Texture: {
-            const TextureSettings& tex_settings{ settings.tex };
-            Scope<ConfigDocument> writer{ doc.get_child(u8"Settings") };
-            if(!writer) break;
-            writer->write(u8"Filt", static_cast<int>(tex_settings.filt));
-            writer->write(u8"Wrap", static_cast<int>(tex_settings.wrap));
-            writer->write(u8"sRGB", tex_settings.srgb);
-        } break;
-        default: break;
-        }
+        // to be implemented
+        return AssetSettings{ .empty{} };
     }
 
     template<typename T>
@@ -106,7 +49,6 @@ namespace rke
     void AssetsManager::clear()
     {
         asset_registry_.clear();
-        asset_families_.clear();
         free_asset_index_stack_.clear();
         for(Size i{}; i < runtime_assets_.size(); i++)
         {
@@ -140,7 +82,7 @@ namespace rke
 
     // 2. register UUIDs according to meta paths
         register_asset(AssetUUID(0), Path(u8"<Empty Asset>"),
-            AssetType::None, AssetSettings{ .empty{} }, AssetUUID(0));
+            AssetType::None, AssetSettings{ .empty{} });
         
         std::unordered_set<String> valid_meta_paths{};
         for(const Path& asset_path : all_files)
@@ -156,39 +98,18 @@ namespace rke
                 AssetType type{ static_cast<AssetType>(reader->get_at(u8"Type", 0)) };
 
                 AssetSettings settings{ extract_settings(type, *reader) };
-                register_asset(uuid, asset_path, type, settings, uuid);
-                asset_families_[uuid].push_back(uuid); // requires to store itself!
-
-                Scope<ConfigReader> sub_assets_reader{ reader->get_child(u8"SubAssets") };
-                if(sub_assets_reader && sub_assets_reader->is_array())
-                {
-                    std::vector<AssetUUID>& sub_uuids{ asset_families_[uuid] };
-                    sub_assets_reader->for_each([&](Scope<ConfigReader> reader)
-                    {
-                        if(!reader) return;
-                        AssetUUID sub_uuid{ reader->get_at(u8"UUID", 0ui64) };
-                        if(sub_uuid.empty()) return;
-                        sub_uuids.push_back(sub_uuid);
-                        AssetSettings sub_settings{ extract_settings(type, *reader) };
-                        register_asset(sub_uuid, asset_path, type, sub_settings, uuid);
-                    });
-                }
+                register_asset(uuid, asset_path, type, settings);
             } else {
                 AssetUUID new_uuid{};
                 Scope<ConfigDocument> doc{ ConfigDocument::create_map() };
                 doc->write(u8"UUID", new_uuid.value());
                 doc->write(u8"Type", static_cast<int>(type_ext));
 
-                AssetSettings settings{};
-                if(type_ext == AssetType::Texture) {
-                    settings.tex = TextureSettings{};
-                    write_settings(type_ext, settings, *doc);
-                } // to optimize later
-
                 doc->push_to_file(meta_path);
                 CORE_INFO(u8"AssetsManager: Imported new asset '{}'.", asset_path);
 
-                register_asset(new_uuid, asset_path, type_ext, settings, new_uuid);
+                AssetSettings settings{};
+                register_asset(new_uuid, asset_path, type_ext, settings);
             }
         }
 
@@ -228,7 +149,7 @@ namespace rke
         switch(meta.type)
         {
         case AssetType::Texture: {
-            Scope<Texture2D> tex{ load_texture(meta) };
+            Scope<Texture> tex{ load_texture(meta) };
             loaded_resource = to_asset_data(std::move(tex));
         } break;
         case AssetType::Shader: {
@@ -263,52 +184,6 @@ namespace rke
 
         meta.handle = handle;
         return handle;
-    }
-
-    AssetUUID AssetsManager::get_sub_uuid(AssetUUID uuid, AssetSettings settings)
-    {
-        AssetUUID main_uuid{ asset_registry_.at(uuid).parent_uuid };
-        auto it{ asset_registry_.find(main_uuid) };
-        if(it == asset_registry_.end()) {
-            CORE_ERROR(u8"AssetsManager: UUID '{}' not found!", main_uuid.value());
-            return AssetUUID(0);
-        }
-
-        const AssetMeta& main_meta{ it->second };
-    // Find sub_uuid
-        Size desired_hash{ get_settings_hash(main_meta.type, settings) };
-        if(asset_families_.contains(main_uuid)) {
-            for(AssetUUID sub_uuid : asset_families_[main_uuid])
-            {
-                const AssetMeta& sub_meta{ asset_registry_.at(sub_uuid) };
-                CORE_ASSERT(main_meta.type == sub_meta.type,
-                    u8"AssetManager: Sub asset must be as the same type as its main asset!");
-                if(get_settings_hash(main_meta.type, sub_meta.settings) == desired_hash)
-                    return sub_uuid;
-            }
-        }
-
-    // Create sub_uuid
-        AssetUUID new_sub_uuid{};
-        String meta_path{ main_meta.asset_path.string() + u8".meta" };
-
-        Scope<ConfigDocument> doc{ ConfigDocument::create(meta_path) };
-        CORE_ASSERT(doc, u8"AssetsManager: Doc null!");
-        Scope<ConfigDocument> sub_assets{ doc->get_child(u8"SubAssets") };
-        CORE_ASSERT(sub_assets, u8"AssetsManager: Sub-assets null!");
-
-        Scope<ConfigDocument> new_sub_asset{ sub_assets->push_map() };
-        CORE_ASSERT(new_sub_asset, u8"AssetsManager: Failed to create sub-asset!");
-        new_sub_asset->write(u8"UUID", new_sub_uuid.value());
-        write_settings(main_meta.type, settings, *new_sub_asset);
-
-        doc->push_to_file(meta_path);
-        CORE_INFO(u8"AssetsManager: Created sub-asset '{}' for '{}'.",
-            new_sub_uuid.value(), main_meta.asset_path);
-
-        register_asset(new_sub_uuid, main_meta.asset_path, main_meta.type, settings, main_uuid);
-        asset_families_[main_uuid].push_back(new_sub_uuid);
-        return new_sub_uuid;
     }
 
     bool AssetsManager::is_asset_loaded(AssetUUID uuid)
@@ -349,9 +224,8 @@ namespace rke
 
     AssetUUID AssetsManager::get_asset_uuid(const Path& path)
     {
-        for(const auto& [uuid, meta] : asset_registry_)
-            if((meta.asset_path == path) && (meta.parent_uuid == uuid))
-                return uuid;
+        for(const auto& [uuid, meta] : asset_registry_) // expensive
+            if(meta.asset_path == path) return uuid;
         return AssetUUID(0);
     }
 
@@ -374,14 +248,14 @@ namespace rke
     }
 
     void AssetsManager::register_asset(AssetUUID uuid,
-        const Path& path, AssetType type, AssetSettings settings, AssetUUID parent)
+        const Path& path, AssetType type, AssetSettings settings)
     {
         if(asset_registry_.contains(uuid)) {
             CORE_ERROR(u8"AssetsManager: UUID collision "
                 u8"or duplicate registration for '{}'!", uuid.value());
             return;
         }
-        asset_registry_.emplace(uuid, AssetMeta(path, type, settings, asset_handle_null, parent));
+        asset_registry_.emplace(uuid, AssetMeta(path, type, settings, asset_handle_null));
     }
 
     void* AssetsManager::get_asset_impl(AssetHandle handle, AssetType type)
@@ -392,20 +266,18 @@ namespace rke
         return asset.data.get();
     }
 
-    Scope<Texture2D> AssetsManager::load_texture(const AssetMeta& meta)
+    Scope<Texture> AssetsManager::load_texture(const AssetMeta& meta)
     {
         const Path& path{ meta.asset_path };
         if(path.empty() || !path.exists()) return nullptr;
-
-        const TextureSettings& settings{ meta.settings.tex };
-        return Texture2D::create(path, settings.filt, settings.wrap, settings.srgb);
+        return create_scope<Texture>(path);
     }
 
     Scope<Shader> AssetsManager::load_shader(const AssetMeta& meta)
     {
         const Path& path{ meta.asset_path };
         if(path.empty() || !path.exists()) return nullptr;
-        return Shader::create(path);
+        return create_scope<Shader>(path);
     }
 
     Scope<Font> AssetsManager::load_font(const AssetMeta& meta)

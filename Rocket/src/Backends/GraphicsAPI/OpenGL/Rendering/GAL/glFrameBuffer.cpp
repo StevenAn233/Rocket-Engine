@@ -15,11 +15,11 @@ namespace {
 
     constexpr uint32 MAX_FRAME_BUFFER_SIZE{ 8192u };
 
-    static inline bool is_depth_format(Texture::Format format)
+    static inline bool is_depth_format(GTexture::Format format)
     {
         switch(format)
         {
-        case Texture::Format::DEPTH24_STENCIL8:
+        case GTexture::Format::DEPTH24_STENCIL8:
             return true;
         // other cases...
         }
@@ -30,26 +30,23 @@ namespace {
         { return multi_sampled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D; }
 
     static inline void create_textures(bool multi_sampled, uint32* out_id, uint32 count = 1)
-    {
-        if(multi_sampled) glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, count, out_id);
-        else glCreateTextures(GL_TEXTURE_2D, count, out_id);
-    }
+        { glCreateTextures(texture_type(multi_sampled), count, out_id); }
 
-    static inline void attach_msaa_color_texture(uint32 renderer_id,
+    static inline void attach_msaa_color_texture(uint32 gal_id,
         Size index, uint32& color_attachment, int samples,
         GLenum internal_format, uint32 w, uint32 h)
     {
         glTextureStorage2DMultisample(color_attachment, samples, internal_format, w, h, GL_TRUE);
-        glNamedFramebufferTexture(renderer_id,
+        glNamedFramebufferTexture(gal_id,
             static_cast<GLenum>(GL_COLOR_ATTACHMENT0 + index), color_attachment, 0);
     }
 
-    static void attach_color_texture(uint32 renderer_id,
+    static void attach_color_texture(uint32 gal_id,
         Size index, uint32& color_attachment,
         GLenum internal_format, GLenum filtering_format, uint32 w, uint32 h)
     {
         glTextureStorage2D(color_attachment, 1, internal_format, w, h);
-        glNamedFramebufferTexture(renderer_id, GL_COLOR_ATTACHMENT0 + index, color_attachment, 0);
+        glNamedFramebufferTexture(gal_id, GL_COLOR_ATTACHMENT0 + index, color_attachment, 0);
 
         glTextureParameteri(color_attachment, GL_TEXTURE_MIN_FILTER, filtering_format);
         glTextureParameteri(color_attachment, GL_TEXTURE_MAG_FILTER, filtering_format);
@@ -59,45 +56,45 @@ namespace {
         glTextureParameteri(color_attachment, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // hard-coded
     }
 
-    static inline void attach_msaa_depth_texture(uint32 renderer_id,
+    static inline void attach_msaa_depth_texture(uint32 gal_id,
         uint32& depth_attachment_id, int samples,
         GLenum internal_format, GLenum attachment_type, uint32 w, uint32 h)
     {
         glTextureStorage2DMultisample(depth_attachment_id, samples, internal_format, w, h, GL_TRUE);
-        glNamedFramebufferTexture(renderer_id, attachment_type, depth_attachment_id, 0);
+        glNamedFramebufferTexture(gal_id, attachment_type, depth_attachment_id, 0);
     }
 
-    static inline void attach_depth_texture(uint32 renderer_id, uint32& depth_attachment_id,
+    static inline void attach_depth_texture(uint32 gal_id, uint32& depth_attachment_id,
         GLenum internal_format, GLenum attachment_type, uint32 w, uint32 h)
     {
         glTextureStorage2D(depth_attachment_id, 1, internal_format, w, h);
-        glNamedFramebufferTexture(renderer_id, attachment_type, depth_attachment_id, 0);
+        glNamedFramebufferTexture(gal_id, attachment_type, depth_attachment_id, 0);
     }
 
-    static inline GLenum tex_format_to_gl_enum(Texture::Format fb_format)
+    static inline GLenum tex_format_to_gl_enum(GTexture::Format fb_format)
     {
         switch(fb_format)
         {
-        case Texture::Format::RGBA8:   return GL_RGBA8;
-        case Texture::Format::RGB8:    return GL_RGB8;
-        case Texture::Format::R8:      return GL_R8;
-        case Texture::Format::R32I:    return GL_R32I;
-        case Texture::Format::RGBA16F: return GL_RGBA16F;
-        case Texture::Format::SRGB8:   return GL_SRGB8;
-        case Texture::Format::SRGB8_ALPHA8:     return GL_SRGB8_ALPHA8;
-        case Texture::Format::DEPTH24_STENCIL8: return GL_DEPTH24_STENCIL8;
+        case GTexture::Format::RGBA8:   return GL_RGBA8;
+        case GTexture::Format::RGB8:    return GL_RGB8;
+        case GTexture::Format::R8:      return GL_R8;
+        case GTexture::Format::R32I:    return GL_R32I;
+        case GTexture::Format::RGBA16F: return GL_RGBA16F;
+        case GTexture::Format::SRGB8:   return GL_SRGB8;
+        case GTexture::Format::SRGB8_ALPHA8:     return GL_SRGB8_ALPHA8;
+        case GTexture::Format::DEPTH24_STENCIL8: return GL_DEPTH24_STENCIL8;
         default:
             CORE_ASSERT(false, u8"glFrameBuffer: Unknown format conversion!");
             return GL_SRGB8_ALPHA8;
         }
     }
 
-    static inline GLenum filt_format_to_gl_enum(Texture::FiltFormat filt_format)
+    static inline GLenum filt_format_to_gl_enum(GTexture::FiltFormat filt_format)
     {
         switch(filt_format)
         {
-        case Texture::FiltFormat::Linear:  return GL_LINEAR;
-        case Texture::FiltFormat::Nearest: return GL_NEAREST;
+        case GTexture::FiltFormat::Linear:  return GL_LINEAR;
+        case GTexture::FiltFormat::Nearest: return GL_NEAREST;
         default:
             CORE_ASSERT(false, u8"glFrameBuffer: Unknown format conversion!");
             return GL_LINEAR;
@@ -122,10 +119,10 @@ namespace rke
 
     glFrameBuffer::~glFrameBuffer()
     {
-        glDeleteFramebuffers(1, &renderer_id_);
+        glDeleteFramebuffers(1, &gal_id_);
         glDeleteTextures(attachments_.size(), attachments_.data());
 
-        renderer_id_ = 0;
+        gal_id_ = 0;
         attachments_.clear();
         output_textures_.clear();
 
@@ -141,7 +138,7 @@ namespace rke
 
     void glFrameBuffer::clear()
     {
-        auto fbo{ spec_.samples > 1 ? msaa_renderer_id_ : renderer_id_ };
+        auto fbo{ spec_.samples > 1 ? msaa_renderer_id_ : gal_id_ };
         auto& attachment_specs{ spec_.attachment_spec.texture_specs };
         int color_attachment_index{};
         for(Size i{}; i < attachment_specs.size(); i++)
@@ -149,38 +146,38 @@ namespace rke
             if(attachment_specs[i].load_op == TextureSpecification::LoadOp::LOAD) continue;
             switch(attachment_specs[i].format)
             {
-            case Texture::Format::RGBA8:
-            case Texture::Format::RGBA16F:
-            case Texture::Format::SRGB8_ALPHA8:
+            case GTexture::Format::RGBA8:
+            case GTexture::Format::RGBA16F:
+            case GTexture::Format::SRGB8_ALPHA8:
             {
                 const glm::vec4* val{ std::get_if<glm::vec4>(&attachment_specs[i].clear_value) };
                 CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
                 app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
                 color_attachment_index++; 
             } break;
-            case Texture::Format::RGB8:
-            case Texture::Format::SRGB8:
+            case GTexture::Format::RGB8:
+            case GTexture::Format::SRGB8:
             {
                 const glm::vec3* val{ std::get_if<glm::vec3>(&attachment_specs[i].clear_value) };
                 CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
                 app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
                 color_attachment_index++;
             } break;
-            case Texture::Format::R32I:
+            case GTexture::Format::R32I:
             {
                 const int* val{ std::get_if<int>(&attachment_specs[i].clear_value) };
                 CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
                 app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
                 color_attachment_index++;
             } break;
-            case Texture::Format::R8:
+            case GTexture::Format::R8:
             {
                 const float* val{ std::get_if<float>(&attachment_specs[i].clear_value) };
                 CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
                 app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
                 color_attachment_index++;
             } break;
-            case Texture::Format::DEPTH24_STENCIL8:
+            case GTexture::Format::DEPTH24_STENCIL8:
                 app().render_command().clear_depth_buffer(fbo, 1.0f, 0);
                 break;
             default: CORE_ASSERT(false, u8"glFrameBuffer: Unsupported texture format!");
@@ -188,15 +185,7 @@ namespace rke
         }
     }
 
-    uint32 glFrameBuffer::get_attachment(int index) const
-    {
-        if(zero_sized() || over_sized()) return 0;
-        CORE_ASSERT(index < attachments_.size(),
-            u8"glFrameBuffer: Try to access non-valid color attachment!");
-        return attachments_[index];
-    }
-
-    const Texture2D* glFrameBuffer::get_texture(int index) const
+    const GTexture2D* glFrameBuffer::get_gtexture_attached(int index) const
     {
         if(zero_sized() || over_sized()) return nullptr;
         CORE_ASSERT(index < attachments_.size(),
@@ -254,7 +243,7 @@ namespace rke
             GLint previous_read_fbo{};
             glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previous_read_fbo);
         
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer_id_);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, gal_id_);
             glReadBuffer(GL_COLOR_ATTACHMENT0 + color_attach_index);
 
             pixel_pbo_->bind(PixelBuffer::Usage::Pack);
@@ -287,7 +276,7 @@ namespace rke
     void glFrameBuffer::bind()
     {
         glBindFramebuffer(GL_FRAMEBUFFER,
-            spec_.samples > 1 ? msaa_renderer_id_ : renderer_id_);
+            spec_.samples > 1 ? msaa_renderer_id_ : gal_id_);
         glViewport(0, 0, spec_.width, spec_.height);
         clear();
     }
@@ -298,7 +287,7 @@ namespace rke
         if(spec_.samples > 1)
         {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, msaa_renderer_id_);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderer_id_);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gal_id_);
 
             Size color_attachment_count{};
             bool has_depth{ false };
@@ -326,11 +315,11 @@ namespace rke
     void glFrameBuffer::invalidate()
     {
     // clean-up
-        if(renderer_id_) {
-            glDeleteFramebuffers(1, &renderer_id_);
+        if(gal_id_) {
+            glDeleteFramebuffers(1, &gal_id_);
             glDeleteTextures(attachments_.size(), attachments_.data());
 
-            renderer_id_ = 0;
+            gal_id_ = 0;
             attachments_.clear();
             output_textures_.clear();
         }
@@ -345,11 +334,11 @@ namespace rke
         bool multi_sampled{ spec_.samples > 1 };
 
     // re-create
-        glCreateFramebuffers(1, &renderer_id_);
+        glCreateFramebuffers(1, &gal_id_);
         if(multi_sampled) glCreateFramebuffers(1, &msaa_renderer_id_);
 
         if(zero_sized() || over_sized()) {
-            glNamedFramebufferDrawBuffer(renderer_id_, GL_NONE);
+            glNamedFramebufferDrawBuffer(gal_id_, GL_NONE);
             if(multi_sampled) glNamedFramebufferDrawBuffer(msaa_renderer_id_, GL_NONE);
             return;
         }
@@ -369,8 +358,8 @@ namespace rke
             if(is_depth_format(attachment_specs[i].format)) {
                 switch(attachment_specs[i].format)
                 {
-                case Texture::Format::DEPTH24_STENCIL8:
-                    attach_depth_texture(renderer_id_, attachments_[i],
+                case GTexture::Format::DEPTH24_STENCIL8:
+                    attach_depth_texture(gal_id_, attachments_[i],
                         GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT,
                         spec_.width, spec_.height);
                     if(multi_sampled) attach_msaa_depth_texture(msaa_renderer_id_,
@@ -384,7 +373,7 @@ namespace rke
                 }
             } else {
                 GLenum format{ tex_format_to_gl_enum(attachment_specs[i].format) };
-                attach_color_texture(renderer_id_, color_attachment_index, attachments_[i], format,
+                attach_color_texture(gal_id_, color_attachment_index, attachments_[i], format,
                     filt_format_to_gl_enum(attachment_specs[i].filtering), spec_.width, spec_.height);
                 if(multi_sampled) attach_msaa_color_texture(msaa_renderer_id_,
                     color_attachment_index, msaa_attachments_[i],
@@ -398,17 +387,17 @@ namespace rke
             std::vector<GLenum> buffers{};
             for(Size i{}; i < color_attachment_index; i++)
                 buffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-            glNamedFramebufferDrawBuffers(renderer_id_, buffers.size(), buffers.data());
+            glNamedFramebufferDrawBuffers(gal_id_, buffers.size(), buffers.data());
             if(multi_sampled) glNamedFramebufferDrawBuffers
                 (msaa_renderer_id_, buffers.size(), buffers.data());
         } else { // Depth-only framebuffer
-            glNamedFramebufferDrawBuffer(renderer_id_, GL_NONE);
+            glNamedFramebufferDrawBuffer(gal_id_, GL_NONE);
             if(multi_sampled) glNamedFramebufferDrawBuffer(msaa_renderer_id_, GL_NONE);
         }
 
         // check validation
         CORE_ASSERT(glCheckNamedFramebufferStatus
-            (renderer_id_, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
+            (gal_id_, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
             u8"glFrameBuffer: Frame buffer is not complete!");
         if(multi_sampled) {
             CORE_ASSERT(glCheckNamedFramebufferStatus
@@ -416,10 +405,11 @@ namespace rke
                 u8"glFrameBuffer: Msaa Frame buffer is not complete!");
         }
 
-        // create Texture2D(s)
+        // create GTexture(s)
         output_textures_.resize(attachment_specs.size());
-        for(Size i{}; i < output_textures_.size(); i++) {
-            output_textures_[i] = Texture2D::create_from_id
+        for(Size i{}; i < output_textures_.size(); i++)
+        {
+            output_textures_[i] = GTexture2D::create_from_id
                 (attachments_[i], spec_.width, spec_.height, attachment_specs[i].format);
         }
     }

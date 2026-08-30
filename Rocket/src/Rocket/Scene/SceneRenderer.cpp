@@ -7,8 +7,11 @@ import Renderer;
 import Application;
 import RenderCommand;
 import Components;
+import Texture;
 
 namespace {
+    using namespace rke;
+
     static bool should_cull(glm::vec3 pos, glm::vec2 size,
         const std::array<glm::vec4, 6>& frustum_planes)
     {
@@ -46,6 +49,16 @@ namespace {
             far    / glm::length(glm::vec3(far   )),
         };
     }
+
+    static Texture* get_texture(AssetsManager& am, SpriteComponent& sc)
+    {
+        if(sc.resolved_uuid != sc.tex_uuid || !am.is_handle_valid(sc.tex_handle))
+        {
+            sc.tex_handle = am.load_asset(sc.tex_uuid);
+            sc.resolved_uuid = sc.tex_uuid;
+        }
+        return am.get_asset<Texture>(sc.tex_handle);
+    }
 }
 
 namespace rke
@@ -57,9 +70,9 @@ namespace rke
         CORE_ASSERT(context_, u8"SceneRenderer: Window context null!");
         scene_fbo_ = FrameBuffer::create ({
             .attachment_spec {
-                { Texture::Format::RGBA16F, clear_color_ },
-                { Texture::Format::R32I, -1 },
-                { Texture::Format::DEPTH24_STENCIL8 }
+                { GTexture::Format::RGBA16F, clear_color_ },
+                { GTexture::Format::R32I, -1 },
+                { GTexture::Format::DEPTH24_STENCIL8 }
             }
         });
     }
@@ -67,7 +80,7 @@ namespace rke
     void SceneRenderer::add_effect(Scope<PostProcessEffect> effect)
         { post_processor_.add_effect(std::move(effect)); }
     
-    const Texture2D* SceneRenderer::render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos)
+    const GTexture2D* SceneRenderer::render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
         scene_fbo_->clear_to_upload([this, scene, &vp, pos]()
@@ -75,10 +88,10 @@ namespace rke
             context_->renderer().begin_camera(vp);
             render_scene(scene, vp, pos);
         });
-        return post_processor_.process(scene_fbo_->get_texture(0));
+        return post_processor_.process(scene_fbo_->get_gtexture_attached(0));
     }
 
-    const Texture2D* SceneRenderer::render(const Scene* scene, Entity camera)
+    const GTexture2D* SceneRenderer::render(const Scene* scene, Entity camera)
     {
         if(camera.valid() && camera.belongs_to(scene) && camera.has<CameraComponent>())
         {
@@ -122,9 +135,10 @@ namespace rke
         const auto& tc{ reg.get<TransformComponent>(entity) };
         if(reg.all_of<SpriteComponent>(entity))
         {
-            const auto& sc{ reg.get<SpriteComponent>(entity) };
-            auto* tex{ manager.get_asset<Texture2D>(sc.tex_handle) };
-            context_->renderer().push(sc.quad, tex, RenderProps
+            auto& sc{ reg.get<SpriteComponent>(entity) };
+            Texture* tex{ get_texture(manager, sc) };
+            GTexture* gtex{ tex ? tex->get_gtexture(sc.gtex_settings) : nullptr };
+            context_->renderer().push(sc.quad, gtex, RenderProps
             {
                 .transform{ tc.get_transform() },
                 .uv_offset{ sc.uv_offset },
@@ -139,8 +153,8 @@ namespace rke
         }
     }
 
-    void SceneRenderer::render_scene
-        (const Scene* scene, const glm::mat4& vp, glm::vec3 cam_pos)
+    void SceneRenderer::render_scene(const Scene* scene,
+        const glm::mat4& vp, glm::vec3 cam_pos)
     {
     // frustum culling
         auto planes{ get_planes_normal(vp) };
@@ -150,14 +164,12 @@ namespace rke
         cutout_queue_.clear();
         transparent_queue_.clear();
 
-        AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager() };
+        AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager_mut() };
         auto view{ scene->registry_->view<TransformComponent, SpriteComponent>() };
         for(entt::entity entity : view)
         {
             const auto& tc{ view.get<TransformComponent>(entity) };
             auto& sc{ view.get<SpriteComponent>(entity) };
-            if(sc.has_texture() && !sc.is_texture_loaded())
-                sc.tex_handle = assets_manager.load_asset(sc.tex_uuid);
             if(sc.color.a < 0.01f) continue;
 
             glm::vec3 pos { tc.translation + sc.quad->get_centre() };

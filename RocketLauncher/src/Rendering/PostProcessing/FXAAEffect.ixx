@@ -12,7 +12,7 @@ export namespace rke
 
         FXAAEffect(String name, std::function<bool()> func = nullptr);
 
-        bool apply(const Texture2D* source, FrameBuffer* destination) override;
+        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
         Category get_category() const override { return Category::System; }
         void set_uniform(const Uniforms& uniforms);
     private:

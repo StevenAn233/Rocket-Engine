@@ -92,19 +92,20 @@ namespace rke
         if(!entity.valid() || !entity.has<NativeScriptComponent>())
             { CORE_ERROR(u8"ScriptManager: Entity not valid!"); return nullptr; }
     // check script name
-        auto& script_com{ entity.get_mut<NativeScriptComponent>() };
-        const auto& name{ script_com.script_name };
-        if(name.empty()) return nullptr;
-        
+        auto& nsc{ entity.get_mut<NativeScriptComponent>() };
+        ScriptType type{ nsc.script_type };
+        if(type == script_type_null) return nullptr;
+
+        auto& script_reg{ owner_->get_owner()->get_script_registry_mut() };
     // create script
-        Scope<Script> script{ owner_->get_owner()
-            ->get_script_registry().construct_script(name) };
+        Scope<Script> script{ script_reg.construct_script(type) };
         if(!script) {
             CORE_ERROR(u8"ScriptManager: Failed to create script!");
             return nullptr;
         }
     // set mutual refs
-        script_com.script_handle = script.get();
+        nsc.script_handle = script.get();
+        nsc.resolved_script_type = nsc.script_type;
         script->owner_ = entity;
 
         script->on_create();
