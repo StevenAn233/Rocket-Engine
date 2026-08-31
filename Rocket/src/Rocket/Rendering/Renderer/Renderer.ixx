@@ -43,7 +43,7 @@ export namespace rke
 
             int tex_id{ 0 };
             int is_tex_grey{ 0 };
-            int entity_id{-1 };
+            int entity_id{ -1 };
         };
 
         struct CameraData { glm::mat4 view_proj{ 1.0f }; };
