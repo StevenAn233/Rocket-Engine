@@ -68,14 +68,17 @@ namespace rke
     void SceneHierarchyPanel::draw_entity_node(Entity entity, Entity selected)
     {
         ImGui::PushID(static_cast<int>(entity.get_handle()) + 1);
-        const String& tag{ entity.get<IdentityComponent>().tag };
+        const char8* tag{ entity.get<IdentityComponent>().tag };
         ImGuiTreeNodeFlags flags {
         ((selected == entity) ? ImGuiTreeNodeFlags_Selected : 0)
           | ImGuiTreeNodeFlags_OpenOnArrow
           | ImGuiTreeNodeFlags_SpanAvailWidth
         }; // keep clicked entity selected
 
-        bool opened{ ImGui::TreeNodeEx("entity_node", flags, "%s", tag.raw())};
+        bool opened {
+            ImGui::TreeNodeEx("entity_node", flags,
+                "%s", reinterpret_cast<const char*>(tag))
+        };
 
         if(ImGui::IsItemClicked())
         {
@@ -118,8 +121,8 @@ namespace rke
     {
         layout::tree_node_branch<u8"Name">([this]()
         {
-            const String& name{ context_->get_name() };
             char buffer[256]{};
+            const String& name{ context_->get_name() };
             std::memcpy(buffer, name.raw(), sizeof(buffer) - 1);
             if(ImGui::InputText("##tag", buffer, sizeof(buffer),
                 ImGuiInputTextFlags_EnterReturnsTrue))
@@ -140,13 +143,13 @@ namespace rke
     {
         check_then_draw<IdentityComponent, u8"Tag">(entity, [this](Entity ent)
         {
-            String& tag{ ent.get_mut<IdentityComponent>().tag };
-            char buffer[256]{};
-            std::memcpy(buffer, tag.raw(), sizeof(buffer) - 1);
-            if(ImGui::InputText("##tag", buffer, sizeof(buffer),
-                ImGuiInputTextFlags_EnterReturnsTrue))
+            auto& ic{ ent.get_mut<IdentityComponent>() };
+            char buffer[ic.tag_size]{};
+            std::memcpy(buffer, &ic.tag[0], ic.tag_size - 1);
+            if(ImGui::InputText("##tag", buffer,
+                sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
             {
-                tag = String(str::to_char8(buffer), strlen(buffer));
+                std::memcpy(&ic.tag[0], buffer, ic.tag_size - 1);
                 context_->mark_modified();
             }
         });

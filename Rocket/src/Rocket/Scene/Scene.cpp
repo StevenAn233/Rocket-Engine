@@ -128,11 +128,11 @@ namespace rke
         return new_scene;
     }
 
-    Entity Scene::create_entity(String tag, UUID uuid)
+    Entity Scene::create_entity(const String& tag, UUID uuid)
     {
         Entity entity(registry_->create(), this);
         
-        entity.emplace<IdentityComponent>(std::move(tag), uuid);
+        entity.emplace<IdentityComponent>(tag.c_str(), uuid);
         if(!uuid.empty()) entity_map_[entity.get_uuid()] = entity.handle_;
         entity.emplace<TransformComponent>();
 

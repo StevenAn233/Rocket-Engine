@@ -110,7 +110,7 @@ export namespace rke
 
         Scope<Scene> deep_copy(bool temp = true);
 
-        Entity create_entity(String tag = u8"New Entity", UUID uuid = {});
+        Entity create_entity(const String& tag = u8"New Entity", UUID uuid = {});
         void destroy_entity(Entity entity);
         void destroy_entity(uint32 handle) { destroy_entity(get_entity(handle)); }
         void destroy_entity(UUID uuid) { destroy_entity(get_entity(uuid)); }

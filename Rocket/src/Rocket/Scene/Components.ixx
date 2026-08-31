@@ -3,6 +3,7 @@
 #include <tuple>
 #include <utility>
 #include <concepts>
+#include <cstring>
 
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -41,16 +42,19 @@ export namespace rke
 // MUST OWNED
     struct RKE_API IdentityComponent
     {
-        String tag;
+        static constexpr Size tag_size{ 64 };
+
+        char8 tag[tag_size];
         UUID uuid;
 
         IdentityComponent()
-            : tag(u8"None"), uuid() {}
-        IdentityComponent(String str)
-            : tag(std::move(str)), uuid() {}
-        IdentityComponent(String str, UUID specified)
-            : tag(std::move(str)), uuid(specified) {}
-        IdentityComponent(const IdentityComponent&) = default;
+            : tag({}), uuid() { std::memcpy(&tag[0], u8"Null", 4); }
+        IdentityComponent(const char8* str)
+            : tag({}), uuid() { std::memcpy(&tag[0], str, tag_size - 1); }
+        IdentityComponent(const char8* str, UUID specified)
+            : tag({}), uuid(specified) { std::memcpy(&tag[0], str, tag_size - 1); }
+        IdentityComponent(const IdentityComponent& other)
+            : tag({}), uuid(other.uuid) { std::memcpy(&tag[0], &(other.tag[0]), tag_size - 1); }
     };
 
     struct RKE_API TransformComponent

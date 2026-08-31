@@ -147,9 +147,9 @@ namespace rke
                 .entity_id{ handle }
             });
         } else {
-            const auto& id_com{ reg.get<IdentityComponent>(entity) };
+            const auto& ic{ reg.get<IdentityComponent>(entity) };
             CORE_ASSERT(false, u8"SceneRenderer: Entity '{}'(UUID:{}) "
-                u8"is not renderable!", id_com.tag, id_com.uuid.value());
+                u8"is not renderable!", String(ic.tag), ic.uuid.value());
         }
     }
 

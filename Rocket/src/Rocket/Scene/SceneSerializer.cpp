@@ -16,9 +16,9 @@ namespace {
         CORE_ASSERT(entity.valid(), u8"SceneSerializer: Entity invalid!");
         writer.begin_map();
 
-        auto& id_com{ entity.get<IdentityComponent>() };
-        writer.write(u8"Entity", ConfigValue(id_com.uuid.value()));
-        writer.write(u8"Tag", ConfigValue(id_com.tag));
+        auto& ic{ entity.get<IdentityComponent>() };
+        writer.write(u8"Entity", ConfigValue(ic.uuid.value()));
+        writer.write(u8"Tag", ConfigValue(String(ic.tag)));
         
         if(entity.has<TransformComponent>())
         {
