@@ -9,7 +9,7 @@ namespace rke
 
     void SceneCamera::set_orthographic(float size, float near_clip, float far_clip)
     {
-        orthographic_size_ = std::max(size, MIN_ORTHO_SIZE);
+        orthographic_size_ = std::max(size, min_ortho_size);
         orthographic_near_ = near_clip;
         orthographic_far_  = far_clip;
         update_proj();
@@ -18,7 +18,7 @@ namespace rke
     void SceneCamera::set_perspective(float fov, float near_clip, float far_clip)
     {
         perspective_fov_  = glm::radians
-            (glm::clamp(fov, MIN_VERTICAL_FOV, MAX_VERTICAL_FOV));
+            (glm::clamp(fov, min_vertical_fov, max_vertical_fov));
         perspective_near_ = near_clip;
         perspective_far_  = far_clip;
         update_proj();

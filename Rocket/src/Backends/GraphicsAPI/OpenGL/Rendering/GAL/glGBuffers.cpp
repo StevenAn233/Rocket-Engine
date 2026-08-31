@@ -36,7 +36,7 @@ namespace {
         return 0;
     }
 
-    static constexpr GLbitfield GL_MAP_ALL_ACCESS
+    constexpr GLbitfield GL_MAP_ALL_ACCESS
         { GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT };
     // GL_DYNAMIC_STORAGE_BIT means data can be changed
 }

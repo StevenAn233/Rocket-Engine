@@ -327,11 +327,10 @@ namespace rke
             {
                 layout::two_columns_table<u8"Filter">([&]()
                 {
-                    static constexpr const char* items[]{ "Linear", "Nearest" };
+                    constexpr const char* filt_opts[]{ "Linear", "Nearest" };
                     int option{ static_cast<int>(sc.gtex_settings.filt) };
-
                     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                    if(ImGui::Combo("##filt", &option, items, (int)std::size(items)))
+                    if(ImGui::Combo("##filt", &option, filt_opts, (int)std::size(filt_opts)))
                     {
                         sc.gtex_settings.filt = static_cast<GTexture::FiltFormat>(option);
                         context_->mark_modified();
@@ -340,12 +339,11 @@ namespace rke
 
                 layout::two_columns_table<u8"Wrapping">([&]()
                 {
-                    static constexpr const char* items[]{ "Clamp to Edge", "Repeat" };
+                    constexpr const char* wrap_opts[]{ "Clamp to Edge", "Repeat" };
                     int option{ static_cast<int>(sc.gtex_settings.wrap) };
-                
                     float available_width{ ImGui::GetContentRegionAvail().x };
                     ImGui::SetNextItemWidth(available_width);
-                    if(ImGui::Combo("##wrap", &option, items, (int)std::size(items)))
+                    if(ImGui::Combo("##wrap", &option, wrap_opts, (int)std::size(wrap_opts)))
                     {
                         sc.gtex_settings.wrap = static_cast<GTexture::WrapFormat>(option);
                         context_->mark_modified();
@@ -370,13 +368,13 @@ namespace rke
             {
                 float available_width{ ImGui::GetContentRegionAvail().x };
                 ImGui::SetNextItemWidth(available_width);
-                static constexpr ImGuiColorEditFlags COLOR_EDIT_FLAGS
+                constexpr ImGuiColorEditFlags flags
                 {	ImGuiColorEditFlags_Float
                   | ImGuiColorEditFlags_InputRGB
                   | ImGuiColorEditFlags_AlphaBar
                 };
                 context_->mark_modified_if(ImGui::ColorEdit4
-                    ("##color", glm::value_ptr(sc.color), COLOR_EDIT_FLAGS));
+                    ("##color", glm::value_ptr(sc.color), flags));
             });
 
             layout::two_columns_table<u8"Blending Mode">([&]()
@@ -540,13 +538,13 @@ namespace rke
 
     void SceneHierarchyPanel::add_components_popup(Entity selected)
     {
-        static constexpr ImGuiPopupFlags POPUP_FLAGS
+        constexpr ImGuiPopupFlags popup_flags
         {
             ImGuiPopupFlags_MouseButtonRight |
             ImGuiPopupFlags_NoOpenOverItems
         };
 
-        bool popup_opened{ ImGui::BeginPopupContextWindow(0, POPUP_FLAGS) };
+        bool popup_opened{ ImGui::BeginPopupContextWindow(0, popup_flags) };
         if(!popup_opened) return;
 
         bool menu_opened{ ImGui::BeginMenu("Add Component") };

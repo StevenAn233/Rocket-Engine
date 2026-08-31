@@ -34,9 +34,9 @@ namespace rke
                 int idx{ std::stoi(name.raw()) };
                 if(idx >= 16) return;
                 config.physics_layers.set_name(static_cast<uint8>(idx),
-                    layer->get_at(u8"Name", PhysicsLayers::get_default_name()));
+                    layer->get_at(u8"Name", String(PhysicsLayers::default_name)));
                 config.physics_layers.set_mask(static_cast<uint8>(idx),
-                    layer->get_at(u8"Mask", PhysicsLayers::get_default_mask()));
+                    layer->get_at(u8"Mask", PhysicsLayers::default_mask));
             });
             uint8 showed_layers{ static_cast<uint8>
                 (config_reader->get_at(u8"Showed Layers", 1ui32)) };
@@ -80,7 +80,7 @@ namespace rke
         writer->begin_map(u8"Config");
         writer->begin_map(u8"Physics Layers");
         auto& layers{ project_config_.physics_layers };
-        for(uint8 i{}; i < PhysicsLayers::get_layer_count(); i++)
+        for(uint8 i{}; i < PhysicsLayers::max_layers; i++)
         {
             String count_str{ String::format(u8"{}", static_cast<uint32>(i)) };
             writer->begin_map(StringView(count_str));
@@ -239,12 +239,12 @@ namespace rke
 
         writer->begin_map(u8"Config");
         writer->begin_map(u8"Physics Layers");
-        for(uint8 i{}; i < PhysicsLayers::get_layer_count(); i++)
+        for(uint8 i{}; i < PhysicsLayers::max_layers; i++)
         {
             String count_str{ String::format(u8"{}", static_cast<uint32>(i)) };
             writer->begin_map(StringView(count_str));
-            writer->write(u8"Name", PhysicsLayers::get_default_name());
-            writer->write(u8"Mask", PhysicsLayers::get_default_mask());
+            writer->write(u8"Name", String(PhysicsLayers::default_name));
+            writer->write(u8"Mask", PhysicsLayers::default_mask);
             writer->end_map();
         }
         writer->end_map(); // Physics Layers

@@ -79,7 +79,7 @@ namespace rke
             {
                 layout::tree_node_branch<u8"Anti-Aliasing">([&]()
                 {
-                    static const char* items[]
+                    constexpr const char* aa_opts[]
                     {
                         "Off",      // 0
                         "2x MSAA",  // 1
@@ -98,7 +98,7 @@ namespace rke
                     case AntiAliasing::MSAAx16: aa_opt = 4; break;
                     case AntiAliasing::FXAA:    aa_opt = 5; break;
                     }
-                    if(ImGui::Combo("##aa", &aa_opt, items, static_cast<int>(std::size(items))))
+                    if(ImGui::Combo("##aa", &aa_opt, aa_opts, static_cast<int>(std::size(aa_opts))))
                     {
                         AntiAliasing aa{ AntiAliasing::Off };
                         switch(aa_opt)

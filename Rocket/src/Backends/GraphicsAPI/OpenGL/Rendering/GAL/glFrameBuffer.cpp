@@ -13,7 +13,7 @@ import RenderCommand;
 namespace {
     using namespace rke;
 
-    constexpr uint32 MAX_FRAME_BUFFER_SIZE{ 8192u };
+    constexpr uint32 max_framebuffer_size{ 8192u };
 
     static inline bool is_depth_format(GTexture::Format format)
     {
@@ -269,8 +269,8 @@ namespace rke
 
     bool glFrameBuffer::over_sized() const
     {
-        return (spec_.width  > MAX_FRAME_BUFFER_SIZE)
-            || (spec_.height > MAX_FRAME_BUFFER_SIZE);
+        return (spec_.width  > max_framebuffer_size)
+            || (spec_.height > max_framebuffer_size);
     }
 
     void glFrameBuffer::bind()

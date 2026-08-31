@@ -13,6 +13,10 @@ export namespace rke
     class RKE_API SceneCamera : public Camera
     {
     public:
+        static constexpr float min_ortho_size  { 0.01f  };
+        static constexpr float min_vertical_fov{ 1.0f   };
+        static constexpr float max_vertical_fov{ 160.0f };
+
         enum class Type { Perspective = 0, Orthographic };
 
         struct OrthoBounds // TO REMOVE
@@ -41,7 +45,7 @@ export namespace rke
         const OrthoBounds& get_bounds() const { return ortho_bounds_; }
     // setters
         void set_orthographic_size(float size)
-            { orthographic_size_ = std::max(size, MIN_ORTHO_SIZE); update_proj(); }
+            { orthographic_size_ = std::max(size, min_ortho_size); update_proj(); }
         void set_orthographic_near_clip(float near) { orthographic_near_ = near; update_proj(); }
         void set_orthographic_far_clip (float far ) { orthographic_far_  = far ; update_proj(); }
         void set_orthographic(float size, float near_clip, float far_clip);
@@ -49,7 +53,7 @@ export namespace rke
         void set_perspective_vertical_fov(float fov)
         {
             perspective_fov_ = glm::radians
-                (glm::clamp(fov, MIN_VERTICAL_FOV, MAX_VERTICAL_FOV));
+                (glm::clamp(fov, min_vertical_fov, max_vertical_fov));
             update_proj();
         }
         void set_perspective_near_clip(float near) { perspective_near_ = near; update_proj(); }
@@ -71,9 +75,5 @@ export namespace rke
 
         float perspective_fov_ { glm::radians(45.0f) };
         float perspective_near_{ 0.01f }, perspective_far_{ 100.0f };
-    public:
-        static constexpr float MIN_ORTHO_SIZE  { 0.01f  };
-        static constexpr float MIN_VERTICAL_FOV{ 1.0f   };
-        static constexpr float MAX_VERTICAL_FOV{ 160.0f };
     };
 }
