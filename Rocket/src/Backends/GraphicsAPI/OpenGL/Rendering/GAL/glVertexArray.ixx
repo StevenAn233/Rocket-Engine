@@ -13,6 +13,7 @@ namespace rke
 
         void add_vbo(Ref<VertexBuffer> vbo, const GBufferLayout& layout) override;
         void set_ibo(Ref<IndexBuffer > ibo) override;
+        void set_binding_divisor(uint32 binding, uint32 divisor) override;
 
         uint32 get() const override { return gal_id_; }
         const VertexBuffer& get_vbo(Size index) const override;
@@ -27,5 +28,6 @@ namespace rke
         Ref<IndexBuffer> ibo_{}; // keep the ibo alive(for draw-call)
 
         uint32 binding_index_{};
+        uint32 attrib_index_{}; // next free attribute location
     };
 }

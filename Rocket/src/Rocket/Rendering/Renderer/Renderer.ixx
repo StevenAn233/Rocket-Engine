@@ -1,6 +1,7 @@
 ﻿module;
 
 #include <array>
+#include <vector>
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include "rke_macros.h"
@@ -35,42 +36,28 @@ export namespace rke
     class Renderer
     {
     public:
-        struct VertexProps
+        struct InstanceData
         {
-            glm::vec4 position{ 0.0f };
-            glm::vec4 color{ 0.0f };
-            glm::vec2 uv{ 0.0f };
-
-            int tex_id{ 0 };
-            int is_tex_grey{ 0 };
-            int entity_id{ -1 };
+            glm::mat4 transform; // 64B
+            glm::vec4 color;     // 16B
+            glm::vec2 uv_offset; // 8B
+            glm::vec2 uv_scale;  // 8B
+            int tex_id;
+            int is_tex_grey;
+            int entity_id;
+            int pad; // 112B total, 16-byte aligned stride
         };
 
         struct CameraData { glm::mat4 view_proj{ 1.0f }; };
-
-        struct ContextData
-        {
-            Scope<VertexArray> vao{};
-            Ref<VertexBuffer > vbo{}; // a huge vbo(for one context)
-            Ref<IndexBuffer  > ibo{}; // a huge ibo(for one context)
-            Ref<UniformBuffer> ubo{};
-
-            uint32 vertex_count{};
-            uint32 index_count {};
-            VertexProps* vertex_props_it{ nullptr }; // vbo data ptr
-            uint32* index_it{ nullptr }; // ibo data ptr
-        };
 
         struct RKE_API Statistics
         {
             uint32 cam_set_count {};
             uint32 drawcall_count{};
-            uint32 vertex_count{};
-            uint32 index_count {};
+            uint32 instance_count{};
         };
     public:
-        static constexpr uint32 max_vertices{ 1000000 };
-        static constexpr uint32 max_indices { 1500000 };
+        static constexpr uint32 max_instances{ 100000 };
         static constexpr uint32 max_gtex_slots{ 32 };
     public:
         Renderer(Window* context);
@@ -94,19 +81,50 @@ export namespace rke
         inline void reset_stats() { stats_ = {}; }
     #endif
     private:
+        struct MeshGeometry
+        {
+            Scope<VertexArray> vao{}; // mesh vbo(divisor0) + ibo + instance vbo(divisor1)
+            Ref<VertexBuffer > vbo{}; // local vertices
+            Ref<IndexBuffer  > ibo{}; // indices
+            uint32 index_count{};
+        };
+
+        struct MeshGeometryGroup
+        {
+            MeshGeometry* geometry{};
+            uint32 inst_start{};
+            uint32 inst_count{};
+        };
+
+        void start_current_group(const Mesh* mesh);
+        void close_current_group();
+        void add_current_group_instance_count();
+
         void start_batch();
         void flush();
+        void present_all_groups(); // requires instance_vbo unmapped
 
+        MeshGeometry* get_or_create_mesh_geometry(const Mesh* mesh);
         uint32 find_or_add_gtex_slot(const GTexture* gtex);
     private:
         Window* context_;
 
+        Scope<GTexture2D> default_texture_{};
         std::array<const GTexture*, max_gtex_slots> gtex_slots_{};
         uint32 gtex_slot_index_{ 1 }; // 0 for default texture
         bool in_scene_{ false };
 
-        ContextData data_{};
-        Scope<GTexture2D> default_texture_{};
+        Ref<UniformBuffer> camera_ubo_{}; // CameraData
+        Ref<VertexBuffer> instance_vbo_{}; // InstanceDatas
+        uint32 instance_count_{};
+        InstanceData* instance_it_{ nullptr }; // vbo data ptr
+        
+        std::unordered_map<const Mesh*, MeshGeometry> mesh_geometries_{};
+        std::vector<MeshGeometryGroup> mesh_geometry_groups_{};
+
+        const Mesh* resolved_mesh_{ nullptr };
+        MeshGeometryGroup current_group_{};
+
     #ifdef RKE_ENABLE_STATISTICS
         Statistics stats_{};
     #endif

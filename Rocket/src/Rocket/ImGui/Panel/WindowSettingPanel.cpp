@@ -44,8 +44,7 @@ namespace rke
             const auto& stats{ owner_->renderer().get_stats() };
             ImGui::Text("CamSets  : %d", stats.cam_set_count );
             ImGui::Text("DrawCalls: %d", stats.drawcall_count);
-            ImGui::Text("Vertices : %d", stats.vertex_count  );
-            ImGui::Text("Indices  : %d", stats.index_count   );
+            ImGui::Text("Instances: %d", stats.instance_count);
 
             ImGui::EndTabItem();
         }

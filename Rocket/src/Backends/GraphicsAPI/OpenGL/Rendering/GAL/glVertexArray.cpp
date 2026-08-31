@@ -20,13 +20,13 @@ namespace {
         case GShaderDataType::Float2: return GL_FLOAT;
         case GShaderDataType::Float3: return GL_FLOAT;
         case GShaderDataType::Float4: return GL_FLOAT;
-        case GShaderDataType::Int:	 return GL_INT;
-        case GShaderDataType::Int2:	 return GL_INT;
-        case GShaderDataType::Int3:	 return GL_INT;
-        case GShaderDataType::Int4:	 return GL_INT;
-        case GShaderDataType::Mat3:	 return GL_FLOAT;
-        case GShaderDataType::Mat4:	 return GL_FLOAT;
-        case GShaderDataType::Bool:	 return GL_BOOL;
+        case GShaderDataType::Int:	  return GL_INT;
+        case GShaderDataType::Int2:	  return GL_INT;
+        case GShaderDataType::Int3:	  return GL_INT;
+        case GShaderDataType::Int4:	  return GL_INT;
+        case GShaderDataType::Mat3:	  return GL_FLOAT;
+        case GShaderDataType::Mat4:	  return GL_FLOAT;
+        case GShaderDataType::Bool:	  return GL_BOOL;
         default:
             CORE_ASSERT(false, u8"glVertexArray: Unknown shader data type!");
             std::unreachable();
@@ -59,29 +59,61 @@ namespace rke
         );
 
         const auto& elements{ layout.get_elements() };
+        uint32 attrib_index{ attrib_index_ };
         for(int i{}; i < elements.size(); i++)
         {
-            uint32 attrib_index{ binding_index_ + i };
-            // attrib_index: the corresponding index of location in shaders
+            // attrib_index: the corresponding index of location in shaders,
+            // independent from the binding index (which buffer this data comes from).
             // e.g layout(location = 0) in vec3 v_position;
-            // attribute here means a set of values which
-            // represent one certain type of information e.g pos/normal/uv/color...
 
             switch(elements[i].type)
             {
+            case GShaderDataType::Mat4: // 4 consecutive locations
+                for(int j{}; j < 4; j++)
+                {
+                    glVertexArrayAttribFormat (
+                        gal_id_,
+                        attrib_index + j,
+                        4, // component count
+                        GL_FLOAT,
+                        elements[i].normalized ? GL_TRUE : GL_FALSE,
+                        elements[i].offset + j * 16
+                    );
+                    glVertexArrayAttribBinding(gal_id_, attrib_index + j, binding_index_);
+                    glEnableVertexArrayAttrib (gal_id_, attrib_index + j);
+                }
+                attrib_index += 4;
+                break;
+            case GShaderDataType::Mat3: // 3 consecutive locations
+                for(int j{}; j < 3; j++)
+                {
+                    glVertexArrayAttribFormat (
+                        gal_id_,
+                        attrib_index + j,
+                        3, // component count
+                        GL_FLOAT,
+                        elements[i].normalized ? GL_TRUE : GL_FALSE,
+                        elements[i].offset + j * 12);
+                    glVertexArrayAttribBinding(gal_id_, attrib_index + j, binding_index_);
+                    glEnableVertexArrayAttrib (gal_id_, attrib_index + j);
+                }
+                attrib_index += 3;
+                break;
             case GShaderDataType::Float:
             case GShaderDataType::Float2:
             case GShaderDataType::Float3:
             case GShaderDataType::Float4:
-            case GShaderDataType::Mat3: // Mat is composed of floats
-            case GShaderDataType::Mat4:
                 glVertexArrayAttribFormat (
                     gal_id_,
                     attrib_index,
                     elements[i].count, // component count
                     shader_data_type_to_GLenum(elements[i].type),
                     elements[i].normalized ? GL_TRUE : GL_FALSE,
-                    elements[i].offset);
+                    elements[i].offset
+                );
+                glVertexArrayAttribBinding(gal_id_, attrib_index, binding_index_);
+                glEnableVertexArrayAttrib (gal_id_, attrib_index);
+                attrib_index += 1;
                 break;
             case GShaderDataType::Int:
             case GShaderDataType::Int2:
@@ -94,11 +126,16 @@ namespace rke
                     elements[i].count, // component count
                     shader_data_type_to_GLenum(elements[i].type),
                     elements[i].offset);
+                glVertexArrayAttribBinding(gal_id_, attrib_index, binding_index_);
+                glEnableVertexArrayAttrib (gal_id_, attrib_index);
+                attrib_index += 1;
                 break;
+            default:
+                CORE_ASSERT(false, u8"glVertexArray: Unknown shader data type!");
+                std::unreachable();
             }
-            glVertexArrayAttribBinding(gal_id_, attrib_index, binding_index_);
-            glEnableVertexArrayAttrib (gal_id_, attrib_index);
         }
+        attrib_index_ = attrib_index;
         binding_index_++;
 
         vbos_.push_back(std::move(vbo)); // keep it alive
@@ -109,6 +146,9 @@ namespace rke
         glVertexArrayElementBuffer(gal_id_, ibo->get_gal_id());
         ibo_ = std::move(ibo); // keep it alive
     }
+
+    void glVertexArray::set_binding_divisor(uint32 binding, uint32 divisor)
+        { glVertexArrayBindingDivisor(gal_id_, binding, divisor); }
 
     const VertexBuffer& glVertexArray::get_vbo(Size index) const
     {

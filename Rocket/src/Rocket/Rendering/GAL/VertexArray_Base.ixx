@@ -24,6 +24,7 @@ export namespace rke
 
         virtual void add_vbo(Ref<VertexBuffer> vbo, const GBufferLayout& layout) = 0;
         virtual void set_ibo(Ref<IndexBuffer > ibo) = 0;
+        virtual void set_binding_divisor(uint32 binding, uint32 divisor) = 0;
 
         virtual uint32 get() const = 0;
         virtual const VertexBuffer& get_vbo(Size index) const = 0;

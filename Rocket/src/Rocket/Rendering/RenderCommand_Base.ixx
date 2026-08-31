@@ -50,6 +50,7 @@ export namespace rke
         virtual void draw(int start, int end) = 0;
         virtual void draw_indexed(const VertexArray& vao) = 0;
         virtual void draw_indexed(int count) = 0;
+        virtual void draw_instanced(int index_count, int instance_count, int base_instance) = 0;
         
         inline void draw_quad() { draw(0, 4); }
     

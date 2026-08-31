@@ -158,4 +158,10 @@ namespace rke
 
     void glRenderCommand::draw_indexed(int count)
         { glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr); }
+
+    void glRenderCommand::draw_instanced(int index_count, int instance_count, int base_instance)
+    {
+        glDrawElementsInstancedBaseInstance(GL_TRIANGLES,
+            index_count, GL_UNSIGNED_INT, nullptr, instance_count, base_instance);
+    }
 }

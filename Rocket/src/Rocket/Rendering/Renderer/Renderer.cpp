@@ -1,4 +1,8 @@
-﻿module Renderer;
+﻿module;
+
+#include <vector>
+
+module Renderer;
 
 import Log;
 import Path;
@@ -14,12 +18,17 @@ import GShader;
 
 namespace {
     using namespace rke;
+
+    struct LocalVertex
+    {
+        glm::vec4 position;
+        glm::vec2 uv;
+    }; // 24B
+
     static_assert(Renderer::max_gtex_slots >= 2,
         u8"Renderer: Texture slots must be more than 2!");
-    static_assert(Renderer::max_vertices >= 0,
-        u8"Renderer: Max veritices must be more than 0!");
-    static_assert(Renderer::max_indices >= 0,
-        u8"Renderer: Max indices must be more than 0!");
+    static_assert(Renderer::max_instances >= 0,
+        u8"Renderer: Max instances must be more than 0!");
 }
 
 namespace rke
@@ -41,24 +50,8 @@ namespace rke
             (1, 1, GTexture::Format::RGBA8, &pixel, {}, {});
         gtex_slots_[0] = default_texture_.get();
 
-        data_.vao = VertexArray ::create();
-        data_.vbo = VertexBuffer::create(max_vertices * sizeof(VertexProps));
-        // huge, empty vbo(only with size)
-        data_.ubo = UniformBuffer::create(sizeof(CameraData));
-
-        rke::GBufferLayout vertex_props_layout
-        {
-            { u8"a_position", rke::GShaderDataType::Float4 },
-            { u8"a_color"   , rke::GShaderDataType::Float4 },
-            { u8"a_uv_coord", rke::GShaderDataType::Float2 },
-
-            { u8"a_tex_id"	   , rke::GShaderDataType::Int },
-            { u8"a_is_tex_grey", rke::GShaderDataType::Int },
-            { u8"a_entity_id"  , rke::GShaderDataType::Int }
-        };
-        data_.vao->add_vbo(data_.vbo, vertex_props_layout);
-        data_.ibo = IndexBuffer::create(nullptr, max_indices);
-        data_.vao->set_ibo(data_.ibo);
+        instance_vbo_ = VertexBuffer::create(max_instances * sizeof(InstanceData));
+        camera_ubo_ = UniformBuffer::create(sizeof(CameraData));
     }
 
     Renderer::~Renderer() {}
@@ -67,9 +60,9 @@ namespace rke
     {
         RKE_PROFILE_FUNCTION();
 
-        data_.ubo->bind(BindingPoint::UBO_Camera);
+        camera_ubo_->bind(BindingPoint::UBO_Camera);
         CameraData cam_data{ view_projection };
-        data_.ubo->set_data(&cam_data, sizeof(CameraData));
+        camera_ubo_->set_data(&cam_data, sizeof(CameraData));
 
     #ifdef RKE_ENABLE_STATISTICS
         stats_.cam_set_count++;
@@ -96,84 +89,164 @@ namespace rke
         if(!mesh) return;
         CORE_ASSERT(in_scene_, u8"Renderer: Can't push when not in scene!");
 
-        uint32 vc{ mesh->get_vertex_count() };
-        uint32 ic{ mesh->get_index_count () };
-        if(vc >= max_vertices || ic >= max_indices) {
-            CORE_ERROR(u8"Renderer: Not supported mesh; Way too huge!");
-            return;
-        }
-        if(data_.vertex_count + vc >= max_vertices
-        || data_.index_count  + ic >= max_indices
+    // capacity: instance buffer full or texture slots full
+        if(instance_count_  >= max_instances
         || gtex_slot_index_ >= max_gtex_slots) { flush(); start_batch(); }
 
-        uint32 gtex_index{ find_or_add_gtex_slot(gtex) };
-        glm::vec4 linearlized{ math::srgb_to_linear(props.color) };
-
-        for(uint32 i{}; i < vc; i++)
+    // implicit mesh grouping
+        if(mesh != resolved_mesh_)
         {
-            data_.vertex_props_it->position = props.transform * (*(mesh->get_position(i))); // to GPU?
-            data_.vertex_props_it->color = linearlized; // to merge with vertex color
-            data_.vertex_props_it->uv = props.uv_scale * (*(mesh->get_uv(i))) + props.uv_offset; // to GPU?
-
-            data_.vertex_props_it->tex_id      = static_cast<int>(gtex_index);
-            data_.vertex_props_it->is_tex_grey = static_cast<int>(props.make_tex_gray);
-            data_.vertex_props_it->entity_id   = static_cast<int>(props.entity_id);
-            data_.vertex_props_it++; // stride: VertexProps
+            close_current_group();
+            start_current_group(mesh);
+            resolved_mesh_ = mesh;
         }
 
-        uint32 base{ data_.vertex_count };
-        for(uint32 i{}; i < ic; i++)
-        {
-            *(data_.index_it) = base + *(mesh->get_index(i));
-            data_.index_it++;
-        }
-        data_.vertex_count += vc;
-        data_.index_count  += ic;
+        InstanceData& inst{ *instance_it_ };
+        inst.transform   = props.transform;
+        inst.color       = math::srgb_to_linear(props.color);
+        inst.uv_offset   = props.uv_offset;
+        inst.uv_scale    = props.uv_scale;
+        inst.tex_id      = static_cast<int>(find_or_add_gtex_slot(gtex));
+        inst.is_tex_grey = static_cast<int>(props.make_tex_gray);
+        inst.entity_id   = static_cast<int>(props.entity_id);
+        inst.pad         = 0;
+
+        instance_it_++;
+        instance_count_++;
+        add_current_group_instance_count();
 
     #ifdef RKE_ENABLE_STATISTICS
-        stats_.vertex_count += vc;
-        stats_.index_count  += ic;
+        stats_.instance_count++;
     #endif
     }
 
-    void Renderer::start_batch()
+    void Renderer::start_current_group(const Mesh* mesh)
     {
-        RKE_PROFILE_FUNCTION();
+        CORE_ASSERT(!current_group_.geometry, u8"Renderer: Current group not empty!");
+        current_group_.geometry = get_or_create_mesh_geometry(mesh);
+        current_group_.inst_start = instance_count_;
+    }
 
-        data_.vertex_count = 0;
-        data_.index_count = 0;
+    void Renderer::close_current_group()
+    {
+        if(current_group_.geometry && current_group_.inst_count > 0)
+            mesh_geometry_groups_.push_back(current_group_);
+        current_group_ = {};
+    }
+
+    void Renderer::add_current_group_instance_count()
+    {
+        if(!current_group_.geometry) return;
+        current_group_.inst_count++;
+    }
+
+    void Renderer::start_batch()
+    {   
         gtex_slot_index_ = 1; // 0 for default gtex
+        resolved_mesh_ = nullptr;
 
-        data_.vertex_props_it = reinterpret_cast<VertexProps*>
-            (data_.vbo->map(GBuffer::Access::Write));
-        data_.index_it = reinterpret_cast<uint32*>(data_.ibo->map(GBuffer::Access::Write));
-        CORE_ASSERT(data_.vertex_props_it, u8"Renderer: Failed to map vertex buffer!");
-        CORE_ASSERT(data_.index_it, u8"Renderer: Failed to map index buffer!");
+        mesh_geometry_groups_.clear();
+
+        instance_count_ = 0;
+        instance_it_ = reinterpret_cast<InstanceData*>(instance_vbo_->map(GBuffer::Access::Write));
+        CORE_ASSERT(instance_it_, u8"Renderer: Failed to map instance buffer!");
+
+        current_group_ = {};
     }
 
     void Renderer::flush()
     {
-        RKE_PROFILE_FUNCTION();
+        close_current_group();
 
-        data_.vbo->unmap();
-        data_.vertex_props_it = nullptr;
-       
-        data_.ibo->unmap();
-        data_.index_it = nullptr;
-        
-        if(data_.index_count == 0) return;
+        // unmap first: drawing from a mapped (non-persistent) buffer is undefined
+        instance_vbo_->unmap();
+        instance_it_ = nullptr;
+        instance_count_ = 0;
+
+        present_all_groups(); // draw + clear groups
+
+        resolved_mesh_ = nullptr;
+        gtex_slot_index_ = 1; // 0 for default gtex
+    }
+
+    void Renderer::present_all_groups()
+    {
+        if(mesh_geometry_groups_.empty()) return;
 
     // bind textures
         for(uint32 i{}; i < gtex_slot_index_; i++)
             gtex_slots_[i]->bind(static_cast<uint32>(BindingPoint::Sampler2D_0) + i);
 
-        data_.vao->bind();
-        app().render_command().draw_indexed(data_.index_count);
-        data_.vao->unbind();
+        for(const auto& group : mesh_geometry_groups_)
+        {
+            group.geometry->vao->bind();
+            app().render_command().draw_instanced
+            (
+                static_cast<int>(group.geometry->index_count),
+                static_cast<int>(group.inst_count),
+                static_cast<int>(group.inst_start)
+            );
+            group.geometry->vao->unbind();
+        }
 
     #ifdef RKE_ENABLE_STATISTICS
-        stats_.drawcall_count++;
+        stats_.drawcall_count += static_cast<uint32>(mesh_geometry_groups_.size());
     #endif
+        mesh_geometry_groups_.clear();
+    }
+
+    Renderer::MeshGeometry* Renderer::get_or_create_mesh_geometry(const Mesh* mesh)
+    {
+        if(!mesh) return nullptr;
+        auto it{ mesh_geometries_.find(mesh) };
+        if(it != mesh_geometries_.end()) return &(it->second);
+
+        MeshGeometry& geo{ mesh_geometries_[mesh] };
+        uint32 vc{ mesh->get_vertex_count() };
+        uint32 ic{ mesh->get_index_count () };
+
+        LocalVertex* local_vertices{ new LocalVertex[vc]{} };
+        for(uint32 i{}; i < vc; i++)
+        {
+            local_vertices[i].position = *(mesh->get_position(i));
+            local_vertices[i].uv = *(mesh->get_uv(i));
+        }
+
+        uint32* indices{ new uint32[ic]{} };
+        for(uint32 i{}; i < ic; i++) indices[i] = *(mesh->get_index(i));
+
+        geo.vbo = VertexBuffer::create(local_vertices, vc * sizeof(LocalVertex));
+        geo.ibo = IndexBuffer ::create(indices, ic);
+        geo.index_count = ic;
+
+        delete[] local_vertices;
+        delete[] indices;
+
+        geo.vao = VertexArray::create();
+
+        rke::GBufferLayout local_layout
+        {
+            { u8"a_local_pos", rke::GShaderDataType::Float4 },
+            { u8"a_uv", rke::GShaderDataType::Float2 }
+        };
+        geo.vao->add_vbo(geo.vbo, local_layout); // binding 0, divisor 0
+
+        rke::GBufferLayout instance_layout
+        {
+            { u8"a_transform"  , rke::GShaderDataType::Mat4 },
+            { u8"a_color"      , rke::GShaderDataType::Float4 },
+            { u8"a_uv_offset"  , rke::GShaderDataType::Float2 },
+            { u8"a_uv_scale"   , rke::GShaderDataType::Float2 },
+            { u8"a_tex_id"     , rke::GShaderDataType::Int },
+            { u8"a_is_tex_grey", rke::GShaderDataType::Int },
+            { u8"a_entity_id"  , rke::GShaderDataType::Int },
+            { u8"a_pad"        , rke::GShaderDataType::Int }
+        };
+        geo.vao->add_vbo(instance_vbo_, instance_layout); // binding 1
+        geo.vao->set_binding_divisor(1, 1);
+        geo.vao->set_ibo(geo.ibo);
+
+        return &geo;
     }
 
     uint32 Renderer::find_or_add_gtex_slot(const GTexture* gtex)

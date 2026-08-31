@@ -35,5 +35,6 @@ namespace rke
         void draw(int start, int end) override;
         void draw_indexed(const VertexArray& vao) override;
         void draw_indexed(int count) override;
+        void draw_instanced(int index_count, int instance_count, int base_instance) override;
     };
 }
