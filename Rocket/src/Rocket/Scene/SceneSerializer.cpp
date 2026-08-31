@@ -17,6 +17,8 @@ namespace {
         writer.begin_map();
 
         auto& ic{ entity.get<IdentityComponent>() };
+        if(ic.uuid.empty()) return;
+
         writer.write(u8"Entity", ConfigValue(ic.uuid.value()));
         writer.write(u8"Tag", ConfigValue(String(ic.tag)));
         
