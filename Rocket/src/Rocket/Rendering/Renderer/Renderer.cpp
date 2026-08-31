@@ -126,12 +126,12 @@ namespace rke
             }
         }
 
+        glm::vec4 linearlized{ math::srgb_to_linear(props.color) };
         for(uint32 i{}; i < vc; i++)
         {
-            // props.transform && props.color && uv transform to ubo
-            data_.vertex_props_it->position = props.transform * (*(mesh->get_position(i))); // to GPU
-            data_.vertex_props_it->color = math::srgb_to_linear(props.color); // to GPU: merge with vertex color
-            data_.vertex_props_it->uv = props.uv_scale * (*(mesh->get_uv(i))) + props.uv_offset; // to GPU
+            data_.vertex_props_it->position = props.transform * (*(mesh->get_position(i))); // to GPU?
+            data_.vertex_props_it->color = linearlized; // to merge with vertex color
+            data_.vertex_props_it->uv = props.uv_scale * (*(mesh->get_uv(i))) + props.uv_offset; // to GPU?
 
             data_.vertex_props_it->tex_id      = static_cast<int>(gtex_index);
             data_.vertex_props_it->is_tex_grey = static_cast<int>(props.make_tex_gray);
