@@ -104,29 +104,11 @@ namespace rke
         }
         if(data_.vertex_count + vc >= max_vertices
         || data_.index_count  + ic >= max_indices
-        || gtex_slot_index_ >= max_gtex_slots)
-            { flush(); start_batch(); }
+        || gtex_slot_index_ >= max_gtex_slots) { flush(); start_batch(); }
 
-        // find gtex id
-        uint32 gtex_index{ 0 }; // white gtex(default)
-        if(gtex) {
-            bool found{ false };
-            for(uint32 i{}; i < gtex_slot_index_; i++)
-            {
-                if(gtex_slots_[i] == gtex)
-                {
-                    gtex_index = i;
-                    found = true; break;
-                }
-            }
-            if(!found) {
-                gtex_index = gtex_slot_index_;
-                gtex_slots_[gtex_slot_index_] = gtex;
-                gtex_slot_index_++;
-            }
-        }
-
+        uint32 gtex_index{ find_or_add_gtex_slot(gtex) };
         glm::vec4 linearlized{ math::srgb_to_linear(props.color) };
+
         for(uint32 i{}; i < vc; i++)
         {
             data_.vertex_props_it->position = props.transform * (*(mesh->get_position(i))); // to GPU?
@@ -159,7 +141,7 @@ namespace rke
         RKE_PROFILE_FUNCTION();
 
         data_.vertex_count = 0;
-        data_.index_count  = 0;
+        data_.index_count = 0;
         gtex_slot_index_ = 1; // 0 for default gtex
 
         data_.vertex_props_it = reinterpret_cast<VertexProps*>
@@ -192,5 +174,28 @@ namespace rke
     #ifdef RKE_ENABLE_STATISTICS
         stats_.drawcall_count++;
     #endif
+    }
+
+    uint32 Renderer::find_or_add_gtex_slot(const GTexture* gtex)
+    {
+        // find gtex id
+        uint32 gtex_index{ 0 }; // white gtex(default)
+        if(gtex) {
+            bool found{ false };
+            for(uint32 i{}; i < gtex_slot_index_; i++)
+            {
+                if(gtex_slots_[i] == gtex)
+                {
+                    gtex_index = i;
+                    found = true; break;
+                }
+            }
+            if(!found) {
+                gtex_index = gtex_slot_index_;
+                gtex_slots_[gtex_slot_index_] = gtex;
+                gtex_slot_index_++;
+            }
+        }
+        return gtex_index;
     }
 }

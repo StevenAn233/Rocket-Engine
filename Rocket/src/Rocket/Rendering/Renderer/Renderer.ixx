@@ -96,6 +96,8 @@ export namespace rke
     private:
         void start_batch();
         void flush();
+
+        uint32 find_or_add_gtex_slot(const GTexture* gtex);
     private:
         Window* context_;
 
