@@ -58,7 +58,7 @@ namespace rke
         return nullptr;
     }
 
-    AABB Entity::compute_aabb()
+    AABB Entity::compute_aabb() const
     {
         if(!has<BoxCollider2DComponent>()) return AABB{};
         const Mesh* mesh{ get_mesh() };
