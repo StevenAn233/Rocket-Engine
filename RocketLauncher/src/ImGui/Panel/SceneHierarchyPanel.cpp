@@ -363,8 +363,8 @@ namespace rke
                         sc.uv_scale, 0.01f, { 1.0f, 1.0f },
                         glm::vec2(0.0f, 100.0f), glm::vec2(0.0f, 100.0f), u8"%.2f"
                     ));
+                ImGui::TreePop();
             }
-            if(tex_opened) ImGui::TreePop();
             ImGui::PopID();
 
             layout::two_columns_table<u8"Color">([&]()
@@ -390,6 +390,7 @@ namespace rke
                 if(ImGui::Combo("##blending_mode", &option, items, (int)std::size(items)))
                 {
                     sc.blending_mode = static_cast<BlendingMode>(option);
+                    sc.rendering_layer = 0;
                     context_->mark_modified();
                 }
             });
@@ -398,8 +399,10 @@ namespace rke
             {
                 float available_width{ ImGui::GetContentRegionAvail().x };
                 ImGui::SetNextItemWidth(available_width);
+                ImGui::BeginDisabled(sc.blending_mode == BlendingMode::Opaque);
                 context_->mark_modified_if(ImGui::SliderInt
                     ("##rendering_layer", &sc.rendering_layer, -32, 31));
+                ImGui::EndDisabled();
             });
         });
 
