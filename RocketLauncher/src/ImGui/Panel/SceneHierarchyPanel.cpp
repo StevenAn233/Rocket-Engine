@@ -588,7 +588,7 @@ namespace rke
             }
             else if constexpr(std::is_same_v<Component, BoxCollider2DComponent>)
             {
-                if(selected.has<Rigidbody2DComponent>())
+                if(selected.has<SpriteComponent>())
                 {
                     nothing_to_add = false;
                     if(ImGui::MenuItem(type_id.name.raw_unsafe()))

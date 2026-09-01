@@ -11,6 +11,7 @@ namespace rke { class Project; class ScriptRegistry; class ScriptManager; }
 
 export module Scene;
 
+import AABB;
 import Mesh;
 import UUID;
 import Types;
@@ -40,6 +41,8 @@ export namespace rke
 
         RKE_API UUID get_uuid() const;
         RKE_API const Mesh* get_mesh() const;
+        RKE_API AABB compute_aabb();
+
         RKE_API bool valid() const;
         RKE_API void invalidate_if_unavailable();
 

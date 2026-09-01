@@ -58,6 +58,22 @@ namespace rke
         return nullptr;
     }
 
+    AABB Entity::compute_aabb()
+    {
+        if(!has<BoxCollider2DComponent>()) return AABB{};
+        const Mesh* mesh{ get_mesh() };
+        if(!mesh) return AABB{};
+
+        const auto& tc{ get<TransformComponent>() };
+        const auto& bcc{ get<BoxCollider2DComponent>() };
+        return AABB(tc.rotation.z,
+            glm::vec2(mesh->get_size()) * glm::vec2(tc.scale),
+            bcc.half_extent,
+            glm::vec2(mesh->get_centre()) + glm::vec2(tc.translation),
+            bcc.offset
+        );
+    }
+
     void Entity::check_assert() const { CORE_ASSERT(valid(), u8"Entity: Invalid!"); }
 
     Scene::Scene(Project* owner, String name)

@@ -245,12 +245,12 @@ namespace rke
 
     void box2DPhysicsEngine2D::create_shape(Entity entity, const PhysicsLayers& layers)
     {
-        if(!entity.valid()
-        || !entity.has<Rigidbody2DComponent>()
-        || !entity.has<BoxCollider2DComponent>()) {
+        if(!entity.valid() || !entity.has<BoxCollider2DComponent>())
+        {
             CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!");
             return;
         }
+        if(!entity.has<Rigidbody2DComponent>()) return;
 
         auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
         auto body_id{ std::bit_cast<b2BodyId>(rbc.body_id) };
