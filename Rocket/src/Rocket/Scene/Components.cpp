@@ -9,6 +9,7 @@ namespace rke
         4, 6,
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3(1.0f, 1.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f),
         Scope<glm::vec4[]>(new glm::vec4[4]
         {
             glm::vec4( 0.5f,  0.5f, 0.0f, 1.0f),
@@ -28,5 +29,5 @@ namespace rke
     );
 
     SpriteComponent::SpriteComponent(AssetUUID uuid)
-        : quad(&s_quad), tex_uuid(uuid) {}
+        : tex_uuid(uuid), quad(&s_quad) {}
 }

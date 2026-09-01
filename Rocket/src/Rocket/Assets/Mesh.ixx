@@ -15,7 +15,7 @@ export namespace rke
     {
     public:
         Mesh(uint32 vc, uint32 ic,
-            glm::vec3 centre, glm::vec3 size,
+            glm::vec3 centre, glm::vec3 size, glm::vec3 front,
             Scope<glm::vec4[]> pos, Scope<uint32[]> indices,
             Scope<glm::vec3[]> nor = nullptr,
             Scope<glm::vec4[]> col = nullptr,
@@ -33,6 +33,7 @@ export namespace rke
 
         inline glm::vec3 get_centre() const { return centre_; }
         inline glm::vec3 get_size() const { return size_; }
+        inline glm::vec3 get_front() const { return front_; }
 
         inline bool has_normals() const { return normals_.get() != nullptr; }
         inline bool has_colors() const { return colors_.get() != nullptr; }
@@ -49,6 +50,7 @@ export namespace rke
 
         glm::vec3 centre_;
         glm::vec3 size_;
+        glm::vec3 front_;
 
         Scope<glm::vec4[]> positions_;
         Scope<glm::vec3[]> normals_;
