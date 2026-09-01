@@ -132,44 +132,40 @@ namespace rke
     {
         entt::entity entity{ static_cast<entt::entity>(handle) };
         entt::registry& reg{ *(scene->registry_) };
-        const auto& tc{ reg.get<TransformComponent>(entity) };
-        if(reg.all_of<SpriteComponent>(entity))
+
+        if(reg.all_of<TransformComponent, SpriteComponent>(entity))
         {
             auto& sc{ reg.get<SpriteComponent>(entity) };
             Texture* tex{ get_texture(manager, sc) };
             GTexture* gtex{ tex ? tex->get_gtexture(sc.gtex_settings) : nullptr };
             context_->renderer().push(sc.quad, gtex, RenderProps
             {
-                .transform{ tc.get_transform() },
+                .transform{ reg.get<TransformComponent>(entity).get_transform() },
                 .uv_offset{ sc.uv_offset },
                 .uv_scale { sc.uv_scale  },
                 .color{ sc.color },
                 .entity_id{ handle }
             });
-        } else {
-            const auto& ic{ reg.get<IdentityComponent>(entity) };
-            CORE_ASSERT(false, u8"SceneRenderer: Entity '{}'(UUID:{}) "
-                u8"is not renderable!", String(ic.tag), ic.uuid.value());
+            return;
         }
+        const auto& ic{ reg.get<IdentityComponent>(entity) };
+        CORE_ASSERT(false, u8"SceneRenderer: Entity '{}'(UUID:{}) "
+            u8"is not renderable!", String(ic.tag), ic.uuid.value());
     }
 
-    void SceneRenderer::render_scene(const Scene* scene,
-        const glm::mat4& vp, glm::vec3 cam_pos)
+    void SceneRenderer::render_scene(const Scene* scene, const glm::mat4& vp, glm::vec3 cam_pos)
     {
     // frustum culling
         auto planes{ get_planes_normal(vp) };
-
-    // sort in-sight entities
-        opaque_queue_.clear();
-        cutout_queue_.clear();
-        transparent_queue_.clear();
-
         AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager_mut() };
         auto view{ scene->registry_->view<TransformComponent, SpriteComponent>() };
+
+        transparent_queue_.clear();
+        context_->renderer().begin_scene();
         for(entt::entity entity : view)
         {
             const auto& tc{ view.get<TransformComponent>(entity) };
-            auto& sc{ view.get<SpriteComponent>(entity) };
+            const auto& sc{ view.get<SpriteComponent>(entity) };
             if(sc.color.a < 0.01f) continue;
 
             glm::vec3 pos { tc.translation + sc.quad->get_centre() };
@@ -179,54 +175,28 @@ namespace rke
             uint32 handle{ static_cast<uint32>(entity) };
             switch(sc.blending_mode)
             {
-            case SpriteComponent::BlendingMode::Opaque:
-                opaque_queue_.emplace_back(handle, sc.rendering_layer, 0.0f); break;
-            case SpriteComponent::BlendingMode::Cutout:
-                cutout_queue_.emplace_back(handle, sc.rendering_layer, 0.0f); break;
-            case SpriteComponent::BlendingMode::Transparent: // Depends on camera distance
+            case BlendingMode::Opaque:
+                draw_entity(assets_manager, scene, handle); break;
+            case BlendingMode::Transparent:
             {
-                glm::vec3 dist{ pos - cam_pos };
-                float dist_sqr{ glm::dot(dist, dist) };
-                transparent_queue_.emplace_back(handle, sc.rendering_layer, dist_sqr);
+                float dist{ glm::length(pos - cam_pos) };
+                transparent_queue_.emplace_back(handle, sc.rendering_layer, dist);
             } break;
             default: break;
             }
         }
-
-        std::sort(opaque_queue_.begin(), opaque_queue_.end(),
-            [](const Renderable& lhs, const Renderable& rhs)
-                { return lhs.layer < rhs.layer; });
-        std::sort(cutout_queue_.begin(), cutout_queue_.end(),
-            [](const Renderable& lhs, const Renderable& rhs)
-                { return lhs.layer < rhs.layer; });
-        std::sort(transparent_queue_.begin(), transparent_queue_.end());
-
-    //  auto view{ scene->registry_->view<TransformComponent, MeshComponent>() };
-    //  for(auto entity : view) {...}
-
-    // render entities
-        context_->renderer().begin_scene();
-
-        for(const auto& renderable : opaque_queue_)
-            draw_entity(assets_manager, scene, renderable.handle);
-        for(const auto& renderable : cutout_queue_)
-            draw_entity(assets_manager, scene, renderable.handle);
-
         context_->renderer().end_scene();
-
         if(transparent_queue_.empty()) return;
+
+        std::sort(transparent_queue_.begin(), transparent_queue_.end());
         
         app().render_command().set_depth_write(false);
-        app().render_command().blend_func_transparent();
-
         context_->renderer().begin_scene();
 
         for(const auto& renderable : transparent_queue_)
             draw_entity(assets_manager, scene, renderable.handle);
 
         context_->renderer().end_scene();
-
-        app().render_command().blend_func_default();
         app().render_command().set_depth_write(true);
     }
 }

@@ -19,7 +19,7 @@ namespace rke
         void enable_blend() override;
         void disable_blend() override;
         void blend_func_default() override;
-        void blend_func_transparent() override;
+        void blend_func_useless() override;
         void enable_srgb() override;
         void set_depth_write(bool enabled) override;
         void enable_depth_test() override;

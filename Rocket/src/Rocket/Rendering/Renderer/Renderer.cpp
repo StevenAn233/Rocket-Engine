@@ -1,7 +1,4 @@
 ﻿module;
-
-#include <vector>
-
 module Renderer;
 
 import Log;
@@ -142,31 +139,24 @@ namespace rke
 
     void Renderer::start_batch()
     {   
+    // clear
         gtex_slot_index_ = 1; // 0 for default gtex
         resolved_mesh_ = nullptr;
-
-        mesh_geometry_groups_.clear();
-
         instance_count_ = 0;
+        mesh_geometry_groups_.clear();
+        current_group_ = {};
+        
         instance_it_ = reinterpret_cast<InstanceData*>(instance_vbo_->map(GBuffer::Access::Write));
         CORE_ASSERT(instance_it_, u8"Renderer: Failed to map instance buffer!");
-
-        current_group_ = {};
     }
 
     void Renderer::flush()
     {
         close_current_group();
-
         // unmap first: drawing from a mapped (non-persistent) buffer is undefined
         instance_vbo_->unmap();
         instance_it_ = nullptr;
-        instance_count_ = 0;
-
         present_all_groups(); // draw + clear groups
-
-        resolved_mesh_ = nullptr;
-        gtex_slot_index_ = 1; // 0 for default gtex
     }
 
     void Renderer::present_all_groups()

@@ -81,15 +81,14 @@ export namespace rke
     };
 
 // Rendering
+    enum class BlendingMode : uint32
+    {
+        Opaque = 0,
+        Transparent
+    };
+
     struct RKE_API SpriteComponent
     {
-        enum class BlendingMode : uint32
-        {
-            Opaque = 0,
-            Cutout,
-            Transparent
-        };
-
         AssetUUID tex_uuid;
 
         GTextureSettings gtex_settings{};

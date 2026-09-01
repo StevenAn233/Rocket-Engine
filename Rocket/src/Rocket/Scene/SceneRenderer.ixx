@@ -38,6 +38,9 @@ export namespace rke
         int get_hovering_id(int mouse_x, int mouse_y);
         void clean_up();
     private:
+        void draw_entity(AssetsManager& manager, const Scene* scene, uint32 handle);
+        void render_scene(const Scene* scene, const glm::mat4& view_projection, glm::vec3 cam_postion);
+    private:
         struct Renderable
         {
             uint32 handle;
@@ -52,17 +55,10 @@ export namespace rke
             }
         };
 
-        void draw_entity(AssetsManager& manager, const Scene* scene, uint32 handle);
-        void render_scene(const Scene* scene, const glm::mat4& view_projection, glm::vec3 cam_postion);
-    private:
         Window* context_;
         glm::vec4 clear_color_;
         PostProcessor post_processor_{ clear_color_ };
-
-        std::vector<Renderable> opaque_queue_{};
-        std::vector<Renderable> cutout_queue_{};
         std::vector<Renderable> transparent_queue_{};
-
         Scope<FrameBuffer> scene_fbo_{};
     };
 }

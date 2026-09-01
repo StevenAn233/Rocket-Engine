@@ -37,5 +37,5 @@ void main()
     // LDR Linear -> sRGB
     color = pow(color, vec3(1.0 / u_data.gamma));
 
-    o_color = vec4(color, hdr_color.a);
+    o_color = vec4(color, 1.0);
 }

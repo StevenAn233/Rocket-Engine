@@ -75,15 +75,23 @@ namespace rke
     void glRenderCommand::enable_blend()
     {
         glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFuncSeparate (
+            GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
+            GL_ONE,       GL_ONE_MINUS_SRC_ALPHA
+        );
     }
 
     void glRenderCommand::disable_blend() { glDisable(GL_BLEND); }
 
     void glRenderCommand::blend_func_default()
-        { glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); }
+    {
+        glBlendFuncSeparate (
+            GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
+            GL_ONE,       GL_ONE_MINUS_SRC_ALPHA
+        );
+    }
 
-    void glRenderCommand::blend_func_transparent()
+    void glRenderCommand::blend_func_useless()
         { glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); }
 
     void glRenderCommand::enable_srgb() { glEnable(GL_FRAMEBUFFER_SRGB); }

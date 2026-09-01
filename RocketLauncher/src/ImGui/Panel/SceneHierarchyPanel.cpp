@@ -382,14 +382,14 @@ namespace rke
 
             layout::two_columns_table<u8"Blending Mode">([&]()
             {
-                constexpr const char* items[]{ "Opaque", "Cutout", "Transparent" };
+                constexpr const char* items[]{ "Opaque", "Transparent" };
                 int option{ static_cast<int>(sc.blending_mode) };
 
                 float available_width{ ImGui::GetContentRegionAvail().x };
                 ImGui::SetNextItemWidth(available_width);
                 if(ImGui::Combo("##blending_mode", &option, items, (int)std::size(items)))
                 {
-                    sc.blending_mode = SpriteComponent::BlendingMode(option);
+                    sc.blending_mode = static_cast<BlendingMode>(option);
                     context_->mark_modified();
                 }
             });
@@ -399,7 +399,7 @@ namespace rke
                 float available_width{ ImGui::GetContentRegionAvail().x };
                 ImGui::SetNextItemWidth(available_width);
                 context_->mark_modified_if(ImGui::SliderInt
-                    ("##rendering_layer", &sc.rendering_layer, 0, 31));
+                    ("##rendering_layer", &sc.rendering_layer, -32, 31));
             });
         });
 

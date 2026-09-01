@@ -31,7 +31,7 @@ export namespace rke
         virtual void enable_blend() = 0;
         virtual void disable_blend() = 0;
         virtual void blend_func_default() = 0;
-        virtual void blend_func_transparent() = 0;
+        virtual void blend_func_useless() = 0;
 
         virtual void set_depth_write(bool enabled) = 0;
         virtual void enable_depth_test() = 0;

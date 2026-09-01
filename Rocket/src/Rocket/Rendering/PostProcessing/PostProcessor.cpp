@@ -52,12 +52,11 @@ namespace rke
                 fbo_index ^= 1u;
             }
         }
-
         CORE_ASSERT(tone_mapping_.apply(ping_pong, fbos_[fbo_index].get()),
             u8"PostProcessor: Tone mapping failed!");
-
-        app().render_command().enable_depth_test(); // default
-        app().render_command().enable_blend();		// default
+        
+        app().render_command().enable_depth_test();
+        app().render_command().enable_blend();
 
         return fbos_[fbo_index]->get_gtexture_attached();
     }

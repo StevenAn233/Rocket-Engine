@@ -69,7 +69,7 @@ namespace {
                 writer.write(u8"sRGB", sc.gtex_settings.srgb);
                 writer.end_map();
             }
-            writer.write(u8"Color"  , ConfigValue(sc.color));
+            writer.write(u8"Color", ConfigValue(sc.color));
             writer.write(u8"Blending Mode", static_cast<uint32>(sc.blending_mode));
             writer.write(u8"Rendering Layer", ConfigValue(sc.rendering_layer));
 
@@ -163,8 +163,7 @@ namespace {
                 sc.gtex_settings.srgb = tex_config->get_at(u8"sRGB", sc.gtex_settings.srgb);
             }
             sc.color = sc_reader->get_at(u8"Color", glm::vec4(1.0f));
-            sc.blending_mode = static_cast<SpriteComponent::BlendingMode>
-                (sc_reader->get_at(u8"Blending Mode", 0ui32));
+            sc.blending_mode = static_cast<BlendingMode>(sc_reader->get_at(u8"Blending Mode", 0ui32));
             sc.rendering_layer = sc_reader->get_at(u8"Rendering Layer", 0);
         }
 
