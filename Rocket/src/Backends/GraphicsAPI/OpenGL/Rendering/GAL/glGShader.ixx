@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <array>
 #include <vector>
 #include <unordered_map>
 #include <glm/glm.hpp>
@@ -13,14 +14,12 @@ import Path;
 
 namespace rke
 {
-    using ShaderGLSources = std::unordered_map<GLenum, std::pair<Path, String>>;
-    using ShaderGLPaths   = std::unordered_map<GLenum, Path>;
-    using ShadersCache    = std::unordered_map<GLenum, std::vector<uint32>>;
+    using ShaderIRCache = std::array<std::vector<uint32>, 6>;
 
     class glGShader : public GShader
     {
     public:
-        glGShader(const String& name, const ShaderSources& sources);
+        glGShader(String name, const ShaderPaths& paths, const ShaderSources& sources);
         ~glGShader() override;
 
         void bind() const override;
@@ -50,8 +49,8 @@ namespace rke
         const GShader& upload(StringView name, glm::vec4 vec) const;
         const GShader& upload(StringView name, float v0, float v1, float v2, float v3) const;
     private:
-        void compile_or_get_vulkan_spirv(const ShaderGLSources& sources);
-        void compile_or_get_opengl_spirv(const ShaderGLPaths  & paths  );
+        void compile_or_get_vulkan_spirv(const ShaderPaths& paths, const ShaderSources& sources);
+        void compile_or_get_opengl_spirv(const ShaderPaths& paths);
         void create_program();
 
         int get_uniform_location(const String& name) const; // Can't be StringView!!!
@@ -61,7 +60,7 @@ namespace rke
 
         mutable std::unordered_map<String, int> uniform_location_cache_{};
 
-        ShadersCache vulkan_spirv_{};
-        ShadersCache opengl_spirv_{};
+        ShaderIRCache vulkan_spirv_{ std::vector<uint32>{} };
+        ShaderIRCache opengl_spirv_{ std::vector<uint32>{} };
     };
 }

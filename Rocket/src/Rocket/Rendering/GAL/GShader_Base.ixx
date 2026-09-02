@@ -1,31 +1,30 @@
 ﻿module;
 
-#include <unordered_map>
+#include <array>
 #include <glm/glm.hpp>
 #include "rke_macros.h"
 
 export module GShader:Base;
 
 import Types;
-import HeapManager;
-import Log;
 import String;
 import Path;
+import HeapManager;
 
 export namespace rke
 {
     enum class ShaderStage : uint32
     {
-        Vertex = 0,
-        Fragment,
-        Geometry,
-        Compute,
-        TessControl,
-        TessEvaluation
+        Vertex         = 0,
+        Fragment       = 1,
+        Geometry       = 2,
+        Compute        = 3,
+        TessControl    = 4,
+        TessEvaluation = 5
     };
     
-    using ShaderSource  = std::pair<Path, String>; // file path + source code
-    using ShaderSources = std::unordered_map<ShaderStage, ShaderSource>;
+    using ShaderSources = std::array<String, 6>; // shader stages count
+    using ShaderPaths = std::array<Path, 6>;
 
     class RKE_API GShader
     {
@@ -50,6 +49,6 @@ export namespace rke
 
         virtual uint32 get_gal_id() const = 0;
 
-        static Scope<GShader> create(const String& name, const ShaderSources& sources);
+        static Scope<GShader> create(const String& name, const ShaderPaths& paths, const ShaderSources& sources);
     };
 }

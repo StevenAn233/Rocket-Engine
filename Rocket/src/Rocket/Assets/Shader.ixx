@@ -13,8 +13,6 @@ import GShader;
 
 export namespace rke
 {
-    using ShaderPathMap = std::unordered_map<ShaderStage, Path>;
-
     struct RKE_API ShaderSettings
     {
         // future: preprocessor defines, optimization level, etc.
@@ -29,7 +27,7 @@ export namespace rke
     class RKE_API Shader
     {
     public:
-        Shader(const Path& shader_path);
+        Shader(const Path& rkshdr_path);
         ~Shader() = default;
 
         Shader(const Shader&) = delete;
@@ -43,7 +41,7 @@ export namespace rke
         GShader* get_gshader(const ShaderSettings& settings = {});
     private:
         String name_{};
-        ShaderPathMap stage_paths_{};
+        ShaderPaths shader_paths_{};
 
         std::unordered_map<ShaderSettings, Scope<GShader>, ShaderSettingsHash>
             gpu_variants_{};

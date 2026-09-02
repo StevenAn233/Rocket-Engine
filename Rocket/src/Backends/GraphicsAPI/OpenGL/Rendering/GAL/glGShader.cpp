@@ -26,22 +26,22 @@ namespace {
         case ShaderStage::TessControl:    return GL_TESS_CONTROL_SHADER;
         case ShaderStage::TessEvaluation: return GL_TESS_EVALUATION_SHADER;
         }
-        CORE_ASSERT(false, u8"glShader: Unknown shader stage!");
+        CORE_ASSERT(false, u8"glGShader: Unknown shader stage!");
         return 0;
     }
 
-    static inline shaderc_shader_kind to_shaderc(GLenum stage)
+    static inline shaderc_shader_kind to_shaderc(ShaderStage stage)
     {
         switch(stage)
         {
-        case GL_VERTEX_SHADER:          return shaderc_glsl_vertex_shader;
-        case GL_FRAGMENT_SHADER:        return shaderc_glsl_fragment_shader;
-        case GL_GEOMETRY_SHADER:        return shaderc_glsl_geometry_shader;
-        case GL_COMPUTE_SHADER:         return shaderc_glsl_compute_shader;
-        case GL_TESS_CONTROL_SHADER:    return shaderc_glsl_tess_control_shader;
-        case GL_TESS_EVALUATION_SHADER: return shaderc_glsl_tess_evaluation_shader;
+        case ShaderStage::Vertex:         return shaderc_glsl_vertex_shader;
+        case ShaderStage::Fragment:       return shaderc_glsl_fragment_shader;
+        case ShaderStage::Geometry:       return shaderc_glsl_geometry_shader;
+        case ShaderStage::Compute:        return shaderc_glsl_compute_shader;
+        case ShaderStage::TessControl:    return shaderc_glsl_tess_control_shader;
+        case ShaderStage::TessEvaluation: return shaderc_glsl_tess_evaluation_shader;
         }
-        CORE_ASSERT(false, u8"glShader: Unknown shader stage!");
+        CORE_ASSERT(false, u8"glGShader: Unknown shader stage!");
         return static_cast<shaderc_shader_kind>(0);
     }
 
@@ -97,30 +97,15 @@ namespace {
 
 namespace rke
 {
-    glGShader::glGShader(const String& name, const ShaderSources& sources)
+    glGShader::glGShader(String name, const ShaderPaths& paths, const ShaderSources& sources)
         : name_(std::move(name))
     {
-        ShaderGLSources gl_sources{};
-        ShaderGLPaths   gl_paths{};
-
-        for(const auto& [stage, source] : sources)
-        {
-            GLenum gl_type{ to_gl_enum(stage) };
-            gl_sources[gl_type] = source; // std::pair<...>(path, code)
-            gl_paths  [gl_type] = source.first;
-        }
-
-        compile_or_get_vulkan_spirv(gl_sources);
-        compile_or_get_opengl_spirv(gl_paths);
+        compile_or_get_vulkan_spirv(paths, sources);
+        compile_or_get_opengl_spirv(paths);
         create_program();
     }
 
-    glGShader::~glGShader()
-    {
-        opengl_spirv_.clear();
-        vulkan_spirv_.clear();
-        glDeleteProgram(gal_id_);
-    }
+    glGShader::~glGShader() { glDeleteProgram(gal_id_); }
 
     void glGShader::bind() const { glUseProgram(gal_id_); }
     void glGShader::unbind() const { glUseProgram(0); }
@@ -180,30 +165,28 @@ namespace rke
         // there won't be any errors, so we just call a CORE_WARN
     }
 
-    void glGShader::compile_or_get_vulkan_spirv(const ShaderGLSources& sources)
+    void glGShader::compile_or_get_vulkan_spirv(const ShaderPaths& paths, const ShaderSources& sources)
     {
         shaderc::Compiler compiler{};
         shaderc::CompileOptions options{};
-        options.SetTargetEnvironment(shaderc_target_env_vulkan,
-                                     shaderc_env_version_vulkan_1_2);
+        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
         options.SetIncluder(std::make_unique<ShaderIncluder>());
 
     #ifndef RKE_DEBUG
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
     #endif
 
-        vulkan_spirv_.clear();
-        for(auto&& [stage, source] : sources)
+        for(uint32 stage{}; stage < paths.size(); stage++)
         {
+            vulkan_spirv_[stage].clear();
+            if(paths[stage].empty()) continue;
             Path cached_path{};
             try {
-                const Path& assets_dir{ file::assets_dir() };
                 Path cache_directory{ file::shader_cache_dir() / u8"vulkan" };
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
-                cached_path = cache_directory /
-                    (source.first.filename().string() + u8".vulkan.spirv");
+                cached_path = cache_directory / (paths[stage].filename().string() + u8".vulkan.spirv");
             } catch(const std::exception& e)
-                { CORE_ASSERT(false, u8"glShader: Exception '{}'.", e.what()); }
+                { CORE_ASSERT(false, u8"glGShader: Exception '{}'.", e.what()); }
 
             std::ifstream in(cached_path.string().raw(), std::ios::in | std::ios::binary);
             if(in.is_open()) { // vulkan cache found
@@ -211,49 +194,51 @@ namespace rke
                 std::streampos size{ in.tellg() };
                 in.seekg(0, std::ios::beg);
 
-                std::vector<uint32>& data{ vulkan_spirv_[stage] }; // pushed vector into map
+                std::vector<uint32>& data{ vulkan_spirv_[stage] };
                 data.resize(size / sizeof(uint32));
                 in.read(reinterpret_cast<char*>(data.data()), size);
             } else { // Compiling
-                CORE_INFO(u8"glShader: Compling '{}' to vulkan spirv...", source.first.filename());
-                shaderc::SpvCompilationResult spirv {
-                    compiler.CompileGlslToSpv(source.second.raw(), to_shaderc(stage),
-                                              source.first.string().raw(), options)
-                };
+                CORE_INFO(u8"glGShader: Compling '{}' to vulkan spirv...", paths[stage].filename());
+                shaderc::SpvCompilationResult spirv{ compiler.CompileGlslToSpv
+                (
+                    sources[stage].raw(), to_shaderc(static_cast<ShaderStage>(stage)),
+                    paths[stage].string().raw(), options
+                )};
                 if(spirv.GetCompilationStatus() != shaderc_compilation_status_success)
                 {
                     auto error_msg{ spirv.GetErrorMessage() };
                     error_msg = std::regex_replace(error_msg, std::regex("\\{"), "{{");
                     error_msg = std::regex_replace(error_msg, std::regex("\\}"), "}}");
-                    CORE_ASSERT(false, u8"glShader: Vulkan SPIR-V "
+                    CORE_ASSERT(false, u8"glGShader: Vulkan SPIR-V "
                         u8"compilation failed for shader '{}':\n'{}'!", name_, error_msg);
                 }
 
                 vulkan_spirv_[stage] = std::vector<uint32>(spirv.cbegin(), spirv.cend());
                 std::vector<uint32>& data{ vulkan_spirv_[stage] };
                 file::write_file_binary(cached_path, data.data(), data.size() * sizeof(uint32));
-                CORE_INFO(u8"glShader: Vulkan spriv compiling finished.");
+                CORE_INFO(u8"glGShader: Vulkan spriv compiling finished.");
             }
         }
     }
 
-    void glGShader::compile_or_get_opengl_spirv(const ShaderGLPaths& paths)
+    void glGShader::compile_or_get_opengl_spirv(const ShaderPaths& paths)
     {
         shaderc::Compiler compiler{};
         shaderc::CompileOptions options{};
         options.SetTargetEnvironment(shaderc_target_env_opengl, shaderc_env_version_opengl_4_5);
 
-        opengl_spirv_.clear();
-        for(auto&& [stage, spirv] : vulkan_spirv_)
+        for(uint32 stage{}; stage < paths.size(); stage++)
         {
+            opengl_spirv_[stage].clear();
+            if(paths[stage].empty()) continue;
             Path cached_path{}, original_path{};
             try {
-                original_path = paths.at(stage);
+                original_path = paths[stage];
                 Path cache_directory{ file::shader_cache_dir() / u8"opengl" };
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
                 cached_path = cache_directory / (original_path.filename().string() + u8".opengl.spirv");
             } catch(std::exception& e)
-                { CORE_ASSERT(false, u8"glShader: Exception '{}'.", e.what()); }
+                { CORE_ASSERT(false, u8"glGShader: Exception '{}'.", e.what()); }
 
             std::ifstream in(cached_path.string().raw(), std::ios::in | std::ios::binary);
             if(in.is_open()) {
@@ -261,33 +246,35 @@ namespace rke
                 std::streampos size{ in.tellg() };
                 in.seekg(0, std::ios::beg);
 
-                std::vector<uint32>& data{ opengl_spirv_[stage] }; // pushed vector into map
+                std::vector<uint32>& data{ opengl_spirv_[stage] };
                 data.resize(size / sizeof(uint32));
                 in.read(reinterpret_cast<char*>(data.data()), size);
             } else {
-                CORE_INFO(u8"glShader: Compling '{}' to OpenGL spirv...",
-                    original_path.filename());
-                spirv_cross::CompilerGLSL glsl_compiler(spirv);
+                CORE_INFO(u8"glGShader: Compling '{}' to OpenGL spirv...", original_path.filename());
+                CORE_ASSERT(!vulkan_spirv_[stage].empty(), u8"glGShader: Vulkan spirv not compiled!");
+                spirv_cross::CompilerGLSL glsl_compiler{ vulkan_spirv_[stage] };
                 CharBuffer gl_source{ glsl_compiler.compile() };
 
-                shaderc::SpvCompilationResult gl_spirv {
-                    compiler.CompileGlslToSpv(gl_source,
-                        to_shaderc(stage), original_path.string().raw(), options)
-                };
-                if(gl_spirv.GetCompilationStatus() != shaderc_compilation_status_success)
+                shaderc::SpvCompilationResult gl_spirv_res
                 {
-                    auto error_msg{ gl_spirv.GetErrorMessage() };
+                    compiler.CompileGlslToSpv(gl_source,
+                        to_shaderc(static_cast<ShaderStage>(stage)),
+                        original_path.string().raw(), options
+                    )
+                };
+                if(gl_spirv_res.GetCompilationStatus() != shaderc_compilation_status_success)
+                {
+                    auto error_msg{ gl_spirv_res.GetErrorMessage() };
                     error_msg = std::regex_replace(error_msg, std::regex("\\{"), "{{");
                     error_msg = std::regex_replace(error_msg, std::regex("\\}"), "}}");
-                    CORE_ASSERT(false, u8"glShader: OpenGL SPIR-V "
+                    CORE_ASSERT(false, u8"glGShader: OpenGL SPIR-V "
                         "compilation failed for shader '{}':\n{}!", name_, error_msg);
                 }
-
-                opengl_spirv_[stage] = std::vector<uint32>(gl_spirv.cbegin(), gl_spirv.cend());
+                opengl_spirv_[stage] = std::vector<uint32>(gl_spirv_res.cbegin(), gl_spirv_res.cend());
 
                 std::vector<uint32>& data{ opengl_spirv_[stage] };
                 file::write_file_binary(cached_path, data.data(), data.size() * sizeof(uint32));
-                CORE_INFO(u8"glShader: OpenGL spirv compiling finished.");
+                CORE_INFO(u8"glGShader: OpenGL spirv compiling finished.");
             }
         }
     }
@@ -297,10 +284,13 @@ namespace rke
         GLuint program{ glCreateProgram() };
 
         std::vector<GLuint> shader_ids{};
-        shader_ids.reserve(opengl_spirv_.size());
-        for(auto& [stage, spirv] : opengl_spirv_)
+        for(uint32 stage{}; stage < opengl_spirv_.size(); stage++)
         {
-            GLuint shader_id{ glCreateShader(stage) };
+            std::vector<uint32>& spirv{ opengl_spirv_[stage] };
+            if(spirv.empty()) continue;
+
+            GLenum gl_stage{ to_gl_enum(static_cast<ShaderStage>(stage)) };
+            GLuint shader_id{ glCreateShader(gl_stage) };
             glShaderBinary(1, &shader_id, GL_SHADER_BINARY_FORMAT_SPIR_V,
                            spirv.data(), spirv.size() * sizeof(uint32));
             glSpecializeShader(shader_id, "main", 0, nullptr, nullptr);
@@ -320,12 +310,12 @@ namespace rke
             std::vector<GLchar> info_log(max_length);
             glGetProgramInfoLog(program, max_length, &max_length, info_log.data());
 
-            CORE_ERROR(u8"glShader: Linking failed for shader \'{}\':\n{}", name_, info_log.data());
+            CORE_ERROR(u8"glGShader: Linking failed for shader \'{}\':\n{}", name_, info_log.data());
 
             glDeleteProgram(program);
             for(auto id : shader_ids) glDeleteShader(id);
 
-            CORE_ASSERT(false, u8"glShader: Failed to link programme!");
+            CORE_ASSERT(false, u8"glGShader: Failed to link programme!");
         }
     // ---
 
