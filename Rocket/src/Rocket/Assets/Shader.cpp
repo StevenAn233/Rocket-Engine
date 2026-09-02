@@ -73,8 +73,6 @@ namespace rke
         return raw;
     }
 
-    
-
 // ShaderHasher
     uint64 ShaderHasher::hash(const Path& path, const String& source)
     {

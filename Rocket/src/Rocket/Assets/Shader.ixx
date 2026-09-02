@@ -39,6 +39,7 @@ export namespace rke
 
         // lazily compiles & caches a GPU program for the given settings
         GShader* get_gshader(const ShaderSettings& settings = {});
+        inline void clear_gshaders() { gpu_variants_.clear(); }
     private:
         String name_{};
         ShaderPaths shader_paths_{};
