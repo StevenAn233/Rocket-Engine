@@ -14,11 +14,11 @@ namespace {
     static void serialize_entity(const Scene& scene, ConfigWriter& writer, Entity entity)
     {
         CORE_ASSERT(entity.valid(), u8"SceneSerializer: Entity invalid!");
-        writer.begin_map();
-
+        
         auto& ic{ entity.get<IdentityComponent>() };
         if(ic.uuid.empty()) return;
 
+        writer.begin_map();
         writer.write(u8"Entity", ConfigValue(ic.uuid.value()));
         writer.write(u8"Tag", ConfigValue(String(ic.tag)));
         

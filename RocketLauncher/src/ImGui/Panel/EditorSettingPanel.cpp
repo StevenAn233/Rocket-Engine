@@ -22,7 +22,8 @@ namespace rke
         Project* project{ app().get_project() };
         writer->write(u8"Last Project Path",
             project ? project->get_rkproj_path().string() : String{});
-        writer->write(u8"Scene Edit", owner_->scene_edit_->get_name());
+        auto* scene_edit{ owner_->scene_edit_ };
+        writer->write(u8"Scene Edit", scene_edit ? scene_edit->get_name() : String{});
 
         writer->begin_map(u8"Viewport");
         selected_outline()->serialize_to(*(writer.get()));
