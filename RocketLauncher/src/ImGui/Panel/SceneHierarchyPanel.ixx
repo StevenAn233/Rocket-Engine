@@ -27,53 +27,21 @@ export namespace rke
             bool to_delete{ false };
             layout::tree_node_branch<Str>([&]()
             {
-                if(!ImGui::BeginPopupContextItem()) goto invoking;
-                
-                else if constexpr(std::is_same_v<Component, IdentityComponent>)
-                    { ImGui::CloseCurrentPopup(); }
-                else if constexpr(std::is_same_v<Component, TransformComponent>)
+                if(ImGui::BeginPopupContextItem())
                 {
-                    auto& tc{ entity.get_mut<TransformComponent>() };
-                    if(tc.locked) {
-                        if(ImGui::MenuItem("Unlock")) {
-                            tc.locked = false;
-                            context_->mark_modified();
-                        }
-                    } else {
-                        if(ImGui::MenuItem("Lock")) {
-                            tc.locked = true;
-                            context_->mark_modified();
-                        }
-                    }
+                    if constexpr(std::is_same_v<Component, IdentityComponent>)
+                        { ImGui::CloseCurrentPopup(); }
+                    else if constexpr(std::is_same_v<Component, TransformComponent>)
+                        { transform_comp_popup_content(entity, to_delete); }
+                    else if constexpr(std::is_same_v<Component, CameraComponent>)
+                        { camera_comp_popup_content(entity, to_delete); }
+                    else if constexpr(std::is_same_v<Component, SpriteComponent>)
+                        { sprite_comp_popup_content(entity, to_delete); }
+                    else { general_comp_popup_content(to_delete); }
+                    ImGui::EndPopup();
                 }
-                else if constexpr(std::is_same_v<Component, CameraComponent>)
-                {
-                    if(ImGui::MenuItem("Make Master"))
-                        context_->set_master_camera(entity);
-                    ImGui::Separator();
-                    if(ImGui::MenuItem("Delete"))
-                        to_delete = true;
-                }
-                else if constexpr(std::is_same_v<Component, SpriteComponent>)
-                {
-                    if(!entity.has<Rigidbody2DComponent>())
-                        { if(ImGui::MenuItem("Delete")) to_delete = true; }
-                    else ImGui::CloseCurrentPopup();
-                }
-                else if constexpr(std::is_same_v<Component, Rigidbody2DComponent>)
-                {
-                    if(!entity.has<BoxCollider2DComponent>())
-                        { if(ImGui::MenuItem("Delete")) to_delete = true; }
-                    else ImGui::CloseCurrentPopup();
-                }
-                else { if(ImGui::MenuItem("Delete")) to_delete = true; }
-                ImGui::EndPopup();
-
-            invoking:
                 std::invoke(std::forward<Callback>(callback), entity);
-            },
-            0, std::bit_cast<void*>(static_cast<uint64>(type_id)));
-
+            }, 0, std::bit_cast<void*>(static_cast<uint64>(type_id)));
             if(to_delete) entity.remove<Component>();
         }
     private:
@@ -85,6 +53,11 @@ export namespace rke
         void draw_scene_settings();
         void draw_components(Entity selected);
         void add_components_popup(Entity selected);
+
+        void general_comp_popup_content(bool& to_delete);
+        void transform_comp_popup_content(Entity entity, bool& to_delete);
+        void camera_comp_popup_content(Entity entity, bool& to_delete);
+        void sprite_comp_popup_content(Entity entity, bool& to_delete);
     private:
         Scene* context_{};
         bool is_scene_selected_{ false };

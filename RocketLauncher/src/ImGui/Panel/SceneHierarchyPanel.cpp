@@ -612,4 +612,34 @@ namespace rke
         ImGui::EndMenu();
         ImGui::EndPopup();
     }
+
+    void SceneHierarchyPanel::general_comp_popup_content(bool& to_delete)
+        { if(ImGui::MenuItem("Delete")) to_delete = true; }
+
+    void SceneHierarchyPanel::transform_comp_popup_content(Entity entity, bool& to_delete)
+    {
+        auto& tc{ entity.get_mut<TransformComponent>() };
+        if(tc.locked) {
+            if(ImGui::MenuItem("Unlock"))
+                { tc.locked = false; context_->mark_modified(); }
+        } else {
+            if(ImGui::MenuItem("Lock"))
+                { tc.locked = true; context_->mark_modified(); }
+        }
+    }
+
+    void SceneHierarchyPanel::camera_comp_popup_content(Entity entity, bool& to_delete)
+    {
+        if(ImGui::MenuItem("Make Master"))
+            context_->set_master_camera(entity);
+        ImGui::Separator();
+        if(ImGui::MenuItem("Delete")) to_delete = true;
+    }
+
+    void SceneHierarchyPanel::sprite_comp_popup_content(Entity entity, bool& to_delete)
+    {
+        if(entity.has_any_of<Rigidbody2DComponent, BoxCollider2DComponent>())
+            ImGui::CloseCurrentPopup();
+        else { if(ImGui::MenuItem("Delete")) to_delete = true; }
+    }
 }
