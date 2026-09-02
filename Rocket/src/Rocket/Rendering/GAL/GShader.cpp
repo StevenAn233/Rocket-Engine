@@ -7,7 +7,8 @@ import RenderBackend;
 
 namespace rke
 {
-    Scope<GShader> GShader::create(const String& name, const ShaderPaths& paths, const ShaderSources& sources)
+    Scope<GShader> GShader::create(const String& name,
+        const ShaderPaths& paths, const ShaderSources& sources)
     {
         switch(render_backend::get_graphics_api())
         {

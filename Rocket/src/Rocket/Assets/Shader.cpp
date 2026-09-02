@@ -46,6 +46,7 @@ namespace rke
         if(it != gpu_variants_.end()) return it->second.get();
 
         ShaderPaths valid_paths{ shader_paths_ };
+        ShaderHasher hasher{};
         ShaderSources sources{};
         bool empty{ true };
         for(uint32 stage{}; stage < shader_paths_.size(); stage++)
@@ -56,7 +57,10 @@ namespace rke
                 CORE_ERROR(u8"Shader: Stage path '{}' doesn't exist!", path);
                 path.clear(); continue;
             }
-            sources[stage] = file::read_file_string(path);
+            String content{ file::read_file_string(path) };
+            uint64 fingerprint{ hasher.hash(path, content) };
+            sources[stage].content = std::move(content);
+            sources[stage].fingerprint = fingerprint;
             empty = false;
         }
         if(empty) return nullptr;
@@ -67,5 +71,84 @@ namespace rke
         GShader* raw{ gpu.get() };
         gpu_variants_.emplace(settings, std::move(gpu));
         return raw;
+    }
+
+    
+
+// ShaderHasher
+    uint64 ShaderHasher::hash(const Path& path, const String& source)
+    {
+        uint64 hash{ fnv1a_offset_basis };
+        hash_source_recursive(hash, path, source, 0);
+        return hash;
+    }
+
+    void ShaderHasher::hash_source_recursive(uint64& hash,
+        const Path& source_path, const String& source, uint32 depth)
+    {
+        hash = fnv1a_string(hash, source);
+        if(depth >= 6u) return;
+
+        Size line_begin{};
+        const Size len{ source.length() };
+        while(line_begin < len)
+        {
+            Size line_end{ source.find(u8"\n", line_begin) };
+            if(line_end == String::npos) line_end = len;
+
+            Size inc_begin{}, inc_end{};
+            if(try_parse_include_line(source, line_begin, line_end, inc_begin, inc_end))
+            {
+                Path inc_path{ source_path.parent_path() /
+                    Path(source.substr(inc_begin, inc_end - inc_begin)) };
+                auto it{ cached_sources_.find(inc_path) };
+                if(it != cached_sources_.end())
+                    hash_source_recursive(hash, inc_path, it->second, depth + 1);
+                else {
+                    if(inc_path.exists()) {
+                        String inc_content{ file::read_file_string(inc_path) };
+                        it = cached_sources_.emplace(inc_path, std::move(inc_content)).first;
+                        hash_source_recursive(hash, inc_path, it->second, depth + 1);
+                    }
+                    else CORE_WARN(u8"glGShader: Include '{}' not found while "
+                        u8"fingerprinting '{}'!", inc_path, source_path);
+                }
+            }
+            if(line_end == len) break;
+            line_begin = line_end + 1;
+        }
+    }
+
+    uint64 ShaderHasher::fnv1a_update(uint64 hash, const void* data, Size size)
+    {
+        const unsigned char* bytes{ static_cast<const unsigned char*>(data) };
+        for(Size i{}; i < size; i++)
+        {
+            hash ^= bytes[i];
+            hash *= fnv1a_prime;
+        }
+        return hash;
+    }
+
+    bool ShaderHasher::try_parse_include_line(const String& source,
+        Size line_begin, Size line_end, Size& out_begin, Size& out_end)
+    {
+        Size i{ line_begin };
+        const Size len{ line_end };
+        while(i < len && (source[i] == u8' ' || source[i] == u8'\t')) i++;
+        if(len - i < 8) return false;
+        constexpr const char8 include_kw[8]
+            { u8'#', u8'i', u8'n', u8'c', u8'l', u8'u', u8'd', u8'e' };
+        for(Size k{}; k < 8; k++)
+            if(source[i + k] != include_kw[k]) return false;
+        i += 8;
+        while(i < len && (source[i] == u8' ' || source[i] == u8'\t')) i++;
+        if(i >= len || source[i] != u8'"') return false;
+        i++;
+        out_begin = i;
+        while(i < len && source[i] != u8'"') i++;
+        if(i >= len) return false;
+        out_end = i;
+        return true;
     }
 }

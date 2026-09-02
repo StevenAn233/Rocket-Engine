@@ -23,7 +23,13 @@ export namespace rke
         TessEvaluation = 5
     };
     
-    using ShaderSources = std::array<String, 6>; // shader stages count
+    struct ShaderSource
+    {
+        String content{};
+        uint64 fingerprint{};
+    };
+
+    using ShaderSources = std::array<ShaderSource, 6>; // shader stages count
     using ShaderPaths = std::array<Path, 6>;
 
     class RKE_API GShader
@@ -49,6 +55,7 @@ export namespace rke
 
         virtual uint32 get_gal_id() const = 0;
 
-        static Scope<GShader> create(const String& name, const ShaderPaths& paths, const ShaderSources& sources);
+        static Scope<GShader> create(const String& name,
+            const ShaderPaths& paths, const ShaderSources& sources);
     };
 }

@@ -2,9 +2,10 @@
 
 // required
 #include <format>
-#include <filesystem>
-
 #include <utility>
+#include <algorithm>
+#include <functional>
+#include <filesystem>
 #include "rke_macros.h"
 
 export module Path;
@@ -79,6 +80,12 @@ export namespace rke
 
 namespace std
 {
+    export template<>
+    struct hash<rke::Path> {
+        size_t operator()(const rke::Path& path) const
+            { return hash<filesystem::path>()(path.get()); }
+    };
+
     export template<>
     struct formatter<rke::Path> : formatter<string_view>
     {

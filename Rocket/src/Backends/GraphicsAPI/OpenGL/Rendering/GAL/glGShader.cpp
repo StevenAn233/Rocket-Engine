@@ -93,6 +93,60 @@ namespace {
         };
         std::unordered_map<shaderc_include_result*, IncludeData*> included_files_{};
     };
+
+    static String to_hex16(uint64 value)
+    {
+        char8 buffer[17]{};
+        constexpr char8 digits[16]{ u8'0', u8'1', u8'2', u8'3', u8'4', u8'5',
+            u8'6', u8'7', u8'8', u8'9', u8'a', u8'b', u8'c', u8'd', u8'e', u8'f' };
+        for(int i{ 15 }; i >= 0; i--)
+        {
+            buffer[i] = digits[value & 0xF];
+            value >>= 4;
+        }
+        buffer[16] = u8'\0';
+        return String(buffer, 16);
+    }
+
+    // cache file name embeds the shader name, stage file name and a content
+    // fingerprint, so edits to a source or its includes produce a new key
+    static String stage_cache_file_name(const String& shader_name,
+        const Path& stage_path, uint64 fingerprint, const String& suffix)
+    {
+        return shader_name + u8"-" +
+               stage_path.filename().string() + u8"." +
+               to_hex16(fingerprint) + u8"." + suffix;
+    }
+
+    static void prune_orphan_caches(const Path& cache_directory, const Path& name_to_keep)
+    {
+        if(!cache_directory.exists()) return;
+        const String suffix{ name_to_keep.extension().string() };
+        const String prefix{ name_to_keep.stem().stem().string() };
+        try {
+            for(const auto& entry : fs::directory_iterator(cache_directory.get()))
+            {
+                if(!entry.is_regular_file()) continue;
+                const Path filename{ entry.path().filename() };
+                if(filename == name_to_keep) continue;
+
+            // not auto-gen spirv file: don't delete
+                const String name{ filename.string() };
+                const bool stale_new_format
+                {
+                    name.find(prefix) == 0 &&
+                    name.ends_with(suffix.c_str())
+                };
+                if(!stale_new_format) continue;
+
+                fs::remove(entry.path());
+                CORE_INFO(u8"glGShader: Pruned stale cache '{}'.", name);
+            }
+        } catch(const std::exception& e) {
+            CORE_WARN(u8"glGShader: Failed to prune cache directory '{}': '{}'.",
+                cache_directory, e.what());
+        }
+    }
 }
 
 namespace rke
@@ -101,7 +155,7 @@ namespace rke
         : name_(std::move(name))
     {
         compile_or_get_vulkan_spirv(paths, sources);
-        compile_or_get_opengl_spirv(paths);
+        compile_or_get_opengl_spirv(paths, sources);
         create_program();
     }
 
@@ -165,7 +219,8 @@ namespace rke
         // there won't be any errors, so we just call a CORE_WARN
     }
 
-    void glGShader::compile_or_get_vulkan_spirv(const ShaderPaths& paths, const ShaderSources& sources)
+    void glGShader::compile_or_get_vulkan_spirv
+        (const ShaderPaths& paths, const ShaderSources& sources)
     {
         shaderc::Compiler compiler{};
         shaderc::CompileOptions options{};
@@ -180,11 +235,16 @@ namespace rke
         {
             vulkan_spirv_[stage].clear();
             if(paths[stage].empty()) continue;
+
             Path cached_path{};
+            Path cache_directory{ file::shader_cache_dir() / u8"vulkan" };
             try {
-                Path cache_directory{ file::shader_cache_dir() / u8"vulkan" };
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
-                cached_path = cache_directory / (paths[stage].filename().string() + u8".vulkan.spirv");
+                // fingerprint covers the stage source + its includes
+                uint64 fingerprint{ sources[stage].fingerprint };
+                CORE_ASSERT(fingerprint, u8"glGShader: Fingerprint empty!");
+                cached_path = cache_directory /
+                    stage_cache_file_name(name_, paths[stage], fingerprint, u8"spirv");
             } catch(const std::exception& e)
                 { CORE_ASSERT(false, u8"glGShader: Exception '{}'.", e.what()); }
 
@@ -201,7 +261,7 @@ namespace rke
                 CORE_INFO(u8"glGShader: Compling '{}' to vulkan spirv...", paths[stage].filename());
                 shaderc::SpvCompilationResult spirv{ compiler.CompileGlslToSpv
                 (
-                    sources[stage].raw(), to_shaderc(static_cast<ShaderStage>(stage)),
+                    sources[stage].content.raw(), to_shaderc(static_cast<ShaderStage>(stage)),
                     paths[stage].string().raw(), options
                 )};
                 if(spirv.GetCompilationStatus() != shaderc_compilation_status_success)
@@ -216,12 +276,14 @@ namespace rke
                 vulkan_spirv_[stage] = std::vector<uint32>(spirv.cbegin(), spirv.cend());
                 std::vector<uint32>& data{ vulkan_spirv_[stage] };
                 file::write_file_binary(cached_path, data.data(), data.size() * sizeof(uint32));
+                prune_orphan_caches(cache_directory, cached_path.filename());
                 CORE_INFO(u8"glGShader: Vulkan spriv compiling finished.");
             }
         }
     }
 
-    void glGShader::compile_or_get_opengl_spirv(const ShaderPaths& paths)
+    void glGShader::compile_or_get_opengl_spirv
+        (const ShaderPaths& paths, const ShaderSources& sources)
     {
         shaderc::Compiler compiler{};
         shaderc::CompileOptions options{};
@@ -231,12 +293,17 @@ namespace rke
         {
             opengl_spirv_[stage].clear();
             if(paths[stage].empty()) continue;
-            Path cached_path{}, original_path{};
+
+            Path cached_path{};
+            Path cache_directory{ file::shader_cache_dir() / u8"opengl" };
             try {
-                original_path = paths[stage];
-                Path cache_directory{ file::shader_cache_dir() / u8"opengl" };
+                // fingerprint must match the vulkan stage, otherwise the
+                // cross-compiled GLSL source would disagree with the cache
+                uint64 fingerprint{ sources[stage].fingerprint };
+                CORE_ASSERT(fingerprint, u8"glGShader: Fingerprint empty!");
                 if(!cache_directory.exists()) fs::create_directories(cache_directory);
-                cached_path = cache_directory / (original_path.filename().string() + u8".opengl.spirv");
+                cached_path = cache_directory /
+                    stage_cache_file_name(name_, paths[stage], fingerprint, u8"spirv");
             } catch(std::exception& e)
                 { CORE_ASSERT(false, u8"glGShader: Exception '{}'.", e.what()); }
 
@@ -250,7 +317,7 @@ namespace rke
                 data.resize(size / sizeof(uint32));
                 in.read(reinterpret_cast<char*>(data.data()), size);
             } else {
-                CORE_INFO(u8"glGShader: Compling '{}' to OpenGL spirv...", original_path.filename());
+                CORE_INFO(u8"glGShader: Compling '{}' to OpenGL spirv...", paths[stage].filename());
                 CORE_ASSERT(!vulkan_spirv_[stage].empty(), u8"glGShader: Vulkan spirv not compiled!");
                 spirv_cross::CompilerGLSL glsl_compiler{ vulkan_spirv_[stage] };
                 CharBuffer gl_source{ glsl_compiler.compile() };
@@ -259,7 +326,7 @@ namespace rke
                 {
                     compiler.CompileGlslToSpv(gl_source,
                         to_shaderc(static_cast<ShaderStage>(stage)),
-                        original_path.string().raw(), options
+                        paths[stage].string().raw(), options
                     )
                 };
                 if(gl_spirv_res.GetCompilationStatus() != shaderc_compilation_status_success)
@@ -274,6 +341,7 @@ namespace rke
 
                 std::vector<uint32>& data{ opengl_spirv_[stage] };
                 file::write_file_binary(cached_path, data.data(), data.size() * sizeof(uint32));
+                prune_orphan_caches(cache_directory, cached_path.filename());
                 CORE_INFO(u8"glGShader: OpenGL spirv compiling finished.");
             }
         }
@@ -317,7 +385,6 @@ namespace rke
 
             CORE_ASSERT(false, u8"glGShader: Failed to link programme!");
         }
-    // ---
 
         for(auto id : shader_ids)
         {

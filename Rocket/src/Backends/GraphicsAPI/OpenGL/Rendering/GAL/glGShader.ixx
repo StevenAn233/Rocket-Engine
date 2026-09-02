@@ -50,7 +50,7 @@ namespace rke
         const GShader& upload(StringView name, float v0, float v1, float v2, float v3) const;
     private:
         void compile_or_get_vulkan_spirv(const ShaderPaths& paths, const ShaderSources& sources);
-        void compile_or_get_opengl_spirv(const ShaderPaths& paths);
+        void compile_or_get_opengl_spirv(const ShaderPaths& paths, const ShaderSources& sources);
         void create_program();
 
         int get_uniform_location(const String& name) const; // Can't be StringView!!!

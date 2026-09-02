@@ -4,7 +4,6 @@
 #include <string>
 #include <string_view>
 #include <format>
-
 #include <algorithm>
 #include <functional>
 #include "rke_macros.h"
