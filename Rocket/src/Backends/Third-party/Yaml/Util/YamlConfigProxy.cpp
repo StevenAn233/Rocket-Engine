@@ -97,6 +97,27 @@ namespace YAML
     };
 
     template<>
+    struct convert<std::pair<int, int>>
+    {
+        static Node encode(std::pair<int, int> rhs)
+        {
+            Node node{};
+            node.push_back(rhs.first );
+            node.push_back(rhs.second);
+            node.SetStyle(EmitterStyle::Flow);
+            return node;
+        }
+
+        static bool decode(const Node& node, std::pair<int, int>& rhs)
+        {
+            if(!node.IsSequence() || node.size() != 2) return false;
+            rhs.first  = node[0].as<int>();
+            rhs.second = node[1].as<int>();
+            return true;
+        }
+    };
+
+    template<>
     struct convert<rke::String>
     {
         static Node encode(rke::String rhs)
@@ -132,6 +153,13 @@ namespace YAML
     {
         yout << Flow;
         yout << BeginSeq << v.r << v.g << v.b << v.a << EndSeq;
+        return yout;
+    }
+
+    static Emitter& operator<<(Emitter& yout, std::pair<int, int> v)
+    {
+        yout << Flow;
+        yout << BeginSeq << v.first << v.second << EndSeq;
         return yout;
     }
 

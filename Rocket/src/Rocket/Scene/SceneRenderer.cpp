@@ -52,12 +52,56 @@ namespace {
 
     static Texture* get_texture(AssetsManager& am, SpriteComponent& sc)
     {
-        if(sc.resolved_uuid != sc.tex_uuid || !am.is_handle_valid(sc.tex_handle))
+        if(sc.resolved_uuid != sc.tex_uuid)
+        {
+            sc.resolved_uuid = sc.tex_uuid;
+            sc.uv_to_refresh = false;
+            sc.uv_offset = glm::vec2(0.0f);
+            sc.uv_scale  = glm::vec2(1.0f);
+            if(sc.tex_uuid.empty())
+            {
+                sc.tex_handle = asset_handle_null;
+                sc.cell_size = { 1, 1 };
+                sc.cell_coords = { 0, 0 };
+                return nullptr; 
+            }
+            sc.tex_handle = am.load_asset(sc.tex_uuid);
+            if(!am.is_handle_valid(sc.tex_handle))
+            {
+                CORE_ERROR(u8"SceneRenderer: Failed to load texture "
+                    u8"from uuid '{}'!", sc.tex_uuid.value());
+                sc.tex_uuid = UUID(0);
+                // other data will be reset next time calling this function
+                return nullptr;
+            }
+            Texture* tex{ am.get_asset<Texture>(sc.tex_handle) };
+            CORE_ASSERT(tex, u8"SceneRenderer: Texture null!");
+            sc.cell_size = { int(tex->get_width()), int(tex->get_height()) };
+            sc.cell_coords = { 0, 0 };
+            return tex;
+        }
+        if(sc.tex_uuid.empty()) return nullptr;
+        if(!am.is_handle_valid(sc.tex_handle))
         {
             sc.tex_handle = am.load_asset(sc.tex_uuid);
-            sc.resolved_uuid = sc.tex_uuid;
+            if(!am.is_handle_valid(sc.tex_handle))
+            {
+                CORE_ERROR(u8"SceneRenderer: Failed to load texture "
+                    u8"from uuid '{}'!", sc.tex_uuid.value());
+                sc.tex_uuid = UUID(0);
+                // other data will be reset next time calling this function
+                return nullptr;
+            }
         }
-        return am.get_asset<Texture>(sc.tex_handle);
+        Texture* tex{ am.get_asset<Texture>(sc.tex_handle) };
+        if(sc.uv_to_refresh)
+        {
+            sc.uv_to_refresh = false;
+            sc.uv_scale = sprite::compute_uv_scale
+                (sc.cell_size, tex->get_width(), tex->get_height());
+            sc.uv_offset = sprite::compute_uv_offset(sc.cell_coords, sc.uv_scale);
+        }
+        return tex;
     }
 }
 

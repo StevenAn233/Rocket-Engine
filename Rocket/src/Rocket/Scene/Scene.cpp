@@ -370,10 +370,10 @@ namespace rke
                 physics_engine_->get_begin_contacts_sensor(),
                 physics_engine_->get_end_contacts_sensor()
             );
-            auto view{ registry_->view<NativeScriptComponent>() };
-            for(entt::entity ent : view)
+            auto nsc_view{ registry_->view<NativeScriptComponent>() };
+            for(entt::entity ent : nsc_view)
             {
-                auto& nsc{ registry_->get<NativeScriptComponent>(ent) };
+                auto& nsc{ nsc_view.get<NativeScriptComponent>(ent) };
                 if(nsc.script_type != nsc.resolved_script_type)
                     script_manager_->refresh_script(static_cast<uint32>(ent));
                 
@@ -419,7 +419,7 @@ namespace rke
         auto view{ registry_->view<NativeScriptComponent>() };
         for(entt::entity ent : view)
         {
-            auto& nsc{ registry_->get<NativeScriptComponent>(ent) };
+            auto& nsc{ view.get<NativeScriptComponent>(ent) };
             if(nsc.script_type != nsc.resolved_script_type)
                 script_manager_->refresh_script(static_cast<uint32>(ent));
             Script* script{ nsc.script_handle };

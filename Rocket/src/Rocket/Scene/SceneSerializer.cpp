@@ -62,8 +62,8 @@ namespace {
             if(!sc.tex_uuid.empty())
             {
                 writer.begin_map(u8"Settings");
-                writer.write(u8"UV Offset", ConfigValue(sc.uv_offset));
-                writer.write(u8"UV Scale",  ConfigValue(sc.uv_scale ));
+                writer.write(u8"Cell Size", ConfigValue(sc.cell_size));
+                writer.write(u8"Cell Coords", ConfigValue(sc.cell_coords));
                 writer.write(u8"Filt", static_cast<int>(sc.gtex_settings.filt));
                 writer.write(u8"Wrap", static_cast<int>(sc.gtex_settings.wrap));
                 writer.write(u8"sRGB", sc.gtex_settings.srgb);
@@ -154,13 +154,15 @@ namespace {
                 (AssetUUID(sc_reader->get_at(u8"Texture", 0ui64)))};
             Scope<ConfigReader> tex_config{ sc_reader->get_child(u8"Settings") };
             if(!sc.tex_uuid.empty() && tex_config) {
-                sc.uv_offset = tex_config->get_at(u8"UV Offset", glm::vec2(0.0f));
-                sc.uv_scale  = tex_config->get_at(u8"UV Scale" , glm::vec2(1.0f));
                 sc.gtex_settings.filt = static_cast<GTexture::FiltFormat>
                     (tex_config->get_at(u8"Filt", static_cast<int>(sc.gtex_settings.filt)));
                 sc.gtex_settings.wrap = static_cast<GTexture::WrapFormat>
                     (tex_config->get_at(u8"Wrap", static_cast<int>(sc.gtex_settings.wrap)));
                 sc.gtex_settings.srgb = tex_config->get_at(u8"sRGB", sc.gtex_settings.srgb);
+                sc.cell_size = tex_config->get_at(u8"Cell Size", std::pair<int, int>(1, 1));
+                sc.cell_coords = tex_config->get_at(u8"Cell Coords", std::pair<int, int>(0, 0));
+                sc.resolved_uuid = sc.tex_uuid;
+                sc.uv_to_refresh = true;
             }
             sc.color = sc_reader->get_at(u8"Color", glm::vec4(1.0f));
             sc.blending_mode = static_cast<BlendingMode>(sc_reader->get_at(u8"Blending Mode", 0ui32));

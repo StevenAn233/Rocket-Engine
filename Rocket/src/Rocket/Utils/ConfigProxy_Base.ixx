@@ -16,7 +16,8 @@ export namespace rke
     using ConfigValue = std::variant <
         int16, uint16, int32, uint32, int64, uint64, 
         bool, float, double, String,
-        glm::vec2, glm::vec3, glm::vec4
+        glm::vec2, glm::vec3, glm::vec4,
+        std::pair<int, int>
     >;
 
     class RKE_API ConfigWriter

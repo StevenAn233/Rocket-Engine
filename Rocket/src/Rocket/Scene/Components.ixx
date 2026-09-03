@@ -92,21 +92,47 @@ export namespace rke
         AssetUUID tex_uuid;
 
         GTextureSettings gtex_settings{};
-        glm::vec2 uv_offset{ 0.0f, 0.0f };
-        glm::vec2 uv_scale { 1.0f, 1.0f };
+        std::pair<int, int> cell_size{ 1, 1 }; // pixel counts
+        std::pair<int, int> cell_coords{ 0, 0 };
 
         glm::vec4 color{ 1.0f }; // may modify
         BlendingMode blending_mode{ BlendingMode::Opaque };
         int rendering_layer{ 0 };
 
-    /* runtime cache(do not serialize) */
+    /* -runtime cache(do not serialize)- */
         const Mesh* quad; // may modify
-        AssetUUID resolved_uuid{};
+
+        AssetUUID resolved_uuid{}; // Update: SceneRenderer
         AssetHandle tex_handle{ asset_handle_null };
+
+        bool uv_to_refresh{ false }; // Update: SceneRenderer
+        glm::vec2 uv_offset{ 0.0f, 0.0f };
+        glm::vec2 uv_scale { 1.0f, 1.0f };
 
         SpriteComponent(AssetUUID uuid = UUID(0));
         SpriteComponent(const SpriteComponent&) = default;
     };
+
+    namespace sprite
+    {
+        inline glm::vec2 compute_uv_scale
+        (std::pair<int, int> cell_size, uint32 tex_w, uint32 tex_h)
+        {
+            return glm::vec2 (
+                float(cell_size.first ) / float(tex_w),
+                float(cell_size.second) / float(tex_h)
+            );
+        }
+
+        inline glm::vec2 compute_uv_offset
+        (std::pair<int, int> cell_coords, glm::vec2 uv_scale)
+        {
+            return glm::vec2 (
+                float(cell_coords.first ) * uv_scale.x,
+                float(cell_coords.second) * uv_scale.y
+            );
+        }
+    }
 
     // struct RKE_API ModelComponent
     // {
@@ -139,7 +165,7 @@ export namespace rke
         glm::vec2 velocity{ 0.0f };
         float angular_velocity{ 0.0f };
 
-    /* runtime cache(do not serialize) */
+    /* -runtime cache(do not serialize)- */
         uint64 body_id{};
 
         Rigidbody2DComponent() = default;
@@ -170,7 +196,7 @@ export namespace rke
         float friction{ 0.5f };
         float restitution{ 0.0f }; // 'bounciness'
 
-    /* runtime cache(do not serialize) */
+    /* -runtime cache(do not serialize)- */
         uint64 shape_id{};
         glm::vec2 resolved_shape_size{};
 
@@ -190,7 +216,7 @@ export namespace rke
     {
         ScriptType script_type{ script_type_null };
 
-    /* runtime cache(do not serialize) */
+    /* -runtime cache(do not serialize)- */
         ScriptType resolved_script_type{ script_type_null };
         Script* script_handle{}; // will be cleared by ScriptManager
 

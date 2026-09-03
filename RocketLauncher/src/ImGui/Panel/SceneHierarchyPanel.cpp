@@ -299,10 +299,7 @@ namespace rke
             {
                 sc.tex_uuid = uuid;
                 sc.tex_handle = asset_handle_null;
-
                 sc.gtex_settings = {};
-                sc.uv_offset = glm::vec2(0.0f);
-                sc.uv_scale  = glm::vec2(1.0f);
             }};
 
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -326,7 +323,7 @@ namespace rke
 
             ImGui::Columns(1);
 
-            if(tex_opened)
+            if(sc.tex_handle != asset_handle_null)
             {
                 layout::two_columns_table<u8"Filter">([&]()
                 {
@@ -353,18 +350,42 @@ namespace rke
                     }
                 });
 
-                context_->mark_modified_if (
-                    layout::drag_float2_control<u8"UV Offset"> (
-                        sc.uv_offset, 0.01f, { 0.0f, 0.0f },
-                        glm::vec2(0.0f, 1.0f), glm::vec2(0.0f, 1.0f), u8"%.2f"
-                    ));
-                context_->mark_modified_if (
-                    layout::drag_float2_control<u8"UV Scale"> (
-                        sc.uv_scale, 0.01f, { 1.0f, 1.0f },
-                        glm::vec2(0.0f, 100.0f), glm::vec2(0.0f, 100.0f), u8"%.2f"
-                    ));
-                ImGui::TreePop();
+                Texture* tex{ assets_manager.get_asset<Texture>(sc.tex_handle) };
+                CORE_ASSERT(tex, u8"SceneHierarchyPanel: Texture null!");
+
+                glm::vec2 cell_size{ float(sc.cell_size.first), float(sc.cell_size.second) };
+                if(layout::drag_float2_control<u8"Cell Size">(cell_size, 1.0f,
+                    glm::vec2( float(tex->get_width ()), float(tex->get_height())),
+                    glm::vec2(0.0f), glm::vec2(0.0f), u8"%.0f px"
+                )) {
+                    sc.cell_size = { int(cell_size.x), int(cell_size.y) };
+                    sc.uv_to_refresh = true;
+                    context_->mark_modified();
+                }
+
+                glm::vec2 cell_coords{ float(sc.cell_coords.first), float(sc.cell_coords.second) };
+                if(layout::drag_float2_control<u8"Cell Coord">(cell_coords, 1.0f,
+                    glm::vec2(0.0f, 0.0f),
+                    glm::vec2(0.0f), glm::vec2(0.0f), u8"%.0f"
+                )) {
+                    sc.cell_coords = { int(cell_coords.x), int(cell_coords.y) };
+                    sc.uv_to_refresh = true;
+                    context_->mark_modified();
+                }
+                
+                layout::drag_float2_control<u8"UV Offset">
+                (
+                    sc.uv_offset, 0.0f, { 0.0f, 0.0f },
+                    std::nullopt, std::nullopt, u8"%.2f"
+                );
+            
+                layout::drag_float2_control<u8"UV Scale">
+                (
+                    sc.uv_scale, 0.0f, { 1.0f, 1.0f },
+                    std::nullopt, std::nullopt, u8"%.2f"
+                );
             }
+            if(tex_opened) ImGui::TreePop();
             ImGui::PopID();
 
             layout::two_columns_table<u8"Color">([&]()
