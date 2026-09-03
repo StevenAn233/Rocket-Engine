@@ -17,7 +17,7 @@ export namespace rke
         static constexpr float min_vertical_fov{ 1.0f   };
         static constexpr float max_vertical_fov{ 160.0f };
 
-        enum class Type { Perspective = 0, Orthographic };
+        enum class Type : uint32 { Perspective = 0, Orthographic };
 
         struct OrthoBounds // TO REMOVE
         {
@@ -29,6 +29,10 @@ export namespace rke
         };
 
         SceneCamera();
+        SceneCamera(const SceneCamera&) = default;
+        SceneCamera& operator=(const SceneCamera&) = default;
+        SceneCamera(SceneCamera&&) = default;
+        SceneCamera& operator=(SceneCamera&&) = default;
 
     // getters
         float get_orthographic_size		() const { return orthographic_size_; }
