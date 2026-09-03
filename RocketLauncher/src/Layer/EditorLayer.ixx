@@ -80,5 +80,6 @@ export namespace rke
         SceneHierarchyPanel scene_hierarchy_panel_{ u8"Scene Hierarchy" };
 
         bool in_main_viewport_dragging_{ false };
+        bool in_entity_popup_{ false };
     };
 }

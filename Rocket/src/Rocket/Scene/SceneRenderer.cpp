@@ -79,6 +79,9 @@ namespace rke
 
     void SceneRenderer::add_effect(Scope<PostProcessEffect> effect)
         { post_processor_.add_effect(std::move(effect)); }
+
+    void SceneRenderer::refresh_post_processor_shaders()
+        { post_processor_.refresh_all_effect_shaders(); }
     
     const GTexture2D* SceneRenderer::render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos)
     {

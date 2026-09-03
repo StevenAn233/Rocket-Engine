@@ -73,13 +73,16 @@ export namespace rke
         RKE_API void end_scene();
 
         RKE_API void push(const Mesh* mesh, const GTexture* gtex, const RenderProps& props);
-    
-        static void init(); // requires main window context current
 
     #ifdef RKE_ENABLE_STATISTICS
         inline Statistics& get_stats() { return stats_; }
         inline void reset_stats() { stats_ = {}; }
     #endif
+
+    // may modify
+        RKE_API static void init(); // requires main window context current
+        RKE_API static void refresh_shader();
+    // may modify
     private:
         struct MeshGeometry
         {

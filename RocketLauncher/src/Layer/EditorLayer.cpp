@@ -128,6 +128,7 @@ namespace rke
                     editor_setting_panel_->get_gizmo_mode(),
                     editor_cam_, mouse_blocked());
             }
+
         // Drag Drop
             if(!testing() && ImGui::BeginDragDropTarget())
             {
@@ -138,21 +139,29 @@ namespace rke
                     load_scene_edit(scene_name);
                 }
                 ImGui::EndDragDropTarget();
-            }
-            else in_main_viewport_dragging_ = false;
+            } else in_main_viewport_dragging_ = false;
+
         // Entity Pop-up
-            static bool in_popup{ false };
-            if(!scene_edit_ || (hovering_id_ == entity_id_null && !in_popup)) return;
             if(ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
             {
-                if(ImGui::IsWindowAppearing()) {
-                    in_popup = true;
+                if(ImGui::IsWindowAppearing() && scene_edit_
+                && (hovering_id_ != entity_id_null))
+                {
+                    in_entity_popup_ = true;
                     scene_edit_->set_selected_entity(hovering_id_);
                 }
-                entity_right_click_popup_content(scene_edit_);
+                if(in_entity_popup_)
+                    entity_right_click_popup_content(scene_edit_);
+                else {
+                // may modify
+                    if(ImGui::MenuItem("Refresh Shaders"))
+                    {
+                        Renderer::refresh_shader();
+                        main_renderer_.refresh_post_processor_shaders();
+                    }
+                }
                 ImGui::EndPopup();
-            }
-            else in_popup = false;
+            } else in_entity_popup_ = false;
         });
 
     // PanelRegistry

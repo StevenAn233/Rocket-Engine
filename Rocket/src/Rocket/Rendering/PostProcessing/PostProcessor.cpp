@@ -27,6 +27,15 @@ namespace rke
         return nullptr;
     }
 
+    void PostProcessor::refresh_all_effect_shaders()
+    {
+        for(const auto& [_, effect] : effects_)
+        {
+            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
+            effect->refresh_shader();
+        }
+    }
+
     const GTexture2D* PostProcessor::process(const GTexture2D* source)
     {
         if(!source) return nullptr;

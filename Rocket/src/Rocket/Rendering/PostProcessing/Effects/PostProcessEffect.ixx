@@ -21,6 +21,8 @@ export namespace rke
     class RKE_API PostProcessEffect
     {
     public:
+        friend class PostProcessor;
+
         enum class Category
         {
             Standard, // e.g. Bloom, ToneMapping, Vignette
@@ -28,11 +30,12 @@ export namespace rke
             System    // e.g. FXAA, SMAA
         };
 
-        friend class PostProcessor;
-        friend class std::default_delete<PostProcessEffect>;
+        PostProcessEffect(String name, std::function<bool()> func = nullptr);
+        virtual ~PostProcessEffect() = default;
 
-        const String& get_name() const { return name_; }
-        bool enabled() const { return enabled_situation_(); }
+        inline const String& get_name() const { return name_; }
+        inline bool enabled() const { return enabled_situation_(); }
+        
 
         virtual bool apply(const GTexture2D* source, FrameBuffer* destination) = 0;
         // if returns true , use destination->get_gtexture_attached();
@@ -42,9 +45,7 @@ export namespace rke
         virtual void deserialize_from(const ConfigReader& reader) {}
         virtual Category get_category() const { return Category::Standard; }
     protected:
-        PostProcessEffect(String name, std::function<bool()> func = nullptr);
-        virtual ~PostProcessEffect() = default;
-        
+        inline void refresh_shader() { shader_->clear_gshaders(); } // for post-processor
         virtual void on_viewport_resized(uint32 w, uint32 h) {};
     protected:
         String name_;

@@ -26,7 +26,8 @@ export namespace rke
 
         void add_effect(Scope<PostProcessEffect> effect);
         PostProcessEffect* get_effect(const String& name);
-        const EffectMap& get_all_effects() const { return effects_; }
+        void refresh_all_effect_shaders();
+        inline const EffectMap& get_all_effects() const { return effects_; }
 
         const GTexture2D* process(const GTexture2D* source);
 

@@ -30,6 +30,7 @@ namespace {
 
 namespace rke
 {
+// static
     Scope<Shader> Renderer::s_shader{};
 
     void Renderer::init()
@@ -38,6 +39,13 @@ namespace rke
         s_shader = create_scope<Shader>(shader_path);
     }
 
+    void Renderer::refresh_shader()
+    {
+        CORE_ASSERT(s_shader, u8"Renderer: Shader null!");
+        s_shader->clear_gshaders();
+    }
+
+// non-static
     Renderer::Renderer(Window* context) : context_(context)
     {
         CORE_ASSERT(context_, u8"Renderer: Context window null!");
