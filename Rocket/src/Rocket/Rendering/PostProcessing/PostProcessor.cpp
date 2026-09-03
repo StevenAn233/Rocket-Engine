@@ -17,19 +17,33 @@ namespace rke
         tone_mapping_.set_uniform({});
     }
 
-    void PostProcessor::add_effect(Scope<PostProcessEffect> effect)
-        { effects_[effect->get_name()] = std::move(effect); }
+    PostProcessEffect* PostProcessor::push_effect(Scope<PostProcessEffect> effect)
+    {
+        effects_stack_.push_back(std::move(effect));
+        return effects_stack_.back().get();
+    }
+
+    Scope<PostProcessEffect> PostProcessor::pop_effect()
+    {
+        Scope<PostProcessEffect> effect{ std::move(effects_stack_.back()) };
+        effects_stack_.pop_back();
+        return effect;
+    }
 
     PostProcessEffect* PostProcessor::get_effect(const String& name)
     {
-        if(effects_.count(name)) return effects_[name].get();
-        CORE_ERROR(u8"PostProcessor: Effect not found!");
+        for(const auto& effect : effects_stack_)
+        {
+            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
+            if(effect->get_name() == name) return effect.get();
+        }
+        CORE_WARN(u8"PostProcessor: Effect not found!");
         return nullptr;
     }
 
     void PostProcessor::refresh_all_effect_shaders()
     {
-        for(const auto& [_, effect] : effects_)
+        for(const auto& effect : effects_stack_)
         {
             CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
             effect->refresh_shader();
@@ -40,22 +54,17 @@ namespace rke
     {
         if(!source) return nullptr;
 
-        std::vector<PostProcessEffect*> active_effects{};
-        for(const auto& [_, effect] : effects_)
-        {
-            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
-            if(effect->enabled()) active_effects.push_back(effect.get());
-        }
-
         clean_up();
         app().render_command().disable_blend();
         app().render_command().disable_depth_test();
 
         const GTexture2D* ping_pong{ source };
         uint32 fbo_index{ 0 };
-        for(Size i{}; i < active_effects.size(); i++)
+        for(auto& effect : effects_stack_)
         {
-            if(active_effects[i]->apply(ping_pong, fbos_[fbo_index].get()))
+            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
+            if(!effect->enabled()) continue;
+            if(effect->apply(ping_pong, fbos_[fbo_index].get()))
             {
                 ping_pong = fbos_[fbo_index]->get_gtexture_attached();
                 fbo_index ^= 1u;
@@ -74,7 +83,10 @@ namespace rke
     {
         fbos_[0]->resize(w, h);
         fbos_[1]->resize(w, h);
-        for(auto& [_, effect] : effects_)
+        for(auto& effect : effects_stack_)
+        {
+            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
             effect->on_viewport_resized(w, h);
+        }
     }
 }

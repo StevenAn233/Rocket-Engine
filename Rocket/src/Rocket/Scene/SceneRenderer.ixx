@@ -29,7 +29,8 @@ export namespace rke
 
         inline void set_samples(uint32 samples) { scene_fbo_->set_samples(samples); }
         
-        void add_effect(Scope<PostProcessEffect> effect);
+        PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
+        Scope<PostProcessEffect> pop_effect();
         void refresh_post_processor_shaders();
         const GTexture2D* render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
         const GTexture2D* render(const Scene* scene, Entity camera);

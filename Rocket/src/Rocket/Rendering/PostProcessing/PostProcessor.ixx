@@ -15,8 +15,6 @@ import ToneMapping;
 
 export namespace rke
 {
-    using EffectMap = std::unordered_map<String, Scope<PostProcessEffect>>;
-
     class PostProcessor
     {
     public:
@@ -24,10 +22,10 @@ export namespace rke
         PostProcessor(const PostProcessor&) = delete;
         PostProcessor(PostProcessor&&) = delete;
 
-        void add_effect(Scope<PostProcessEffect> effect);
-        PostProcessEffect* get_effect(const String& name);
+        PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
+        Scope<PostProcessEffect> pop_effect();
+        PostProcessEffect* get_effect(const String& name); // expensive
         void refresh_all_effect_shaders();
-        inline const EffectMap& get_all_effects() const { return effects_; }
 
         const GTexture2D* process(const GTexture2D* source);
 
@@ -37,7 +35,7 @@ export namespace rke
         Scope<FrameBuffer> fbos_[2]{};
         uint32 viewport_w_{}, viewport_h_{};
 
-        EffectMap effects_{};
+        std::vector<Scope<PostProcessEffect>> effects_stack_{}; // sequential
         ToneMapping tone_mapping_{ u8"Tone Mapping" };
     };
 }

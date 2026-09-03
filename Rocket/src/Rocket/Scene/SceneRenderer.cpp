@@ -77,8 +77,11 @@ namespace rke
         });
     }
 
-    void SceneRenderer::add_effect(Scope<PostProcessEffect> effect)
-        { post_processor_.add_effect(std::move(effect)); }
+    PostProcessEffect* SceneRenderer::push_effect(Scope<PostProcessEffect> effect)
+        { return post_processor_.push_effect(std::move(effect)); }
+
+    Scope<PostProcessEffect> SceneRenderer::pop_effect()
+        { return post_processor_.pop_effect(); }
 
     void SceneRenderer::refresh_post_processor_shaders()
         { post_processor_.refresh_all_effect_shaders(); }

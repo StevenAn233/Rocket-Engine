@@ -87,9 +87,9 @@ namespace rke
         selected_outline_ = selected.get();
 
     // SceneRenderer
-        main_renderer_.add_effect(std::move(hovering));
-        main_renderer_.add_effect(std::move(selected));
-        main_renderer_.add_effect(std::move(fxaa));
+        main_renderer_.push_effect(std::move(hovering));
+        main_renderer_.push_effect(std::move(selected));
+        main_renderer_.push_effect(std::move(fxaa));
         cam_renderer_.set_samples(1);
 
     // EditorSetting
