@@ -94,17 +94,20 @@ namespace rke
             {
                 EditorCamera& cam{ owner_->editor_cam_ };
                 bool modified{ false };
+                ImGui::BeginDisabled(owner_->testing());
                 modified |= layout::drag_float3_control<u8"Focus">
                     (cam.focus_, 0.1f, glm::vec3(0.0f));
                 modified |= layout::drag_float_control<u8"Distance">
                     (cam.distance_, 0.5f, 1.0f, glm::vec2(1.0f, 100.0f));
                 modified |= layout::drag_float_control<u8"Pitch">(cam.pitch_, 0.1f, 0.0f);
                 modified |= layout::drag_float_control<u8"Yaw"  >(cam.yaw_  , 0.1f, 0.0f);
+                ImGui::EndDisabled();
                 if(modified) cam.update_view();
             });
 
             layout::tree_node_branch<u8"Gizmo">([&]()
             {
+                ImGui::BeginDisabled(owner_->testing());
                 if(ImGui::RadioButton("Translate", gizmo_mode_ == gizmo::Mode::Translate))
                     gizmo_mode_ = gizmo::Mode::Translate;
                 ImGui::SameLine();
@@ -113,6 +116,7 @@ namespace rke
                 ImGui::SameLine();
                 if(ImGui::RadioButton("Scale", gizmo_mode_ == gizmo::Mode::Scale))
                     gizmo_mode_ = gizmo::Mode::Scale;
+                ImGui::EndDisabled();
             });
             
             layout::tree_node_branch<u8"Selected Outline">([&]()
