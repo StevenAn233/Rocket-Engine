@@ -1,5 +1,10 @@
-﻿module;
+module;
 module SceneHierarchyPanel;
+
+import Log;
+import UUID;
+import Animation;
+import FileUtils;
 
 namespace rke
 {
@@ -273,120 +278,6 @@ namespace rke
         check_then_draw<SpriteComponent, u8"Sprite">(entity, [this](Entity ent)
         {
             auto& sc{ ent.get_mut<SpriteComponent>() };
-            AssetsManager& assets_manager{ context_->get_owner()->get_assets_manager_mut() };
-
-        // Texture
-            constexpr ImGuiTreeNodeFlags tree_flags
-            {   ImGuiTreeNodeFlags_SpanFullWidth
-              | ImGuiTreeNodeFlags_AllowOverlap 
-              | ImGuiTreeNodeFlags_FramePadding
-              | ImGuiTreeNodeFlags_DrawLinesToNodes
-              | ImGuiTreeNodeFlags_DefaultOpen
-            };
-
-            ImGui::PushID("TextureAssetNode");
-        
-            bool no_texture{ sc.tex_uuid.empty() }, tex_opened{ false };
-            if(no_texture) ImGui::Text("Texture:");
-            else tex_opened = ImGui::TreeNodeEx("##TextureTree", tree_flags, "Texture:");
-            ImGui::SameLine();
-
-            float available_width{ ImGui::GetContentRegionAvail().x };
-            String display_name{ no_texture ? u8"<No Texture>" :
-                assets_manager.get_asset_path(sc.tex_uuid).filename().string() };
-
-            auto refresh_sprite{ [](UUID uuid, SpriteComponent& sc)
-            {
-                sc.tex_uuid = uuid;
-                sc.tex_handle = asset_handle_null;
-                sc.gtex_settings = {};
-            }};
-
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-            if(ImGui::Button(display_name.raw(), ImVec2(available_width, 0.0f)))
-            {
-                refresh_sprite(0, sc);
-                context_->mark_modified();
-            }
-            ImGui::PopStyleColor();
-
-            if(ImGui::BeginDragDropTarget())
-            {
-                if(const auto* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ASSET") })
-                {
-                    AssetUUID dropped_uuid{ *reinterpret_cast<const AssetUUID*>(payload->Data) };
-                    refresh_sprite(dropped_uuid, sc);
-                    context_->mark_modified();
-                }
-                ImGui::EndDragDropTarget();
-            }
-
-            ImGui::Columns(1);
-
-            if(sc.tex_handle != asset_handle_null)
-            {
-                layout::two_columns_table<u8"Filter">([&]()
-                {
-                    constexpr const char* filt_opts[]{ "Linear", "Nearest" };
-                    int option{ static_cast<int>(sc.gtex_settings.filt) };
-                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                    if(ImGui::Combo("##filt", &option, filt_opts, (int)std::size(filt_opts)))
-                    {
-                        sc.gtex_settings.filt = static_cast<GTexture::FiltFormat>(option);
-                        context_->mark_modified();
-                    }
-                });
-
-                layout::two_columns_table<u8"Wrapping">([&]()
-                {
-                    constexpr const char* wrap_opts[]{ "Clamp to Edge", "Repeat" };
-                    int option{ static_cast<int>(sc.gtex_settings.wrap) };
-                    float available_width{ ImGui::GetContentRegionAvail().x };
-                    ImGui::SetNextItemWidth(available_width);
-                    if(ImGui::Combo("##wrap", &option, wrap_opts, (int)std::size(wrap_opts)))
-                    {
-                        sc.gtex_settings.wrap = static_cast<GTexture::WrapFormat>(option);
-                        context_->mark_modified();
-                    }
-                });
-
-                Texture* tex{ assets_manager.get_asset<Texture>(sc.tex_handle) };
-                CORE_ASSERT(tex, u8"SceneHierarchyPanel: Texture null!");
-
-                glm::vec2 cell_size{ float(sc.cell_size.first), float(sc.cell_size.second) };
-                if(layout::drag_float2_control<u8"Cell Size">(cell_size, 1.0f,
-                    glm::vec2( float(tex->get_width ()), float(tex->get_height())),
-                    glm::vec2(0.0f), glm::vec2(0.0f), u8"%.0f px"
-                )) {
-                    sc.cell_size = { int(cell_size.x), int(cell_size.y) };
-                    sc.uv_to_refresh = true;
-                    context_->mark_modified();
-                }
-
-                glm::vec2 cell_coords{ float(sc.cell_coords.first), float(sc.cell_coords.second) };
-                if(layout::drag_float2_control<u8"Cell Coord">(cell_coords, 1.0f,
-                    glm::vec2(0.0f, 0.0f),
-                    glm::vec2(0.0f), glm::vec2(0.0f), u8"%.0f"
-                )) {
-                    sc.cell_coords = { int(cell_coords.x), int(cell_coords.y) };
-                    sc.uv_to_refresh = true;
-                    context_->mark_modified();
-                }
-                
-                layout::drag_float2_control<u8"UV Offset">
-                (
-                    sc.uv_offset, 0.0f, { 0.0f, 0.0f },
-                    std::nullopt, std::nullopt, u8"%.2f"
-                );
-            
-                layout::drag_float2_control<u8"UV Scale">
-                (
-                    sc.uv_scale, 0.0f, { 1.0f, 1.0f },
-                    std::nullopt, std::nullopt, u8"%.2f"
-                );
-            }
-            if(tex_opened) ImGui::TreePop();
-            ImGui::PopID();
 
             layout::two_columns_table<u8"Color">([&]()
             {
@@ -425,6 +316,115 @@ namespace rke
                     ("##rendering_layer", &sc.rendering_layer, -32, 31));
                 ImGui::EndDisabled();
             });
+
+            layout::drag_float2_control<u8"UV Offset">
+            (
+                sc.uv_offset, 0.0f, { 0.0f, 0.0f },
+                std::nullopt, std::nullopt, u8"%.2f"
+            );
+        
+            layout::drag_float2_control<u8"UV Scale">
+            (
+                sc.uv_scale, 0.0f, { 1.0f, 1.0f },
+                std::nullopt, std::nullopt, u8"%.2f"
+            );
+        });
+
+        check_then_draw<TextureComponent, u8"Texture">(entity, [this](Entity ent)
+        {
+            auto& tec{ ent.get_mut<TextureComponent>() };
+            auto& assets_manager{ context_->get_owner()->get_assets_manager_mut() };
+
+            ImGui::Text("Asset:");
+            ImGui::SameLine();
+            float available_width{ ImGui::GetContentRegionAvail().x };
+            String display_name{ tec.tex_uuid.empty() ? u8"<No Texture>" :
+                assets_manager.get_asset_path(tec.tex_uuid).filename().string() };
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+            if(ImGui::Button(display_name.raw(), ImVec2(available_width, 0.0f)))
+            {
+                tec.tex_uuid = UUID(0);
+                context_->mark_modified();
+            }
+            ImGui::PopStyleColor();
+
+            if(ImGui::BeginDragDropTarget())
+            {
+                if(const auto* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ASSET") })
+                {
+                    AssetUUID dropped_uuid{ *reinterpret_cast<const AssetUUID*>(payload->Data) };
+                    tec.tex_uuid = dropped_uuid;
+                    context_->mark_modified();
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            layout::two_columns_table<u8"Filter">([&]()
+            {
+                constexpr const char* filt_opts[]{ "Linear", "Nearest" };
+                int option{ static_cast<int>(tec.gtex_settings.filt) };
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                if(ImGui::Combo("##filt", &option, filt_opts, (int)std::size(filt_opts)))
+                {
+                    tec.gtex_settings.filt = static_cast<GTexture::FiltFormat>(option);
+                    context_->mark_modified();
+                }
+            });
+
+            layout::two_columns_table<u8"Wrapping">([&]()
+            {
+                constexpr const char* wrap_opts[]{ "Clamp to Edge", "Repeat" };
+                int option{ static_cast<int>(tec.gtex_settings.wrap) };
+                float available_width{ ImGui::GetContentRegionAvail().x };
+                ImGui::SetNextItemWidth(available_width);
+                if(ImGui::Combo("##wrap", &option, wrap_opts, (int)std::size(wrap_opts)))
+                {
+                    tec.gtex_settings.wrap = static_cast<GTexture::WrapFormat>(option);
+                    context_->mark_modified();
+                }
+            });
+
+            Texture* tex{ assets_manager.get_asset<Texture>(tec.resolved_tex.handle) };
+            glm::vec2 cell_size{ float(tec.cell_size.first), float(tec.cell_size.second) };
+            if(layout::drag_float2_control<u8"Cell Size">(cell_size, 1.0f,
+                tex ? glm::vec2(float(tex->get_width()), float(tex->get_height())) : glm::vec2(1.0f),
+                glm::vec2(0.0f), glm::vec2(0.0f), u8"%.0f px"
+            )) {
+                tec.cell_size = { int(cell_size.x), int(cell_size.y) };
+                context_->mark_modified();
+            }
+
+            glm::vec2 cell_coords{ float(tec.cell_coords.first), float(tec.cell_coords.second) };
+            if(layout::drag_float2_control<u8"Cell Coord">(cell_coords, 1.0f,
+                glm::vec2(0.0f, 0.0f),
+                glm::vec2(0.0f), glm::vec2(0.0f), u8"%.0f"
+            )) {
+                tec.cell_coords = { int(cell_coords.x), int(cell_coords.y) };
+                context_->mark_modified();
+            }
+        });
+
+        check_then_draw<AnimatorComponent, u8"Animation">(entity, [this](Entity ent)
+        {
+            auto& ac{ ent.get_mut<AnimatorComponent>() };
+            auto& assets_manager{ context_->get_owner()->get_assets_manager_mut() };
+
+            ImGui::Text("Asset:");
+            ImGui::SameLine();
+            float available_width{ ImGui::GetContentRegionAvail().x };
+            String display_name{ ac.anim_uuid.empty() ? u8"<No Animation>" :
+                assets_manager.get_asset_path(ac.anim_uuid).filename().string() };
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+            if(ImGui::Button(display_name.raw(), ImVec2(available_width, 0.0f)))
+            {
+                ac.anim_uuid = UUID(0);
+                context_->mark_modified();
+            }
+            ImGui::PopStyleColor();
+
+            // to be implemented
         });
 
         check_then_draw<Rigidbody2DComponent, u8"Rigidbody 2D">(entity, [this](Entity ent)
@@ -595,6 +595,30 @@ namespace rke
                     ImGui::CloseCurrentPopup();
                 }
             }
+            else if constexpr(std::is_same_v<Component, TextureComponent>)
+            {
+                if(selected.has<SpriteComponent>() && !selected.has<AnimatorComponent>())
+                {
+                    nothing_to_add = false;
+                    if(ImGui::MenuItem(type_id.name.raw_unsafe()))
+                    {
+                        selected.emplace<TextureComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+            }
+            else if constexpr(std::is_same_v<Component, AnimatorComponent>)
+            {
+                if(selected.has<SpriteComponent>() && !selected.has<TextureComponent>())
+                {
+                    nothing_to_add = false;
+                    if(ImGui::MenuItem(type_id.name.raw_unsafe()))
+                    {
+                        selected.emplace<AnimatorComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+            }
             else if constexpr(std::is_same_v<Component, Rigidbody2DComponent>)
             {
                 if(selected.has<SpriteComponent>())
@@ -618,7 +642,9 @@ namespace rke
                         ImGui::CloseCurrentPopup();
                     }
                 }
-            } else {
+            }
+            else
+            {
                 nothing_to_add = false;
                 if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                 {
@@ -657,10 +683,25 @@ namespace rke
         if(ImGui::MenuItem("Delete")) to_delete = true;
     }
 
-    void SceneHierarchyPanel::sprite_comp_popup_content(Entity entity, bool& to_delete)
+    void SceneHierarchyPanel::texture_comp_popup_content(Entity entity, bool& to_delete)
     {
-        if(entity.has_any_of<Rigidbody2DComponent, BoxCollider2DComponent>())
-            ImGui::CloseCurrentPopup();
-        else { if(ImGui::MenuItem("Delete")) to_delete = true; }
+        if(ImGui::MenuItem("Reload Texture"))
+        {
+            auto& am{ context_->get_owner()->get_assets_manager_mut() };
+            am.unload_asset(entity.get<TextureComponent>().tex_uuid);
+        }
+        ImGui::Separator();
+        if(ImGui::MenuItem("Delete")) to_delete = true;
+    }
+
+    void SceneHierarchyPanel::animator_comp_popup_content(Entity entity, bool& to_delete)
+    {
+        if(ImGui::MenuItem("Reload Animation"))
+        {
+            auto& am{ context_->get_owner()->get_assets_manager_mut() };
+            am.unload_asset(entity.get<AnimatorComponent>().anim_uuid);
+        }
+        ImGui::Separator();
+        if(ImGui::MenuItem("Delete")) to_delete = true;
     }
 }

@@ -1,6 +1,4 @@
 ﻿module;
-#include <glm/glm.hpp>
-
 module Scene;
 
 import Log;
@@ -9,6 +7,9 @@ import Project;
 import PhysicsEngine2D;
 import ScriptRegistry;
 import ScriptManager;
+import AssetsManager;
+import Animation;
+import Texture;
 
 namespace rke
 {
@@ -76,15 +77,38 @@ namespace rke
 
     void Entity::check_assert() const { CORE_ASSERT(valid(), u8"Entity: Invalid!"); }
 
+    void Entity::check_sprite_com() const
+        { CORE_ASSERT(has<SpriteComponent>(), u8"Entity: Doesn't has sprite!"); }
+
+    void Entity::check_texture_com() const
+        { CORE_ASSERT(!has<TextureComponent>(), u8"Entity: Already has texture!"); }
+
+    void Entity::check_animator_com() const
+        { CORE_ASSERT(!has<AnimatorComponent>(), u8"Entity: Already has animation!"); }
+
+    void Entity::remove_all_sprite_related()
+    {
+        if(has<TextureComponent>()) remove<TextureComponent>();
+        if(has<AnimatorComponent>()) remove<AnimatorComponent>();
+        if(has<Rigidbody2DComponent>()) remove<Rigidbody2DComponent>();
+        if(has<BoxCollider2DComponent>()) remove<BoxCollider2DComponent>();
+    }
+
     Scene::Scene(Project* owner, String name)
         : owner_(owner), name_(std::move(name))
     {
         registry_ = create_scope<entt::registry>();
+
         script_manager_ = create_scope<ScriptManager>(this);
         physics_engine_ = PhysicsEngine2D::create(this);
+        animator_system_ = create_scope<AnimatorSystem>(this);
 
         registry_->ctx().emplace<RegistryContext>
-            (script_manager_.get(), physics_engine_.get());
+        (
+            script_manager_.get(),
+            physics_engine_.get(),
+            animator_system_.get()
+        );
     }
 
     Scene::~Scene() { if(in_runtime()) on_runtime_stop(); clear(); }
@@ -330,6 +354,18 @@ namespace rke
         physics_engine_->apply_force(entity, acceleration * rbc.mass);
     }
 
+    void Scene::animator_play(Entity entity)
+        { animator_system_->play(entity.get_handle()); }
+
+    void Scene::animator_stop(Entity entity)
+        { animator_system_->stop(entity.get_handle()); }
+
+    void Scene::animator_pause(Entity entity)
+        { animator_system_->pause(entity.get_handle()); }
+
+    void Scene::animator_resume(Entity entity)
+        { animator_system_->resume(entity.get_handle()); }
+
     void Scene::on_script_dylib_hot_reloading(ScriptRegistry& script_reg)
     {
         CORE_ASSERT(!in_runtime(), u8"Scene: Can't reload during runtime!");
@@ -377,9 +413,10 @@ namespace rke
                 if(nsc.script_type != nsc.resolved_script_type)
                     script_manager_->refresh_script(static_cast<uint32>(ent));
                 
-                Script* script{ nsc.script_handle };
+                Script* script{ reinterpret_cast<Script*>(nsc.script_handle) };
                 if(script) script->on_update(dt);
             }
+            animator_system_->on_update(dt);
         }
         flush_destroy_queue();
     }
@@ -390,6 +427,7 @@ namespace rke
         in_runtime_ = true;
         script_manager_->on_runtime_start();
         physics_engine_->on_runtime_start();
+        animator_system_->on_runtime_start();
     }
 
     void Scene::on_runtime_stop()
@@ -398,6 +436,7 @@ namespace rke
         in_runtime_ = false;
         script_manager_->on_runtime_stop();
         physics_engine_->on_runtime_stop();
+        animator_system_->on_runtime_stop();
     }
 
     void Scene::set_viewport(uint32 width, uint32 height)
@@ -422,7 +461,7 @@ namespace rke
             auto& nsc{ view.get<NativeScriptComponent>(ent) };
             if(nsc.script_type != nsc.resolved_script_type)
                 script_manager_->refresh_script(static_cast<uint32>(ent));
-            Script* script{ nsc.script_handle };
+            Script* script{ reinterpret_cast<Script*>(nsc.script_handle) };
             if(script) script->on_mouse_scrolled(e.get_x_offset(), e.get_y_offset());
         }
     }

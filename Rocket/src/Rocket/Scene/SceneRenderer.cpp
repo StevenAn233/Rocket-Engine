@@ -9,7 +9,8 @@ import RenderCommand;
 import Components;
 import Texture;
 
-namespace {
+namespace
+{
     using namespace rke;
 
     static bool should_cull(glm::vec3 pos, glm::vec2 size,
@@ -50,58 +51,44 @@ namespace {
         };
     }
 
-    static Texture* get_texture(AssetsManager& am, SpriteComponent& sc)
+    static std::pair<Texture*, GTextureSettings> get_texture(AssetsManager& am, Entity entity)
     {
-        if(sc.resolved_uuid != sc.tex_uuid)
+        if(!entity.has<SpriteComponent>()) return { nullptr, {} };
+        auto& sc{ entity.get_mut<SpriteComponent>() };
+        if(entity.has<TextureComponent>())
         {
-            sc.resolved_uuid = sc.tex_uuid;
-            sc.uv_to_refresh = false;
-            sc.uv_offset = glm::vec2(0.0f);
-            sc.uv_scale  = glm::vec2(1.0f);
-            if(sc.tex_uuid.empty())
-            {
-                sc.tex_handle = asset_handle_null;
-                sc.cell_size = { 1, 1 };
-                sc.cell_coords = { 0, 0 };
-                return nullptr; 
-            }
-            sc.tex_handle = am.load_asset(sc.tex_uuid);
-            if(!am.is_handle_valid(sc.tex_handle))
-            {
-                CORE_ERROR(u8"SceneRenderer: Failed to load texture "
-                    u8"from uuid '{}'!", sc.tex_uuid.value());
-                sc.tex_uuid = UUID(0);
-                // other data will be reset next time calling this function
-                return nullptr;
-            }
-            Texture* tex{ am.get_asset<Texture>(sc.tex_handle) };
+            auto& tc{ entity.get_mut<TextureComponent>() };
+            if(tc.tex_uuid.empty()) return { nullptr, {} };
+
+            auto [handle, refreshed]{ am.resolve(tc.resolved_tex, tc.tex_uuid) };
+            if(handle == asset_handle_null) return { nullptr, {} };
+
+            Texture* tex{ am.get_asset<Texture>(handle) };
             CORE_ASSERT(tex, u8"SceneRenderer: Texture null!");
-            sc.cell_size = { int(tex->get_width()), int(tex->get_height()) };
-            sc.cell_coords = { 0, 0 };
-            return tex;
-        }
-        if(sc.tex_uuid.empty()) return nullptr;
-        if(!am.is_handle_valid(sc.tex_handle))
-        {
-            sc.tex_handle = am.load_asset(sc.tex_uuid);
-            if(!am.is_handle_valid(sc.tex_handle))
-            {
-                CORE_ERROR(u8"SceneRenderer: Failed to load texture "
-                    u8"from uuid '{}'!", sc.tex_uuid.value());
-                sc.tex_uuid = UUID(0);
-                // other data will be reset next time calling this function
-                return nullptr;
+            if(refreshed) {
+                tc.cell_size = { int(tex->get_width()), int(tex->get_height()) };
+                tc.cell_coords = { 0, 0 };
             }
-        }
-        Texture* tex{ am.get_asset<Texture>(sc.tex_handle) };
-        if(sc.uv_to_refresh)
-        {
-            sc.uv_to_refresh = false;
             sc.uv_scale = sprite::compute_uv_scale
-                (sc.cell_size, tex->get_width(), tex->get_height());
-            sc.uv_offset = sprite::compute_uv_offset(sc.cell_coords, sc.uv_scale);
+                (tc.cell_size, tex->get_width(), tex->get_height());
+            sc.uv_offset = sprite::compute_uv_offset(tc.cell_coords, sc.uv_scale);
+            return { tex, tc.gtex_settings };
         }
-        return tex;
+        // else if: if have both(not gonna happen normally); use texture
+        else if(entity.has<AnimatorComponent>()) 
+        {
+            const auto& ac{ entity.get<AnimatorComponent>() };
+            if(!am.is_handle_valid(ac.curr_tex_handle)) return { nullptr, {} };
+
+            Texture* tex{ am.get_asset<Texture>(ac.curr_tex_handle) };
+            CORE_ASSERT(tex, u8"SceneRenderer: Texture null!");
+
+            sc.uv_scale = sprite::compute_uv_scale
+                (ac.curr_cell_size, tex->get_width(), tex->get_height());
+            sc.uv_offset = sprite::compute_uv_offset(ac.curr_cell_coords, sc.uv_scale);
+            return { tex, ac.gtex_settings };
+        }
+        return { nullptr, {} };
     }
 }
 
@@ -185,22 +172,21 @@ namespace rke
 
         if(reg.all_of<TransformComponent, SpriteComponent>(entity))
         {
+            auto [tex, gtex_settings]{ get_texture(manager, scene->get_entity(handle)) };
             auto& sc{ reg.get<SpriteComponent>(entity) };
-            Texture* tex{ get_texture(manager, sc) };
-            GTexture* gtex{ tex ? tex->get_gtexture(sc.gtex_settings) : nullptr };
+            GTexture* gtex{ tex ? tex->get_gtexture(gtex_settings) : nullptr };
             context_->renderer().push(sc.quad, gtex, RenderProps
             {
                 .transform{ reg.get<TransformComponent>(entity).get_transform() },
                 .uv_offset{ sc.uv_offset },
                 .uv_scale { sc.uv_scale  },
-                .color{ sc.color },
-                .entity_id{ handle }
+                .color{ sc.color }, .entity_id{ handle }
             });
-            return;
+        } else {
+            const auto& ic{ reg.get<IdentityComponent>(entity) };
+            CORE_ASSERT(false, u8"SceneRenderer: Entity '{}' "
+                u8"is not renderable!", String(ic.tag));
         }
-        const auto& ic{ reg.get<IdentityComponent>(entity) };
-        CORE_ASSERT(false, u8"SceneRenderer: Entity '{}'(UUID:{}) "
-            u8"is not renderable!", String(ic.tag), ic.uuid.value());
     }
 
     void SceneRenderer::render_scene(const Scene* scene, const glm::mat4& vp, glm::vec3 cam_pos)

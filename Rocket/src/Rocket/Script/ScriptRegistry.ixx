@@ -11,6 +11,7 @@ import Types;
 import String;
 import Script;
 import HeapManager;
+import ScriptAccess;
 
 export namespace rke
 {

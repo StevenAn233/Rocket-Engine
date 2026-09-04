@@ -1,4 +1,4 @@
-﻿module;
+module;
 export module ContentBrowserPanel;
 
 import rke;

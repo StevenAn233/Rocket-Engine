@@ -99,7 +99,7 @@ namespace rke
         auto& script_reg{ owner_->get_owner()->get_script_registry_mut() };
     // create script
         Scope<Script> script{ script_reg.construct_script(type) };
-        if(!script) {
+        if(!script) { // TO MODIFY
             CORE_ERROR(u8"ScriptManager: Failed to create script!");
             nsc.script_type = script_type_null;
             nsc.script_handle = nullptr;

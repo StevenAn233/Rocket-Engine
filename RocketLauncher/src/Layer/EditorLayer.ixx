@@ -1,4 +1,4 @@
-﻿module;
+module;
 export module EditorLayer;
 
 import rke;
@@ -17,6 +17,7 @@ export namespace rke
     public:
         friend class RocketLauncher;
         friend class EditorSettingPanel;
+        friend class SceneHierarchyPanel;
 
         EditorLayer(String name, Window* owner);
         ~EditorLayer() override {};

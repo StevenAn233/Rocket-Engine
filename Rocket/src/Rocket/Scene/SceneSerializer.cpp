@@ -1,4 +1,4 @@
-﻿module;
+module;
 module SceneSerializer;
 
 import Types;
@@ -57,21 +57,38 @@ namespace {
             writer.begin_map(u8"Sprite Component");
 
             const auto& sc{ entity.get<SpriteComponent>() };
-            
-            writer.write(u8"Texture", ConfigValue(sc.tex_uuid.value()));
-            if(!sc.tex_uuid.empty())
-            {
-                writer.begin_map(u8"Settings");
-                writer.write(u8"Cell Size", ConfigValue(sc.cell_size));
-                writer.write(u8"Cell Coords", ConfigValue(sc.cell_coords));
-                writer.write(u8"Filt", static_cast<int>(sc.gtex_settings.filt));
-                writer.write(u8"Wrap", static_cast<int>(sc.gtex_settings.wrap));
-                writer.write(u8"sRGB", sc.gtex_settings.srgb);
-                writer.end_map();
-            }
             writer.write(u8"Color", ConfigValue(sc.color));
             writer.write(u8"Blending Mode", static_cast<uint32>(sc.blending_mode));
             writer.write(u8"Rendering Layer", ConfigValue(sc.rendering_layer));
+
+            writer.end_map();
+        }
+        if(entity.has<TextureComponent>())
+        {
+            writer.begin_map(u8"Texture Component");
+
+            const auto& tec{ entity.get<TextureComponent>() };
+            writer.write(u8"Texture", ConfigValue(tec.tex_uuid.value()));
+            
+            writer.write(u8"Filt", static_cast<int>(tec.gtex_settings.filt));
+            writer.write(u8"Wrap", static_cast<int>(tec.gtex_settings.wrap));
+            writer.write(u8"sRGB", tec.gtex_settings.srgb);
+
+            writer.write(u8"Cell Size", ConfigValue(tec.cell_size));
+            writer.write(u8"Cell Coords", ConfigValue(tec.cell_coords));
+
+            writer.end_map();
+        }
+        if(entity.has<AnimatorComponent>())
+        {
+            writer.begin_map(u8"Animator Component");
+
+            const auto& ac{ entity.get<AnimatorComponent>() };
+            writer.write(u8"Animation", ConfigValue(ac.anim_uuid.value()));
+            writer.write(u8"Clip Name", ConfigValue(ac.get_clip_name()));
+            writer.write(u8"Filt", static_cast<int>(ac.gtex_settings.filt));
+            writer.write(u8"Wrap", static_cast<int>(ac.gtex_settings.wrap));
+            writer.write(u8"sRGB", ac.gtex_settings.srgb);
 
             writer.end_map();
         }
@@ -150,23 +167,40 @@ namespace {
 
         Scope<ConfigReader> sc_reader{ reader.get_child(u8"Sprite Component") };
         if(sc_reader) {
-            auto& sc{ entity.emplace<SpriteComponent>
-                (AssetUUID(sc_reader->get_at(u8"Texture", 0ui64)))};
-            Scope<ConfigReader> tex_config{ sc_reader->get_child(u8"Settings") };
-            if(!sc.tex_uuid.empty() && tex_config) {
-                sc.gtex_settings.filt = static_cast<GTexture::FiltFormat>
-                    (tex_config->get_at(u8"Filt", static_cast<int>(sc.gtex_settings.filt)));
-                sc.gtex_settings.wrap = static_cast<GTexture::WrapFormat>
-                    (tex_config->get_at(u8"Wrap", static_cast<int>(sc.gtex_settings.wrap)));
-                sc.gtex_settings.srgb = tex_config->get_at(u8"sRGB", sc.gtex_settings.srgb);
-                sc.cell_size = tex_config->get_at(u8"Cell Size", std::pair<int, int>(1, 1));
-                sc.cell_coords = tex_config->get_at(u8"Cell Coords", std::pair<int, int>(0, 0));
-                sc.resolved_uuid = sc.tex_uuid;
-                sc.uv_to_refresh = true;
-            }
+            auto& sc{ entity.emplace<SpriteComponent>() };
             sc.color = sc_reader->get_at(u8"Color", glm::vec4(1.0f));
             sc.blending_mode = static_cast<BlendingMode>(sc_reader->get_at(u8"Blending Mode", 0ui32));
             sc.rendering_layer = sc_reader->get_at(u8"Rendering Layer", 0);
+        }
+
+        Scope<ConfigReader> tec_reader{ reader.get_child(u8"Texture Component") };
+        if(tec_reader) {
+            auto& tec{ entity.emplace<TextureComponent>() };
+            tec.tex_uuid = AssetUUID(tec_reader->get_at(u8"Texture", 0ui64));
+            auto& am{ scene.get_owner()->get_assets_manager_mut() };
+            am.resolve(tec.resolved_tex, tec.tex_uuid);
+
+            tec.gtex_settings.filt = static_cast<GTexture::FiltFormat>
+                (tec_reader->get_at(u8"Filt", 0));
+            tec.gtex_settings.wrap = static_cast<GTexture::WrapFormat>
+                (tec_reader->get_at(u8"Wrap", 0));
+            tec.gtex_settings.srgb = tec_reader->get_at(u8"sRGB", true);
+
+            tec.cell_size = tec_reader->get_at(u8"Cell Size", tec.cell_size);
+            tec.cell_coords = tec_reader->get_at(u8"Cell Coords", tec.cell_coords);
+        }
+
+        Scope<ConfigReader> ac_reader{ reader.get_child(u8"Animator Component") };
+        if(ac_reader) {
+            auto& ac{ entity.emplace<AnimatorComponent>() };
+            ac.anim_uuid = AssetUUID(ac_reader->get_at(u8"Animation", 0ui64));
+            String clip_name{ ac_reader->get_at(u8"Clip Name", String{}) };
+            if(!clip_name.empty()) ac.set_clip_name(clip_name);
+            ac.gtex_settings.filt = static_cast<GTexture::FiltFormat>
+                (ac_reader->get_at(u8"Filt", 0));
+            ac.gtex_settings.wrap = static_cast<GTexture::WrapFormat>
+                (ac_reader->get_at(u8"Wrap", 0));
+            ac.gtex_settings.srgb = tec_reader->get_at(u8"sRGB", true);
         }
 
         Scope<ConfigReader> rbc_reader{ reader.get_child(u8"Rigidbody 2D Component") };

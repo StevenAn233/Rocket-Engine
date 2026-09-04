@@ -8,6 +8,7 @@ export module SceneRenderer;
 import Types;
 import Scene;
 import HeapManager;
+import Texture;
 import GTexture;
 import FrameBuffer;
 import Window;

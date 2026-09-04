@@ -1,8 +1,6 @@
 ﻿module;
 module Components;
 
-import HeapManager;
-
 namespace rke
 {
     static const Mesh s_quad ( // may modify
@@ -28,6 +26,19 @@ namespace rke
         })
     );
 
-    SpriteComponent::SpriteComponent(AssetUUID uuid)
-        : tex_uuid(uuid), quad(&s_quad) {}
+    glm::mat4 TransformComponent::get_transform() const
+    {
+        return glm::translate(glm::mat4(1.0f), translation)
+             * glm::mat4_cast(glm::quat(glm::radians(rotation)))
+             * glm::scale(glm::mat4(1.0f), scale);
+    }
+
+    SpriteComponent::SpriteComponent() : quad(&s_quad) {}
+
+    void AnimatorComponent::set_clip_name(StringView name)
+    {
+        Size count{ std::min(name.size(), clip_name_cap - 1) };
+        std::memcpy(&clip_name[0], name.data(), count);
+        clip_name[count] = u8'\0';
+    }
 }

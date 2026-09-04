@@ -57,7 +57,6 @@ export namespace rke
             }
         }
     private:
-    // second
         double sec_per_tick_;
         double max_accumulated_;
         double time_accumulator_{};

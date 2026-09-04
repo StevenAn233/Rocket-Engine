@@ -1,4 +1,4 @@
-﻿export module rke;
+export module rke;
 
 export import Application;
 
@@ -11,6 +11,7 @@ export import Types;
 export import HeapManager;
 export import Instrumentor;
 
+export import UUID;
 export import Time;
 export import Random;
 export import FileUtils;
@@ -40,11 +41,13 @@ export import PanelRegistry;
 export import Gravity2D;
 export import PhysicsLayers;
 
+export import AssetAccess;
 export import AssetsManager;
 export import Shader;
 export import Texture;
 export import Font;
 export import Mesh;
+export import Animation;
 
 export import GBuffers;
 export import GTexture;
@@ -65,6 +68,7 @@ export import SceneSerializer;
 export import Components;
 
 export import Script;
+export import ScriptAccess;
 export import ScriptRegistry;
 export import ScriptManager;
 

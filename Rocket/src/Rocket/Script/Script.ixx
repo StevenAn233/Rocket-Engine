@@ -7,6 +7,7 @@ export module Script;
 
 import Scene;
 import Types;
+import ScriptAccess;
 
 export namespace rke
 {
@@ -34,9 +35,4 @@ export namespace rke
     private:
         Entity owner_; // init by ScriptManager
     };
-
-    enum class ScriptType : uintptr {};
-    constexpr ScriptType script_type_null{ static_cast<ScriptType>(0) };
-
-    using ScriptConstructor = void*(*)();
 }

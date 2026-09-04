@@ -1,4 +1,4 @@
-﻿module;
+module;
 module AssetsManager;
 
 import Log;
@@ -19,6 +19,8 @@ namespace {
             return AssetType::Shader;
         if(filepath.extension().string() == u8".ttf")
             return AssetType::Font;
+        if(filepath.extension().string() == u8".rkanim")
+            return AssetType::Animation;
         return AssetType::None;
     }
 
@@ -50,6 +52,7 @@ namespace rke
     {
         asset_registry_.clear();
         free_asset_index_stack_.clear();
+        failed_.clear();
         for(Size i{}; i < runtime_assets_.size(); i++)
         {
             runtime_assets_[i].data = nullptr;
@@ -164,6 +167,10 @@ namespace rke
             Scope<Mesh> mesh{ load_mesh(meta) };
             loaded_resource = to_asset_data(std::move(mesh));
         } break;
+        case AssetType::Animation: {
+            Scope<Animation> clip{ load_animation(meta) };
+            loaded_resource = to_asset_data(std::move(clip));
+        } break;
         default:
             CORE_ERROR(u8"AssetsManager: Unknown asset type!");
             return asset_handle_null;
@@ -184,6 +191,49 @@ namespace rke
 
         meta.handle = handle;
         return handle;
+    }
+
+    void AssetsManager::unload_asset(AssetUUID uuid)
+    {
+        auto it{ asset_registry_.find(uuid) };
+        if(it == asset_registry_.end() || uuid.empty()) return;
+
+        AssetMeta& meta{ it->second };
+        if(meta.handle == asset_handle_null) return;
+
+        uint32 index{ extract_index(meta.handle) };
+        if(index >= runtime_assets_.size())
+        {
+            CORE_ERROR(u8"AssetsManager: Index out of bound!");
+            meta.handle = asset_handle_null;
+            return;
+        }
+        // release the runtime slot so the asset gets re-read on next load
+        runtime_assets_[index].data = nullptr;
+        runtime_assets_[index].type = AssetType::None;
+        runtime_assets_[index].version++; // invalidates old handles
+        free_asset_index_stack_.push_back(index);
+        meta.handle = asset_handle_null;
+        CORE_INFO(u8"AssetsManager: Asset '{}' unloaded.", uuid.value());
+    }
+
+    std::pair<AssetHandle, bool> AssetsManager::resolve(AssetResolve& resolved, AssetUUID uuid)
+    {
+        if(resolved.uuid == uuid && is_handle_valid(resolved.handle))
+            return { resolved.handle, false };
+
+        resolved.uuid = uuid;
+        AssetHandle handle{ load_asset(uuid) };
+        if(uuid.empty() || is_handle_valid(handle))
+        {
+            resolved.handle = handle;
+            return { resolved.handle, true };
+        }
+        
+        resolved.handle = asset_handle_null;
+        auto [_, inserted]{ failed_.insert(uuid) };
+        if(inserted) CORE_ERROR(u8"AssetManager: Failed to resolve; UUID '{}' invalid!", uuid.value());
+        return { resolved.handle, true };
     }
 
     bool AssetsManager::is_asset_loaded(AssetUUID uuid)
@@ -291,5 +341,15 @@ namespace rke
     {
         // to be implemented
         return nullptr;
+    }
+
+    Scope<Animation> AssetsManager::load_animation(const AssetMeta& meta)
+    {
+        const Path& path{ meta.asset_path };
+        if(path.empty() || !path.exists()) return nullptr;
+
+        Scope<Animation> anim{ create_scope<Animation>() };
+        if(!anim->load_from(path)) return nullptr;
+        return anim;
     }
 }

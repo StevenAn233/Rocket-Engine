@@ -1,7 +1,12 @@
-﻿module;
+module;
+
+#include <functional>
+
 export module SceneHierarchyPanel;
 
 import rke;
+import UUID;
+import Animation;
 
 export namespace rke
 {
@@ -9,6 +14,7 @@ export namespace rke
     {
     public:
         using EntityNodeCallback = std::function<void(Scene*)>;
+        using OpenAssetCallback  = std::function<void(UUID)>;
 
         SceneHierarchyPanel(String name);
 
@@ -16,6 +22,8 @@ export namespace rke
             { context_ = context; is_scene_selected_ = false; }
         inline void set_on_entity_node_render(EntityNodeCallback callback)
             { on_entity_node_render_ = std::move(callback); }
+        inline void set_on_open_animation_asset(OpenAssetCallback callback)
+            { on_open_animation_asset_ = std::move(callback); }
 
         template<typename Component, StringLiteral Str, typename Callback>
         requires std::invocable<Callback, Entity>
@@ -35,8 +43,10 @@ export namespace rke
                         { transform_comp_popup_content(entity, to_delete); }
                     else if constexpr(std::is_same_v<Component, CameraComponent>)
                         { camera_comp_popup_content(entity, to_delete); }
-                    else if constexpr(std::is_same_v<Component, SpriteComponent>)
-                        { sprite_comp_popup_content(entity, to_delete); }
+                    else if constexpr(std::is_same_v<Component, TextureComponent>)
+                        { texture_comp_popup_content(entity, to_delete); }
+                    else if constexpr(std::is_same_v<Component, AnimatorComponent>)
+                        { animator_comp_popup_content(entity, to_delete); }
                     else { general_comp_popup_content(to_delete); }
                     ImGui::EndPopup();
                 }
@@ -57,10 +67,12 @@ export namespace rke
         void general_comp_popup_content(bool& to_delete);
         void transform_comp_popup_content(Entity entity, bool& to_delete);
         void camera_comp_popup_content(Entity entity, bool& to_delete);
-        void sprite_comp_popup_content(Entity entity, bool& to_delete);
+        void texture_comp_popup_content(Entity entity, bool& to_delete);
+        void animator_comp_popup_content(Entity entity, bool& to_delete);
     private:
         Scene* context_{};
         bool is_scene_selected_{ false };
         EntityNodeCallback on_entity_node_render_{};
+        OpenAssetCallback on_open_animation_asset_{};
     };
 }

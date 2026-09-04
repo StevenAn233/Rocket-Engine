@@ -23,6 +23,8 @@ import HeapManager;
 import PhysicsLayers;
 import Gravity2D;
 import PhysicsEngine2D;
+import AnimatorSystem;
+import Components;
 
 export namespace rke
 {
@@ -77,6 +79,10 @@ export namespace rke
         RKE_API Entity(uint32 handle, Scene* scene);
 
         RKE_API void check_assert() const;
+        RKE_API void check_sprite_com() const;
+        RKE_API void check_texture_com() const;
+        RKE_API void check_animator_com() const;
+        RKE_API void remove_all_sprite_related();
     private:
         entt::entity handle_; // version(12bits) + index(20bits)
         Scene* owner_scene_;
@@ -92,11 +98,13 @@ export namespace rke
         friend class SceneRenderer;
         friend class ScriptManager;
         friend class PhysicsEngine2D;
+        friend class AnimatorSystem;
 
         struct RegistryContext
         {
             ScriptManager* script_manager{};
             PhysicsEngine2D* physics_engine{};
+            AnimatorSystem* animator_system_{};
         };
 
         Scene(Project* owner, String name = u8"Untitled");
@@ -150,6 +158,11 @@ export namespace rke
         void apply_force(Entity entity, glm::vec2 force);
         void apply_acceleration(Entity entity, glm::vec2 acceleration);
 
+        void animator_play(Entity entity);
+        void animator_stop(Entity entity);
+        void animator_pause (Entity entity);
+        void animator_resume(Entity entity);
+
         // previous dylib can't be already unloaded when calling this function!
         void on_script_dylib_hot_reloading(ScriptRegistry& script_reg);
 
@@ -197,6 +210,7 @@ export namespace rke
 
         Scope<ScriptManager> script_manager_{};
         Scope<PhysicsEngine2D> physics_engine_{};
+        Scope<AnimatorSystem> animator_system_{};
     };
 
     template<typename Component>
@@ -232,6 +246,14 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
+        if constexpr (
+            std::is_same_v<Component, TextureComponent> ||
+            std::is_same_v<Component, AnimatorComponent> ||
+            std::is_same_v<Component, Rigidbody2DComponent> ||
+            std::is_same_v<Component, BoxCollider2DComponent>
+        ) check_sprite_com();
+        if constexpr(std::is_same_v<Component, TextureComponent>) check_animator_com();
+        if constexpr(std::is_same_v<Component, AnimatorComponent>) check_texture_com();
         owner_scene_->mark_modified();
         return owner_scene_->registry_->emplace<Component>
             (handle_, std::forward<Args>(args)...);
@@ -243,6 +265,14 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
+        if constexpr (
+            std::is_same_v<Component, TextureComponent> ||
+            std::is_same_v<Component, AnimatorComponent> ||
+            std::is_same_v<Component, Rigidbody2DComponent> ||
+            std::is_same_v<Component, BoxCollider2DComponent>
+        ) check_sprite_com();
+        if constexpr(std::is_same_v<Component, TextureComponent>) check_animator_com();
+        if constexpr(std::is_same_v<Component, AnimatorComponent>) check_texture_com();
         owner_scene_->mark_modified();
         return owner_scene_->registry_->emplace_or_replace<Component>
             (handle_, std::forward<Args>(args)...);
@@ -272,6 +302,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
+        if constexpr(std::is_same_v<Component, SpriteComponent>)
+            remove_all_sprite_related();
         owner_scene_->registry_->remove<Component>(handle_);
         owner_scene_->mark_modified();
     }
