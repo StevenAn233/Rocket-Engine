@@ -84,7 +84,7 @@ namespace rke
         }
 
     // 2. register UUIDs according to meta paths
-        register_asset(AssetUUID(0), Path(u8"<Empty Asset>"),
+        register_asset(AssetUUID(0), Path(u8"<Invalid Asset>"),
             AssetType::None, AssetSettings{ .empty{} });
         
         std::unordered_set<String> valid_meta_paths{};
@@ -136,9 +136,11 @@ namespace rke
 
         // check registry
         auto it{ asset_registry_.find(uuid) };
-        if(it == asset_registry_.end()) {
-            CORE_ERROR(u8"AssetsManager: Unknown Asset UUID '{}'! "
-                u8"Did you forget to register it?", uuid.value());
+        if(it == asset_registry_.end())
+        {
+            auto [_, inserted]{ failed_.insert(uuid) };
+            if(inserted) CORE_ERROR(u8"AssetsManager: Unknown UUID "
+                u8"'{}'! Did you forget to register it?", uuid.value());
             return asset_handle_null;
         }
 
@@ -223,16 +225,7 @@ namespace rke
             return { resolved.handle, false };
 
         resolved.uuid = uuid;
-        AssetHandle handle{ load_asset(uuid) };
-        if(uuid.empty() || is_handle_valid(handle))
-        {
-            resolved.handle = handle;
-            return { resolved.handle, true };
-        }
-        
-        resolved.handle = asset_handle_null;
-        auto [_, inserted]{ failed_.insert(uuid) };
-        if(inserted) CORE_ERROR(u8"AssetManager: Failed to resolve; UUID '{}' invalid!", uuid.value());
+        resolved.handle = load_asset(uuid); // <- uuid checked here
         return { resolved.handle, true };
     }
 
@@ -252,29 +245,23 @@ namespace rke
             && runtime_assets_[index].version == extract_version(handle);
     }
 
-    const Path& AssetsManager::get_asset_path(AssetUUID uuid)
+    const Path& AssetsManager::get_asset_path(AssetUUID uuid) const
     {
         auto it{ asset_registry_.find(uuid) };
-        if(it == asset_registry_.end()) {
-            CORE_ERROR(u8"AssetsManager: Asset uuid '{}' not found!", uuid.value());
-            it = asset_registry_.find(0);
-        }
+        if(it == asset_registry_.end()) it = asset_registry_.find(0);
         return it->second.asset_path;
     }
 
-    const AssetSettings& AssetsManager::get_asset_settings(AssetUUID uuid)
+    const AssetSettings& AssetsManager::get_asset_settings(AssetUUID uuid) const
     {
         auto it{ asset_registry_.find(uuid) };
-        if(it == asset_registry_.end()) {
-            CORE_ERROR(u8"AssetsManager: Asset uuid '{}' not found!", uuid.value());
-            it = asset_registry_.find(0);
-        }
+        if(it == asset_registry_.end()) it = asset_registry_.find(0);
         return it->second.settings;
     }
 
-    AssetUUID AssetsManager::get_asset_uuid(const Path& path)
+    AssetUUID AssetsManager::get_asset_uuid(const Path& path) const
     {
-        for(const auto& [uuid, meta] : asset_registry_) // expensive
+        for(const auto& [uuid, meta] : asset_registry_)
             if(meta.asset_path == path) return uuid;
         return AssetUUID(0);
     }
@@ -300,7 +287,8 @@ namespace rke
     void AssetsManager::register_asset(AssetUUID uuid,
         const Path& path, AssetType type, AssetSettings settings)
     {
-        if(asset_registry_.contains(uuid)) {
+        if(asset_registry_.contains(uuid))
+        {
             CORE_ERROR(u8"AssetsManager: UUID collision "
                 u8"or duplicate registration for '{}'!", uuid.value());
             return;

@@ -116,7 +116,7 @@ namespace rke
                 current_dir_ = context_->get_scenes_dir();
             }
             ImGui::Separator();
-            if(ImGui::MenuItem("Refresh"))
+            if(ImGui::MenuItem("Rescan"))
                 context_->get_assets_manager_mut().rescan(assets_dir_); // TO MODIFY
             ImGui::EndPopup();
         }

@@ -90,9 +90,9 @@ export namespace rke
         bool is_asset_loaded(AssetUUID uuid);
         bool is_handle_valid(AssetHandle handle);
 
-        const Path& get_asset_path(AssetUUID uuid);
-        const AssetSettings& get_asset_settings(AssetUUID uuid);
-        AssetUUID get_asset_uuid(const Path& path);
+        const Path& get_asset_path(AssetUUID uuid) const;
+        const AssetSettings& get_asset_settings(AssetUUID uuid) const;
+        AssetUUID get_asset_uuid(const Path& path) const; // expensive
     private:
         struct AssetMeta
         {
