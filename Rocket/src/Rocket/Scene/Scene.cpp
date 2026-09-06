@@ -210,8 +210,10 @@ namespace rke
 
     Entity Scene::get_entity(uint32 handle)
     {
+        if(handle == entity_id_null) return {};
         entt::entity entt{ static_cast<entt::entity>(handle) };
         if(registry_->valid(entt)) return Entity(entt, this);
+        CORE_WARN(u8"Scene: Entity handle not valid");
         return {};
     }
 
@@ -219,14 +221,16 @@ namespace rke
     {
         if(uuid.empty()) return {};
         if(has_entity(uuid)) return Entity(entity_map_.at(uuid), this);
-        CORE_ERROR(u8"Scene: Entity UUID '{}' not found!", uuid.value());
+        CORE_WARN(u8"Scene: Entity UUID '{}' not found!", uuid.value());
         return {};
     }
 
     const Entity Scene::get_entity(uint32 handle) const
     {
+        if(handle == entity_id_null) return {};
         entt::entity entt{ static_cast<entt::entity>(handle) };
         if(registry_->valid(entt)) return Entity(entt, const_cast<Scene*>(this));
+        CORE_WARN(u8"Scene: Entity handle not valid");
         return {};
     }
 
@@ -234,7 +238,7 @@ namespace rke
     {
         if(uuid.empty()) return {};
         if(has_entity(uuid)) return Entity(entity_map_.at(uuid), const_cast<Scene*>(this));
-        CORE_ERROR(u8"Scene: Entity UUID '{}' not found!", uuid.value());
+        CORE_WARN(u8"Scene: Entity UUID '{}' not found!", uuid.value());
         return {};
     }
 
@@ -247,7 +251,11 @@ namespace rke
         Entity copied_entity{ owner->registry_->create(), owner };
         owner->mark_modified();
 
-        copied_entity.emplace<IdentityComponent>(entity.get<IdentityComponent>().tag);
+        copied_entity.emplace<IdentityComponent>
+        (
+            entity.get<IdentityComponent>().tag,
+            owner->temporary_ ? UUID(0) : UUID()
+        );
         owner->entity_map_[copied_entity.get_uuid()] = copied_entity.handle_;
 
         components::each([&](auto type_id)
