@@ -63,7 +63,7 @@ export namespace rke
         OutlineEffect* hovering_outline_{};
         OutlineEffect* selected_outline_{};
 
-        uint32 hovering_id_{ entity_id_null };
+        EntityHandle hovering_id_{ entity_handle_null };
         Scene* scene_edit_{};
         Scope<Scene> scene_test_{}; // A copy of scene_edit_; Temporary.
         SceneSerializer scene_serializer_{};

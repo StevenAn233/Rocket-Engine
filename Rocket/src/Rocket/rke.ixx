@@ -62,6 +62,7 @@ export import SceneRenderer;
 export import PostProcessor;
 export import PostProcessEffect;
 
+export import EntityAccess;
 export import Scene;
 export import SceneCamera;
 export import SceneSerializer;

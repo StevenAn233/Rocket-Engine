@@ -1,13 +1,20 @@
 ﻿module;
 
 #include <string>
-#include <filesystem>
 #include <vector>
 #include <memory>
+#include <filesystem>
+#include <functional>
 #include <glm/glm.hpp>
 #include <entt/entt.hpp>
 #include "rke_macros.h"
-namespace rke { class Project; class ScriptRegistry; class ScriptManager; }
+
+namespace rke
+{
+    class Project;
+    class ScriptRegistry;
+    class ScriptManager;
+}
 
 export module Scene;
 
@@ -25,6 +32,7 @@ import Gravity2D;
 import PhysicsEngine2D;
 import AnimatorSystem;
 import Components;
+import EntityAccess;
 
 export namespace rke
 {
@@ -34,8 +42,7 @@ export namespace rke
         friend class Scene;
         friend class SceneRenderer;
 
-        RKE_API Entity();
-
+        RKE_API Entity() = default;
         RKE_API Entity(const Entity&) = default;
         RKE_API Entity& operator=(const Entity&) = default;
         RKE_API Entity(Entity&&) = default;
@@ -53,8 +60,8 @@ export namespace rke
 
         inline Scene* get_owner() { return owner_scene_; } // mutable
 
-        inline uint32 get_handle() const { return static_cast<uint32>(handle_); }
-        inline bool empty() const { return handle_ == entt::null; }
+        inline EntityHandle get_handle() const { return handle_; }
+        inline bool empty() const { return handle_ == entity_handle_null; }
         inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
 
         template<typename Component>
@@ -75,8 +82,7 @@ export namespace rke
         template<typename Component>
         void remove();
     private:
-        RKE_API Entity(entt::entity handle, Scene* scene);
-        RKE_API Entity(uint32 handle, Scene* scene);
+        RKE_API Entity(EntityHandle handle, Scene* scene);
 
         RKE_API void check_assert() const;
         RKE_API void check_sprite_com() const;
@@ -84,11 +90,9 @@ export namespace rke
         RKE_API void check_animator_com() const;
         RKE_API void remove_all_sprite_related();
     private:
-        entt::entity handle_; // version(12bits) + index(20bits)
-        Scene* owner_scene_;
+        EntityHandle handle_{ entity_handle_null }; // version(12bits) + index(20bits)
+        Scene* owner_scene_{ nullptr };
     };
-
-    constexpr uint32 entity_id_null{ 0xFFFFFFFFu };
 
     class RKE_API Scene
     {
@@ -119,39 +123,60 @@ export namespace rke
         inline Project* get_owner() const { return owner_; }
         Path get_path() const;
 
-        Scope<Scene> deep_copy(bool temp = true);
+        Scope<Scene> duplicate(bool temp = true); // will copy entity uuid
 
-        Entity create_entity(const String& tag = u8"New Entity", UUID uuid = {});
-        void destroy_entity(Entity entity);
-        void destroy_entity(uint32 handle) { destroy_entity(get_entity(handle)); }
-        void destroy_entity(UUID uuid) { destroy_entity(get_entity(uuid)); }
-
-        std::vector<Entity> get_all_entities();
+        Entity create_entity(const String& tag = String(u8"New Entity"), UUID uuid = {});
         bool has_entity(UUID uuid) const;
 
-        Entity copy_entity(Entity entity) { return copy_entity_towards(entity, this); }
-        Entity copy_entity_towards(Entity entity, Scene* owner);
-
-        Entity get_entity(uint32 handle);
+        Entity get_entity(EntityHandle handle);
         Entity get_entity(UUID uuid);
-        const Entity get_entity(uint32 handle) const;
+        const Entity get_entity(EntityHandle handle) const;
         const Entity get_entity(UUID uuid) const;
+        inline Entity get_selected_entity() const { return selected_entity_; }
+        inline Entity get_master_camera() const { return master_cam_; }
 
-        Entity get_selected_entity() const { return selected_entity_; }
+    // will not copy entity uuid!
+        Entity copy_entity_towards(Entity entity, Scene* owner);
+        inline Entity copy_entity(Entity entity)
+            { return copy_entity_towards(entity, this); }
+
+        void destroy_entity(Entity entity);
+        inline void destroy_entity(EntityHandle handle)
+            { destroy_entity(get_entity(handle)); }
+        inline void destroy_entity(UUID uuid)
+            { destroy_entity(get_entity(uuid)); }
         void destroy_selected_entity() { destroy_entity(selected_entity_); }
+
         void set_selected_entity(Entity entity);
-        void set_selected_entity(uint32 handle) { set_selected_entity(get_entity(handle)); }
-        void set_selected_entity(UUID uuid) { set_selected_entity(get_entity(uuid)); }
+        inline void set_selected_entity(EntityHandle handle)
+            { set_selected_entity(get_entity(handle)); }
+        inline void set_selected_entity(UUID uuid)
+            { set_selected_entity(get_entity(uuid)); }
         
-        Entity get_master_camera() const { return master_cam_; }
         void set_master_camera(Entity entity);
-        void set_master_camera(uint32 handle) { set_master_camera(get_entity(handle)); }
-        void set_master_camera(UUID uuid) { set_master_camera(get_entity(uuid)); }
+        inline void set_master_camera(EntityHandle handle)
+            { set_master_camera(get_entity(handle)); }
+        inline void set_master_camera(UUID uuid)
+            { set_master_camera(get_entity(uuid)); }
 
         Entity get_demo_camera() const { return demo_cam_; }
         void set_demo_camera(Entity entity);
-        void set_demo_camera(uint32 handle) { set_demo_camera(get_entity(handle)); }
-        void set_demo_camera(UUID uuid) { set_demo_camera(get_entity(uuid)); }
+        inline void set_demo_camera(EntityHandle handle)
+            { set_demo_camera(get_entity(handle)); }
+        inline void set_demo_camera(UUID uuid)
+            { set_demo_camera(get_entity(uuid)); }
+
+        template<typename Func>
+        requires std::invocable<Func, Entity>
+        void for_each_entity(Func&& func)
+        {
+            auto view{ registry_->view<IdentityComponent>() };
+            for(entt::entity ent : view)
+            {
+                Entity entity{ get_entity(static_cast<EntityHandle>(ent)) };
+                std::invoke(std::forward<Func>(func), entity);
+            }
+        }
 
         void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
         void set_entity_transform(Entity entity, glm::vec3 translation, glm::vec3 rotation);
@@ -203,7 +228,7 @@ export namespace rke
         mutable bool modified_{ false };
         bool temporary_{ false }; // not gonna serialize
 
-        std::unordered_map<UUID, entt::entity> entity_map_{};
+        std::unordered_map<UUID, EntityHandle> entity_map_{};
         Entity master_cam_{};
         Entity demo_cam_{};
         Entity selected_entity_{}; // std::vector<Entity> selected_entities{};
@@ -219,7 +244,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_->all_of<Component>(handle_);
+        return owner_scene_->registry_
+            ->all_of<Component>(static_cast<entt::entity>(handle_));
     }
 
     template<typename ...Components>
@@ -228,7 +254,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_->all_of<Components...>(handle_);
+        return owner_scene_->registry_
+            ->all_of<Components...>(static_cast<entt::entity>(handle_));
     }
 
     template<typename ...Components>
@@ -237,7 +264,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_->any_of<Components...>(handle_);
+        return owner_scene_->registry_
+            ->any_of<Components...>(static_cast<entt::entity>(handle_));
     }
 
     template<typename Component, typename ...Args>
@@ -256,7 +284,7 @@ export namespace rke
         if constexpr(std::is_same_v<Component, AnimatorComponent>) check_texture_com();
         owner_scene_->mark_modified();
         return owner_scene_->registry_->emplace<Component>
-            (handle_, std::forward<Args>(args)...);
+            (static_cast<entt::entity>(handle_), std::forward<Args>(args)...);
     }
 
     template<typename Component, typename ...Args>
@@ -275,7 +303,7 @@ export namespace rke
         if constexpr(std::is_same_v<Component, AnimatorComponent>) check_texture_com();
         owner_scene_->mark_modified();
         return owner_scene_->registry_->emplace_or_replace<Component>
-            (handle_, std::forward<Args>(args)...);
+            (static_cast<entt::entity>(handle_), std::forward<Args>(args)...);
     }
 
     template<typename Component>
@@ -284,7 +312,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_->get<Component>(handle_);
+        return owner_scene_->registry_
+            ->get<Component>(static_cast<entt::entity>(handle_));
     }
 
     template<typename Component>
@@ -293,7 +322,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_->get<Component>(handle_);
+        return owner_scene_->registry_
+            ->get<Component>(static_cast<entt::entity>(handle_));
     }
 
     template<typename Component>
@@ -304,7 +334,8 @@ export namespace rke
     #endif
         if constexpr(std::is_same_v<Component, SpriteComponent>)
             remove_all_sprite_related();
-        owner_scene_->registry_->remove<Component>(handle_);
+        owner_scene_->registry_
+            ->remove<Component>(static_cast<entt::entity>(handle_));
         owner_scene_->mark_modified();
     }
 }

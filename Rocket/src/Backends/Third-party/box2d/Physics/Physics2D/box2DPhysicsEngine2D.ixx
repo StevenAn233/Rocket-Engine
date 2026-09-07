@@ -11,6 +11,7 @@ export module PhysicsEngine2D:box2D;
 
 import :Base;
 import Scene;
+import EntityAccess;
 import PhysicsLayers;
 
 namespace std
@@ -40,9 +41,9 @@ namespace rke
 
         void apply_force(Entity entity, glm::vec2 force) override;
     private:
-        void register_shape_entity(b2ShapeId shape_id, uint32 handle);
+        void register_shape_entity(b2ShapeId shape_id, EntityHandle handle);
         void unregister_shape_entity(b2ShapeId shape_id);
-        uint32 get_entity_from_shape(b2ShapeId shape_id) const;
+        EntityHandle get_entity_from_shape(b2ShapeId shape_id) const;
 
         void ensure_body(Entity entity);
         void destroy_body(Entity entity);
@@ -64,6 +65,6 @@ namespace rke
         static void on_physics_collider_destroy(entt::registry& reg, entt::entity ent);
     private:
         b2WorldId physics_world_;
-        std::unordered_map<b2ShapeId, uint32> shape_to_entity_{};
+        std::unordered_map<b2ShapeId, EntityHandle> shape_to_entity_{};
     };
 }

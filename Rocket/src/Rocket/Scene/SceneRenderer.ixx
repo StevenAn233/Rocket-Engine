@@ -15,6 +15,7 @@ import Window;
 import PostProcessor;
 import PostProcessEffect;
 import MathUtils;
+import EntityAccess;
 import AssetsManager;
 
 export namespace rke
@@ -41,12 +42,12 @@ export namespace rke
         int get_hovering_id(int mouse_x, int mouse_y);
         void clean_up();
     private:
-        void draw_entity(AssetsManager& manager, const Scene* scene, uint32 handle);
+        void draw_entity(AssetsManager& manager, const Scene* scene, EntityHandle handle);
         void render_scene(const Scene* scene, const glm::mat4& view_projection, glm::vec3 cam_postion);
     private:
         struct Renderable
         {
-            uint32 handle;
+            EntityHandle handle;
             int layer;
             float distance_sqr;
 

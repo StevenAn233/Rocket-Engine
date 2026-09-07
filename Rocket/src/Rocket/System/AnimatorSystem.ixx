@@ -8,6 +8,7 @@ export module AnimatorSystem;
 
 import Types;
 import String;
+import EntityAccess;
 import AssetsManager;
 import AssetAccess;
 import Animation;
@@ -29,10 +30,10 @@ export namespace rke
         void on_runtime_stop ();
         void on_update(double dt);
 
-        void play(uint32 entity);
-        void stop(uint32 entity);
-        void pause (uint32 entity);
-        void resume(uint32 entity);
+        void play(EntityHandle entity);
+        void stop(EntityHandle entity);
+        void pause (EntityHandle entity);
+        void resume(EntityHandle entity);
     private:
         struct RuntimeState
         {
@@ -45,7 +46,7 @@ export namespace rke
             double acc{};
         };
 
-        RuntimeState* find_state(uint32 handle); // will refresh state automatically
+        RuntimeState* find_state(EntityHandle handle); // will refresh state automatically
         bool advance(Animation& anim, RuntimeState& state, double dt);
 
         static void on_anim_com_destroy(entt::registry& reg, entt::entity ent);

@@ -12,6 +12,7 @@ export module Renderer;
 import Types;
 import Mesh;
 import Camera;
+import EntityAccess;
 import HeapManager;
 import GTexture;
 import Shader;
@@ -30,7 +31,7 @@ export namespace rke
         glm::vec4 color; // sRGB(need to linearlize)
 
         bool make_tex_gray{ false };
-        uint32 entity_id{ 0xFFFFFFFFu };
+        EntityHandle entity_handle{ entity_handle_null };
     };
 
     class Renderer

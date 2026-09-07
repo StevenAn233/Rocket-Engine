@@ -113,7 +113,7 @@ namespace rke
         inst.uv_scale    = props.uv_scale;
         inst.tex_id      = static_cast<int>(find_or_add_gtex_slot(gtex));
         inst.is_tex_grey = static_cast<int>(props.make_tex_gray);
-        inst.entity_id   = static_cast<int>(props.entity_id);
+        inst.entity_id   = std::bit_cast<int>(props.entity_handle);
         inst.pad         = 0;
 
         instance_it_++;

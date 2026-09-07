@@ -248,14 +248,14 @@ namespace rke
     const Path& AssetsManager::get_asset_path(AssetUUID uuid) const
     {
         auto it{ asset_registry_.find(uuid) };
-        if(it == asset_registry_.end()) it = asset_registry_.find(0);
+        if(it == asset_registry_.end()) it = asset_registry_.find(UUID(0));
         return it->second.asset_path;
     }
 
     const AssetSettings& AssetsManager::get_asset_settings(AssetUUID uuid) const
     {
         auto it{ asset_registry_.find(uuid) };
-        if(it == asset_registry_.end()) it = asset_registry_.find(0);
+        if(it == asset_registry_.end()) it = asset_registry_.find(UUID(0));
         return it->second.settings;
     }
 

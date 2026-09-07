@@ -42,7 +42,7 @@ export namespace rke
         Animation& operator=(Animation&&) noexcept = default;
         
         inline const std::vector<String>& get_clip_names() const { return clip_names_; }
-        inline AssetUUID get_tex_uuid() const { return tex_uuid_; }
+        inline AssetUUID get_tex_uuid() const { return UUID(tex_uuid_); }
 
         std::pair<AssetHandle, bool> get_tex_handle(AssetsManager& am);
         const AnimClip* get_clip(const String& name) const;

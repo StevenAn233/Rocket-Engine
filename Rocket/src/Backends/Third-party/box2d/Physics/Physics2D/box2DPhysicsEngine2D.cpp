@@ -184,7 +184,7 @@ namespace rke
     }
 
 // private
-    void box2DPhysicsEngine2D::register_shape_entity(b2ShapeId shape_id, uint32 handle)
+    void box2DPhysicsEngine2D::register_shape_entity(b2ShapeId shape_id, EntityHandle handle)
     {
         if(B2_IS_NULL(shape_id)) return;
         shape_to_entity_.emplace(shape_id, handle);
@@ -196,11 +196,11 @@ namespace rke
         shape_to_entity_.erase(shape_id);
     }
 
-    uint32 box2DPhysicsEngine2D::get_entity_from_shape(b2ShapeId shape_id) const
+    EntityHandle box2DPhysicsEngine2D::get_entity_from_shape(b2ShapeId shape_id) const
     {
         auto it{ shape_to_entity_.find(shape_id) };
         if(it != shape_to_entity_.end()) return it->second;
-        return entity_id_null;
+        return entity_handle_null;
     }
 
     void box2DPhysicsEngine2D::ensure_body(Entity entity)
@@ -377,7 +377,7 @@ namespace rke
         auto view{ get_registry().view<Rigidbody2DComponent>() };
         for(entt::entity ent : view)
         {
-            Entity entity{ get_owner().get_entity(static_cast<uint32>(ent)) };
+            Entity entity{ get_owner().get_entity(static_cast<EntityHandle>(ent)) };
             if(!entity.valid()) continue;
             const Mesh* mesh{ entity.get_mesh() };
             if(!mesh) continue;
@@ -439,7 +439,7 @@ namespace rke
         auto view{ get_registry().view<Rigidbody2DComponent>() };
         for(entt::entity ent : view)
         {
-            Entity entity{ get_owner().get_entity(static_cast<uint32>(ent)) };
+            Entity entity{ get_owner().get_entity(static_cast<EntityHandle>(ent)) };
             if(!entity.valid()) continue;
 
             auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
@@ -494,7 +494,7 @@ namespace rke
         if(ctx.physics_engine->empty()) return;
 
         auto& engine{ *static_cast<box2DPhysicsEngine2D*>(ctx.physics_engine) };
-        Entity entity{ engine.get_owner().get_entity(static_cast<uint32>(ent)) };
+        Entity entity{ engine.get_owner().get_entity(static_cast<EntityHandle>(ent)) };
         engine.destroy_body(entity);
     }
 
@@ -505,7 +505,7 @@ namespace rke
         if(ctx.physics_engine->empty()) return;
 
         auto& engine{ *static_cast<box2DPhysicsEngine2D*>(ctx.physics_engine) };
-        Entity entity{ engine.get_owner().get_entity(static_cast<uint32>(ent)) };
+        Entity entity{ engine.get_owner().get_entity(static_cast<EntityHandle>(ent)) };
         engine.destroy_shape(entity);
     }
 }

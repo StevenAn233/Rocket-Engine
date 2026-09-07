@@ -13,7 +13,7 @@ export namespace rke
     {
     public:
         UUID();
-        UUID(uint64 val) : val_(val) {}
+        explicit UUID(uint64 val) : val_(val) {}
         UUID(const UUID& other) : val_(other.val_) {}
 
         operator uint64() const { return val_; }

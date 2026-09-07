@@ -8,15 +8,17 @@ namespace rke { class Scene; class Entity; }
 
 export module PhysicsEngine2D:Base;
 
-import HeapManager;
 import Types;
+import EntityAccess;
+import HeapManager;
+
 
 export namespace rke
 {
     struct Contact
     {
-        uint32 entity_a{ 0xFFFFFFFFu }; // entity_id_null
-        uint32 entity_b{ 0xFFFFFFFFu };
+        EntityHandle entity_a{ entity_handle_null };
+        EntityHandle entity_b{ entity_handle_null };
     };
 
     class PhysicsEngine2D

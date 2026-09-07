@@ -30,20 +30,24 @@ namespace rke
         | ImGuiTreeNodeFlags_SpanAvailWidth
         | ImGuiTreeNodeFlags_DefaultOpen };
 
-        bool opened{ ImGui::TreeNodeEx(static_cast<void*>(context_), flags,
-            (context_->to_save() ? "%s*" : "%s"), context_->get_name().raw())};
-        if(ImGui::IsItemClicked()) {
+        bool opened{ ImGui::TreeNodeEx
+        (
+            static_cast<void*>(context_), flags,
+            (context_->to_save() ? "%s*" : "%s"),
+            context_->get_name().raw()
+        )};
+        if(ImGui::IsItemClicked())
+        {
             is_scene_selected_ = true;
             context_->set_selected_entity(Entity{});
         }
 
         if(opened) {
-            std::vector<Entity> all_entities{ context_->get_all_entities() };
-            for(Entity entity : all_entities)
-                draw_entity_node(entity, context_->get_selected_entity());
+            context_->for_each_entity([this](Entity entity)
+                { draw_entity_node(entity, context_->get_selected_entity()); });
 
-            if(ImGui::IsWindowHovered()
-            && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered())
+            if(ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0)
+            && !ImGui::IsAnyItemHovered())
             {
                 is_scene_selected_ = false;
                 context_->set_selected_entity(Entity{});

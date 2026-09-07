@@ -53,7 +53,8 @@ namespace
 
     static std::pair<Texture*, GTextureSettings> get_texture(AssetsManager& am, Entity entity)
     {
-        if(!entity.has<SpriteComponent>()) return { nullptr, {} };
+        if(!entity.valid() || !entity.has<SpriteComponent>())
+            return { nullptr, {} };
         auto& sc{ entity.get_mut<SpriteComponent>() };
         if(entity.has<TextureComponent>())
         {
@@ -165,7 +166,8 @@ namespace rke
     }
     
 // private
-    void SceneRenderer::draw_entity(AssetsManager& manager, const Scene* scene, uint32 handle)
+    void SceneRenderer::draw_entity(AssetsManager& manager,
+        const Scene* scene, EntityHandle handle)
     {
         entt::entity entity{ static_cast<entt::entity>(handle) };
         entt::registry& reg{ *(scene->registry_) };
@@ -180,7 +182,7 @@ namespace rke
                 .transform{ reg.get<TransformComponent>(entity).get_transform() },
                 .uv_offset{ sc.uv_offset },
                 .uv_scale { sc.uv_scale  },
-                .color{ sc.color }, .entity_id{ handle }
+                .color{ sc.color }, .entity_handle{ handle }
             });
         } else {
             const auto& ic{ reg.get<IdentityComponent>(entity) };
@@ -208,7 +210,7 @@ namespace rke
             glm::vec3 size{ tc.scale * sc.quad->get_size() };
             if(should_cull(pos, size, planes)) continue;
 
-            uint32 handle{ static_cast<uint32>(entity) };
+            EntityHandle handle{ static_cast<EntityHandle>(entity) };
             switch(sc.blending_mode)
             {
             case BlendingMode::Opaque:

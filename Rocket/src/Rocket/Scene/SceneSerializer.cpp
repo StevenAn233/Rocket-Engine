@@ -248,7 +248,7 @@ namespace rke
         auto view{ scene.registry_->view<IdentityComponent>() };
         for(auto it{ view.rbegin() }; it != view.rend(); ++it)
         {
-            Entity entity{ scene.get_entity(static_cast<uint32>(*it)) };
+            Entity entity{ scene.get_entity(static_cast<EntityHandle>(*it)) };
             if(!entity.valid()) continue;
             serialize_entity(scene, *(writer.get()), entity);
         }

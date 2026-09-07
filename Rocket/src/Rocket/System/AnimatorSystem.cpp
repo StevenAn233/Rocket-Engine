@@ -24,7 +24,7 @@ namespace rke
     {
         auto view{ owner_->registry_->view<AnimatorComponent>() };
         for(entt::entity ent : view)
-            find_state(static_cast<uint32>(ent));
+            find_state(static_cast<EntityHandle>(ent));
     }
 
     void AnimatorSystem::on_runtime_stop() { states_.clear(); }
@@ -35,9 +35,7 @@ namespace rke
         auto view{ owner_->registry_->view<AnimatorComponent>() };
         for(entt::entity ent : view)
         {
-            uint32 handle{ static_cast<uint32>(ent) };
-
-            RuntimeState* state{ find_state(handle) };
+            RuntimeState* state{ find_state(static_cast<EntityHandle>(ent)) };
             if(!state) continue;
 
             auto& ac{ view.get<AnimatorComponent>(ent) };
@@ -96,7 +94,7 @@ namespace rke
         }
     }
 
-    void AnimatorSystem::play(uint32 handle)
+    void AnimatorSystem::play(EntityHandle handle)
     {
         RuntimeState* state{ find_state(handle) };
         if(!state) return;
@@ -108,7 +106,7 @@ namespace rke
         state->acc = 0.0;
     }
 
-    void AnimatorSystem::stop(uint32 handle)
+    void AnimatorSystem::stop(EntityHandle handle)
     {
         RuntimeState* state{ find_state(handle) };
         if(!state) return;
@@ -116,31 +114,32 @@ namespace rke
         state->paused  = false;
     }
 
-    void AnimatorSystem::pause(uint32 handle)
+    void AnimatorSystem::pause(EntityHandle handle)
     {
         RuntimeState* state{ find_state(handle) };
         if(!state) return;
         if(state->playing) state->paused = true;
     }
 
-    void AnimatorSystem::resume(uint32 handle)
+    void AnimatorSystem::resume(EntityHandle handle)
     {
         RuntimeState* state{ find_state(handle) };
         if(state) state->paused = false;
     }
 
-    AnimatorSystem::RuntimeState* AnimatorSystem::find_state(uint32 handle)
+    AnimatorSystem::RuntimeState* AnimatorSystem::find_state(EntityHandle handle)
     {
         // drop stale entries whose entity is gone / no longer animatable
         Entity entity{ owner_->get_entity(handle) };
         if(!entity.valid() || !entity.has<AnimatorComponent>())
-            { states_.erase(handle); return nullptr; }
+            { states_.erase(static_cast<uint32>(handle)); return nullptr; }
 
         auto& ac{ entity.get_mut<AnimatorComponent>() };
-        if(ac.anim_uuid.empty()) { states_.erase(handle); return nullptr; }
+        if(ac.anim_uuid.empty()) { states_.erase(static_cast<uint32>(handle)); return nullptr; }
 
-        auto it{ states_.find(handle) };
-        if(it == states_.end()) it = states_.emplace(handle, RuntimeState{}).first;
+        auto it{ states_.find(static_cast<uint32>(handle)) };
+        if(it == states_.end()) it = states_.emplace
+            (static_cast<uint32>(handle), RuntimeState{}).first;
         auto& state{ it->second };
 
         AssetsManager& am{ project_->get_assets_manager_mut() };

@@ -24,24 +24,24 @@ namespace rke
         auto view{ registry.view<NativeScriptComponent>() };
         for(entt::entity ent : view)
         {
-            uint32 handle{ static_cast<uint32>(ent) };
-            script_cache_[handle] = create_script(handle);
+            script_cache_[static_cast<uint32>(ent)] =
+                create_script(static_cast<EntityHandle>(ent));
         }
     }
 
     void ScriptManager::on_runtime_stop()
     {
         for(auto& [handle, script] : script_cache_)
-            destroy_script(std::move(script), handle);
+            destroy_script(std::move(script), static_cast<EntityHandle>(handle));
         script_cache_.clear();
     }
 
-    void ScriptManager::refresh_script(uint32 handle)
+    void ScriptManager::refresh_script(EntityHandle handle)
     {
         if(!owner_->in_runtime()) return;
-        if(script_cache_.contains(handle))
-            destroy_script(std::move(script_cache_[handle]), handle);
-        script_cache_[handle] = create_script(handle);
+        if(script_cache_.contains(static_cast<uint32>(handle)))
+            destroy_script(std::move(script_cache_[static_cast<uint32>(handle)]), handle);
+        script_cache_[static_cast<uint32>(handle)] = create_script(handle);
     }
 
     void ScriptManager::dispatch_contacts (
@@ -67,9 +67,9 @@ namespace rke
             contact_callback(contact.entity_a, contact.entity_b, ContactType::SensorEnd);
     }
 
-    void ScriptManager::contact_callback(uint32 owner_handle, uint32 other_handle, ContactType type)
+    void ScriptManager::contact_callback(EntityHandle owner_handle, EntityHandle other_handle, ContactType type)
     {
-        auto it{ script_cache_.find(owner_handle) };
+        auto it{ script_cache_.find(static_cast<uint32>(owner_handle)) };
         if(it == script_cache_.end() || !it->second) return;
 
         Entity other{ owner_->get_entity(other_handle) };
@@ -85,7 +85,7 @@ namespace rke
         }
     }
 
-    Scope<Script> ScriptManager::create_script(uint32 handle)
+    Scope<Script> ScriptManager::create_script(EntityHandle handle)
     {
     // check owner entity
         Entity entity{ owner_->get_entity(handle) };
@@ -115,7 +115,7 @@ namespace rke
         return script;
     }
 
-    void ScriptManager::destroy_script(Scope<Script> script, uint32 handle)
+    void ScriptManager::destroy_script(Scope<Script> script, EntityHandle handle)
     {
         if(script) script->on_destroy();
     // check owner entity

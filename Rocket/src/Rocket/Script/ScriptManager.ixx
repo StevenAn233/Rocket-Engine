@@ -11,6 +11,7 @@ export module ScriptManager;
 import Script;
 import Types;
 import HeapManager;
+import EntityAccess;
 import PhysicsEngine2D;
 
 export namespace rke
@@ -29,7 +30,7 @@ export namespace rke
         void on_runtime_start();
         void on_runtime_stop ();
 
-        void refresh_script(uint32 handle);
+        void refresh_script(EntityHandle handle);
         void dispatch_contacts (
             const std::vector<Contact>& begin_contacts_solid,
             const std::vector<Contact>& end_contacts_solid,
@@ -37,8 +38,8 @@ export namespace rke
             const std::vector<Contact>& end_contacts_sensor
         );
     private:
-        Scope<Script> create_script(uint32 handle);
-        void destroy_script(Scope<Script> script, uint32 handle);
+        Scope<Script> create_script(EntityHandle handle);
+        void destroy_script(Scope<Script> script, EntityHandle handle);
 
         enum class ContactType
         {
@@ -47,7 +48,7 @@ export namespace rke
             SensorBegin,
             SensorEnd,
         };
-        void contact_callback(uint32 owner_handle, uint32 other_handle, ContactType type);
+        void contact_callback(EntityHandle owner_handle, EntityHandle other_handle, ContactType type);
 
         static void on_script_com_destroy(entt::registry& reg, entt::entity ent);
     private:

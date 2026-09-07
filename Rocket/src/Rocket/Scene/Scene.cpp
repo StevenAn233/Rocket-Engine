@@ -13,26 +13,22 @@ import Texture;
 
 namespace rke
 {
-    Entity::Entity() : handle_(entt::null), owner_scene_(nullptr) {}
-
-    Entity::Entity(entt::entity handle, Scene* scene)
+    Entity::Entity(EntityHandle handle, Scene* scene)
         : handle_(handle), owner_scene_(scene) {}
-    
-    Entity::Entity(uint32 handle, Scene* scene)
-        : handle_(entt::entity(handle)), owner_scene_(scene) {}
 
     bool Entity::valid() const
     {
         if(empty()) return false;
         if(!owner_scene_) return false;
-        if(!owner_scene_->registry_->valid(handle_)) return false;
+        if(!owner_scene_->registry_
+            ->valid(static_cast<entt::entity>(handle_))) return false;
         return true;
     }
 
     void Entity::invalidate_if_unavailable()
     {
         if(!valid()) {
-            handle_ = entt::null;
+            handle_ = entity_handle_null;
             owner_scene_ = nullptr;
         }
     }
@@ -122,7 +118,7 @@ namespace rke
 
     Path Scene::get_path() const { return owner_->get_scenes_dir() / (name_ + u8".rkscene"); }
 
-    Scope<Scene> Scene::deep_copy(bool temp)
+    Scope<Scene> Scene::duplicate(bool temp)
     {
         Scope<Scene> new_scene{ create_scope<Scene>(owner_, name_) };
         new_scene->temporary_ = temp;
@@ -152,13 +148,10 @@ namespace rke
 
         new_scene->gravity_ = gravity_;
 
-        // after IndentityComponents are copied
-        auto uuid_view{ new_scene->registry_->view<IdentityComponent>() };
-        for(auto entt : uuid_view)
-        {
-            UUID uuid{ new_scene->registry_->get<IdentityComponent>(entt).uuid };
-            new_scene->entity_map_[uuid] = entt;
-        }
+        // after IdentityComponents are copied
+        new_scene->for_each_entity([&new_scene](Entity entity)
+            { new_scene->entity_map_[entity.get_uuid()] = entity.handle_; });
+
         Entity master_cam{ get_master_camera() }; // refresh
         if(master_cam.valid())
             new_scene->master_cam_ = new_scene->get_entity(master_cam.get_uuid());
@@ -170,7 +163,7 @@ namespace rke
 
     Entity Scene::create_entity(const String& tag, UUID uuid)
     {
-        Entity entity(registry_->create(), this);
+        Entity entity{ static_cast<EntityHandle>(registry_->create()), this };
         
         entity.emplace<IdentityComponent>(tag.c_str(), uuid);
         if(!uuid.empty()) entity_map_[entity.get_uuid()] = entity.handle_;
@@ -180,39 +173,17 @@ namespace rke
         return entity;
     }
 
-    void Scene::destroy_entity(Entity entity)
-    {
-        if(entity.empty()) return;
-        if(!entity.belongs_to(this)) {
-            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
-            return;
-        }
-        if(entity == selected_entity_) set_selected_entity(Entity{});
-        if(entity == master_cam_) master_cam_ = {};
-        if(entity == demo_cam_) demo_cam_ = {};
-        to_destroy_.push_back(entity);
-    }
-
-    std::vector<Entity> Scene::get_all_entities()
-    {
-        std::vector<Entity> entities{};
-        auto all_entities{ registry_->view<IdentityComponent>() };
-        for(auto entt : all_entities)
-            entities.push_back({ entt, this });
-        return entities;
-    }
-
     bool Scene::has_entity(UUID uuid) const
     {
         if(uuid.empty()) return false;
-        return entity_map_.find(uuid) != entity_map_.end();
+        return entity_map_.contains(uuid);
     }
 
-    Entity Scene::get_entity(uint32 handle)
+    Entity Scene::get_entity(EntityHandle handle)
     {
-        if(handle == entity_id_null) return {};
-        entt::entity entt{ static_cast<entt::entity>(handle) };
-        if(registry_->valid(entt)) return Entity(entt, this);
+        if(handle == entity_handle_null) return {};
+        if(registry_->valid(static_cast<entt::entity>(handle)))
+            return Entity(handle, this);
         CORE_WARN(u8"Scene: Entity handle not valid");
         return {};
     }
@@ -220,16 +191,20 @@ namespace rke
     Entity Scene::get_entity(UUID uuid)
     {
         if(uuid.empty()) return {};
-        if(has_entity(uuid)) return Entity(entity_map_.at(uuid), this);
-        CORE_WARN(u8"Scene: Entity UUID '{}' not found!", uuid.value());
-        return {};
+        auto it{ entity_map_.find(uuid) };
+        if(it == entity_map_.end())
+        {
+            CORE_WARN(u8"Scene: Entity UUID '{}' not found!", uuid.value());
+            return {};
+        }
+        return Entity(it->second, this);
     }
 
-    const Entity Scene::get_entity(uint32 handle) const
+    const Entity Scene::get_entity(EntityHandle handle) const
     {
-        if(handle == entity_id_null) return {};
-        entt::entity entt{ static_cast<entt::entity>(handle) };
-        if(registry_->valid(entt)) return Entity(entt, const_cast<Scene*>(this));
+        if(handle == entity_handle_null) return {};
+        if(registry_->valid(static_cast<entt::entity>(handle)))
+            return Entity(handle, const_cast<Scene*>(this));
         CORE_WARN(u8"Scene: Entity handle not valid");
         return {};
     }
@@ -237,9 +212,13 @@ namespace rke
     const Entity Scene::get_entity(UUID uuid) const
     {
         if(uuid.empty()) return {};
-        if(has_entity(uuid)) return Entity(entity_map_.at(uuid), const_cast<Scene*>(this));
-        CORE_WARN(u8"Scene: Entity UUID '{}' not found!", uuid.value());
-        return {};
+        auto it{ entity_map_.find(uuid) };
+        if(it == entity_map_.end())
+        {
+            CORE_WARN(u8"Scene: Entity UUID '{}' not found!", uuid.value());
+            return {};
+        }
+        return Entity(it->second, const_cast<Scene*>(this));
     }
 
     Entity Scene::copy_entity_towards(Entity entity, Scene* owner)
@@ -248,7 +227,8 @@ namespace rke
             CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
             return Entity{};
         }
-        Entity copied_entity{ owner->registry_->create(), owner };
+        Entity copied_entity{ static_cast<EntityHandle>
+            (owner->registry_->create()), owner };
         owner->mark_modified();
 
         copied_entity.emplace<IdentityComponent>
@@ -267,6 +247,19 @@ namespace rke
         });
 
         return copied_entity;
+    }
+
+    void Scene::destroy_entity(Entity entity)
+    {
+        if(entity.empty()) return;
+        if(!entity.belongs_to(this)) {
+            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+            return;
+        }
+        if(entity == selected_entity_) set_selected_entity(Entity{});
+        if(entity == master_cam_) master_cam_ = {};
+        if(entity == demo_cam_) demo_cam_ = {};
+        to_destroy_.push_back(entity);
     }
 
     void Scene::set_selected_entity(Entity entity)
@@ -419,7 +412,7 @@ namespace rke
             {
                 auto& nsc{ nsc_view.get<NativeScriptComponent>(ent) };
                 if(nsc.script_type != nsc.resolved_script_type)
-                    script_manager_->refresh_script(static_cast<uint32>(ent));
+                    script_manager_->refresh_script(static_cast<EntityHandle>(ent));
                 
                 Script* script{ reinterpret_cast<Script*>(nsc.script_handle) };
                 if(script) script->on_update(dt);
@@ -468,7 +461,7 @@ namespace rke
         {
             auto& nsc{ view.get<NativeScriptComponent>(ent) };
             if(nsc.script_type != nsc.resolved_script_type)
-                script_manager_->refresh_script(static_cast<uint32>(ent));
+                script_manager_->refresh_script(static_cast<EntityHandle>(ent));
             Script* script{ reinterpret_cast<Script*>(nsc.script_handle) };
             if(script) script->on_mouse_scrolled(e.get_x_offset(), e.get_y_offset());
         }
@@ -485,7 +478,7 @@ namespace rke
             UUID uuid{ curr.get_uuid() };
             if(!uuid.empty()) entity_map_.erase(uuid);
 
-            registry_->destroy(curr.handle_);
+            registry_->destroy(static_cast<entt::entity>(curr.handle_));
             mark_modified();
         }
     }

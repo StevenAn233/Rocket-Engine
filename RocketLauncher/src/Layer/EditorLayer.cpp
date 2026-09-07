@@ -61,7 +61,8 @@ namespace rke
             [this]() -> bool {
                 Entity selected{ current_scene() ?
                     current_scene()->get_selected_entity() : Entity{} };
-                uint32 selected_id{ selected.valid() ? selected.get_handle() : entity_id_null };
+                EntityHandle selected_id{ selected.valid() ?
+                    selected.get_handle() : entity_handle_null };
                 return !gizmo::is_using()
                     && editor_setting_panel_->selected_enabled_editor()
                     && !in_main_viewport_dragging_
@@ -145,7 +146,7 @@ namespace rke
             if(ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
             {
                 if(ImGui::IsWindowAppearing() && scene_edit_
-                && (hovering_id_ != entity_id_null))
+                && (hovering_id_ != entity_handle_null))
                 {
                     in_entity_popup_ = true;
                     scene_edit_->set_selected_entity(hovering_id_);
@@ -279,7 +280,7 @@ namespace rke
 
         if(e.get_mouse_button() == Mouse::Left)
         {
-            if(hovering_id_ != entity_id_null)
+            if(hovering_id_ != entity_handle_null)
                 scene_edit_->set_selected_entity(hovering_id_);
             else if(main_viewport_->is_focused())
                 scene_edit_->set_selected_entity(Entity{});
@@ -353,10 +354,10 @@ namespace rke
              !(gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
             {
                 glm::vec2 vp_mouse{ main_viewport_->get_mouse_pos() };
-                hovering_id_ = static_cast<uint32>(main_renderer_
+                hovering_id_ = std::bit_cast<EntityHandle>(main_renderer_
                     .get_hovering_id(vp_mouse.x, vp_mouse.y));
             }
-            else hovering_id_ = entity_id_null;
+            else hovering_id_ = entity_handle_null;
 
             if(scene_edit_ && cam_viewport_->on() &&
               !cam_viewport_->hidden() && cam_viewport_->visible())
@@ -389,7 +390,7 @@ namespace rke
     {
         if(!editing()) return;
 
-        scene_test_ = scene_edit_->deep_copy(true);
+        scene_test_ = scene_edit_->duplicate();
         attach_scene(scene_test_.get());
 
         CORE_ASSERT(scene_test_, u8"EditorLayer: Failed to copy edit scene!");
@@ -451,7 +452,7 @@ namespace rke
             scene->set_viewport(size.x, size.y);
         }
 
-        hovering_id_ = entity_id_null;
+        hovering_id_ = entity_handle_null;
         main_output_ = nullptr;
         cam_output_  = nullptr;
         main_renderer_.clean_up();
