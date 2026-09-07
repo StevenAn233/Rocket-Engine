@@ -8,7 +8,6 @@ import PhysicsEngine2D;
 import ScriptRegistry;
 import ScriptManager;
 import AssetsManager;
-import Animation;
 import Texture;
 
 namespace rke
@@ -184,7 +183,7 @@ namespace rke
         if(handle == entity_handle_null) return {};
         if(registry_->valid(static_cast<entt::entity>(handle)))
             return Entity(handle, this);
-        CORE_WARN(u8"Scene: Entity handle not valid");
+        CORE_WARN(u8"Scene: Entity handle not valid!");
         return {};
     }
 
@@ -356,16 +355,41 @@ namespace rke
     }
 
     void Scene::animator_play(Entity entity)
-        { animator_system_->play(entity.get_handle()); }
+    {
+        if(!entity.belongs_to(this)) return;
+        animator_system_->play(entity.get_handle());
+    }
 
     void Scene::animator_stop(Entity entity)
-        { animator_system_->stop(entity.get_handle()); }
+    {
+        if(!entity.belongs_to(this)) return;
+        animator_system_->stop(entity.get_handle());
+    }
 
     void Scene::animator_pause(Entity entity)
-        { animator_system_->pause(entity.get_handle()); }
+    {
+        if(!entity.belongs_to(this)) return;
+        animator_system_->pause(entity.get_handle());
+    }
 
     void Scene::animator_resume(Entity entity)
-        { animator_system_->resume(entity.get_handle()); }
+    {
+        if(!entity.belongs_to(this)) return;
+        animator_system_->resume(entity.get_handle());
+    }
+
+    Animation* Scene::animator_active_anim(Entity entity)
+    {
+        if(!entity.belongs_to(this)) return nullptr;
+        return animator_system_->active_anim(entity.get_handle());
+    }
+
+    std::pair<String, bool> Scene::animator_active_clip(Entity entity)
+    {
+        using namespace literals;
+        if(!entity.belongs_to(this)) return { u8"<Wrong Scene>"_s, false };
+        return animator_system_->active_clip(entity.get_handle());
+    }
 
     void Scene::on_script_dylib_hot_reloading(ScriptRegistry& script_reg)
     {

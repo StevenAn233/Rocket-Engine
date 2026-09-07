@@ -422,8 +422,12 @@ namespace rke
         }
         scene_edit_ = app().get_project()->load_scene(name, scene_serializer_);
     // TO MODIFY
-        Scope<ConfigReader> reader{ ConfigReader::create(scene_edit_->get_path()) };
-        editor_cam_.deserialize_from(*reader);
+        if(scene_edit_)
+        {
+            Scope<ConfigReader> reader{ ConfigReader::create
+                (scene_edit_->get_path()) };
+            editor_cam_.deserialize_from(*reader);
+        }
     // TO MODIFY
         attach_scene(scene_edit_);
         return true;

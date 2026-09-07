@@ -229,6 +229,13 @@ namespace rke
         return { resolved.handle, true };
     }
 
+    AssetType AssetsManager::get_asset_type(AssetUUID uuid)
+    {
+        auto it{ asset_registry_.find(uuid) };
+        if(it == asset_registry_.end() || uuid.empty()) return AssetType::None;
+        return it->second.type;
+    }
+
     bool AssetsManager::is_asset_loaded(AssetUUID uuid)
     {
         auto it{ asset_registry_.find(uuid) };

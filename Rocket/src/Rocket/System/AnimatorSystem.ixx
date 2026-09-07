@@ -2,7 +2,11 @@
 
 #include <unordered_map>
 #include <entt/entt.hpp>
-namespace rke { class Scene; class Project; }
+namespace rke
+{
+    class Project;
+    class Scene;
+}
 
 export module AnimatorSystem;
 
@@ -12,6 +16,7 @@ import EntityAccess;
 import AssetsManager;
 import AssetAccess;
 import Animation;
+import Components;
 
 export namespace rke
 {
@@ -34,6 +39,9 @@ export namespace rke
         void stop(EntityHandle entity);
         void pause (EntityHandle entity);
         void resume(EntityHandle entity);
+
+        Animation* active_anim(EntityHandle handle);
+        std::pair<String, bool> active_clip(EntityHandle handle); // for display
     private:
         struct RuntimeState
         {
@@ -44,15 +52,22 @@ export namespace rke
             String active   {}; // clip name
             Size frame_index{};
             double acc{};
+            bool active_clip_invalid{ false };
         };
 
-        RuntimeState* find_state(EntityHandle handle); // will refresh state automatically
+        RuntimeState* check_and_get_state(EntityHandle handle);
+        RuntimeState* get_or_emplace_state(Size index);
+
+        void rewind_to_start(RuntimeState& state);
         bool advance(Animation& anim, RuntimeState& state, double dt);
+
+        void update_animator_component(AnimatorComponent& ac,
+            Animation& anim, RuntimeState& state);
 
         static void on_anim_com_destroy(entt::registry& reg, entt::entity ent);
     private:
         Scene* owner_;
         Project* project_{};
-        std::unordered_map<uint32, RuntimeState> states_{};
+        std::vector<RuntimeState> states_{};
     };
 }

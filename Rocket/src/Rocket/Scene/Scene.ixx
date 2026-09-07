@@ -30,6 +30,7 @@ import HeapManager;
 import PhysicsLayers;
 import Gravity2D;
 import PhysicsEngine2D;
+import Animation;
 import AnimatorSystem;
 import Components;
 import EntityAccess;
@@ -187,6 +188,8 @@ export namespace rke
         void animator_stop(Entity entity);
         void animator_pause (Entity entity);
         void animator_resume(Entity entity);
+        Animation* animator_active_anim(Entity entity);
+        std::pair<String, bool> animator_active_clip(Entity entity);
 
         // previous dylib can't be already unloaded when calling this function!
         void on_script_dylib_hot_reloading(ScriptRegistry& script_reg);

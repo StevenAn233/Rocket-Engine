@@ -79,6 +79,7 @@ namespace rke
 
     void WindowsScriptDylibLoader::delete_temp_files()
     {
+        if(!fs::exists(dylib_dir_)) return;
         for(const auto& entry : fs::directory_iterator(dylib_dir_))
         {
             String filename{ Path(entry.path().filename()).string() };

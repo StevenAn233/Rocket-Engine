@@ -106,25 +106,19 @@ namespace rke
 
     const AnimClip* Animation::get_clip(const String& name) const
     {
-        if(name.empty()) {
-            CORE_ERROR(u8"Animation: Clip name empty!");
-            return nullptr;
-        }
+        if(name.empty()) return nullptr;
         auto it{ clips_.find(name) };
         if(it != clips_.end()) return &(it->second);
-        CORE_ERROR(u8"Animation: Clip '{}' not found!", name);
+        CORE_WARN(u8"Animation: Clip '{}' not found!", name);
         return nullptr;
     }
 
     AnimClip* Animation::get_clip_mut(const String& name)
     {
-        if(name.empty()) {
-            CORE_ERROR(u8"Animation: Clip name empty!");
-            return nullptr;
-        }
+        if(name.empty()) return nullptr;
         auto it{ clips_.find(name) };
         if(it != clips_.end()) return &(it->second);
-        CORE_ERROR(u8"Animation: Clip '{}' not found!", name);
+        CORE_WARN(u8"Animation: Clip '{}' not found!", name);
         return nullptr;
     }
 
@@ -136,9 +130,10 @@ namespace rke
             CORE_ERROR(u8"Animation: Clip name empty!");
             return;
         }
-        if(clips_.contains(name)) {
-            CORE_ERROR(u8"Animation: Already has clip '{}'! "
-                u8"Use replace instead.", name);
+        if(clips_.contains(name))
+        {
+            CORE_ERROR(u8"Animation: Already has clip '{}'!"
+                u8" Use replace instead.", name);
             return;
         }
         clip_names_.push_back(name);

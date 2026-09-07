@@ -53,27 +53,23 @@ namespace
 
     static std::pair<Texture*, GTextureSettings> get_texture(AssetsManager& am, Entity entity)
     {
-        if(!entity.valid() || !entity.has<SpriteComponent>())
-            return { nullptr, {} };
+        if(!entity.valid() || !entity.has<SpriteComponent>()) return { nullptr, {} };
         auto& sc{ entity.get_mut<SpriteComponent>() };
         if(entity.has<TextureComponent>())
         {
-            auto& tc{ entity.get_mut<TextureComponent>() };
-            if(tc.tex_uuid.empty()) return { nullptr, {} };
+            auto& txc{ entity.get_mut<TextureComponent>() };
+            if(txc.tex_uuid.empty()) return { nullptr, {} };
 
-            auto [handle, refreshed]{ am.resolve(tc.resolved_tex, tc.tex_uuid) };
+            auto [handle, _]{ am.resolve(txc.resolved_tex, txc.tex_uuid) };
             if(handle == asset_handle_null) return { nullptr, {} };
 
             Texture* tex{ am.get_asset<Texture>(handle) };
             CORE_ASSERT(tex, u8"SceneRenderer: Texture null!");
-            if(refreshed) {
-                tc.cell_size = { int(tex->get_width()), int(tex->get_height()) };
-                tc.cell_coords = { 0, 0 };
-            }
+
             sc.uv_scale = sprite::compute_uv_scale
-                (tc.cell_size, tex->get_width(), tex->get_height());
-            sc.uv_offset = sprite::compute_uv_offset(tc.cell_coords, sc.uv_scale);
-            return { tex, tc.gtex_settings };
+                (txc.cell_size, tex->get_width(), tex->get_height());
+            sc.uv_offset = sprite::compute_uv_offset(txc.cell_coords, sc.uv_scale);
+            return { tex, txc.gtex_settings };
         }
         // else if: if have both(not gonna happen normally); use texture
         else if(entity.has<AnimatorComponent>()) 

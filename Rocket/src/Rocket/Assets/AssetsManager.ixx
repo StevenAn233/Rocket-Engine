@@ -66,6 +66,7 @@ export namespace rke
         void unload_asset(AssetUUID uuid);
         // returns whether null handle or valid handle
         std::pair<AssetHandle, bool> resolve(AssetResolve& resolved, AssetUUID uuid);
+        AssetType get_asset_type(AssetUUID uuid);
 
         template<typename T>
         consteval AssetType get_asset_type()

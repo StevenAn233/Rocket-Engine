@@ -281,19 +281,36 @@ namespace rke
     void ContentBrowserPanel::entry_is_meta(this ContentBrowserPanel& self,
         const String& filename, const Path& path, uint32 icon_handle)
     {
-        Path asset_path{ path.parent_path() / filename };
+        if(!self.context_) return;
         ImGui::PushID(filename.raw());
         if(ImGui::BeginDragDropSource())
         {
-            AssetUUID asset_uuid{ self.context_ ?
-                self.context_->get_assets_manager_mut()
-                    .get_asset_uuid(asset_path) : AssetUUID(0)
-            };
-            if(!asset_uuid.empty()) {
-                ImGui::SetDragDropPayload("CONTENT_BROWSER_ASSET",
-                    &asset_uuid, sizeof(AssetUUID), ImGuiCond_Once);
+            Path asset_path{ path.parent_path() / filename };
+            auto& am{ self.context_->get_assets_manager_mut() };
+            AssetUUID uuid{ am.get_asset_uuid(asset_path) };
+            if(uuid.empty()) { ImGui::EndDragDropSource(); ImGui::PopID(); return; }
+
+            AssetType type{ am.get_asset_type(uuid) };
+            switch(type)
+            {
+            case AssetType::Texture:
+                ImGui::SetDragDropPayload("CONTENT_BROWSER_ASSET_TEXTURE",
+                    &uuid, sizeof(AssetUUID), ImGuiCond_Once); break;
+            case AssetType::Shader:
+                ImGui::SetDragDropPayload("CONTENT_BROWSER_ASSET_SHADER",
+                    &uuid, sizeof(AssetUUID), ImGuiCond_Once); break;
+            case AssetType::Font:
+                ImGui::SetDragDropPayload("CONTENT_BROWSER_ASSET_FONT",
+                    &uuid, sizeof(AssetUUID), ImGuiCond_Once); break;
+            case AssetType::Mesh:
+                ImGui::SetDragDropPayload("CONTENT_BROWSER_ASSET_MESH",
+                    &uuid, sizeof(AssetUUID), ImGuiCond_Once); break;
+            case AssetType::Animation:
+                ImGui::SetDragDropPayload("CONTENT_BROWSER_ASSET_ANIMATION",
+                    &uuid, sizeof(AssetUUID), ImGuiCond_Once); break;
+            default: { ImGui::EndDragDropSource(); ImGui::PopID(); return; }
             }
-            
+
             float thumbnail_size{ basic_thumbnail_size * self.thumbnail_scale_ };
             ImGui::Image(std::bit_cast<void*>(static_cast<uint64>(icon_handle)),
                 { thumbnail_size, thumbnail_size }, { 0, 1 }, { 1, 0 });

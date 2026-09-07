@@ -67,15 +67,15 @@ namespace {
         {
             writer.begin_map(u8"Texture Component");
 
-            const auto& tec{ entity.get<TextureComponent>() };
-            writer.write(u8"Texture", ConfigValue(tec.tex_uuid.value()));
+            const auto& txc{ entity.get<TextureComponent>() };
+            writer.write(u8"Texture", ConfigValue(txc.tex_uuid.value()));
             
-            writer.write(u8"Filt", static_cast<int>(tec.gtex_settings.filt));
-            writer.write(u8"Wrap", static_cast<int>(tec.gtex_settings.wrap));
-            writer.write(u8"sRGB", tec.gtex_settings.srgb);
+            writer.write(u8"Filt", static_cast<int>(txc.gtex_settings.filt));
+            writer.write(u8"Wrap", static_cast<int>(txc.gtex_settings.wrap));
+            writer.write(u8"sRGB", txc.gtex_settings.srgb);
 
-            writer.write(u8"Cell Size", ConfigValue(tec.cell_size));
-            writer.write(u8"Cell Coords", ConfigValue(tec.cell_coords));
+            writer.write(u8"Cell Size", ConfigValue(txc.cell_size));
+            writer.write(u8"Cell Coords", ConfigValue(txc.cell_coords));
 
             writer.end_map();
         }
@@ -173,21 +173,21 @@ namespace {
             sc.rendering_layer = sc_reader->get_at(u8"Rendering Layer", 0);
         }
 
-        Scope<ConfigReader> tec_reader{ reader.get_child(u8"Texture Component") };
-        if(tec_reader) {
-            auto& tec{ entity.emplace<TextureComponent>() };
-            tec.tex_uuid = AssetUUID(tec_reader->get_at(u8"Texture", 0ui64));
+        Scope<ConfigReader> txc_reader{ reader.get_child(u8"Texture Component") };
+        if(txc_reader) {
+            auto& txc{ entity.emplace<TextureComponent>() };
+            txc.tex_uuid = AssetUUID(txc_reader->get_at(u8"Texture", 0ui64));
             auto& am{ scene.get_owner()->get_assets_manager_mut() };
-            am.resolve(tec.resolved_tex, tec.tex_uuid);
+            am.resolve(txc.resolved_tex, txc.tex_uuid);
 
-            tec.gtex_settings.filt = static_cast<GTexture::FiltFormat>
-                (tec_reader->get_at(u8"Filt", 0));
-            tec.gtex_settings.wrap = static_cast<GTexture::WrapFormat>
-                (tec_reader->get_at(u8"Wrap", 0));
-            tec.gtex_settings.srgb = tec_reader->get_at(u8"sRGB", true);
+            txc.gtex_settings.filt = static_cast<GTexture::FiltFormat>
+                (txc_reader->get_at(u8"Filt", 0));
+            txc.gtex_settings.wrap = static_cast<GTexture::WrapFormat>
+                (txc_reader->get_at(u8"Wrap", 0));
+            txc.gtex_settings.srgb = txc_reader->get_at(u8"sRGB", true);
 
-            tec.cell_size = tec_reader->get_at(u8"Cell Size", tec.cell_size);
-            tec.cell_coords = tec_reader->get_at(u8"Cell Coords", tec.cell_coords);
+            txc.cell_size = txc_reader->get_at(u8"Cell Size", txc.cell_size);
+            txc.cell_coords = txc_reader->get_at(u8"Cell Coords", txc.cell_coords);
         }
 
         Scope<ConfigReader> ac_reader{ reader.get_child(u8"Animator Component") };
@@ -200,7 +200,7 @@ namespace {
                 (ac_reader->get_at(u8"Filt", 0));
             ac.gtex_settings.wrap = static_cast<GTexture::WrapFormat>
                 (ac_reader->get_at(u8"Wrap", 0));
-            ac.gtex_settings.srgb = tec_reader->get_at(u8"sRGB", true);
+            ac.gtex_settings.srgb = ac_reader->get_at(u8"sRGB", true);
         }
 
         Scope<ConfigReader> rbc_reader{ reader.get_child(u8"Rigidbody 2D Component") };
