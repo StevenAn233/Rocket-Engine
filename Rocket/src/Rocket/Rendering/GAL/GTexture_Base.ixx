@@ -87,11 +87,8 @@ export namespace rke
         GTexture::WrapFormat wrap{ GTexture::WrapFormat::Clamp2Edge };
         bool srgb{ true };
 
-        GTextureSettings() = default;
-        GTextureSettings(GTexture::FiltFormat f, GTexture::WrapFormat w, bool s)
-            : filt(f), wrap(w), srgb(s) {}
-
-        bool operator==(const GTextureSettings&) const = default;
+        inline bool operator==(const GTextureSettings& o) const
+            { return filt == o.filt && wrap == o.wrap && srgb == o.srgb; }
     };
 
     struct RKE_API GTextureSettingsHash

@@ -5,7 +5,7 @@ namespace {
     constexpr float padding{ 16.0f };
     constexpr float basic_thumbnail_size{ 96.0f };
 
-    static const rke::GTextureSettings s_icon_settings
+    constexpr rke::GTextureSettings icon_settings
     {
         rke::GTexture::FiltFormat::Linear,
         rke::GTexture::WrapFormat::Clamp2Edge,
@@ -205,19 +205,19 @@ namespace rke
     void ContentBrowserPanel::set_folder_icon(const Path& filepath)
     {
         folder_icon_ = create_scope<Texture>(filepath);
-        folder_gtex_cache_ = folder_icon_ ? folder_icon_->get_gtexture(s_icon_settings) : nullptr;
+        folder_gtex_cache_ = folder_icon_ ? folder_icon_->get_gtexture(icon_settings) : nullptr;
     }
 
     void ContentBrowserPanel::set_image_icon(const Path& filepath)
     {
         image_icon_ = create_scope<Texture>(filepath);
-        image_gtex_cache_ = image_icon_ ? image_icon_->get_gtexture(s_icon_settings) : nullptr;
+        image_gtex_cache_ = image_icon_ ? image_icon_->get_gtexture(icon_settings) : nullptr;
     }
 
     void ContentBrowserPanel::set_file_icon(const Path& filepath)
     {
         file_icon_ = create_scope<Texture>(filepath);
-        file_gtex_cache_ = file_icon_ ? file_icon_->get_gtexture(s_icon_settings) : nullptr;
+        file_gtex_cache_ = file_icon_ ? file_icon_->get_gtexture(icon_settings) : nullptr;
     }
 
     void ContentBrowserPanel::load_from(Path filepath)

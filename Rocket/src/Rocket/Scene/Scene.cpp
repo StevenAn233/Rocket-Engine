@@ -441,8 +441,8 @@ namespace rke
                 Script* script{ reinterpret_cast<Script*>(nsc.script_handle) };
                 if(script) script->on_update(dt);
             }
-            animator_system_->on_update(dt);
         }
+        animator_system_->on_update(dt);
         flush_destroy_queue();
     }
 
@@ -452,7 +452,6 @@ namespace rke
         in_runtime_ = true;
         script_manager_->on_runtime_start();
         physics_engine_->on_runtime_start();
-        animator_system_->on_runtime_start();
     }
 
     void Scene::on_runtime_stop()
@@ -461,7 +460,6 @@ namespace rke
         in_runtime_ = false;
         script_manager_->on_runtime_stop();
         physics_engine_->on_runtime_stop();
-        animator_system_->on_runtime_stop();
     }
 
     void Scene::set_viewport(uint32 width, uint32 height)

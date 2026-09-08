@@ -2,7 +2,7 @@
 module Toolbar;
 
 namespace {
-    static const rke::GTextureSettings s_icon_settings
+    constexpr rke::GTextureSettings icon_settings
     {
         rke::GTexture::FiltFormat::Linear,
         rke::GTexture::WrapFormat::Clamp2Edge,
@@ -23,7 +23,7 @@ namespace rke
         , visible_(visible)
     {
         CORE_ASSERT(icon_, u8"IconButton: Icon null!");
-        gtex_cache_ = icon_->get_gtexture(s_icon_settings);
+        gtex_cache_ = icon_->get_gtexture(icon_settings);
         CORE_ASSERT(gtex_cache_, u8"IconButton: Failed to generate GTexture!");
     }
 

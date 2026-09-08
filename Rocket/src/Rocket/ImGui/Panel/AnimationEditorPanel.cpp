@@ -4,7 +4,7 @@ module AnimationEditorPanel;
 namespace {
     using namespace rke;
 
-    static const rke::GTextureSettings s_sheet_settings
+    constexpr rke::GTextureSettings s_sheet_settings
     {
         rke::GTexture::FiltFormat::Nearest,
         rke::GTexture::WrapFormat::Clamp2Edge,

@@ -20,14 +20,6 @@ namespace rke
             .connect<&on_anim_com_destroy>();
     }
 
-    void AnimatorSystem::on_runtime_start()
-    {
-        auto& storage{ owner_->registry_->storage<AnimatorComponent>() };
-        states_.resize(storage.size());
-    }
-
-    void AnimatorSystem::on_runtime_stop() { states_.clear(); }
-
     void AnimatorSystem::on_update(double dt)
     {
         auto& storage{ owner_->registry_->storage<AnimatorComponent>() };

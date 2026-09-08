@@ -6,17 +6,17 @@
 module Layout;
 
 namespace {
-    static const ImVec4 s_grey   (0.7f, 0.7f, 0.70f, 1.0f);
-    static const ImVec4 s_greyer (0.9f, 0.9f, 0.90f, 1.0f);
+    constexpr ImVec4 grey   { 0.7f, 0.7f, 0.70f, 1.0f };
+    constexpr ImVec4 greyer { 0.9f, 0.9f, 0.90f, 1.0f };
 
-    static const ImVec4 s_red	 (0.8f, 0.1f, 0.15f, 1.0f);
-    static const ImVec4 s_reder	 (0.9f, 0.2f, 0.20f, 1.0f);
+    constexpr ImVec4 red	{ 0.8f, 0.1f, 0.15f, 1.0f };
+    constexpr ImVec4 reder  { 0.9f, 0.2f, 0.20f, 1.0f };
 
-    static const ImVec4 s_green	 (0.2f, 0.7f, 0.20f, 1.0f);
-    static const ImVec4 s_greener(0.3f, 0.8f, 0.30f, 1.0f);
+    constexpr ImVec4 green  { 0.2f, 0.7f, 0.20f, 1.0f };
+    constexpr ImVec4 greener{ 0.3f, 0.8f, 0.30f, 1.0f };
 
-    static const ImVec4 s_blue	 (0.1f, 0.25f, 0.8f, 1.0f);
-    static const ImVec4 s_bluer	 (0.2f, 0.35f, 0.9f, 1.0f);
+    constexpr ImVec4 blue   { 0.1f, 0.25f, 0.8f, 1.0f };
+    constexpr ImVec4 bluer  { 0.2f, 0.35f, 0.9f, 1.0f };
 }
 
 namespace rke::layout
@@ -39,9 +39,9 @@ namespace rke::layout
             GImGui->Style.ItemSpacing.x * 2.0f
         };
 
-        ImGui::PushStyleColor(ImGuiCol_Button,		  s_grey  );
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, s_greyer);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  s_grey  );
+        ImGui::PushStyleColor(ImGuiCol_Button,		  grey  );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, greyer);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  grey  );
         if(ImGui::Button("##reset", button_size))
         {
             if(range.has_value())
@@ -87,9 +87,9 @@ namespace rke::layout
             - button_size.x
             - GImGui->Style.ItemSpacing.x };
 
-        ImGui::PushStyleColor(ImGuiCol_Button,		  s_grey  );
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, s_greyer);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  s_grey  );
+        ImGui::PushStyleColor(ImGuiCol_Button,		  grey  );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, greyer);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  grey  );
         if(ImGui::Button("##reset_x", button_size))
         {
             if(x_range.has_value())
@@ -113,9 +113,9 @@ namespace rke::layout
         }
         ImGui::SameLine(0.0f, per_item_spacing_x);
 
-        ImGui::PushStyleColor(ImGuiCol_Button,		  s_grey  );
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, s_greyer);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  s_grey  );
+        ImGui::PushStyleColor(ImGuiCol_Button,		  grey  );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, greyer);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  grey  );
         if(ImGui::Button("##reset_y", button_size))
         {
             if(y_range.has_value())
@@ -165,9 +165,9 @@ namespace rke::layout
         };
 
     // X: Red Button Style
-        ImGui::PushStyleColor(ImGuiCol_Button,        s_red  );
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, s_reder);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  s_red  );
+        ImGui::PushStyleColor(ImGuiCol_Button,        red  );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, reder);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  red  );
         if(ImGui::Button("X", button_size))
         {
             if(x_range.has_value())
@@ -191,9 +191,9 @@ namespace rke::layout
         ImGui::SameLine(0.0f, per_item_spacing_x);
 
     // Y: Green Button Style
-        ImGui::PushStyleColor(ImGuiCol_Button,		  s_green  );
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, s_greener);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  s_green  );
+        ImGui::PushStyleColor(ImGuiCol_Button,		  green  );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, greener);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  green  );
         if(ImGui::Button("Y", button_size))
         {
             if(y_range.has_value())
@@ -217,9 +217,9 @@ namespace rke::layout
         ImGui::SameLine(0.0f, per_item_spacing_x);
 
     // Z: Blue Button Style
-        ImGui::PushStyleColor(ImGuiCol_Button,		  s_blue );
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, s_bluer);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  s_blue );
+        ImGui::PushStyleColor(ImGuiCol_Button,		  blue );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bluer);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  blue );
         if(ImGui::Button("Z", button_size))
         {
             if(z_range.has_value())
