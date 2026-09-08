@@ -9,6 +9,7 @@ import ScriptRegistry;
 import ScriptManager;
 import AssetsManager;
 import Texture;
+import SceneHierarchyPanel;
 
 namespace rke
 {
@@ -115,7 +116,8 @@ namespace rke
         mark_modified();
     }
 
-    Path Scene::get_path() const { return owner_->get_scenes_dir() / (name_ + u8".rkscene"); }
+    Path Scene::get_path() const
+        { return owner_->get_scenes_dir() / (name_ + u8".rkscene"); }
 
     Scope<Scene> Scene::duplicate(bool temp)
     {
@@ -378,10 +380,16 @@ namespace rke
         animator_system_->resume(entity.get_handle());
     }
 
-    Animation* Scene::animator_active_anim(Entity entity)
+    bool Scene::animator_playing(Entity entity)
     {
-        if(!entity.belongs_to(this)) return nullptr;
-        return animator_system_->active_anim(entity.get_handle());
+        if(!entity.belongs_to(this)) return false;
+        return animator_system_->playing(entity.get_handle());
+    }
+
+    bool Scene::animator_paused(Entity entity)
+    {
+        if(!entity.belongs_to(this)) return false;
+        return animator_system_->paused(entity.get_handle());
     }
 
     std::pair<String, bool> Scene::animator_active_clip(Entity entity)
@@ -503,5 +511,11 @@ namespace rke
             registry_->destroy(static_cast<entt::entity>(curr.handle_));
             mark_modified();
         }
+    }
+
+    const AnimatorSystem::RuntimeState* Scene::animator_state(Entity entity)
+    {
+        if(!entity.belongs_to(this)) return nullptr;
+        return animator_system_->check_and_get_state(entity.get_handle());
     }
 }

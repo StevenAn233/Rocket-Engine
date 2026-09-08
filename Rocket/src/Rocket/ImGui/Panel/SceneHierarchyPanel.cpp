@@ -1,10 +1,14 @@
-module;
+﻿module;
 module SceneHierarchyPanel;
 
 import Log;
-import UUID;
 import Animation;
 import FileUtils;
+import Texture;
+import PhysicsLayers;
+import Application;
+import Project;
+import AssetsManager;
 
 namespace rke
 {
@@ -13,7 +17,8 @@ namespace rke
     
     void SceneHierarchyPanel::on_imgui_render()
     {
-        if(!context_) {
+        if(!context_)
+        {
             ImGui::Begin(get_name().raw());
             ImGui::End();
             ImGui::Begin("##expanded", nullptr, ImGuiWindowFlags_NoTitleBar);
@@ -487,12 +492,11 @@ namespace rke
             );
 
             if(ac.anim_uuid.empty()) return;
+            AssetHandle anim_handle{ am.load_asset(ac.anim_uuid) };
+            if(!am.is_handle_valid(anim_handle)) return;
 
-            Animation* anim{ context_->animator_active_anim(ent) };
-            CORE_ASSERT(anim, u8"SceneHierarchyPanel: Animation null!");
-            
-            String start_clip{ ac.has_clip() ?
-                String(ac.get_clip_name()) : String(u8"No Clip") };
+            String start_clip{ ac.has_clip() ? String(ac.get_clip_name()) : String(u8"No Clip") };
+            Animation* anim{ am.get_asset<Animation>(anim_handle) };
             auto& clip_names{ anim->get_clip_names() };
             layout::two_columns_table<u8"Start Clip">([&]()
             {
@@ -515,6 +519,32 @@ namespace rke
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::Button(active.raw(), ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
             });
+
+        // temp; for testing
+            if(ImGui::SmallButton(">"))
+            {
+                if(context_->animator_playing(ent))
+                    context_->animator_stop(ent);
+                else context_->animator_play(ent);
+            }
+            ImGui::SameLine();
+            if(ImGui::SmallButton("="))
+            {
+                if(context_->animator_paused(ent))
+                    context_->animator_resume(ent);
+                else context_->animator_pause(ent);
+            }
+
+            const auto* state{ context_->animator_state(ent) };
+            if(!state) return;
+
+            float acc{ static_cast<float>(state->acc) };
+            layout::drag_float_control<u8"Time Acc">
+                (acc, 0.0f, 0.0f, std::nullopt, u8"%.2f");
+
+            float frame_idx{ static_cast<float>(state->frame_index) };
+            layout::drag_float_control<u8"Frame Idx">
+                (frame_idx, 0.0f, 0.0f, std::nullopt, u8"%.0f");
         });
 
         check_then_draw<Rigidbody2DComponent, u8"Rigidbody 2D">(entity, [this](Entity ent)

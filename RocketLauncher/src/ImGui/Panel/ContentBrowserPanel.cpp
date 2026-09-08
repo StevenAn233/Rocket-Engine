@@ -1,7 +1,8 @@
 module;
 module ContentBrowserPanel;
 
-namespace {
+namespace
+{
     constexpr float padding{ 16.0f };
     constexpr float basic_thumbnail_size{ 96.0f };
 

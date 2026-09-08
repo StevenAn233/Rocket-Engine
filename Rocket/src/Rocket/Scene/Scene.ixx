@@ -42,6 +42,7 @@ export namespace rke
     public:
         friend class Scene;
         friend class SceneRenderer;
+        friend class SceneHierarchyPanel;
 
         RKE_API Entity() = default;
         RKE_API Entity(const Entity&) = default;
@@ -104,6 +105,7 @@ export namespace rke
         friend class ScriptManager;
         friend class PhysicsEngine2D;
         friend class AnimatorSystem;
+        friend class SceneHierarchyPanel;
 
         struct RegistryContext
         {
@@ -188,7 +190,10 @@ export namespace rke
         void animator_stop(Entity entity);
         void animator_pause (Entity entity);
         void animator_resume(Entity entity);
-        Animation* animator_active_anim(Entity entity);
+
+        bool animator_playing(Entity entity);
+        bool animator_paused (Entity entity);
+
         std::pair<String, bool> animator_active_clip(Entity entity);
 
         // previous dylib can't be already unloaded when calling this function!
@@ -217,6 +222,7 @@ export namespace rke
         inline glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
     private:
         void flush_destroy_queue();
+        const AnimatorSystem::RuntimeState* animator_state(Entity entity); // for SceneHierarchyPanel
     private:
         Project* owner_;
         String name_;

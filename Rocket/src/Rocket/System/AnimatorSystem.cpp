@@ -88,12 +88,18 @@ namespace rke
         if(state) state->paused = false;
     }
 
-    Animation* AnimatorSystem::active_anim(EntityHandle handle)
+    bool AnimatorSystem::playing(EntityHandle handle)
     {
         RuntimeState* state{ check_and_get_state(handle) };
-        if(!state) return nullptr;
-        AssetsManager& am{ project_->get_assets_manager_mut() };
-        return am.get_asset<Animation>(state->resolved_anim.handle);
+        if(state) return state->playing;
+        return false;
+    }
+
+    bool AnimatorSystem::paused(EntityHandle handle)
+    {
+        RuntimeState* state{ check_and_get_state(handle) };
+        if(state) return state->paused;
+        return false;
     }
 
     std::pair<String, bool> AnimatorSystem::active_clip(EntityHandle handle)

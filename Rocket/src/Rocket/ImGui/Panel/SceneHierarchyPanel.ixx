@@ -1,20 +1,27 @@
-module;
+﻿module;
 
+#include <bit>
+#include <utility>
 #include <functional>
+#include <imgui.h>
+#include <entt/entt.hpp>
+#include "rke_macros.h"
 
 export module SceneHierarchyPanel;
 
-import rke;
+import Panel;
+import Layout;
 import UUID;
-import Animation;
+import Scene;
+import String;
+import Components;
 
 export namespace rke
 {
-    class SceneHierarchyPanel : public Panel
+    class RKE_API SceneHierarchyPanel : public Panel
     {
     public:
         using EntityNodeCallback = std::function<void(Scene*)>;
-        using OpenAssetCallback  = std::function<void(UUID)>;
 
         SceneHierarchyPanel(String name);
 
@@ -22,8 +29,6 @@ export namespace rke
             { context_ = context; is_scene_selected_ = false; }
         inline void set_on_entity_node_render(EntityNodeCallback callback)
             { on_entity_node_render_ = std::move(callback); }
-        inline void set_on_open_animation_asset(OpenAssetCallback callback)
-            { on_open_animation_asset_ = std::move(callback); }
 
         template<typename Component, StringLiteral Str, typename Callback>
         requires std::invocable<Callback, Entity>
@@ -73,6 +78,5 @@ export namespace rke
         Scene* context_{};
         bool is_scene_selected_{ false };
         EntityNodeCallback on_entity_node_render_{};
-        OpenAssetCallback on_open_animation_asset_{};
     };
 }

@@ -4,12 +4,14 @@ module EditorLayer;
 import Gizmo;
 import FXAAEffect;
 
-namespace {
+namespace
+{
     using namespace rke;
     static void entity_right_click_popup_content(Scene* scene)
     {
         if(!scene) return;
-        if(ImGui::MenuItem("Copy")) {
+        if(ImGui::MenuItem("Copy"))
+        {
             Entity selected{ scene->get_selected_entity() };
             Entity copied{ scene->copy_entity(selected) };
             scene->set_selected_entity(copied);
@@ -42,23 +44,29 @@ namespace rke
     //      { editor_cam_.deserialize_from(reader); });
 
     // Effects
-        auto hovering{ create_scope<OutlineEffect>(u8"Hovering", &get_owner(),
-            [this]() -> bool {
+        auto hovering{ create_scope<OutlineEffect>
+        (
+            u8"Hovering", &get_owner(),
+            [this]() -> bool
+            {
                 return !gizmo::is_using() && !mouse_blocked()
                     && editor_setting_panel_->hovering_enabled_editor()
                     && !in_main_viewport_dragging_ && editing()
                     && main_viewport_->is_hovered();
             },
-            [this]() -> Entity {
-                if(editing())
-                    return scene_edit_->get_entity(hovering_id_);
+            [this]() -> Entity
+            {
+                if(editing()) return scene_edit_->get_entity(hovering_id_);
                 return Entity{};
             }
         )};
         hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
 
-        auto selected{ create_scope<OutlineEffect>(u8"Selected", &get_owner(),
-            [this]() -> bool {
+        auto selected{ create_scope<OutlineEffect>
+        (
+            u8"Selected", &get_owner(),
+            [this]() -> bool
+            {
                 Entity selected{ current_scene() ?
                     current_scene()->get_selected_entity() : Entity{} };
                 EntityHandle selected_id{ selected.valid() ?
@@ -68,15 +76,19 @@ namespace rke
                     && !in_main_viewport_dragging_
                     && (selected_id != hovering_id_ || !hovering_outline_->enabled());
             },
-            [this]() -> Entity {
+            [this]() -> Entity
+            {
                 Scene* scene{ current_scene() };
                 return scene ? scene->get_selected_entity() : Entity{};
             }
         )};
         selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
 
-        auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa",
-            [this]() -> bool {
+        auto fxaa{ create_scope<FXAAEffect>
+        (
+            u8"Fxaa",
+            [this]() -> bool
+            {
                 Project* project{ app().get_project() };
                 if(project) return project->get_config()
                     .anti_aliasing == AntiAliasing::FXAA;
@@ -415,20 +427,20 @@ namespace rke
 
     bool EditorLayer::load_scene_edit(const String& name)
     {
-        if(!app().get_project()) {
+        if(!app().get_project())
+        {
             CORE_ERROR(u8"EditorLayer: No project loaded!");
             clear_scene_edit();
             return false;
         }
         scene_edit_ = app().get_project()->load_scene(name, scene_serializer_);
-    // TO MODIFY
-        if(scene_edit_)
+        if(scene_edit_) // may modify
         {
             Scope<ConfigReader> reader{ ConfigReader::create
                 (scene_edit_->get_path()) };
             editor_cam_.deserialize_from(*reader);
         }
-    // TO MODIFY
+
         attach_scene(scene_edit_);
         return true;
     }
@@ -449,18 +461,17 @@ namespace rke
     void EditorLayer::attach_scene(Scene* scene)
     {
         scene_hierarchy_panel_.set_context(scene);
-
-        if(scene) {
-            glm::vec2 size{ main_viewport_ ?
-                main_viewport_->get_size() : glm::vec2(0.0f) };
-            scene->set_viewport(size.x, size.y);
-        }
-
         hovering_id_ = entity_handle_null;
         main_output_ = nullptr;
         cam_output_  = nullptr;
         main_renderer_.clean_up();
         cam_renderer_ .clean_up();
+
+        if(!scene) return;
+        
+        glm::vec2 size{ main_viewport_ ?
+            main_viewport_->get_size() : glm::vec2(0.0f) };
+        scene_edit_->set_viewport(size.x, size.y);
     }
 
     Scene* EditorLayer::current_scene()

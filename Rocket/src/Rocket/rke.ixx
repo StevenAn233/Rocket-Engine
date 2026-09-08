@@ -38,6 +38,10 @@ export import Panel;
 export import Modal;
 export import PanelRegistry;
 
+// editor-owned(put in engine side for friendship): may modify
+export import AnimationEditorPanel;
+export import SceneHierarchyPanel;
+
 export import Gravity2D;
 export import PhysicsLayers;
 

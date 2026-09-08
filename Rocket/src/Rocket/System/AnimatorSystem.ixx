@@ -23,24 +23,8 @@ export namespace rke
     class AnimatorSystem
     {
     public:
-        AnimatorSystem(Scene* owner);
-        ~AnimatorSystem() = default;
+        friend class Scene;
 
-        AnimatorSystem(const AnimatorSystem&) = delete;
-        AnimatorSystem(AnimatorSystem&&) = delete;
-        AnimatorSystem& operator=(const AnimatorSystem&) = delete;
-        AnimatorSystem& operator=(AnimatorSystem&&) = delete;
-
-        void on_update(double dt);
-
-        void play(EntityHandle entity);
-        void stop(EntityHandle entity);
-        void pause (EntityHandle entity);
-        void resume(EntityHandle entity);
-
-        Animation* active_anim(EntityHandle handle);
-        std::pair<String, bool> active_clip(EntityHandle handle); // for display
-    private:
         struct RuntimeState
         {
             AssetResolve resolved_anim{};
@@ -53,6 +37,26 @@ export namespace rke
             bool active_clip_invalid{ false };
         };
 
+        AnimatorSystem(Scene* owner);
+        ~AnimatorSystem() = default;
+
+        AnimatorSystem(const AnimatorSystem&) = delete;
+        AnimatorSystem(AnimatorSystem&&) = delete;
+        AnimatorSystem& operator=(const AnimatorSystem&) = delete;
+        AnimatorSystem& operator=(AnimatorSystem&&) = delete;
+
+        void on_update(double dt);
+
+        void play(EntityHandle handle);
+        void stop(EntityHandle handle);
+        void pause (EntityHandle handle);
+        void resume(EntityHandle handle);
+
+        bool playing(EntityHandle handle);
+        bool paused (EntityHandle handle);
+
+        std::pair<String, bool> active_clip(EntityHandle handle);
+    private:
         RuntimeState* check_and_get_state(EntityHandle handle);
         RuntimeState* get_or_emplace_state(Size index);
 
