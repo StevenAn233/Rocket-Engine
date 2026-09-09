@@ -10,6 +10,18 @@ namespace rke
 {
     Animation::Animation() : tex_uuid_(UUID(0)) {}
 
+    std::pair<AssetHandle, bool> Animation::get_tex_handle(AssetsManager& am)
+        { return am.resolve(resolved_tex_, tex_uuid_); }
+
+    const AnimClip* Animation::get_clip(const String& name) const
+    {
+        if(name.empty()) return nullptr;
+        auto it{ clips_.find(name) };
+        if(it != clips_.end()) return &(it->second);
+        CORE_WARN(u8"Animation: Clip '{}' not found!", name);
+        return nullptr;
+    }
+
     bool Animation::load_from(const Path& filepath)
     {
         if(!filepath.exists()) {
@@ -100,29 +112,6 @@ namespace rke
         }
         return true;
     }
-
-    std::pair<AssetHandle, bool> Animation::get_tex_handle(AssetsManager& am)
-        { return am.resolve(resolved_tex_, tex_uuid_); }
-
-    const AnimClip* Animation::get_clip(const String& name) const
-    {
-        if(name.empty()) return nullptr;
-        auto it{ clips_.find(name) };
-        if(it != clips_.end()) return &(it->second);
-        CORE_WARN(u8"Animation: Clip '{}' not found!", name);
-        return nullptr;
-    }
-
-    AnimClip* Animation::get_clip_mut(const String& name)
-    {
-        if(name.empty()) return nullptr;
-        auto it{ clips_.find(name) };
-        if(it != clips_.end()) return &(it->second);
-        CORE_WARN(u8"Animation: Clip '{}' not found!", name);
-        return nullptr;
-    }
-
-    void Animation::set_tex_uuid(UUID uuid) { tex_uuid_ = uuid; }
 
     void Animation::emplace_clip(String name, AnimClip clip)
     {

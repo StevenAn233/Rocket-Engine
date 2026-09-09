@@ -471,7 +471,7 @@ namespace rke
         
         glm::vec2 size{ main_viewport_ ?
             main_viewport_->get_size() : glm::vec2(0.0f) };
-        scene_edit_->set_viewport(size.x, size.y);
+        scene->set_viewport(size.x, size.y);
     }
 
     Scene* EditorLayer::current_scene()

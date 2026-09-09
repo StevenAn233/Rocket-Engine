@@ -55,8 +55,8 @@ export namespace rke
         bool playing(EntityHandle handle);
         bool paused (EntityHandle handle);
     private:
-        RuntimeState* check_and_get_state(EntityHandle handle);
-        RuntimeState* get_or_emplace_state(Size index);
+        RuntimeState* get_state_from(EntityHandle handle);
+        RuntimeState* get_state(Size index);
 
         void rewind_to_start(RuntimeState& state);
         bool advance(Animation& anim, RuntimeState& state, double dt);

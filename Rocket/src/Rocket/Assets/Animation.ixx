@@ -42,19 +42,17 @@ export namespace rke
         Animation& operator=(Animation&&) noexcept = default;
         
         inline const std::vector<String>& get_clip_names() const { return clip_names_; }
-        inline AssetUUID get_tex_uuid() const { return UUID(tex_uuid_); }
+        inline AssetUUID get_tex_uuid() const { return tex_uuid_; }
 
         std::pair<AssetHandle, bool> get_tex_handle(AssetsManager& am);
         const AnimClip* get_clip(const String& name) const;
-        AnimClip* get_clip_mut(const String& name);
-
-        void set_tex_uuid(UUID uuid);
-        void emplace_clip(String name, AnimClip clip = {});
-        void replace_clip(const String& name, AnimClip clip = {});
-        void remove_clip (const String& name);
     private:
         bool load_from(const Path& filepath); // Caller: AssetsManager
         bool save_to(const Path& filepath) const; // Caller: AnimationEditorPanel
+
+        void emplace_clip(String name, AnimClip clip = {});
+        void replace_clip(const String& name, AnimClip clip = {});
+        void remove_clip (const String& name);
     private:
         AssetUUID tex_uuid_;
         AssetResolve resolved_tex_{};

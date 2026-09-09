@@ -27,7 +27,7 @@ namespace rke
         for(Size index{}; index < storage.size(); index++)
         {
             AnimatorComponent& ac{ *(storage.begin() + index) };
-            RuntimeState* state{ get_or_emplace_state(index) };
+            RuntimeState* state{ get_state(index) };
             if(!state) { ac.curr_tex_handle = asset_handle_null; continue; }
             
             Animation* anim{ am.get_asset<Animation>(state->resolved_anim.handle) };
@@ -52,7 +52,7 @@ namespace rke
 
     void AnimatorSystem::play(EntityHandle handle)
     {
-        RuntimeState* state{ check_and_get_state(handle) };
+        RuntimeState* state{ get_state_from(handle) };
         if(!state) return;
 
         rewind_to_start(*state);
@@ -72,46 +72,46 @@ namespace rke
 
     void AnimatorSystem::stop(EntityHandle handle)
     {
-        RuntimeState* state{ check_and_get_state(handle) };
+        RuntimeState* state{ get_state_from(handle) };
         if(state) state->playing = state->paused = false;
     }
 
     void AnimatorSystem::pause(EntityHandle handle)
     {
-        RuntimeState* state{ check_and_get_state(handle) };
+        RuntimeState* state{ get_state_from(handle) };
         if(state && state->playing) state->paused = true;
     }
 
     void AnimatorSystem::resume(EntityHandle handle)
     {
-        RuntimeState* state{ check_and_get_state(handle) };
+        RuntimeState* state{ get_state_from(handle) };
         if(state) state->paused = false;
     }
 
     bool AnimatorSystem::playing(EntityHandle handle)
     {
-        RuntimeState* state{ check_and_get_state(handle) };
+        RuntimeState* state{ get_state_from(handle) };
         if(state) return state->playing;
         return false;
     }
 
     bool AnimatorSystem::paused(EntityHandle handle)
     {
-        RuntimeState* state{ check_and_get_state(handle) };
+        RuntimeState* state{ get_state_from(handle) };
         if(state) return state->paused;
         return false;
     }
 
-    AnimatorSystem::RuntimeState* AnimatorSystem::check_and_get_state(EntityHandle handle)
+    AnimatorSystem::RuntimeState* AnimatorSystem::get_state_from(EntityHandle handle)
     {
         entt::entity ent{ static_cast<entt::entity>(handle) };
         auto& reg{ *(owner_->registry_) };
         if(!reg.all_of<AnimatorComponent>(ent)) return nullptr;
         Size index{ reg.storage<AnimatorComponent>().index(ent) };
-        return get_or_emplace_state(index);
+        return get_state(index);
     }
 
-    AnimatorSystem::RuntimeState* AnimatorSystem::get_or_emplace_state(Size index)
+    AnimatorSystem::RuntimeState* AnimatorSystem::get_state(Size index)
     {
         auto& storage{ owner_->registry_->storage<AnimatorComponent>() };
         while(states_.size() < storage.size()) states_.emplace_back();

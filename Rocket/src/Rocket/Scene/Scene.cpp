@@ -509,6 +509,6 @@ namespace rke
     const AnimatorSystem::RuntimeState* Scene::animator_state(Entity entity)
     {
         if(!entity.belongs_to(this)) return nullptr;
-        return animator_system_->check_and_get_state(entity.get_handle());
+        return animator_system_->get_state_from(entity.get_handle());
     }
 }
