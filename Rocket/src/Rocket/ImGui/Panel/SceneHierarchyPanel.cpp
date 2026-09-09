@@ -416,6 +416,40 @@ namespace rke
 
         check_then_draw<AnimatorComponent, u8"Animation">(entity, [this](Entity ent)
         {
+            ImGui::SameLine();
+            bool playing{ context_->animator_playing(ent) };
+            if(playing) {
+                bool paused{ context_->animator_paused(ent) };
+                const char* second_text{ paused ? "Resume" : "Pause" };
+                float avail_width{ ImGui::GetContentRegionAvail().x };
+                float first_btn_width{ ImGui::CalcTextSize("Stop").x
+                    + ImGui::GetStyle().FramePadding.x * 2.0f };
+                float second_btn_width{ ImGui::CalcTextSize(second_text).x
+                    + ImGui::GetStyle().FramePadding.x * 2.0f };
+                float spacing{ ImGui::GetStyle().ItemSpacing.x };
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width
+                    - first_btn_width - spacing - second_btn_width);
+
+                if(ImGui::SmallButton("Stop"))
+                    context_->animator_stop(ent);
+                ImGui::SameLine();
+                if(paused) {
+                    if(ImGui::SmallButton("Resume"))
+                        context_->animator_resume(ent);
+                } else {
+                    if(ImGui::SmallButton("Pause"))
+                        context_->animator_pause(ent);
+                }
+            } else {
+                float avail_width{ ImGui::GetContentRegionAvail().x };
+                float btn_width{ ImGui::CalcTextSize("Play").x
+                    + ImGui::GetStyle().FramePadding.x * 2.0f };
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width - btn_width);
+
+                if(ImGui::SmallButton("Play"))
+                    context_->animator_play(ent);
+            }
+
             auto& ac{ ent.get_mut<AnimatorComponent>() };
             auto& am{ context_->get_owner()->get_assets_manager_mut() };
 
@@ -513,38 +547,26 @@ namespace rke
                     ImGui::EndCombo();
                 }
             });
-            auto [active, valid]{ context_->animator_active_clip(ent) };
-            layout::two_columns_table<u8"Active Clip">([&]()
-            {
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::Button(active.raw(), ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
-            });
-
-        // temp; for testing
-            if(ImGui::SmallButton(">"))
-            {
-                if(context_->animator_playing(ent))
-                    context_->animator_stop(ent);
-                else context_->animator_play(ent);
-            }
-            ImGui::SameLine();
-            if(ImGui::SmallButton("="))
-            {
-                if(context_->animator_paused(ent))
-                    context_->animator_resume(ent);
-                else context_->animator_pause(ent);
-            }
-
+            
             const auto* state{ context_->animator_state(ent) };
             if(!state) return;
+            layout::tree_node_branch<u8"State">([&]()
+            {
+                auto [active, _]{ context_->animator_active_clip(ent) };
+                layout::two_columns_table<u8"Active Clip">([&]()
+                {
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                    ImGui::Button(active.raw(), ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
+                });
 
-            float acc{ static_cast<float>(state->acc) };
-            layout::drag_float_control<u8"Time Acc">
-                (acc, 0.0f, 0.0f, std::nullopt, u8"%.2f");
+                float acc{ static_cast<float>(state->acc) };
+                layout::drag_float_control<u8"Time Acc">
+                    (acc, 0.0f, 0.0f, std::nullopt, u8"%.2f");
 
-            float frame_idx{ static_cast<float>(state->frame_index) };
-            layout::drag_float_control<u8"Frame Idx">
-                (frame_idx, 0.0f, 0.0f, std::nullopt, u8"%.0f");
+                float frame_idx{ static_cast<float>(state->frame_index) };
+                layout::drag_float_control<u8"Frame Idx">
+                    (frame_idx, 0.0f, 0.0f, std::nullopt, u8"%.0f");
+            });
         });
 
         check_then_draw<Rigidbody2DComponent, u8"Rigidbody 2D">(entity, [this](Entity ent)
