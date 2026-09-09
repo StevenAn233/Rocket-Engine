@@ -33,11 +33,10 @@ namespace rke::glue
     void push_script_entry(const char8_t* name, void* (*constructor)())
         { get_entires_cache().emplace_back(name, constructor); }
 
-    extern "C" RKE_GLUE_API bool register_scripts(ScriptRegistry* reg)
+    extern "C" RKE_GLUE_API void register_scripts(ScriptRegistry* reg)
     {
-        if(!reg) return false;
+        if(!reg) return;
         for(ScriptEntry entry : get_entires_cache())
             reg->register_script(std::bit_cast<ScriptType>(entry.name), entry.constructor);
-        return true;
     }
 }

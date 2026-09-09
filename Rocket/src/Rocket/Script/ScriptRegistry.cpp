@@ -27,7 +27,7 @@ namespace rke
 
     String ScriptRegistry::get_script_name(ScriptType type) const
     {
-        if(type == script_type_null) return {};
+        if(!has_script_type(type)) return {};
         return String(std::bit_cast<const char8*>(type));
     }
 

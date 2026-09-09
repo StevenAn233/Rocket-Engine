@@ -7,7 +7,7 @@ import ScriptRegistry;
 
 export namespace rke
 {
-    using RegisterScriptsFunc = bool(*)(ScriptRegistry*);
+    using RegisterScriptsFunc = void(*)(ScriptRegistry*);
 
     class ScriptDylibLoader
     {

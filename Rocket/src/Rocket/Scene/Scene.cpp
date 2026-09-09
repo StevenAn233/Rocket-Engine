@@ -392,7 +392,7 @@ namespace rke
         return animator_system_->paused(entity.get_handle());
     }
 
-    void Scene::on_script_dylib_hot_reloading(ScriptRegistry& script_reg)
+    void Scene::on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg)
     {
         CORE_ASSERT(!in_runtime(), u8"Scene: Can't reload during runtime!");
         auto view{ registry_->view<NativeScriptComponent>() };
@@ -400,8 +400,8 @@ namespace rke
         {
             auto& nsc{ registry_->get<NativeScriptComponent>(ent) };
             if(nsc.script_type == script_type_null) continue;
-            String name{ std::bit_cast<const char8*>(nsc.script_type) };
-            nsc.script_type = script_reg.get_script_type(name);
+            String name{ old_reg.get_script_name(nsc.script_type) };
+            nsc.script_type = new_reg.get_script_type(name);
         }
     }
 
@@ -425,6 +425,7 @@ namespace rke
         if(in_runtime())
         {
             physics_engine_->on_update(dt);
+            script_manager_->on_update(dt);
             script_manager_->dispatch_contacts
             (
                 physics_engine_->get_begin_contacts_solid(),
@@ -432,16 +433,6 @@ namespace rke
                 physics_engine_->get_begin_contacts_sensor(),
                 physics_engine_->get_end_contacts_sensor()
             );
-            auto nsc_view{ registry_->view<NativeScriptComponent>() };
-            for(entt::entity ent : nsc_view)
-            {
-                auto& nsc{ nsc_view.get<NativeScriptComponent>(ent) };
-                if(nsc.script_type != nsc.resolved_script_type)
-                    script_manager_->refresh_script(static_cast<EntityHandle>(ent));
-                
-                Script* script{ reinterpret_cast<Script*>(nsc.script_handle) };
-                if(script) script->on_update(dt);
-            }
         }
         animator_system_->on_update(dt);
         flush_destroy_queue();
@@ -479,15 +470,8 @@ namespace rke
     void Scene::on_mouse_scrolled_runtime(MouseScrolledEvent& e)
     {
         if(!in_runtime()) return;
-        auto view{ registry_->view<NativeScriptComponent>() };
-        for(entt::entity ent : view)
-        {
-            auto& nsc{ view.get<NativeScriptComponent>(ent) };
-            if(nsc.script_type != nsc.resolved_script_type)
-                script_manager_->refresh_script(static_cast<EntityHandle>(ent));
-            Script* script{ reinterpret_cast<Script*>(nsc.script_handle) };
-            if(script) script->on_mouse_scrolled(e.get_x_offset(), e.get_y_offset());
-        }
+        script_manager_->on_mouse_scrolled
+            (e.get_x_offset(), e.get_y_offset());
     }
 
     void Scene::flush_destroy_queue()

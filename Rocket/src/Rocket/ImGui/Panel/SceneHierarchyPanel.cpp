@@ -537,6 +537,13 @@ namespace rke
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 if(ImGui::BeginCombo("##clip_name", start_clip.raw()))
                 {
+                    bool no_clip{ !ac.has_clip() };
+                    if(ImGui::Selectable("No Clip", no_clip))
+                    {
+                        ac.clip_name[0] = u8'\0';
+                        context_->mark_modified();
+                    }
+                    if(no_clip) ImGui::SetItemDefaultFocus();
                     for(Size i{}; i < clip_names.size(); i++)
                     {
                         bool is_selected{ clip_names[i] == start_clip };
@@ -676,21 +683,21 @@ namespace rke
         check_then_draw<NativeScriptComponent, u8"Native Script">(entity, [this](Entity ent)
         {
             auto& nsc{ ent.get_mut<NativeScriptComponent>() };
-            const ScriptRegistry& script_registry
+            const ScriptRegistry& script_reg
                 { context_->get_owner()->get_script_registry() };
 
-            const char* curr_script_name{ "No Script" };
+            String curr_script_name{ u8"No Script" };
             bool no_script{ nsc.script_type == script_type_null };
             if(!no_script) {
-                if(script_registry.has_script_type(nsc.script_type))
-                    curr_script_name = std::bit_cast<const char*>(nsc.script_type);
-                else curr_script_name = "<Missing Script>";
+                if(script_reg.has_script_type(nsc.script_type))
+                    curr_script_name = script_reg.get_script_name(nsc.script_type);
+                else curr_script_name = String(u8"<Missing Script>");
             }
             // script_name  empty : No Script
             // script_name !empty && name  found : <Script Name>
             // script_name !empty && name !found : <Missing Script>
 
-            if(ImGui::BeginCombo("##script", curr_script_name))
+            if(ImGui::BeginCombo("##script", curr_script_name.raw()))
             {
                 if(ImGui::Selectable("No Script", no_script))
                 {
@@ -699,7 +706,7 @@ namespace rke
                 }
                 if(no_script) ImGui::SetItemDefaultFocus();
 
-                for(ScriptType type : script_registry.get_script_types())
+                for(ScriptType type : script_reg.get_script_types())
                 {
                     bool is_selected{ nsc.script_type == type };
                     if(ImGui::Selectable(std::bit_cast<const char*>(type), is_selected))

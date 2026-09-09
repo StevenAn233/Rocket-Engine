@@ -194,8 +194,7 @@ export namespace rke
         bool animator_playing(Entity entity);
         bool animator_paused (Entity entity);
 
-        // previous dylib can't be already unloaded when calling this function!
-        void on_script_dylib_hot_reloading(ScriptRegistry& script_reg);
+        void on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg);
 
         void clear();
         void on_update(double dt);

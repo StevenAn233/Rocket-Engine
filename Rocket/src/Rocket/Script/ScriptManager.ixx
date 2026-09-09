@@ -12,6 +12,7 @@ import Script;
 import Types;
 import HeapManager;
 import EntityAccess;
+import ScriptAccess;
 import PhysicsEngine2D;
 
 export namespace rke
@@ -29,8 +30,9 @@ export namespace rke
 
         void on_runtime_start();
         void on_runtime_stop ();
+        void on_update(double dt);
+        void on_mouse_scrolled(float x_offset, float y_offset);
 
-        void refresh_script(EntityHandle handle);
         void dispatch_contacts (
             const std::vector<Contact>& begin_contacts_solid,
             const std::vector<Contact>& end_contacts_solid,
@@ -38,8 +40,15 @@ export namespace rke
             const std::vector<Contact>& end_contacts_sensor
         );
     private:
-        Scope<Script> create_script(EntityHandle handle);
-        void destroy_script(Scope<Script> script, EntityHandle handle);
+        struct RuntimeCache
+        {
+            ScriptType script_type{ script_type_null };
+            Scope<Script> script{};
+        };
+
+        Scope<Script> create_script(ScriptType type, EntityHandle owner);
+        void destroy_script(Scope<Script> script);
+        void refresh_cache(RuntimeCache& cache, ScriptType type, EntityHandle owner);
 
         enum class ContactType
         {
@@ -48,11 +57,15 @@ export namespace rke
             SensorBegin,
             SensorEnd,
         };
-        void contact_callback(EntityHandle owner_handle, EntityHandle other_handle, ContactType type);
+        void contact_callback (
+            EntityHandle owner_handle,
+            EntityHandle other_handle,
+            ContactType type
+        );
 
         static void on_script_com_destroy(entt::registry& reg, entt::entity ent);
     private:
         Scene* owner_;
-        std::unordered_map<uint32, Scope<Script>> script_cache_{};
+        std::vector<RuntimeCache> script_cache_{};
     };
 }

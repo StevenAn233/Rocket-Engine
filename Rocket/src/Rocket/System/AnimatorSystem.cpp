@@ -206,7 +206,7 @@ namespace rke
 
         auto& storage{ reg.storage<AnimatorComponent>() };
         Size index{ storage.index(ent) };
-        CORE_ASSERT(index < sys.states_.size(), u8"AnimatorComponent: State out of bound!");
+        CORE_ASSERT(index < sys.states_.size(), u8"AnimatorSystem: State out of bound!");
 
     // swap and pop
         *(sys.states_.begin() + index) = std::move(sys.states_.back());

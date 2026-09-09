@@ -208,13 +208,8 @@ export namespace rke
     {
         ScriptType script_type{ script_type_null };
 
-    /* -runtime cache(do not serialize): uncopiable- */
-        ScriptType resolved_script_type{ script_type_null };
-        void* script_handle{}; // will be cleared by ScriptManager
-
         NativeScriptComponent() = default;
-        NativeScriptComponent(const NativeScriptComponent& other)
-            : script_type(other.script_type) {}
+        NativeScriptComponent(const NativeScriptComponent& other) = default;
     };
 
 // Registry
