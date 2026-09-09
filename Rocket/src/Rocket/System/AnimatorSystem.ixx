@@ -54,8 +54,6 @@ export namespace rke
 
         bool playing(EntityHandle handle);
         bool paused (EntityHandle handle);
-
-        std::pair<String, bool> active_clip(EntityHandle handle);
     private:
         RuntimeState* check_and_get_state(EntityHandle handle);
         RuntimeState* get_or_emplace_state(Size index);

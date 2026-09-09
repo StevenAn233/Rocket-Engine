@@ -552,12 +552,22 @@ namespace rke
             if(!state) return;
             layout::tree_node_branch<u8"State">([&]()
             {
-                auto [active, _]{ context_->animator_active_clip(ent) };
+                const String& active{ state->active };
                 layout::two_columns_table<u8"Active Clip">([&]()
                 {
                     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                    ImGui::Button(active.raw(), ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
+                    ImGui::Button(active.empty() ? "<No Clip>" : active.raw(),
+                        ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
+                    
                 });
+                if(state->active_clip_invalid)
+                {
+                    const char* text{ "Clip invalid!" };
+                    float avail_width{ ImGui::GetContentRegionAvail().x };
+                    float text_width{ ImGui::CalcTextSize(text).x };
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width - text_width);
+                    ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, text);
+                }
 
                 float acc{ static_cast<float>(state->acc) };
                 layout::drag_float_control<u8"Time Acc">

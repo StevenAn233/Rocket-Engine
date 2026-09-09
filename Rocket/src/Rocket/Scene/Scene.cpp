@@ -392,13 +392,6 @@ namespace rke
         return animator_system_->paused(entity.get_handle());
     }
 
-    std::pair<String, bool> Scene::animator_active_clip(Entity entity)
-    {
-        using namespace literals;
-        if(!entity.belongs_to(this)) return { u8"<Wrong Scene>"_s, false };
-        return animator_system_->active_clip(entity.get_handle());
-    }
-
     void Scene::on_script_dylib_hot_reloading(ScriptRegistry& script_reg)
     {
         CORE_ASSERT(!in_runtime(), u8"Scene: Can't reload during runtime!");

@@ -194,8 +194,6 @@ export namespace rke
         bool animator_playing(Entity entity);
         bool animator_paused (Entity entity);
 
-        std::pair<String, bool> animator_active_clip(Entity entity);
-
         // previous dylib can't be already unloaded when calling this function!
         void on_script_dylib_hot_reloading(ScriptRegistry& script_reg);
 

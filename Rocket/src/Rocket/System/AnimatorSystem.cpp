@@ -102,18 +102,6 @@ namespace rke
         return false;
     }
 
-    std::pair<String, bool> AnimatorSystem::active_clip(EntityHandle handle)
-    {
-        using namespace literals;
-        RuntimeState* state{ check_and_get_state(handle) };
-        if(state && !state->active.empty())
-        {
-            if(state->active_clip_invalid) return { u8"<Invalid Clip>"_s, false };
-            return { state->active, true };
-        }
-        return { u8"<No Clip>"_s, false };
-    }
-
     AnimatorSystem::RuntimeState* AnimatorSystem::check_and_get_state(EntityHandle handle)
     {
         entt::entity ent{ static_cast<entt::entity>(handle) };
