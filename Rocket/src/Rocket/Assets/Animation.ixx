@@ -3,6 +3,7 @@
 #include <vector>
 #include <utility>
 #include <unordered_map>
+#include <unordered_set>
 #include "rke_macros.h"
 
 export module Animation;
@@ -46,6 +47,8 @@ export namespace rke
 
         std::pair<AssetHandle, bool> get_tex_handle(AssetsManager& am);
         const AnimClip* get_clip(const String& name) const;
+
+        bool failed_contains(const String& name) const;
     private:
         bool load_from(const Path& filepath); // Caller: AssetsManager
         bool save_to(const Path& filepath) const; // Caller: AnimationEditorPanel
@@ -59,5 +62,6 @@ export namespace rke
 
         std::vector<String> clip_names_{}; // for editor
         std::unordered_map<String, AnimClip> clips_{};
+        mutable std::unordered_set<String> failed_{};
     };
 }

@@ -127,7 +127,7 @@ export namespace rke
         static constexpr Size clip_name_cap{ 64 };
 
         AssetUUID anim_uuid{ 0 };
-        char8 clip_name[clip_name_cap]{};
+        char8 clip[clip_name_cap]{};
         GTextureSettings gtex_settings{};
 
     /* -runtime cache(do not serialize): copiable- */
@@ -138,9 +138,9 @@ export namespace rke
         AnimatorComponent() = default;
         AnimatorComponent(const AnimatorComponent& other) = default;
 
-        inline bool has_clip() const { return clip_name[0] != u8'\0'; }
-        inline StringView get_clip_name() const { return StringView(clip_name); }
-        void set_clip_name(StringView name); // truncated to buffer
+        inline bool has_clip() const { return clip[0] != u8'\0'; }
+        inline StringView get_clip() const { return StringView(clip); }
+        void set_clip(StringView name); // truncated to buffer
     };
 
     enum class BodyType : uint32

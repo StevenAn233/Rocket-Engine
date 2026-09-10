@@ -85,7 +85,7 @@ namespace {
 
             const auto& ac{ entity.get<AnimatorComponent>() };
             writer.write(u8"Animation", ConfigValue(ac.anim_uuid.value()));
-            writer.write(u8"Clip Name", ConfigValue(ac.get_clip_name()));
+            writer.write(u8"Clip Name", ConfigValue(ac.get_clip()));
             writer.write(u8"Filt", static_cast<int>(ac.gtex_settings.filt));
             writer.write(u8"Wrap", static_cast<int>(ac.gtex_settings.wrap));
             writer.write(u8"sRGB", ac.gtex_settings.srgb);
@@ -195,7 +195,7 @@ namespace {
             auto& ac{ entity.emplace<AnimatorComponent>() };
             ac.anim_uuid = AssetUUID(ac_reader->get_at(u8"Animation", 0ui64));
             String clip_name{ ac_reader->get_at(u8"Clip Name", String{}) };
-            if(!clip_name.empty()) ac.set_clip_name(clip_name);
+            if(!clip_name.empty()) ac.set_clip(clip_name);
             ac.gtex_settings.filt = static_cast<GTexture::FiltFormat>
                 (ac_reader->get_at(u8"Filt", 0));
             ac.gtex_settings.wrap = static_cast<GTexture::WrapFormat>

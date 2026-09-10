@@ -490,7 +490,7 @@ namespace rke
         }
     }
 
-    const AnimatorSystem::RuntimeState* Scene::animator_state(Entity entity)
+    const AnimatorSystem::AnimPlayState* Scene::animator_state(Entity entity)
     {
         if(!entity.belongs_to(this)) return nullptr;
         return animator_system_->get_state_from(entity.get_handle());

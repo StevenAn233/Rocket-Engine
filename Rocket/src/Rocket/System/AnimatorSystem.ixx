@@ -25,8 +25,9 @@ export namespace rke
     public:
         friend class Scene;
 
-        struct RuntimeState
+        struct AnimPlayState
         {
+            EntityHandle owner{ entity_handle_null }; // slot identity (self-healing)
             AssetResolve resolved_anim{};
             bool playing{ false }, paused{ false };
 
@@ -34,7 +35,6 @@ export namespace rke
             String active   {}; // clip name
             Size frame_index{};
             double acc{};
-            bool active_clip_invalid{ false };
         };
 
         AnimatorSystem(Scene* owner);
@@ -55,19 +55,23 @@ export namespace rke
         bool playing(EntityHandle handle);
         bool paused (EntityHandle handle);
     private:
-        RuntimeState* get_state_from(EntityHandle handle);
-        RuntimeState* get_state(Size index);
+        AnimPlayState* get_state_from(EntityHandle handle);
+        AnimPlayState* refresh_state(EntityHandle handle,
+            AnimatorComponent& ac, Size index);
 
-        void rewind_to_start(RuntimeState& state);
-        bool advance(Animation& anim, RuntimeState& state, double dt);
+        void align_states(); // keep states size == storage size
+        void rewind_to_start(AnimPlayState& state);
+        bool at_start(AnimPlayState& state);
+
+        bool advance(Animation& anim, AnimPlayState& state, double dt);
 
         void update_animator_component(AnimatorComponent& ac,
-            Animation& anim, RuntimeState& state);
+            Animation& anim, AnimPlayState& state);
 
         static void on_anim_com_destroy(entt::registry& reg, entt::entity ent);
     private:
         Scene* owner_;
         Project* project_{};
-        std::vector<RuntimeState> states_{};
+        std::vector<AnimPlayState> states_{};
     };
 }

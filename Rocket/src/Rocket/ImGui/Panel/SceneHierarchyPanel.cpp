@@ -529,7 +529,7 @@ namespace rke
             AssetHandle anim_handle{ am.load_asset(ac.anim_uuid) };
             if(!am.is_handle_valid(anim_handle)) return;
 
-            String start_clip{ ac.has_clip() ? String(ac.get_clip_name()) : String(u8"No Clip") };
+            String start_clip{ ac.has_clip() ? String(ac.get_clip()) : String(u8"No Clip") };
             Animation* anim{ am.get_asset<Animation>(anim_handle) };
             auto& clip_names{ anim->get_clip_names() };
             layout::two_columns_table<u8"Start Clip">([&]()
@@ -540,7 +540,7 @@ namespace rke
                     bool no_clip{ !ac.has_clip() };
                     if(ImGui::Selectable("No Clip", no_clip))
                     {
-                        ac.clip_name[0] = u8'\0';
+                        ac.clip[0] = u8'\0';
                         context_->mark_modified();
                     }
                     if(no_clip) ImGui::SetItemDefaultFocus();
@@ -548,7 +548,7 @@ namespace rke
                     {
                         bool is_selected{ clip_names[i] == start_clip };
                         if(ImGui::Selectable(clip_names[i].raw(), is_selected))
-                            { ac.set_clip_name(clip_names[i]) ;}
+                            { ac.set_clip(clip_names[i]) ;}
                         if(is_selected) ImGui::SetItemDefaultFocus();
                     }
                     ImGui::EndCombo();
@@ -567,9 +567,9 @@ namespace rke
                         ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
                     
                 });
-                if(state->active_clip_invalid)
+                if(anim->failed_contains(active))
                 {
-                    const char* text{ "Clip invalid!" };
+                    const char* text{ "Active clip invalid!" };
                     float avail_width{ ImGui::GetContentRegionAvail().x };
                     float text_width{ ImGui::CalcTextSize(text).x };
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width - text_width);

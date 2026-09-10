@@ -18,8 +18,16 @@ namespace rke
         if(name.empty()) return nullptr;
         auto it{ clips_.find(name) };
         if(it != clips_.end()) return &(it->second);
-        CORE_WARN(u8"Animation: Clip '{}' not found!", name);
+
+        auto [_, inserted]{ failed_.insert(name) };
+        if(inserted) CORE_WARN(u8"Animation: Clip '{}' not found!", name);
         return nullptr;
+    }
+
+    bool Animation::failed_contains(const String& name) const
+    {
+        if(name.empty()) return false;
+        return failed_.contains(name);
     }
 
     bool Animation::load_from(const Path& filepath)
@@ -49,6 +57,7 @@ namespace rke
 
         clips_.clear();
         clip_names_.clear();
+        failed_.clear();
         clips_reader->for_each([this](Scope<ConfigReader> clip_node)
         {
             String name{ clip_node->get_at(u8"Name", String{}) };

@@ -219,7 +219,7 @@ export namespace rke
         inline glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
     private:
         void flush_destroy_queue();
-        const AnimatorSystem::RuntimeState* animator_state(Entity entity); // for SceneHierarchyPanel
+        const AnimatorSystem::AnimPlayState* animator_state(Entity entity); // for SceneHierarchyPanel
     private:
         Project* owner_;
         String name_;

@@ -35,10 +35,10 @@ namespace rke
 
     SpriteComponent::SpriteComponent() : quad(&s_quad) {}
 
-    void AnimatorComponent::set_clip_name(StringView name)
+    void AnimatorComponent::set_clip(StringView name)
     {
         Size count{ std::min(name.size(), clip_name_cap - 1) };
-        std::memcpy(&clip_name[0], name.data(), count);
-        clip_name[count] = u8'\0';
+        std::memcpy(&clip[0], name.data(), count);
+        clip[count] = u8'\0';
     }
 }
