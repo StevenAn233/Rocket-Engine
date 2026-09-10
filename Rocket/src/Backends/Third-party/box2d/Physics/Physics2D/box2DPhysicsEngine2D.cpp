@@ -45,14 +45,16 @@ namespace {
             && entity.get<BoxCollider2DComponent>().type == ColliderType::OneWay;
     }
 
-    static bool is_one_way_allowed(Entity platform, b2ShapeId other_shape)
+// the platform's own shape is handed in by box2d, so no cached id is needed
+    static bool is_one_way_allowed(Entity platform,
+        b2ShapeId platform_shape, b2ShapeId other_shape)
     {
         const auto& tc { platform.get<TransformComponent>() };
         const Mesh* mesh{ platform.get_mesh() };
         if(!mesh) return true;
         const auto& bcc{ platform.get<BoxCollider2DComponent>() };
 
-        b2Vec2 platform_pos{ b2Body_GetPosition(b2Shape_GetBody(std::bit_cast<b2ShapeId>(bcc.shape_id))) };
+        b2Vec2 platform_pos{ b2Body_GetPosition(b2Shape_GetBody(platform_shape)) };
         b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
 
         // allow only when the other body's center is above the platform top
@@ -75,6 +77,7 @@ namespace rke
 
     void box2DPhysicsEngine2D::on_runtime_start()
     {
+        states_.clear();
         shape_to_entity_.clear();
 
     // Create physics world
@@ -91,27 +94,14 @@ namespace rke
 
     void box2DPhysicsEngine2D::on_runtime_stop()
     {
+        if(!empty())
+        {
+            sync_all_from_body();
+            b2DestroyWorld(physics_world_);
+            physics_world_ = b2_nullWorldId;
+        }
+        states_.clear();
         shape_to_entity_.clear();
-
-        if(empty()) return;
-        sync_all_from_body();
-
-        auto rbc_view{ get_registry().view<Rigidbody2DComponent>() };
-        for(entt::entity ent : rbc_view)
-        {
-            auto& rbc{ rbc_view.get<Rigidbody2DComponent>(ent) };
-            rbc.body_id = std::bit_cast<uint64>(b2_nullBodyId);
-        }
-
-        auto bcc_view{ get_registry().view<BoxCollider2DComponent>() };
-        for(entt::entity ent : bcc_view)
-        {
-            auto& bcc{ bcc_view.get<BoxCollider2DComponent>(ent) };
-            bcc.shape_id = std::bit_cast<uint64>(b2_nullShapeId);
-        }
-
-        b2DestroyWorld(physics_world_);
-        physics_world_ = b2_nullWorldId;
     }
 
     void box2DPhysicsEngine2D::on_update(double dt)
@@ -174,16 +164,65 @@ namespace rke
     {
         if(empty()) return;
         if(!entity.valid() || !entity.has<Rigidbody2DComponent>()) return;
+        if(entity.get<Rigidbody2DComponent>().type != BodyType::Simulated) return;
 
-        auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-        if(rbc.type != BodyType::Simulated) return;
-        b2BodyId body{ std::bit_cast<b2BodyId>(rbc.body_id) };
-        if(B2_IS_NULL(body)) return;
+        const PhysicsState* state{ find_state(entity.get_handle()) };
+        if(!state || !b2Body_IsValid(state->body)) return;
 
-        b2Body_ApplyForceToCenter(body, b2Vec2(force.x, force.y), true);
+        b2Body_ApplyForceToCenter(state->body, b2Vec2(force.x, force.y), true);
     }
 
 // private
+    box2DPhysicsEngine2D::PhysicsState* box2DPhysicsEngine2D::find_state(EntityHandle handle) noexcept
+    {
+        auto it{ states_.find(handle) };
+        return (it != states_.end()) ? &(it->second) : nullptr;
+    }
+
+    box2DPhysicsEngine2D::PhysicsState& box2DPhysicsEngine2D::state_of(EntityHandle handle)
+        { return states_[handle]; }
+
+    void box2DPhysicsEngine2D::destroy_shape(PhysicsState& state)
+    {
+        if(b2Shape_IsValid(state.shape))
+        {
+            unregister_shape_entity(state.shape);
+            b2DestroyShape(state.shape, true);
+        }
+        state.shape = b2_nullShapeId;
+        state.shape_size = glm::vec2(0.0f);
+    }
+
+    void box2DPhysicsEngine2D::destroy_body(PhysicsState& state)
+    {
+        destroy_shape(state);
+        if(b2Body_IsValid(state.body)) b2DestroyBody(state.body);
+        state.body = b2_nullBodyId;
+    }
+
+    void box2DPhysicsEngine2D::remove_entity(EntityHandle handle)
+    {
+        auto it{ states_.find(handle) };
+        if(it == states_.end()) return;
+
+        if(!empty()) destroy_body(it->second);
+        states_.erase(it);
+    }
+
+    void box2DPhysicsEngine2D::remove_shape_of(EntityHandle handle)
+    {
+        auto it{ states_.find(handle) };
+        if(it == states_.end()) return;
+
+        destroy_shape(it->second);
+
+    // mass changes once the shape is gone: write it back if the component is still there
+        Entity entity{ get_owner().get_entity(handle) };
+        if(entity.valid() && entity.has<Rigidbody2DComponent>()
+        && b2Body_IsValid(it->second.body))
+            entity.get_mut<Rigidbody2DComponent>().mass = b2Body_GetMass(it->second.body);
+    }
+
     void box2DPhysicsEngine2D::register_shape_entity(b2ShapeId shape_id, EntityHandle handle)
     {
         if(B2_IS_NULL(shape_id)) return;
@@ -203,14 +242,13 @@ namespace rke
         return entity_handle_null;
     }
 
-    void box2DPhysicsEngine2D::ensure_body(Entity entity)
+    void box2DPhysicsEngine2D::ensure_body(Entity entity, PhysicsState& state)
     {
         if(!entity.valid() || !entity.has<Rigidbody2DComponent>())
             { CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!"); return; }
+        if(b2Body_IsValid(state.body)) return;
 
-        auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-        if(B2_IS_NON_NULL(std::bit_cast<b2BodyId>(rbc.body_id))) return;
-
+        const auto& rbc{ entity.get<Rigidbody2DComponent>() };
         const auto& tc{ entity.get<TransformComponent>() };
         const Mesh* mesh{ entity.get_mesh() };
         CORE_ASSERT(mesh, u8"box2DPhysicsEngine2D: Entity has no geometry mesh!");
@@ -223,27 +261,12 @@ namespace rke
         body_def.rotation = b2MakeRot(glm::radians(tc.rotation.z));
         body_def.fixedRotation = rbc.rotation_fixed;
 
-        b2BodyId new_body_id{ b2CreateBody(physics_world_, &body_def) };
-        CORE_ASSERT(B2_IS_NON_NULL(new_body_id), u8"box2dPhysicsEngine2D: Body id null!");
-        rbc.body_id = std::bit_cast<uint64>(new_body_id);
+        state.body = b2CreateBody(physics_world_, &body_def);
+        CORE_ASSERT(B2_IS_NON_NULL(state.body), u8"box2dPhysicsEngine2D: Body id null!");
     }
 
-    void box2DPhysicsEngine2D::destroy_body(Entity entity)
-    {
-        if(!entity.valid() || !entity.has<Rigidbody2DComponent>())
-            { CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!"); return; }
-
-        if(entity.has<BoxCollider2DComponent>()) destroy_shape(entity);
-
-        auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-        auto body_id{ std::bit_cast<b2BodyId>(rbc.body_id) };
-        if(B2_IS_NULL(body_id)) return;
-
-        b2DestroyBody(body_id);
-        rbc.body_id = std::bit_cast<uint64>(b2_nullBodyId);
-    }
-
-    void box2DPhysicsEngine2D::create_shape(Entity entity, const PhysicsLayers& layers)
+    void box2DPhysicsEngine2D::create_shape
+        (Entity entity, PhysicsState& state, const PhysicsLayers& layers)
     {
         if(!entity.valid() || !entity.has<BoxCollider2DComponent>())
         {
@@ -252,17 +275,15 @@ namespace rke
         }
         if(!entity.has<Rigidbody2DComponent>()) return;
 
-        auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-        auto body_id{ std::bit_cast<b2BodyId>(rbc.body_id) };
-        if(B2_IS_NULL(body_id)) {
+        if(!b2Body_IsValid(state.body)) {
             CORE_ERROR(u8"box2DPhysicsEngine2D: Body id null!");
             return;
         }
 
-        auto& bcc{ entity.get_mut<BoxCollider2DComponent>() };
-        if(B2_IS_NON_NULL(std::bit_cast<b2ShapeId>(bcc.shape_id)))
+        if(b2Shape_IsValid(state.shape))
             { CORE_ERROR(u8"box2DPhysicsEngine2D: Already has shape!"); return; }
 
+        const auto& bcc{ entity.get<BoxCollider2DComponent>() };
         const auto& tc{ entity.get<TransformComponent>() };
         const Mesh* mesh{ entity.get_mesh() };
         CORE_ASSERT(mesh, u8"box2DPhysicsEngine2D: Entity has no geometry mesh!");
@@ -299,51 +320,31 @@ namespace rke
         shape_def.enableSensorEvents  = true; // always on for now
         shape_def.userData = reinterpret_cast<void*>(static_cast<uintptr>(entity.get_handle()));
 
-        b2ShapeId shape_id{ b2CreatePolygonShape(body_id, &shape_def, &box_geometry) };
-        CORE_ASSERT(B2_IS_NON_NULL(shape_id), u8"box2dPhysicsEngine: Shape id null!");
+        state.shape = b2CreatePolygonShape(state.body, &shape_def, &box_geometry);
+        CORE_ASSERT(B2_IS_NON_NULL(state.shape), u8"box2dPhysicsEngine: Shape id null!");
 
-        bcc.shape_id = std::bit_cast<uint64>(shape_id);
-        bcc.resolved_shape_size = glm::vec2
+        state.shape_size = glm::vec2
             (bcc.half_extent.x * size_x, bcc.half_extent.y * size_y);
-        rbc.mass = b2Body_GetMass(body_id);
+        entity.get_mut<Rigidbody2DComponent>().mass = b2Body_GetMass(state.body);
 
     // register: null id will NEVER be registered
-        register_shape_entity(shape_id, entity.get_handle());
+        register_shape_entity(state.shape, entity.get_handle());
     }
 
-    void box2DPhysicsEngine2D::destroy_shape(Entity entity)
+    void box2DPhysicsEngine2D::rebuild_shape
+        (Entity entity, PhysicsState& state, const PhysicsLayers& layers)
     {
-        if(!entity.valid() || !entity.has<BoxCollider2DComponent>())
-            { CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!"); return; }
-
-        auto& bcc{ entity.get_mut<BoxCollider2DComponent>() };
-        b2ShapeId shape_id{ std::bit_cast<b2ShapeId>(bcc.shape_id) };
-        if(B2_IS_NULL(shape_id)) return;
-
-        unregister_shape_entity(shape_id);
-        b2DestroyShape(shape_id, true);
-        bcc.shape_id = std::bit_cast<uint64>(b2_nullShapeId);
-        bcc.resolved_shape_size = glm::vec2(0.0f);
-
-        if(entity.has<Rigidbody2DComponent>())
-        {
-            auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-            rbc.mass = b2Body_GetMass(std::bit_cast<b2BodyId>(rbc.body_id));
-        }
+        destroy_shape(state);
+        create_shape(entity, state, layers);
     }
 
-    void box2DPhysicsEngine2D::rebuild_shape(Entity entity, const PhysicsLayers& layers)
-    {
-        destroy_shape(entity);
-        create_shape(entity, layers);
-    }
-
-    bool box2DPhysicsEngine2D::shape_spec_changed(Entity entity, const PhysicsLayers& layers) const
+    bool box2DPhysicsEngine2D::shape_spec_changed(Entity entity,
+        const PhysicsState& state, const PhysicsLayers& layers) const
     {
         CORE_ASSERT(entity.has<BoxCollider2DComponent>(),
             u8"box2DPhysicsEngine2D: Entity not valid!");
         const auto& bcc{ entity.get<BoxCollider2DComponent>() };
-        b2ShapeId shape{ std::bit_cast<b2ShapeId>(bcc.shape_id) };
+        b2ShapeId shape{ state.shape };
         CORE_ASSERT(B2_IS_NON_NULL(shape), u8"box2DPhysicsEngine2D: Shape id null!");
 
         if(b2Shape_IsSensor(shape) != (bcc.type == ColliderType::Sensor)) return true;
@@ -365,7 +366,7 @@ namespace rke
             bcc.half_extent.x * std::abs(tc.scale.x) * mesh->get_size().x,
             bcc.half_extent.y * std::abs(tc.scale.y) * mesh->get_size().y
         };
-        if(bcc.resolved_shape_size != expected) return true;
+        if(state.shape_size != expected) return true;
         
         return false;
     }
@@ -383,11 +384,13 @@ namespace rke
             if(!mesh) continue;
 
             auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-            b2BodyId body{ std::bit_cast<b2BodyId>(rbc.body_id) };
-            if(B2_IS_NULL(body)) {
-                ensure_body(entity);
-                body = std::bit_cast<b2BodyId>(rbc.body_id);
+            PhysicsState& state{ state_of(entity.get_handle()) };
+            if(!b2Body_IsValid(state.body))
+            {
+                ensure_body(entity, state);
+                if(!b2Body_IsValid(state.body)) continue; // creation failed: skip this frame
             }
+            b2BodyId body{ state.body };
 
         // Body type -> b2Body
             b2BodyType expected{ to_b2_body_type(rbc.type) };
@@ -425,26 +428,29 @@ namespace rke
                 Project* project{ app().get_project() };
                 CORE_ASSERT(project, u8"box2dPhysicsEngine2D: Project null!");
                 const auto& physics_layers{ project->get_config().physics_layers };
-                if(B2_IS_NULL(std::bit_cast<b2ShapeId>
-                    (entity.get<BoxCollider2DComponent>().shape_id)))
-                    create_shape(entity, physics_layers);
-                else if(shape_spec_changed(entity, physics_layers))
-                    rebuild_shape(entity, physics_layers);
+                if(!b2Shape_IsValid(state.shape))
+                    create_shape(entity, state, physics_layers);
+                else if(shape_spec_changed(entity, state, physics_layers))
+                    rebuild_shape(entity, state, physics_layers);
             }
         }
     }
 
     void box2DPhysicsEngine2D::sync_all_from_body()
     {
+        if(empty()) return;
+
         auto view{ get_registry().view<Rigidbody2DComponent>() };
         for(entt::entity ent : view)
         {
             Entity entity{ get_owner().get_entity(static_cast<EntityHandle>(ent)) };
             if(!entity.valid()) continue;
 
+            PhysicsState* state{ find_state(entity.get_handle()) };
+            if(!state || !b2Body_IsValid(state->body)) continue;
+            b2BodyId body{ state->body };
+
             auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-            b2BodyId body{ std::bit_cast<b2BodyId>(rbc.body_id) };
-            if(B2_IS_NULL(body)) continue;
 
         // b2Velocity -> RigidBody
             b2Vec2 velocity{ b2Body_GetLinearVelocity(body) };
@@ -471,10 +477,10 @@ namespace rke
     bool box2DPhysicsEngine2D::allow_one_way_contact(b2ShapeId shape_a, b2ShapeId shape_b)
     {
         Entity ent_a{ get_owner().get_entity(get_entity_from_shape(shape_a)) };
-        if(is_one_way(ent_a)) return is_one_way_allowed(ent_a, shape_b);
+        if(is_one_way(ent_a)) return is_one_way_allowed(ent_a, shape_a, shape_b);
 
         Entity ent_b{ get_owner().get_entity(get_entity_from_shape(shape_b)) };
-        if(is_one_way(ent_b)) return is_one_way_allowed(ent_b, shape_a);
+        if(is_one_way(ent_b)) return is_one_way_allowed(ent_b, shape_b, shape_a);
 
         return true;
     }
@@ -491,21 +497,19 @@ namespace rke
     {
         auto& ctx{ reg.ctx().get<Scene::RegistryContext>() };
         CORE_ASSERT(ctx.physics_engine, u8"box2DPhysicsEngine2D: Null!");
-        if(ctx.physics_engine->empty()) return;
+        if(!ctx.physics_engine) return;
 
         auto& engine{ *static_cast<box2DPhysicsEngine2D*>(ctx.physics_engine) };
-        Entity entity{ engine.get_owner().get_entity(static_cast<EntityHandle>(ent)) };
-        engine.destroy_body(entity);
+        engine.remove_entity(static_cast<EntityHandle>(ent));
     }
 
     void box2DPhysicsEngine2D::on_physics_collider_destroy(entt::registry& reg, entt::entity ent)
     {
         auto& ctx{ reg.ctx().get<Scene::RegistryContext>() };
         CORE_ASSERT(ctx.physics_engine, u8"box2DPhysicsEngine2D: Null!");
-        if(ctx.physics_engine->empty()) return;
+        if(!ctx.physics_engine) return;
 
         auto& engine{ *static_cast<box2DPhysicsEngine2D*>(ctx.physics_engine) };
-        Entity entity{ engine.get_owner().get_entity(static_cast<EntityHandle>(ent)) };
-        engine.destroy_shape(entity);
+        engine.remove_shape_of(static_cast<EntityHandle>(ent));
     }
 }

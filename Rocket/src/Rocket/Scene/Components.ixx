@@ -1,4 +1,4 @@
-﻿module;
+module;
 
 #include <tuple>
 #include <utility>
@@ -158,16 +158,8 @@ export namespace rke
         glm::vec2 velocity{ 0.0f };
         float angular_velocity{ 0.0f };
 
-    /* -runtime cache(do not serialize): uncopiable- */
-        uint64 body_id{};
-
         Rigidbody2DComponent() = default;
-        Rigidbody2DComponent(const Rigidbody2DComponent& other)
-            : type(other.type)
-            , rotation_fixed(other.rotation_fixed)
-            , mass(other.mass)
-            , velocity(other.velocity)
-            , angular_velocity(other.angular_velocity) {}
+        Rigidbody2DComponent(const Rigidbody2DComponent& other) = default;
     };
 
     enum class ColliderType : uint32
@@ -189,19 +181,8 @@ export namespace rke
         float friction{ 0.5f };
         float restitution{ 0.0f }; // 'bounciness'
 
-    /* -runtime cache(do not serialize): uncopiable- */
-        uint64 shape_id{};
-        glm::vec2 resolved_shape_size{};
-
         BoxCollider2DComponent() = default;
-        BoxCollider2DComponent(const BoxCollider2DComponent& other)
-            : type		 (other.type	   )
-            , layer_index(other.layer_index)
-            , offset	 (other.offset	   )
-            , half_extent(other.half_extent)
-            , density	 (other.density	   )
-            , friction	 (other.friction   )
-            , restitution(other.restitution) {}
+        BoxCollider2DComponent(const BoxCollider2DComponent& other) = default;
     };
 
     struct RKE_API NativeScriptComponent

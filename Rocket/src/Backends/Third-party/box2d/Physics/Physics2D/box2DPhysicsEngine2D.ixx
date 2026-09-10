@@ -1,6 +1,7 @@
 ﻿module;
 
 #include <bit>
+#include <vector>
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <entt/entt.hpp>
@@ -41,17 +42,31 @@ namespace rke
 
         void apply_force(Entity entity, glm::vec2 force) override;
     private:
+        struct PhysicsState
+        {
+            b2BodyId  body { b2_nullBodyId  };
+            b2ShapeId shape{ b2_nullShapeId };
+            glm::vec2 shape_size{ 0.0f }; // last resolved half extent(pixels)
+        };
+
+        PhysicsState* find_state(EntityHandle handle) noexcept; // nullptr: no state yet
+        PhysicsState& state_of  (EntityHandle handle);          // emplaces on demand
+
+        void destroy_shape(PhysicsState& state); // idempotent
+        void destroy_body (PhysicsState& state); // idempotent
+        void remove_entity(EntityHandle handle); // idempotent: destroy body/shape + drop state
+        void remove_shape_of(EntityHandle handle);
+
         void register_shape_entity(b2ShapeId shape_id, EntityHandle handle);
         void unregister_shape_entity(b2ShapeId shape_id);
         EntityHandle get_entity_from_shape(b2ShapeId shape_id) const;
 
-        void ensure_body(Entity entity);
-        void destroy_body(Entity entity);
+        void ensure_body(Entity entity, PhysicsState& state);
 
-        void create_shape(Entity entity, const PhysicsLayers& layers);
-        void destroy_shape(Entity entity);
-        void rebuild_shape(Entity entity, const PhysicsLayers& layers);
-        bool shape_spec_changed(Entity entity, const PhysicsLayers& layers) const;
+        void create_shape(Entity entity, PhysicsState& state, const PhysicsLayers& layers);
+        void rebuild_shape(Entity entity, PhysicsState& state, const PhysicsLayers& layers);
+        bool shape_spec_changed(Entity entity, const PhysicsState& state,
+            const PhysicsLayers& layers) const;
 
         void sync_all_to_body();
         void sync_all_from_body();
@@ -66,5 +81,6 @@ namespace rke
     private:
         b2WorldId physics_world_;
         std::unordered_map<b2ShapeId, EntityHandle> shape_to_entity_{};
+        std::unordered_map<EntityHandle, PhysicsState> states_{};
     };
 }
