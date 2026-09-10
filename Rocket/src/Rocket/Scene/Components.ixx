@@ -1,4 +1,4 @@
-module;
+﻿module;
 
 #include <tuple>
 #include <utility>
@@ -224,9 +224,9 @@ export namespace rke
         TypeID<SpriteComponent   , u8"Sprite"   >,
         TypeID<TextureComponent  , u8"Texture"  >,
         TypeID<AnimatorComponent , u8"Animator" >,
-        TypeID<Rigidbody2DComponent   , u8"Rigidbody 2D"   >,
-        TypeID<BoxCollider2DComponent , u8"Box Collider 2D">,
-        TypeID<NativeScriptComponent  , u8"Native Script"  >
+        TypeID<Rigidbody2DComponent  , u8"Rigidbody 2D"   >,
+        TypeID<BoxCollider2DComponent, u8"Box Collider 2D">,
+        TypeID<NativeScriptComponent , u8"Native Script"  >
     >; // for traversing
 
     namespace components
