@@ -4,10 +4,7 @@ module ScriptManager;
 import Log;
 import Scene;
 import Project;
-import Script;
-import Components;
 import ScriptRegistry;
-import PhysicsEngine2D;
 
 namespace rke
 {
@@ -20,16 +17,17 @@ namespace rke
 
     void ScriptManager::on_runtime_start()
     {
+        align_cache();
+        Size index{};
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        while(script_cache_.size() < storage.size()) script_cache_.emplace_back();
-        for(Size index{}; index < storage.size(); index++)
+        for(auto&& [ent, nsc] : storage.reach())
         {
-            NativeScriptComponent& nsc{ *(storage.begin() + index) };
-            RuntimeCache& cache { *(script_cache_.begin() + index) };
-
-            entt::entity owner_entity{ storage[index] };
-            refresh_cache(cache, nsc.script_type,
-                static_cast<EntityHandle>(owner_entity));
+        #ifdef RKE_DEBUG
+            CORE_ASSERT(index == storage.index(ent),
+                u8"ScriptManager: Indices are not matching: {}, {}!",
+                index, storage.index(ent));
+        #endif
+            refresh_cache(static_cast<EntityHandle>(ent), nsc, index++);
         }
     }
 
@@ -43,32 +41,39 @@ namespace rke
     void ScriptManager::on_update(double dt)
     {
         if(!owner_->in_runtime()) return;
+        align_cache();
+        Size index{}; // should be the same with storage.index(entity)
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        while(script_cache_.size() < storage.size()) script_cache_.emplace_back();
-        for(Size index{}; index < storage.size(); index++)
+        for(auto&& [ent, nsc] : storage.reach())
         {
-            NativeScriptComponent& nsc{ *(storage.begin() + index) };
-            RuntimeCache& cache { *(script_cache_.begin() + index) };
-            entt::entity owner_entity{ storage[index] };
-            refresh_cache(cache, nsc.script_type,
-                static_cast<EntityHandle>(owner_entity));
-            if(cache.script) cache.script->on_update(dt);
+        #ifdef RKE_DEBUG
+            CORE_ASSERT(index == storage.index(ent),
+                u8"ScriptManager: Indices are not matching: {}, {}!",
+                index, storage.index(ent));
+        #endif
+            RuntimeCache* cache{ refresh_cache
+                (static_cast<EntityHandle>(ent), nsc, index++) };
+            if(cache && cache->script) cache->script->on_update(dt);
         }
+        flush_scripts();
     }
 
     void ScriptManager::on_mouse_scrolled(float x_offset, float y_offset)
     {
         if(!owner_->in_runtime()) return;
+        align_cache();
+        Size index{};
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        while(script_cache_.size() < storage.size()) script_cache_.emplace_back();
-        for(Size index{}; index < storage.size(); index++)
+        for(auto&& [ent, nsc] : storage.reach())
         {
-            NativeScriptComponent& nsc{ *(storage.begin() + index) };
-            RuntimeCache& cache { *(script_cache_.begin() + index) };
-            entt::entity owner_entity{ storage[index] };
-            refresh_cache(cache, nsc.script_type,
-                static_cast<EntityHandle>(owner_entity));
-            if(cache.script) cache.script->on_mouse_scrolled(x_offset, y_offset);
+        #ifdef RKE_DEBUG
+            CORE_ASSERT(index == storage.index(ent),
+                u8"ScriptManager: Indices are not matching: {}, {}!",
+                index, storage.index(ent));
+        #endif
+            RuntimeCache* cache{ refresh_cache
+                (static_cast<EntityHandle>(ent), nsc, index++) };
+            if(cache && cache->script) cache->script->on_mouse_scrolled(x_offset, y_offset);
         }
     }
 
@@ -108,8 +113,6 @@ namespace rke
         }
         script->owner_ = owner_->get_entity(owner);
         script->on_create();
-        CORE_TRACE(u8"ScriptManager: Script '{}' created.",
-            script_reg.get_script_name(type));
         return script;
     }
 
@@ -117,20 +120,42 @@ namespace rke
     {
         if(!script) return;
         script->on_destroy();
-        CORE_TRACE(u8"ScriptManager: Script destroyed.");
+        graveyard_.push_back(std::move(script));
     }
 
-    void ScriptManager::refresh_cache(RuntimeCache& cache, ScriptType type, EntityHandle owner)
+    void ScriptManager::align_cache()
     {
-        if(type != cache.script_type)
+        auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
+        while(script_cache_.size() < storage.size()) script_cache_.emplace_back();
+        while(script_cache_.size() > storage.size())
         {
-            cache.script_type = type;
-            destroy_script(std::move(cache.script));
-            cache.script = create_script(type, owner);
+            destroy_script(std::move(script_cache_.back().script));
+            script_cache_.pop_back();
         }
     }
 
-    void ScriptManager::contact_callback(EntityHandle owner_handle, EntityHandle other_handle, ContactType type)
+    ScriptManager::RuntimeCache* ScriptManager::refresh_cache
+        (EntityHandle handle, NativeScriptComponent& nsc, Size index)
+    {
+        const entt::entity ent{ static_cast<entt::entity>(handle) };
+        CORE_ASSERT(index < script_cache_.size(),
+            u8"ScriptManager: Index out of bound!");
+        RuntimeCache& cache{ script_cache_[index] };
+
+        if(cache.owner != handle || cache.script_type != nsc.script_type)
+        {
+            destroy_script(std::move(cache.script));
+            cache.owner       = handle;
+            cache.script_type = nsc.script_type;
+            cache.script      = create_script(nsc.script_type, handle);
+        }
+        return &cache;
+    }
+
+    void ScriptManager::flush_scripts() { graveyard_.clear(); }
+
+    void ScriptManager::contact_callback
+        (EntityHandle owner_handle, EntityHandle other_handle, ContactType type)
     {
         Entity owner{ owner_->get_entity(owner_handle) };
         if(!owner.valid() || !owner.has<NativeScriptComponent>()) return;
@@ -139,12 +164,13 @@ namespace rke
         if(!other.valid()) return;
 
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        Size index{ storage.index(static_cast<entt::entity>(owner_handle)) };
-        CORE_ASSERT(index < script_cache_.size(), u8"ScriptManager: Index out of bound!");
+        entt::entity ent{ static_cast<entt::entity>(owner_handle) };
+        const Size index{ storage.index(ent) };
+        auto& nsc{ storage.get(ent) };
 
-        RuntimeCache& cache{ *(script_cache_.begin() + index) };
-        if(!cache.script) return;
-        Script& script{ *(cache.script) };
+        RuntimeCache* cache{ refresh_cache(owner_handle, nsc, index) };
+        if(!cache || !cache->script) return;
+        Script& script{ *(cache->script) };
         switch(type)
         {
         case ContactType::SolidBegin:  script.on_contact_solid_begin (other); break;
@@ -159,19 +185,21 @@ namespace rke
     {
         auto& ctx{ reg.ctx().get<Scene::RegistryContext>() };
         CORE_ASSERT(ctx.script_manager, u8"ScriptManager: Null!");
+
         auto& script_cache{ ctx.script_manager->script_cache_ };
-        if(script_cache.empty()) return;
-
         auto& storage{ reg.storage<NativeScriptComponent>() };
-        Size index{ storage.index(ent) };
-        CORE_ASSERT(index < script_cache.size(),
-            u8"ScriptManager: Cache out of bound!");
+    // fires *before* EnTT pops the element: mirror the upcoming swap-and-pop
+    // while both arrays are in sync, otherwise let the per-frame identity
+    // check of refresh_cache() repair the cache on its own.
+        if(script_cache.size() != storage.size()) return;
+        CORE_ASSERT(storage.contains(ent),
+            u8"ScriptManager: Entity doesn't has script component!");
 
-        RuntimeCache& cache{ *(script_cache.begin() + index) };
-        ctx.script_manager->destroy_script(std::move(cache.script));
-
-        cache.script = std::move(script_cache.back().script);
-        cache.script_type = script_cache.back().script_type;
+    // swap and pop
+        const Size index{ storage.index(ent) };
+        ctx.script_manager->destroy_script(std::move(script_cache[index].script));
+        if(index + 1u != script_cache.size())
+            script_cache[index] = std::move(script_cache.back());
         script_cache.pop_back();
     }
 }

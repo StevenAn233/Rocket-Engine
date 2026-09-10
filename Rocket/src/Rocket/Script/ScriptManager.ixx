@@ -14,6 +14,7 @@ import HeapManager;
 import EntityAccess;
 import ScriptAccess;
 import PhysicsEngine2D;
+import Components;
 
 export namespace rke
 {
@@ -42,13 +43,18 @@ export namespace rke
     private:
         struct RuntimeCache
         {
+            EntityHandle owner{ entity_handle_null }; // slot identity (self-healing)
             ScriptType script_type{ script_type_null };
             Scope<Script> script{};
         };
 
         Scope<Script> create_script(ScriptType type, EntityHandle owner);
         void destroy_script(Scope<Script> script);
-        void refresh_cache(RuntimeCache& cache, ScriptType type, EntityHandle owner);
+
+        void align_cache(); // keep cache size == storage size
+        RuntimeCache* refresh_cache(EntityHandle handle,
+            NativeScriptComponent& nsc, Size index); // validate slot, (re)create script
+        void flush_scripts();
 
         enum class ContactType
         {
@@ -67,5 +73,6 @@ export namespace rke
     private:
         Scene* owner_;
         std::vector<RuntimeCache> script_cache_{};
+        std::vector<Scope<Script>> graveyard_{};
     };
 }
