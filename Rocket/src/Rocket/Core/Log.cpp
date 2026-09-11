@@ -1,6 +1,15 @@
-﻿module;
+module;
+
+#include <chrono>
+#include <print>
+#include <vector>
+#include <utility>
+
 module Log;
 
+import String;
+import Types;
+import Event;
 import Application;
 
 namespace {
@@ -35,66 +44,97 @@ namespace {
         using namespace rke::literals;
         return (type == LogType::Core) ? u8"ROCKET"_sv : u8"CLIENT"_sv;
     }
+
+    static void console_out(const LogEntry& entry)
+    {
+        auto zoned_time{ std::chrono::zoned_time(std::chrono::current_zone(), entry.time) };
+        String file_name{ str::extract_filename(StringView(str::to_char8(entry.file))) };
+
+        if(entry.window_name.empty()) {
+            // Format: 'Color' [Time][Prefix] [Filename(line, col)] Msg 'Reset'
+            std::println("{}[{:%T}][{}] [File: {}({}, {})]\n    {}{}{}",
+                color_sv::grey, zoned_time, get_prefix(entry.type), file_name,
+                entry.line, entry.column, get_color_sv(entry.level),
+                entry.message, color_sv::reset);
+        } else {
+            // Format: 'Color' [Time][Prefix] [Window-Title] [Filename(line, col)] e.msg 'Reset'
+            std::println("{}[{:%T}][{}] [File: {}({}, {})]\n    {}(Window: {}) {}{}",
+                color_sv::grey, zoned_time, get_prefix(entry.type), file_name,
+                entry.line, entry.column, get_color_sv(entry.level),
+                entry.window_name, entry.message, color_sv::reset);
+        }
+    }
 }
 
 namespace rke
 {
-    void log(LogType type, LogLevel level,
-        const std::source_location& loc, const char8* msg)
+    LogHistory log_history{};
+
+    void LogHistory::push(LogEntry entry)
     {
-        auto now{ std::chrono::system_clock::now() };
-        auto zoned_time{ std::chrono::zoned_time(std::chrono::current_zone(), now) };
-
-        LogDest dest{ LogDest::Standard };
-        if(!app_null()) dest = app().log_dest();
-
-        switch(dest)
+        std::lock_guard lock{ mutex_ };
+        entries_.push_back(std::move(entry));
+        while(entries_.size() > capacity_)
         {
-        case LogDest::Editor:
-            if(!app_null())
-            {
-                String output{ msg };
-                app().push_text_log(std::move(output));
-            }
-            break;
-        case LogDest::Standard:
-        default:
-            // Format: 'Color' [Time][Prefix] [Filename(line, col)] Msg 'Reset'
-            std::println("{}[{:%T}][{}] [File: {}({}, {})]\n    {}{}{}",
-                color_sv::grey, zoned_time, get_prefix(type),
-                str::extract_filename(StringView(str::to_char8(loc.file_name()))),
-                loc.line(), loc.column(), get_color_sv(level), String(msg), color_sv::reset);
-            break;
+            entries_.pop_front();
+            dropped_.fetch_add(1, std::memory_order_relaxed);
         }
+        written_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void LogHistory::clear()
+    {
+        std::lock_guard lock{ mutex_ };
+        entries_.clear();
+        dropped_.store(written_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+    }
+
+    uint64 LogHistory::copy_since(uint64 from, std::vector<LogEntry>& out) const
+    {
+        std::lock_guard lock{ mutex_ };
+        const uint64 end  { written_.load(std::memory_order_relaxed) };
+        const uint64 first{ dropped_.load(std::memory_order_relaxed) };
+        if(from < first) from = first; // whatever was recycled is gone
+
+        for(uint64 seq{ from }; seq < end; ++seq)
+            out.push_back(entries_[seq - first]);
+        return end;
+    }
+
+    void log(LogType type, LogLevel level,
+        const std::source_location& loc, String str)
+    {
+        LogEntry entry
+        {
+            .type    = type,
+            .level   = level,
+            .time    = std::chrono::system_clock::now(),
+            .file    = loc.file_name(),
+            .line    = static_cast<uint32>(loc.line()),
+            .column  = static_cast<uint32>(loc.column()),
+            .message = std::move(str)
+        };
+
+        if(entry.level == LogLevel::Critical) console_out(entry); // may modify
+        log_history.push(std::move(entry));
     }
 
     void log(LogType type, LogLevel level,
         const std::source_location& loc, const Event& e)
     {
-        auto now{ std::chrono::system_clock::now() };
-        auto zoned_time{ std::chrono::zoned_time(std::chrono::current_zone(), now) };
-
-        LogDest dest{ LogDest::Standard };
-        if(!app_null()) dest = app().log_dest();
-
-        switch(dest)
+        LogEntry entry
         {
-        case LogDest::Editor:
-            if(!app_null())
-            {
-                String output{ e.to_string() };
-                app().push_text_log(std::move(output));
-            }
-            break;
-        case LogDest::Standard:
-        default:
-            // Format: 'Color' [Time][Prefix] [Window-Title] [Filename(line, col)] e.msg 'Reset'
-            std::println("{}[{:%T}][{}] [File: {}({}, {})]\n    {}(Window: {}) {}{}",
-                color_sv::grey, zoned_time, get_prefix(type),
-                str::extract_filename(StringView(str::to_char8(loc.file_name()))),
-                loc.line(), loc.column(), get_color_sv(level),
-                e.get_window_name(), e.to_string(), color_sv::reset);
-            break;
-        }
+            .type        = type,
+            .level       = level,
+            .time        = std::chrono::system_clock::now(),
+            .file        = loc.file_name(),
+            .line        = static_cast<uint32>(loc.line()),
+            .column      = static_cast<uint32>(loc.column()),
+            .message     = String(e.to_string()),
+            .window_name = String(e.get_window_name())
+        };
+
+        if(entry.level == LogLevel::Critical) console_out(entry); // may modify
+        log_history.push(std::move(entry));
     }
 }
