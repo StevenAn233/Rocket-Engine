@@ -54,6 +54,7 @@ export namespace rke
         void align_cache(); // keep cache size == storage size
         RuntimeCache* refresh_cache(EntityHandle handle,
             NativeScriptComponent& nsc, Size index); // validate slot, (re)create script
+        void sync_all_to_cache();
         void flush_scripts();
 
         enum class ContactType

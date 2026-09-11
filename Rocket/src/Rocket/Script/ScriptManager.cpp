@@ -41,40 +41,18 @@ namespace rke
     void ScriptManager::on_update(double dt)
     {
         if(!owner_->in_runtime()) return;
-        align_cache();
-        Size index{}; // should be the same with storage.index(entity)
-        auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        for(auto&& [ent, nsc] : storage.reach())
-        {
-        #ifdef RKE_DEBUG
-            CORE_ASSERT(index == storage.index(ent),
-                u8"ScriptManager: Indices are not matching: {}, {}!",
-                index, storage.index(ent));
-        #endif
-            RuntimeCache* cache{ refresh_cache
-                (static_cast<EntityHandle>(ent), nsc, index++) };
-            if(cache && cache->script) cache->script->on_update(dt);
-        }
+        sync_all_to_cache();
+        for(auto& cache : script_cache_)
+            if(cache.script) cache.script->on_update(dt);
         flush_scripts();
     }
 
     void ScriptManager::on_mouse_scrolled(float x_offset, float y_offset)
     {
         if(!owner_->in_runtime()) return;
-        align_cache();
-        Size index{};
-        auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        for(auto&& [ent, nsc] : storage.reach())
-        {
-        #ifdef RKE_DEBUG
-            CORE_ASSERT(index == storage.index(ent),
-                u8"ScriptManager: Indices are not matching: {}, {}!",
-                index, storage.index(ent));
-        #endif
-            RuntimeCache* cache{ refresh_cache
-                (static_cast<EntityHandle>(ent), nsc, index++) };
-            if(cache && cache->script) cache->script->on_mouse_scrolled(x_offset, y_offset);
-        }
+        sync_all_to_cache();
+        for(auto& cache : script_cache_)
+            if(cache.script) cache.script->on_mouse_scrolled(x_offset, y_offset);
     }
 
     void ScriptManager::dispatch_contacts (
@@ -150,6 +128,22 @@ namespace rke
             cache.script      = create_script(nsc.script_type, handle);
         }
         return &cache;
+    }
+
+    void ScriptManager::sync_all_to_cache()
+    {
+        align_cache();
+        Size index{};
+        auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
+        for(auto&& [ent, nsc] : storage.reach())
+        {
+        #ifdef RKE_DEBUG
+            CORE_ASSERT(index == storage.index(ent),
+                u8"ScriptManager: Indices are not matching: {}, {}!",
+                index, storage.index(ent));
+        #endif
+            refresh_cache(static_cast<EntityHandle>(ent), nsc, index++);
+        }
     }
 
     void ScriptManager::flush_scripts() { graveyard_.clear(); }
