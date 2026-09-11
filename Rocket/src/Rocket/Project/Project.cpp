@@ -46,7 +46,7 @@ namespace rke
         }
 
         assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
-        script_registry_ = create_scope<ScriptRegistry>();
+        script_registry_ = create_scope<ScriptRegistry>(nullptr);
         script_dylib_loader_ = ScriptDylibLoader::create
             (project_dir_ / u8"bin" / RKE_CONFIG_NAME, project_config_.name);
 
@@ -99,29 +99,15 @@ namespace rke
         return true;
     }
 
-    bool Project::scripts_hot_reloading()
+    void Project::scripts_hot_reloading()
     {
-        Scope<ScriptRegistry> new_reg{ create_scope<ScriptRegistry>() };
+        Scope<ScriptRegistry> new_reg{ create_scope
+            <ScriptRegistry>(script_dylib_loader_->load_dylib()) };
         CORE_ASSERT(new_reg, u8"Project: Failed to create script registry!");
-
-        bool succeeded{ false };
-        if(script_dylib_loader_->load_dylib())
-        {
-            auto register_scripts{ script_dylib_loader_->get_register_scripts_func() };
-            if(register_scripts)
-            {
-                register_scripts(new_reg.get());
-                CORE_INFO(u8"Project: Scripts Registered.");
-                succeeded = true;
-            }
-            else CORE_ERROR(u8"Project: Scripts register func not found!");
-        }
-        else CORE_ERROR(u8"Project: Failed to load dylib!");
 
         for(auto& [_, scene] : scene_map_)
             scene->on_script_dylib_hot_reloading(*script_registry_, *new_reg);
         script_registry_.reset(new_reg.release());
-        return succeeded;
     }
 
     bool Project::create_scene(const String& name)
@@ -144,6 +130,7 @@ namespace rke
 
     Scene* Project::load_scene(const String& name, SceneSerializer& scene_serializer)
     {
+        if(name.empty()) return nullptr;
         if(scene_map_.contains(name)) return scene_map_.at(name).get();
 
         Path scene_path{ get_scenes_dir() / (name + u8".rkscene") };

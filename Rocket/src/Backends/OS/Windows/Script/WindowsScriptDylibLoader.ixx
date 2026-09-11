@@ -14,8 +14,17 @@ import String;
 
 namespace rke
 {
-    struct HModuleDeleter { void operator()(HMODULE h) const; };
-    using DylibData = std::unique_ptr<std::remove_pointer_t<HMODULE>, HModuleDeleter>;
+    struct WindowsDylib : public ScriptDylib
+    {
+    public:
+        WindowsDylib(const Path& path);
+        ~WindowsDylib() override;
+
+        bool valid() const override;
+        ScriptsRegistar get_scripts_registar() const override;
+    private:
+        HMODULE handle_{};
+    };
 
     class WindowsScriptDylibLoader : public ScriptDylibLoader
     {
@@ -29,12 +38,10 @@ namespace rke
         WindowsScriptDylibLoader(WindowsScriptDylibLoader&&) = default;
         WindowsScriptDylibLoader& operator=(WindowsScriptDylibLoader&&) = default;
 
-        bool load_dylib() override;
-    private:    
-        void clear_cache();
+        Scope<ScriptDylib> load_dylib() const override;
+    private:
         void delete_temp_files();
     private:
-        std::vector<DylibData> dylib_stack_{};
-        uint32 reload_count_{};
+        mutable uint32 reload_count_{};
     };
 }

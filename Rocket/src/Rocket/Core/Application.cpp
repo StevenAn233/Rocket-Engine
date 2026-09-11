@@ -74,13 +74,14 @@ namespace rke
 
     void Application::load_project(const Path& path)
     {
+        clear_project();
         project_ = create_scope<Project>(path);
         if(project_) {
             project_setting_panel_.set_aa(project_->get_config().anti_aliasing);
             ProjectLoadedEvent event{ u8"main" };
             send_event(event);
         }
-        else clear_project();
+        else CORE_ERROR(u8"Application: Failed to load project '{}'!", path);
     }
 
     void Application::clear_project()

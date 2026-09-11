@@ -51,7 +51,7 @@ export namespace rke
         Project(Project&&) = delete;
 
         bool save();
-        bool scripts_hot_reloading();
+        void scripts_hot_reloading();
 
         inline void set_name(String name) { project_config_.name = std::move(name); }
         inline const String& get_name() const { return project_config_.name; }

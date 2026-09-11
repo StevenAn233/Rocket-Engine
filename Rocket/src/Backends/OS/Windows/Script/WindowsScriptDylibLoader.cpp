@@ -13,22 +13,37 @@ import FileUtils;
 
 namespace rke
 {
-    void HModuleDeleter::operator()(HMODULE h) const { if(h) FreeLibrary(h); }
-
-    WindowsScriptDylibLoader::~WindowsScriptDylibLoader()
+    WindowsDylib::WindowsDylib(const Path& path) : ScriptDylib()
     {
-        clear_cache();
-        delete_temp_files();
+        handle_ = LoadLibraryA(path.string().raw());
+        if(!handle_) CORE_ERROR(u8"WindowsDylib: "
+            u8"Failed to load .dll file '{}'! May be occupied.", path);
     }
 
-    bool WindowsScriptDylibLoader::load_dylib()
+    WindowsDylib::~WindowsDylib() { if(handle_) FreeLibrary(handle_); }
+
+    bool WindowsDylib::valid() const { return (handle_ != nullptr); }
+
+    ScriptsRegistar WindowsDylib::get_scripts_registar() const
+    {
+        if(!valid()) return nullptr;
+        void* proc_addr{ GetProcAddress(handle_, "register_scripts") };
+        if(!proc_addr) CORE_ERROR(u8"WindowsDylib: "
+            u8"Function 'register_scripts' not found!");
+        return std::bit_cast<ScriptsRegistar>(proc_addr);
+    }
+
+    WindowsScriptDylibLoader::~WindowsScriptDylibLoader() { delete_temp_files(); }
+
+    Scope<ScriptDylib> WindowsScriptDylibLoader::load_dylib() const
     {
     // Hot-reloading Support
         Path dll_path{ dylib_dir_ / String::format(u8"{}.dll", dylib_name_) };
-        if(!dll_path.exists()) {
+        if(!dll_path.exists())
+        {
             CORE_ERROR(u8"WindowsScriptDylibLoader: "
                 u8"Dylib path '{}' doesn't exist!", dll_path);
-            return false;
+            return nullptr;
         }
 
         Path copy_dll_path{ dylib_dir_ / String::format
@@ -48,33 +63,10 @@ namespace rke
         } catch(const fs::filesystem_error& e) {
             CORE_ERROR(u8"WindowsScriptDylibLoader: "
                 u8"Failed to copy DLL for hot-reloading!\n -- {}", e.what());
-            return false;
+            return nullptr;
         }
 
-        DylibData dylib{ LoadLibraryA(copy_dll_path.string().raw()) };
-        if(!dylib) {
-            CORE_ERROR(u8"WindowsScriptDylibLoader: "
-                u8"Failed to load .dll file '{}'! May be occupied.", dylib_dir_);
-            return false;
-        }
-
-        func_ = reinterpret_cast<RegisterScriptsFunc>(GetProcAddress(dylib.get(), "register_scripts"));
-        // function name has to be exactly the same(ScriptRegistry)
-        if(func_) {
-            dylib_stack_.push_back(std::move(dylib));
-            return true;
-        }
-        CORE_ERROR(u8"WindowsScriptDylibLoader: Could not find 'register_scripts' in .dll!");
-        return false;
-    }
-
-    void WindowsScriptDylibLoader::clear_cache()
-    {
-        if(!dylib_stack_.empty())
-        {
-            dylib_stack_.clear();
-            CORE_INFO(u8"WindowsScriptDylibLoader: Unloaded all script DLLs.");
-        }
+        return create_scope<WindowsDylib>(copy_dll_path);
     }
 
     void WindowsScriptDylibLoader::delete_temp_files()

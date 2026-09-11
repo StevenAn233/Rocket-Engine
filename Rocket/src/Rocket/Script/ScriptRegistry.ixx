@@ -12,14 +12,15 @@ import String;
 import Script;
 import HeapManager;
 import ScriptAccess;
+import ScriptDylibLoader;
 
 export namespace rke
 {
     class ScriptRegistry
     {
     public:
-        ScriptRegistry() = default;
-        ~ScriptRegistry() = default;
+        ScriptRegistry(Scope<ScriptDylib> dylib);
+        ~ScriptRegistry();
 
         // name will always be string literals(if not directly called)
         RKE_API void register_script(ScriptType type, ScriptConstructor func);
@@ -34,6 +35,7 @@ export namespace rke
 
         inline const std::vector<ScriptType>& get_script_types() const { return script_types_; }
     private:
+        Scope<ScriptDylib> dylib_{};
         std::vector<ScriptType> script_types_{};
         std::unordered_map<uintptr, ScriptConstructor> script_constructors_{};
     };

@@ -1,13 +1,26 @@
+module;
+
+namespace rke { class ScriptRegistry; }
+
 export module ScriptDylibLoader:Base;
 
 import Path;
 import String;
 import HeapManager;
-import ScriptRegistry;
 
 export namespace rke
 {
-    using RegisterScriptsFunc = void(*)(ScriptRegistry*);
+    using ScriptsRegistar = void(*)(ScriptRegistry*);
+
+    class ScriptDylib
+    {
+    public:
+        ScriptDylib() = default;
+        virtual ~ScriptDylib() = default;
+        
+        virtual bool valid() const = 0;
+        virtual ScriptsRegistar get_scripts_registar() const = 0;
+    };
 
     class ScriptDylibLoader
     {
@@ -15,13 +28,11 @@ export namespace rke
         ScriptDylibLoader(Path dir, String name);
         virtual ~ScriptDylibLoader() = default;
 
-        virtual bool load_dylib() = 0;
-        RegisterScriptsFunc get_register_scripts_func() const { return func_; }
+        virtual Scope<ScriptDylib> load_dylib() const = 0;
 
         static Scope<ScriptDylibLoader> create(Path dir, String name);
     protected:
         Path dylib_dir_{};
         String dylib_name_{};
-        RegisterScriptsFunc func_{ nullptr };
     };
 }

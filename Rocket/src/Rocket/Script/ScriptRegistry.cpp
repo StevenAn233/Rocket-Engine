@@ -5,11 +5,31 @@ import Log;
 
 namespace rke
 {
+    ScriptRegistry::ScriptRegistry(Scope<ScriptDylib> dylib)
+        : dylib_(std::move(dylib))
+    {
+        if(!dylib_) return;
+        if(!dylib_->valid()) { dylib_.reset(); return; }
+        ScriptsRegistar registar{ dylib_->get_scripts_registar() };
+        CORE_ASSERT(registar, u8"ScriptRegistry: Registar null!");
+        registar(this);
+    }
+
+    ScriptRegistry::~ScriptRegistry() { clear(); }
+
     void ScriptRegistry::register_script(ScriptType type, ScriptConstructor func)
     {
-        CORE_ASSERT(!has_script_type(type), u8"ScriptRegistry: Script has already been registered!");
+        CORE_ASSERT(!has_script_type(type),
+            u8"ScriptRegistry: Script has already been registered!");
         script_types_.push_back(type);
         script_constructors_.emplace(static_cast<uintptr>(type), func);
+    }
+
+    void ScriptRegistry::clear()
+    {
+        script_types_.clear();
+        script_constructors_.clear();
+        CORE_INFO(u8"ScriptRegistry: All registered scripts cleared.");
     }
 
     Scope<Script> ScriptRegistry::construct_script(ScriptType type)
@@ -40,11 +60,4 @@ namespace rke
 
     bool ScriptRegistry::has_script(const String& name) const
         { return static_cast<bool>(get_script_type(name)); }
-
-    void ScriptRegistry::clear()
-    {
-        script_types_.clear();
-        script_constructors_.clear();
-        CORE_INFO(u8"ScriptRegistry: All registered scripts cleared.");
-    }
 }
