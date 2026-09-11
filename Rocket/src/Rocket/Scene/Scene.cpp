@@ -232,13 +232,15 @@ namespace rke
             (owner->registry_->create()), owner };
         owner->mark_modified();
 
-        copied_entity.emplace<IdentityComponent>
-        (
-            entity.get<IdentityComponent>().tag,
-            owner->temporary_ ? UUID(0) : UUID()
-        );
-        owner->entity_map_[copied_entity.get_uuid()] = copied_entity.handle_;
-
+        if(!owner->temporary_) {
+            copied_entity.emplace<IdentityComponent>
+                (entity.get<IdentityComponent>().tag, UUID());
+            owner->entity_map_[copied_entity.get_uuid()] = copied_entity.handle_;
+        } else {
+            copied_entity.emplace<IdentityComponent>
+                (entity.get<IdentityComponent>().tag, UUID(0));
+        }
+        
         components::each([&](auto type_id)
         {
             using ComponentType = decltype(type_id)::Type;
@@ -424,8 +426,9 @@ namespace rke
     {
         if(in_runtime())
         {
-            physics_engine_->on_update(dt);
             script_manager_->on_update(dt);
+            physics_engine_->on_update(dt);
+            
             script_manager_->dispatch_contacts
             (
                 physics_engine_->get_begin_contacts_solid(),
