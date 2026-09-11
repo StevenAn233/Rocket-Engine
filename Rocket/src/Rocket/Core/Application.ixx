@@ -13,6 +13,7 @@ import Path;
 import Event;
 import Font;
 import HeapManager;
+import LogPanel;
 import ApplicationPanel;
 import ProjectSettingPanel;
 import Panel;
@@ -30,6 +31,7 @@ export namespace rke
     class RKE_API Application
     {
     public:
+        friend class ApplicationPanel;
         friend struct std::default_delete<Application>;
 
         Application(const Application&) = delete;
@@ -48,6 +50,7 @@ export namespace rke
         inline RenderCommand& render_command() { return *render_command_; }
         inline WindowsLib& get_windows_lib() { return windows_lib_; }
         inline Project* get_project() { return project_.get(); }
+
         inline Input& input() { return input_; }
         inline Instrumentor& instrumentor() { return instrumentor_; }
 
@@ -57,23 +60,25 @@ export namespace rke
         void unregister_modal(Modal* handle);
     protected:
         Application();
-        virtual ~Application() {};
+        virtual ~Application();
         void set_dockspace_editor_runtime(std::function<bool()> func);
     private:
-        static void on_window_loaded(Window& window);
-    private:
-        WindowsLib windows_lib_;
+        WindowsLib windows_lib_{};
+
         Input input_{};
         Instrumentor instrumentor_{};
+
         Scope<Project> project_{};
         Scope<RenderCommand> render_command_{};
 
         DockSpace* dockspace_{}; // owned by WindowsLib::LayerStack::DockSpaceLayer
 
+        LogPanel log_panel_{ u8"Log" };
         ApplicationPanel application_panel_{ u8"Application" };
         ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };
     };
 
     RKE_API Application& app();
+    RKE_API bool app_null();
     RKE_API void execute(Scope<Application> app);
 }

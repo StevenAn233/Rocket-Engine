@@ -13,8 +13,10 @@ import ProjectEvent;
 
 namespace rke
 {
-    Application::Application() : windows_lib_(on_window_loaded)
+    Application::Application()
         { render_command_ = RenderCommand::create(); }
+
+    Application::~Application() {}
 
     void Application::init()
     {
@@ -38,8 +40,9 @@ namespace rke
         )};
         dockspace_ = &(ds_layer->dockspace_);
         main_window.push_overlay(Scope<Layer>(ds_layer.release()));
-        register_panel(&project_setting_panel_);
+        register_panel(&log_panel_);
         register_panel(&application_panel_);
+        register_panel(&project_setting_panel_);
         register_panel(&main_window.setting_panel_);
     }
 
@@ -62,8 +65,9 @@ namespace rke
             if(e.get_window_name() == u8"main")
             {
                 unregister_panel(&windows_lib_.get_main().setting_panel_);
-                unregister_panel(&application_panel_);
                 unregister_panel(&project_setting_panel_);
+                unregister_panel(&application_panel_);
+                unregister_panel(&log_panel_);
                 dockspace_->editor_runtime_ = nullptr;
                 dockspace_ = nullptr;
             }
@@ -117,9 +121,6 @@ namespace rke
 
     void Application::set_dockspace_editor_runtime(std::function<bool()> func)
         { dockspace_->editor_runtime_ = std::move(func); }
-
-// callbacks
-    void Application::on_window_loaded(Window& window) {}
 }
 
 namespace rke
@@ -128,7 +129,7 @@ namespace rke
 
     static void register_instance(Application* handle)
     {
-        CORE_ASSERT(!s_app_handle, u8"Rocket: Instance already exists!");
+        if(s_app_handle) DEBUG_BREAK;
         s_app_handle = handle;
     }
 
@@ -136,20 +137,21 @@ namespace rke
 
     Application& app()
     {
-        CORE_ASSERT(s_app_handle, u8"Rocket: Instance haven't been created!");
+        if(app_null()) DEBUG_BREAK;
         return *s_app_handle;
     }
 
+    bool app_null() { return s_app_handle == nullptr; }
+
     void execute(Scope<Application> instance)
     {
-        Project::init_templates(file::assets_dir() / u8"proj-templates");
         register_instance(instance.get()); // ownership still within function scope
 
+        Project::init_templates(file::assets_dir() / u8"proj-templates");
         instance->init();
         instance->run();
         instance->shutdown();
 
         unregister_instance();
-        instance.reset();
     }
 }

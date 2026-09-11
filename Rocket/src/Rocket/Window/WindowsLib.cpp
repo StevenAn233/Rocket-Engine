@@ -77,10 +77,6 @@ namespace rke
 
     Window& WindowsLib::add(Scope<Window> window)
     {
-        if(load_callback_) {
-            WindowsLib::make_context_current(window->get_context());
-            load_callback_(*(window.get()));
-        }
         const String& name{ window->get_name() };
         CORE_ASSERT(!exists(name), u8"WindowsLib: Name already exists!");
         map_.emplace(name, std::move(window));

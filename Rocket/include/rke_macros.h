@@ -45,26 +45,26 @@
 #endif
 
 #ifdef RKE_ENABLE_LOG
-    #define CORE_TRACE(...)	   ::rke::log_impl(::rke::LogType::Core, ::rke::LogLevel::Trace, \
+    #define CORE_TRACE(...)	   ::rke::log(::rke::LogType::Core, ::rke::LogLevel::Trace, \
                                  std::source_location::current(), __VA_ARGS__)
-    #define CORE_INFO(...)	   ::rke::log_impl(::rke::LogType::Core, ::rke::LogLevel::Info, \
+    #define CORE_INFO(...)	   ::rke::log(::rke::LogType::Core, ::rke::LogLevel::Info, \
                                  std::source_location::current(), __VA_ARGS__)
-    #define CORE_WARN(...)	   ::rke::log_impl(::rke::LogType::Core, ::rke::LogLevel::Warn, \
+    #define CORE_WARN(...)	   ::rke::log(::rke::LogType::Core, ::rke::LogLevel::Warn, \
                                  std::source_location::current(), __VA_ARGS__)
-    #define CORE_ERROR(...)	   ::rke::log_impl(::rke::LogType::Core, ::rke::LogLevel::Error, \
+    #define CORE_ERROR(...)	   ::rke::log(::rke::LogType::Core, ::rke::LogLevel::Error, \
                                  std::source_location::current(), __VA_ARGS__)
-    #define CORE_CRITICAL(...) ::rke::log_impl(::rke::LogType::Core, ::rke::LogLevel::Critical, \
+    #define CORE_CRITICAL(...) ::rke::log(::rke::LogType::Core, ::rke::LogLevel::Critical, \
                                  std::source_location::current(), __VA_ARGS__)
 
-    #define RKE_TRACE(...)	  ::rke::log_impl(::rke::LogType::Client, ::rke::LogLevel::Trace, \
+    #define RKE_TRACE(...)	  ::rke::log(::rke::LogType::Client, ::rke::LogLevel::Trace, \
                                 std::source_location::current(), __VA_ARGS__)
-    #define RKE_INFO(...)	  ::rke::log_impl(::rke::LogType::Client, ::rke::LogLevel::Info, \
+    #define RKE_INFO(...)	  ::rke::log(::rke::LogType::Client, ::rke::LogLevel::Info, \
                                 std::source_location::current(), __VA_ARGS__)
-    #define RKE_WARN(...)	  ::rke::log_impl(::rke::LogType::Client, ::rke::LogLevel::Warn, \
+    #define RKE_WARN(...)	  ::rke::log(::rke::LogType::Client, ::rke::LogLevel::Warn, \
                                 std::source_location::current(), __VA_ARGS__)
-    #define RKE_ERROR(...)	  ::rke::log_impl(::rke::LogType::Client, ::rke::LogLevel::Error, \
+    #define RKE_ERROR(...)	  ::rke::log(::rke::LogType::Client, ::rke::LogLevel::Error, \
                                 std::source_location::current(), __VA_ARGS__)
-    #define RKE_CRITICAL(...) ::rke::log_impl(::rke::LogType::Client, ::rke::LogLevel::Critical, \
+    #define RKE_CRITICAL(...) ::rke::log(::rke::LogType::Client, ::rke::LogLevel::Critical, \
                                 std::source_location::current(), __VA_ARGS__)
 
 // Assert

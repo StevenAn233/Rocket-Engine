@@ -21,7 +21,7 @@ export namespace rke
     public:
         using WindowsMap = std::unordered_map<String, Scope<Window>>;
 
-        WindowsLib(std::function<void(Window&)> callback);
+        WindowsLib();
         ~WindowsLib();
 
         WindowsLib(const WindowsLib&) = delete;
@@ -57,6 +57,5 @@ export namespace rke
     private:
         WindowsMap map_{};
         Window* main_window_{};
-        std::function<void(Window&)> load_callback_;
     };
 }

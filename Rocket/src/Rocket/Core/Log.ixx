@@ -12,20 +12,21 @@ import Event;
 
 export namespace rke 
 {
-    enum class LogType  { Core, Client };
-    enum class LogLevel { Info, Warn, Error, Trace, Critical };
+    enum class LogType { Core, Client };
+    enum class LogLevel{ Info, Warn, Error, Trace, Critical };
+    enum class LogDest { Standard, Editor };
 
-    RKE_API void log_impl(LogType type, LogLevel level,
+    RKE_API void log(LogType type, LogLevel level,
         const std::source_location& loc, const char8* msg);
 
     template<typename... Args>
-    void log_impl(LogType type, LogLevel level, const std::source_location& loc,
+    void log(LogType type, LogLevel level, const std::source_location& loc,
         U8FormatString<std::type_identity_t<Args>...> fmt, Args&&... args)
     {
         String msg{ String::format(fmt, std::forward<Args>(args)...) };
-        log_impl(type, level, loc, msg.c_str());
+        log(type, level, loc, msg.c_str());
     }
 
-    RKE_API void log_impl(LogType Type, LogLevel Level,
+    RKE_API void log(LogType Type, LogLevel Level,
         const std::source_location& loc, const Event& e);
 }

@@ -42,8 +42,7 @@ namespace rke
     bool WindowsLib::is_context_current(NativeWindow context)
         { return get_current_context() == context; }
 
-    WindowsLib::WindowsLib(std::function<void(Window&)> callback)
-        : load_callback_(std::move(callback))
+    WindowsLib::WindowsLib()
     {
         CORE_ASSERT(glfwInit(), u8"glfw: Failed to initialize GLFW!");
         glfwSetErrorCallback(error_callback);

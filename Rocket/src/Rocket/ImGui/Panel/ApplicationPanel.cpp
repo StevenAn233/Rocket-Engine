@@ -1,18 +1,15 @@
-﻿module;
+module;
 module ApplicationPanel;
 
 import Layout;
 import Instrumentor;
-import Renderer;
 import Application;
 
 namespace rke
 {
     void ApplicationPanel::on_imgui_render()
     {
-        RKE_PROFILE_FUNCTION();
-
-        ImGui::Begin("Application");
+        ImGui::Begin(get_name().raw());
 
     #if RKE_ENABLE_PROFILE
         layout::tree_node_branch<u8"Instrumentation">([&]()
