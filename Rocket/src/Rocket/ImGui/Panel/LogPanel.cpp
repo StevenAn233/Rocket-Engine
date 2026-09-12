@@ -1,9 +1,6 @@
 ﻿module;
 module LogPanel;
 
-import Log;
-import String;
-import Types;
 import Application;
 
 namespace {
@@ -46,12 +43,15 @@ namespace {
         const char* hay{ haystack.raw_unsafe() };
         const char* pin{ needle.raw_unsafe() };
         const auto lower{ [](char ch) -> char
-            { return (ch >= 'A' && ch <= 'Z') ? static_cast<char>(ch - 'A' + 'a') : ch; } };
+        {
+            return (ch >= 'A' && ch <= 'Z') ?
+                static_cast<char>(ch - 'A' + 'a') : ch;
+        }};
 
-        for(Size offset{ 0 }; offset + needle_size <= hay_size; ++offset)
+        for(Size offset{}; offset + needle_size <= hay_size; ++offset)
         {
             bool match{ true };
-            for(Size i{ 0 }; i < needle_size; ++i)
+            for(Size i{}; i < needle_size; ++i)
             {
                 if(lower(hay[offset + i]) == lower(pin[i])) continue;
                 match = false;
@@ -65,14 +65,12 @@ namespace {
     static String build_display_text(const LogEntry& entry, bool show_source)
     {
         auto zoned_time{ std::chrono::zoned_time(std::chrono::current_zone(), entry.time) };
-        if(!show_source)
-            return String::format(u8"[{:%T}][{}] {}",
-                zoned_time, level_name_sv(entry.level), entry.message);
+        if(!show_source) return String::format(u8"[{:%T}] {}", zoned_time, entry.message);
 
         String file_name{ str::extract_filename
             (StringView(str::to_char8(entry.file ? entry.file : ""))) };
-        return String::format(u8"[{:%T}][{}][{}:{}] {}",
-            zoned_time, level_name_sv(entry.level), file_name, entry.line, entry.message);
+        return String::format(u8"[{:%T}][{}:{}] {}",
+            zoned_time, file_name, entry.line, entry.message);
     }
 
     static void vertical_separator(float height)
@@ -95,7 +93,7 @@ namespace rke
         ImGui::Begin(get_name().raw());
 
         pull_new_entries();
-        if(dirty_) rebuild_visible();
+        if(visible_dirty_) rebuild_visible();
 
         draw_toolbar();
         draw_entries();
@@ -107,30 +105,28 @@ namespace rke
     void LogPanel::pull_new_entries()
     {
         if(log_history.written() == consumed_) return;
-
         consumed_ = log_history.copy_since(consumed_, entries_);
-        dirty_ = true;
+        visible_dirty_ = true;
     }
 
     void LogPanel::rebuild_visible()
     {
-    // rows are formatted once and cached; toggling the source column invalidates them
         if(formatted_with_source_ != settings_.show_source)
         {
-            formatted_ = 0;
             formatted_with_source_ = settings_.show_source;
+            formatted_cnt_ = 0;
         }
-        display_.resize(entries_.size());
-        for(Size i{ formatted_ }; i < entries_.size(); ++i)
-            display_[i] = build_display_text(entries_[i], settings_.show_source);
-        formatted_ = entries_.size();
+        formatted_.resize(entries_.size());
+        for(; formatted_cnt_ < formatted_.size(); formatted_cnt_++)
+            formatted_[formatted_cnt_] = build_display_text
+                (entries_[formatted_cnt_], settings_.show_source);
 
         visible_.clear();
         level_counts_.fill(0);
-        for(Size i{ 0 }; i < entries_.size(); ++i)
+        for(Size i{}; i < entries_.size(); ++i)
         {
             const LogEntry& entry{ entries_[i] };
-            ++level_counts_[static_cast<Size>(entry.level)];
+            level_counts_[static_cast<Size>(entry.level)]++;
 
             if(!filters_.levels[static_cast<Size>(entry.level)]) continue;
             if(entry.type == LogType::Core ? !filters_.core : !filters_.client) continue;
@@ -138,10 +134,41 @@ namespace rke
 
             visible_.push_back(i);
         }
-
-        dirty_ = false;
-        layout_valid_ = false; // the visible set changed: heights must be rebuilt
         if(settings_.auto_scroll) scroll_to_bottom_ = true;
+        rebuild_layout();
+        visible_dirty_ = false;
+    }
+
+    void LogPanel::rebuild_layout()
+    {
+        const Size rows{ visible_.size() };
+        const float spacing{ ImGui::GetStyle().ItemSpacing.y };
+        const float wrap_width{ measured_width_ > 0.0f ? measured_width_ : 1.0f };
+
+        row_heights_.resize(rows);
+        for(Size row{}; row < rows; ++row)
+        {
+            const String& text{ formatted_[visible_[row]] };
+            row_heights_[row] = (settings_.wrap
+                ? ImGui::CalcTextSize(text.raw(), nullptr, false, wrap_width).y
+                : ImGui::GetTextLineHeight()) + spacing;
+        }
+        rebuild_offsets();
+        layout_valid_ = true;
+    }
+
+    void LogPanel::rebuild_offsets()
+    {
+        row_offsets_.resize(row_heights_.size() + 1);
+
+        float offset{ 0.0f };
+        for(Size row{}; row < row_heights_.size(); ++row)
+        {
+            row_offsets_[row] = offset;
+            offset += row_heights_[row];
+        }
+        row_offsets_[row_heights_.size()] = offset; // exact content height
+        layout_dirty_ = false;
     }
 
     void LogPanel::draw_toolbar()
@@ -154,12 +181,19 @@ namespace rke
             search_buffer_, sizeof(search_buffer_)))
         {
             filters_.search = String{ str::to_char8(search_buffer_) };
-            dirty_ = true;
+            visible_dirty_ = true;
         }
         ImGui::SameLine();
         vertical_separator(row_height);
 
-    // group 2: level toggles, colored like the rows themselves
+    // group 2: senders
+        if(ImGui::Checkbox("Core", &filters_.core)) visible_dirty_ = true;
+        ImGui::SameLine(0.0f, 10.0f);
+        if(ImGui::Checkbox("Client", &filters_.client)) visible_dirty_ = true;
+        ImGui::SameLine();
+        vertical_separator(row_height);
+
+    // group 3: level toggles, colored like the rows themselves
         for(Size i{ 0 }; i < filters_.levels.size(); ++i)
         {
             const LogLevel level{ static_cast<LogLevel>(i) };
@@ -168,61 +202,19 @@ namespace rke
                 level_name_sv(level).raw_unsafe(), static_cast<size_t>(level_counts_[i]));
 
             ImGui::PushStyleColor(ImGuiCol_Text, level_color(level));
-            if(ImGui::Checkbox(label, &filters_.levels[i])) dirty_ = true;
+            if(i) ImGui::SameLine();
+            if(ImGui::Checkbox(label, &filters_.levels[i])) visible_dirty_ = true;
             ImGui::PopStyleColor();
-            ImGui::SameLine();
         }
-        vertical_separator(row_height);
-
-    // group 3: senders
-        if(ImGui::Checkbox("Core", &filters_.core)) dirty_ = true;
-        ImGui::SameLine(0.0f, 10.0f);
-        if(ImGui::Checkbox("Client", &filters_.client)) dirty_ = true;
-
-        ImGui::Text("%zu entries, %zu shown", static_cast<size_t>(entries_.size()),
-            static_cast<size_t>(visible_.size()));
-        if(const uint64 recycled{ log_history.dropped() }; recycled > 0)
+        
+        ImGui::Text("%zu entries, %zu shown", entries_.size(), visible_.size());
+        const uint64 recycled{ log_history.dropped() };
+        if(recycled > 0)
         {
             ImGui::SameLine();
             ImGui::TextColored(ImVec4(0.95f, 0.85f, 0.40f, 1.0f),
-                "(%llu older entries recycled)", static_cast<unsigned long long>(recycled));
+                "(%llu older entries recycled)", recycled);
         }
-    }
-
-    void LogPanel::rebuild_layout(float content_width, float line_height)
-    {
-        const Size rows{ visible_.size() };
-        const float spacing{ ImGui::GetStyle().ItemSpacing.y };
-        const float wrap_width{ content_width > 0.0f ? content_width : 1.0f };
-
-        row_heights_.resize(rows);
-        for(Size row{ 0 }; row < rows; ++row)
-        {
-            const String& text{ display_[visible_[row]] };
-            // first estimate: measuring is much cheaper than drawing, and rows
-            // actually drawn later correct it through their real item height
-            row_heights_[row] = (settings_.wrap
-                ? ImGui::CalcTextSize(text.raw(), nullptr, false, wrap_width).y
-                : line_height) + spacing;
-        }
-
-        measured_width_ = content_width;
-        layout_valid_ = true;
-        layout_dirty_ = false;
-        rebuild_offsets();
-    }
-
-    void LogPanel::rebuild_offsets()
-    {
-        row_offsets_.resize(row_heights_.size() + 1);
-
-        float offset{ 0.0f };
-        for(Size row{ 0 }; row < row_heights_.size(); ++row)
-        {
-            row_offsets_[row] = offset;
-            offset += row_heights_[row];
-        }
-        row_offsets_[row_heights_.size()] = offset; // exact content height
     }
 
     void LogPanel::draw_entries()
@@ -231,14 +223,15 @@ namespace rke
         hovered_row_ = -1; // re-detected while the rows below are submitted
 
         const float content_width{ ImGui::GetContentRegionAvail().x };
-        if(!layout_valid_ || measured_width_ != content_width)
-            rebuild_layout(content_width, ImGui::GetTextLineHeight());
+        if(measured_width_ != content_width) 
+        {
+            measured_width_ = content_width;
+            layout_valid_ = false;
+        }
+        if(!layout_valid_) rebuild_layout();
 
     // keep following the tail, but never yank the view while the user reads history
-        const bool follow {
-            settings_.auto_scroll &&
-            ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1.0f
-        };
+        const bool at_bottom{ ImGui::GetScrollY() < (ImGui::GetScrollMaxY() - 1.0f) };
 
         const Size rows{ visible_.size() };
         const float view_top{ ImGui::GetScrollY() };
@@ -273,13 +266,13 @@ namespace rke
                 layout_dirty_ = true;
             }
         }
-        if(layout_dirty_) { rebuild_offsets(); layout_dirty_ = false; }
+        if(layout_dirty_) rebuild_offsets();
 
     // anchor the content height, so the scrollbar reaches the very last row
         ImGui::SetCursorPosY(row_offsets_.empty() ? 0.0f : row_offsets_.back());
         ImGui::Dummy(ImVec2(0.0f, 0.0f));
 
-        if(follow || scroll_to_bottom_) ImGui::SetScrollHereY(1.0f);
+        if(!at_bottom || scroll_to_bottom_) ImGui::SetScrollHereY(1.0f);
         scroll_to_bottom_ = false;
 
         ImGui::EndChild();
@@ -299,7 +292,7 @@ namespace rke
         if(context_row_ >= 0 && static_cast<Size>(context_row_) < visible_.size())
         {
             const Size index{ visible_[static_cast<Size>(context_row_)] };
-            if(ImGui::MenuItem("Copy Line"))    ImGui::SetClipboardText(display_[index].raw());
+            if(ImGui::MenuItem("Copy Line"))    ImGui::SetClipboardText(formatted_[index].raw());
             if(ImGui::MenuItem("Copy Message")) ImGui::SetClipboardText(entries_[index].message.raw());
             ImGui::Separator();
         }
@@ -309,7 +302,7 @@ namespace rke
             String joined{};
             for(Size index : visible_)
             {
-                joined += display_[index];
+                joined += formatted_[index];
                 joined += u8"\n";
             }
             if(!joined.empty()) ImGui::SetClipboardText(joined.raw());
@@ -317,9 +310,9 @@ namespace rke
         if(ImGui::MenuItem("Clear")) clear_entries();
         ImGui::Separator();
 
-        ImGui::MenuItem("Auto-scroll",   nullptr, &settings_.auto_scroll);
-        if(ImGui::MenuItem("Wrap",        nullptr, &settings_.wrap)) layout_valid_ = false;
-        if(ImGui::MenuItem("Show Source", nullptr, &settings_.show_source)) dirty_ = true;
+        ImGui::MenuItem("Auto-scroll", nullptr, &settings_.auto_scroll);
+        if(ImGui::MenuItem("Wrap", nullptr, &settings_.wrap)) layout_valid_ = false;
+        if(ImGui::MenuItem("Show Source", nullptr, &settings_.show_source)) visible_dirty_ = true;
 
         ImGui::EndPopup();
     }
@@ -327,7 +320,7 @@ namespace rke
     float LogPanel::draw_entry(int row)
     {
         const Size index{ visible_[static_cast<Size>(row)] };
-        const String& text{ display_[index] };
+        const String& text{ formatted_[index] };
 
         ImGui::PushStyleColor(ImGuiCol_Text, level_color(entries_[index].level));
         if(settings_.wrap) ImGui::TextWrapped("%s", text.raw());
@@ -349,13 +342,12 @@ namespace rke
         log_history.clear();
 
         entries_.clear();
-        display_.clear();
+        formatted_.clear();
         visible_.clear();
         level_counts_.fill(0);
 
-        consumed_  = log_history.written();
-        formatted_ = 0;
-        dirty_     = true;
+        consumed_ = log_history.written();
+        formatted_cnt_ = 0;
         layout_valid_ = false;
         scroll_to_bottom_ = true;
     }
