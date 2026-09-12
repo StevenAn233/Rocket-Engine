@@ -68,8 +68,6 @@ namespace {
 
 namespace rke
 {
-    LogHistory log_history{};
-
     void LogHistory::push(LogEntry entry)
     {
         std::lock_guard lock{ mutex_ };
@@ -100,6 +98,8 @@ namespace rke
             out.push_back(entries_[seq - first]);
         return end;
     }
+
+    extern LogHistory log_history;
 
     void log(LogType type, LogLevel level,
         const std::source_location& loc, String str)

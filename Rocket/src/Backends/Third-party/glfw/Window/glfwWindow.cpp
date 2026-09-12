@@ -183,7 +183,8 @@ namespace rke
         if(props.icon_path.exists())
         {
             int width{}, height{}, channels{};
-            stbi_uc* pixels{ stbi_load (
+            stbi_uc* pixels{ stbi_load
+            (
                 props.icon_path.string().raw(),
                 &width, &height, &channels, 4
             )};

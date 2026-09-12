@@ -9,7 +9,7 @@ export namespace rke
     {
     public:
         ContentBrowserPanel(String name);
-        ~ContentBrowserPanel();
+        ~ContentBrowserPanel() override;
 
         void set_folder_icon(const Path& filepath);
         void set_image_icon (const Path& filepath);

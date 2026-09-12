@@ -32,7 +32,9 @@ export namespace rke
     {
     public:
         friend class ApplicationPanel;
-        friend struct std::default_delete<Application>;
+
+        Application();
+        virtual ~Application();
 
         Application(const Application&) = delete;
         Application& operator=(const Application&) = delete;
@@ -49,7 +51,7 @@ export namespace rke
 
         inline RenderCommand& render_command() { return *render_command_; }
         inline WindowsLib& get_windows_lib() { return windows_lib_; }
-        inline Project* get_project() { return project_.get(); }
+        inline Project* get_project() { return project_.get(); } // can be null
 
         inline Input& input() { return input_; }
         inline Instrumentor& instrumentor() { return instrumentor_; }
@@ -59,8 +61,6 @@ export namespace rke
         void register_modal(Modal* handle, ModalRegistry::Attrib attrib);
         void unregister_modal(Modal* handle);
     protected:
-        Application();
-        virtual ~Application();
         void set_dockspace_editor_runtime(std::function<bool()> func);
     private:
         WindowsLib windows_lib_{};
@@ -73,12 +73,11 @@ export namespace rke
 
         DockSpace* dockspace_{}; // owned by WindowsLib::LayerStack::DockSpaceLayer
 
-        LogPanel log_panel_{ u8"Log" };
-        ApplicationPanel application_panel_{ u8"Application" };
-        ProjectSettingPanel project_setting_panel_{ u8"Project Settings" };
+        Scope<LogPanel> log_panel_{};
+        Scope<ApplicationPanel> app_panel_{};
+        Scope<ProjectSettingPanel> proj_panel_{};
     };
 
     RKE_API Application& app();
-    RKE_API bool app_null();
     RKE_API void execute(Scope<Application> app);
 }

@@ -13,16 +13,15 @@ import ProjectEvent;
 
 namespace rke
 {
-    Application::Application()
-        { render_command_ = RenderCommand::create(); }
-
+    Application::Application() {}
     Application::~Application() {}
 
     void Application::init()
     {
+        render_command_ = RenderCommand::create();
         platform_support::begin();
 
-        Window& main_window{ get_windows_lib().load_main
+        Window& main_window{ windows_lib_.load_main
         (
             create_scope<Window::Props>(Window::Props
             {
@@ -32,7 +31,7 @@ namespace rke
                 .x_coord{ 50 }, .y_coord{ 100 }
             })
         )};
-
+        
         Scope<DockSpaceLayer> ds_layer{ create_scope<DockSpaceLayer>
         (
             u8"Dockspace Layer", &main_window,
@@ -40,13 +39,27 @@ namespace rke
         )};
         dockspace_ = &(ds_layer->dockspace_);
         main_window.push_overlay(Scope<Layer>(ds_layer.release()));
-        register_panel(&log_panel_);
-        register_panel(&application_panel_);
-        register_panel(&project_setting_panel_);
+
+        log_panel_  = create_scope<LogPanel>(u8"Log");
+        app_panel_  = create_scope<ApplicationPanel>(u8"Application");
+        proj_panel_ = create_scope<ProjectSettingPanel>(u8"Project Settings");
+        log_panel_->load_from(file::editor_dir() / u8"settings" / u8"log.yaml");
+
+        register_panel(log_panel_ .get());
+        register_panel(app_panel_ .get());
+        register_panel(proj_panel_.get());
         register_panel(&main_window.setting_panel_);
     }
 
-    void Application::shutdown() { platform_support::end(); }
+    void Application::shutdown()
+    {
+        log_panel_ .reset();
+        app_panel_ .reset();
+        proj_panel_.reset();
+
+        platform_support::end();
+        render_command_.reset();
+    }
 
     void Application::run()
     {
@@ -65,9 +78,9 @@ namespace rke
             if(e.get_window_name() == u8"main")
             {
                 unregister_panel(&windows_lib_.get_main().setting_panel_);
-                unregister_panel(&project_setting_panel_);
-                unregister_panel(&application_panel_);
-                unregister_panel(&log_panel_);
+                unregister_panel(proj_panel_.get());
+                unregister_panel(app_panel_ .get());
+                unregister_panel(log_panel_ .get());
                 dockspace_->editor_runtime_ = nullptr;
                 dockspace_ = nullptr;
             }
@@ -81,7 +94,7 @@ namespace rke
         clear_project();
         project_ = create_scope<Project>(path);
         if(project_) {
-            project_setting_panel_.set_aa(project_->get_config().anti_aliasing);
+            proj_panel_->set_aa(project_->get_config().anti_aliasing);
             ProjectLoadedEvent event{ u8"main" };
             send_event(event);
         }
@@ -125,6 +138,7 @@ namespace rke
 
 namespace rke
 {
+    LogHistory log_history{}; // may modify
     static Application* s_app_handle{};
 
     static void register_instance(Application* handle)
@@ -137,11 +151,9 @@ namespace rke
 
     Application& app()
     {
-        if(app_null()) DEBUG_BREAK;
+        if(s_app_handle == nullptr) DEBUG_BREAK;
         return *s_app_handle;
     }
-
-    bool app_null() { return s_app_handle == nullptr; }
 
     void execute(Scope<Application> instance)
     {

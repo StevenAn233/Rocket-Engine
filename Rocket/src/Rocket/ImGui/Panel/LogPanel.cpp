@@ -1,7 +1,8 @@
 ﻿module;
 module LogPanel;
 
-import Application;
+import FileUtils;
+import ConfigProxy;
 
 namespace {
     using namespace rke;
@@ -88,6 +89,42 @@ namespace rke
 {
     extern LogHistory log_history;
 
+    LogPanel::~LogPanel()
+    {
+        if(filepath_.empty()) return;
+        file::check_to_create_dir(filepath_);
+
+        auto writer{ ConfigWriter::create() };
+        if(!writer) {
+            CORE_ERROR(u8"LogPanel: Failed to create config writer!");
+            return;
+        }
+        writer->begin_map();
+        writer->write(u8"Auto Scroll", settings_.auto_scroll);
+        writer->write(u8"Wrap", settings_.wrap);
+        writer->write(u8"Show Source", settings_.show_source);
+        writer->end_map();
+
+        writer->push_to_file(filepath_);
+    }
+
+    void LogPanel::load_from(Path filepath)
+    {
+        filepath_ = std::move(filepath);
+        if(!filepath_.exists()) {
+            CORE_WARN(u8"LogPanel: File '{}' not found!", filepath_);
+            return;
+        }
+        auto reader{ ConfigReader::create(filepath_) };
+        if(!reader || !reader->is_map()) {
+            CORE_WARN(u8"LogPanel: File format incorrect!");
+            return;
+        }
+        settings_.auto_scroll = reader->get_at(u8"Auto Scroll", settings_.auto_scroll);
+        settings_.wrap = reader->get_at(u8"Wrap", settings_.wrap);
+        settings_.show_source = reader->get_at(u8"Show Source", settings_.show_source);
+    }
+
     void LogPanel::on_imgui_render()
     {
         ImGui::Begin(get_name().raw());
@@ -111,18 +148,21 @@ namespace rke
 
     void LogPanel::rebuild_visible()
     {
+    // the text and the heights depend on 'show source', so a change drops both
         if(formatted_with_source_ != settings_.show_source)
         {
             formatted_with_source_ = settings_.show_source;
-            formatted_cnt_ = 0;
+            formatted_.clear();
+            formatted_heights_.clear();
         }
-        formatted_.resize(entries_.size());
-        for(; formatted_cnt_ < formatted_.size(); formatted_cnt_++)
-            formatted_[formatted_cnt_] = build_display_text
-                (entries_[formatted_cnt_], settings_.show_source);
+        formatted_.reserve(entries_.size()); // only triggers when size is smaller
+        while(formatted_.size() < entries_.size())
+            formatted_.push_back(build_display_text
+                (entries_[formatted_.size()], settings_.show_source));
 
         visible_.clear();
         level_counts_.fill(0);
+        const StringView search{ str::to_char8(search_buffer_) };
         for(Size i{}; i < entries_.size(); ++i)
         {
             const LogEntry& entry{ entries_[i] };
@@ -130,45 +170,39 @@ namespace rke
 
             if(!filters_.levels[static_cast<Size>(entry.level)]) continue;
             if(entry.type == LogType::Core ? !filters_.core : !filters_.client) continue;
-            if(!icontains(entry.message, filters_.search)) continue;
+            if(!icontains(entry.message, search)) continue;
 
             visible_.push_back(i);
         }
         if(settings_.auto_scroll) scroll_to_bottom_ = true;
-        rebuild_layout();
         visible_dirty_ = false;
     }
 
-    void LogPanel::rebuild_layout()
+    void LogPanel::measure_heights()
     {
-        const Size rows{ visible_.size() };
-        const float spacing{ ImGui::GetStyle().ItemSpacing.y };
         const float wrap_width{ measured_width_ > 0.0f ? measured_width_ : 1.0f };
 
-        row_heights_.resize(rows);
-        for(Size row{}; row < rows; ++row)
+        formatted_heights_.reserve(formatted_.size()); // the same as above
+        while(formatted_heights_.size() < formatted_.size())
         {
-            const String& text{ formatted_[visible_[row]] };
-            row_heights_[row] = (settings_.wrap
-                ? ImGui::CalcTextSize(text.raw(), nullptr, false, wrap_width).y
-                : ImGui::GetTextLineHeight()) + spacing;
+            const Size index{ formatted_heights_.size() };
+            formatted_heights_.push_back((settings_.wrap
+                ? ImGui::CalcTextSize(formatted_[index].raw(), nullptr, false, wrap_width).y
+                : ImGui::GetTextLineHeight()) + ImGui::GetStyle().ItemSpacing.y);
         }
-        rebuild_offsets();
-        layout_valid_ = true;
     }
 
     void LogPanel::rebuild_offsets()
     {
-        row_offsets_.resize(row_heights_.size() + 1);
+        row_offsets_.resize(visible_.size() + 1);
 
         float offset{ 0.0f };
-        for(Size row{}; row < row_heights_.size(); ++row)
+        for(Size row{}; row < visible_.size(); ++row)
         {
             row_offsets_[row] = offset;
-            offset += row_heights_[row];
+            offset += formatted_heights_[visible_[row]];
         }
-        row_offsets_[row_heights_.size()] = offset; // exact content height
-        layout_dirty_ = false;
+        row_offsets_[visible_.size()] = offset; // exact content height
     }
 
     void LogPanel::draw_toolbar()
@@ -179,10 +213,7 @@ namespace rke
         ImGui::SetNextItemWidth(220.0f);
         if(ImGui::InputTextWithHint("##log_search", "search...",
             search_buffer_, sizeof(search_buffer_)))
-        {
-            filters_.search = String{ str::to_char8(search_buffer_) };
             visible_dirty_ = true;
-        }
         ImGui::SameLine();
         vertical_separator(row_height);
 
@@ -220,18 +251,20 @@ namespace rke
     void LogPanel::draw_entries()
     {
         ImGui::BeginChild("##log_entries", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders);
-        hovered_row_ = -1; // re-detected while the rows below are submitted
+        if(!ImGui::IsPopupOpen("##log_context")) context_row_ = -1;
 
         const float content_width{ ImGui::GetContentRegionAvail().x };
-        if(measured_width_ != content_width) 
+        if(measured_width_ != content_width || measured_wrapped_ != settings_.wrap)
         {
-            measured_width_ = content_width;
-            layout_valid_ = false;
+            measured_width_   = content_width;
+            measured_wrapped_ = settings_.wrap;
+            formatted_heights_.clear(); // heights depend on the wrapping context
         }
-        if(!layout_valid_) rebuild_layout();
+        measure_heights();
+        rebuild_offsets();
 
     // keep following the tail, but never yank the view while the user reads history
-        const bool at_bottom{ ImGui::GetScrollY() < (ImGui::GetScrollMaxY() - 1.0f) };
+        const bool at_bottom{ ImGui::GetScrollY() >= (ImGui::GetScrollMaxY() - 1.0f) };
 
         const Size rows{ visible_.size() };
         const float view_top{ ImGui::GetScrollY() };
@@ -244,12 +277,13 @@ namespace rke
             while(low < high)
             {
                 const Size mid{ low + (high - low) / 2 };
-                if(row_offsets_[mid] + row_heights_[mid] < view_top) low = mid + 1;
+                if(row_offsets_[mid] + formatted_heights_[visible_[mid]] < view_top) low = mid + 1;
                 else high = mid;
             }
             first = low;
         }
 
+        bool corrected{ false };
         for(Size row{ first }; row < rows; ++row)
         {
             if(row_offsets_[row] > view_bottom) break; // starts below the viewport
@@ -258,21 +292,23 @@ namespace rke
             const float real_height{ draw_entry(static_cast<int>(row))
                 + ImGui::GetStyle().ItemSpacing.y };
 
-            float delta{ real_height - row_heights_[row] };
+        // the estimate is replaced by what the row really took
+            const Size index{ visible_[row] };
+            float delta{ real_height - formatted_heights_[index] };
             if(delta < 0.0f) delta = -delta;
             if(delta > 0.5f)
             {
-                row_heights_[row] = real_height;
-                layout_dirty_ = true;
+                formatted_heights_[index] = real_height;
+                corrected = true;
             }
         }
-        if(layout_dirty_) rebuild_offsets();
+        if(corrected) rebuild_offsets();
 
     // anchor the content height, so the scrollbar reaches the very last row
         ImGui::SetCursorPosY(row_offsets_.empty() ? 0.0f : row_offsets_.back());
         ImGui::Dummy(ImVec2(0.0f, 0.0f));
 
-        if(!at_bottom || scroll_to_bottom_) ImGui::SetScrollHereY(1.0f);
+        if(at_bottom || scroll_to_bottom_) ImGui::SetScrollHereY(1.0f);
         scroll_to_bottom_ = false;
 
         ImGui::EndChild();
@@ -282,10 +318,7 @@ namespace rke
     {
         if(ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)
         && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-        {
-            context_row_ = hovered_row_;
-            ImGui::OpenPopup("##log_context");
-        }
+            ImGui::OpenPopup("##log_context"); // the row, if any, set context_row_
 
         if(!ImGui::BeginPopup("##log_context")) return;
 
@@ -311,7 +344,7 @@ namespace rke
         ImGui::Separator();
 
         ImGui::MenuItem("Auto-scroll", nullptr, &settings_.auto_scroll);
-        if(ImGui::MenuItem("Wrap", nullptr, &settings_.wrap)) layout_valid_ = false;
+        ImGui::MenuItem("Wrap", nullptr, &settings_.wrap); // picked up by draw_entries
         if(ImGui::MenuItem("Show Source", nullptr, &settings_.show_source)) visible_dirty_ = true;
 
         ImGui::EndPopup();
@@ -329,10 +362,11 @@ namespace rke
 
         const float height{ ImGui::GetItemRectSize().y };
 
-    // hover must still register while the context popup is open, otherwise the
-    // popup could not tell which row it was opened on
-        if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
-            hovered_row_ = row;
+    // a right click here selects this row for the context popup; hover must still
+    // register while a popup is open, or the row could not be picked
+        if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)
+        && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+            context_row_ = row;
 
         return height;
     }
@@ -342,13 +376,16 @@ namespace rke
         log_history.clear();
 
         entries_.clear();
-        formatted_.clear();
-        visible_.clear();
-        level_counts_.fill(0);
-
         consumed_ = log_history.written();
-        formatted_cnt_ = 0;
-        layout_valid_ = false;
+
+        formatted_.clear();
+        formatted_heights_.clear();
+
+        visible_.clear();
+
+        level_counts_.fill(0);
+        measured_width_ = -1.0f;
+        measured_wrapped_ = settings_.wrap;
         scroll_to_bottom_ = true;
     }
 }

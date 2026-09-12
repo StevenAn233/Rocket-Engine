@@ -34,7 +34,7 @@ export namespace rke
         EntityHandle entity_handle{ entity_handle_null };
     };
 
-    class Renderer
+    class RKE_API Renderer
     {
     public:
         struct InstanceData
@@ -69,11 +69,11 @@ export namespace rke
         Renderer(Renderer&&) = delete;
         Renderer& operator=(Renderer&&) = delete;
 
-        RKE_API void begin_camera(const glm::mat4& view_projection);
-        RKE_API void begin_scene();
-        RKE_API void end_scene();
+        void begin_camera(const glm::mat4& view_projection);
+        void begin_scene();
+        void end_scene();
 
-        RKE_API void push(const Mesh* mesh, const GTexture* gtex, const RenderProps& props);
+        void push(const Mesh* mesh, const GTexture* gtex, const RenderProps& props);
 
     #ifdef RKE_ENABLE_STATISTICS
         inline Statistics& get_stats() { return stats_; }
@@ -81,8 +81,8 @@ export namespace rke
     #endif
 
     // may modify
-        RKE_API static void init(); // requires main window context current
-        RKE_API static void refresh_shader();
+        static void init(); // requires main window context current
+        static void refresh_shader();
     // may modify
     private:
         struct MeshGeometry
