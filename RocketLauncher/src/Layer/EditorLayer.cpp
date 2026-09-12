@@ -363,11 +363,12 @@ namespace rke
             );
 
             if(scene_edit_ && main_viewport_->is_hovered() &&
+             ! in_main_viewport_dragging_ &&
              !(gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
             {
                 glm::vec2 vp_mouse{ main_viewport_->get_mouse_pos() };
-                hovering_id_ = std::bit_cast<EntityHandle>(main_renderer_
-                    .get_hovering_id(vp_mouse.x, vp_mouse.y));
+                hovering_id_ = std::bit_cast<EntityHandle>
+                    (main_renderer_.get_hovering_id(vp_mouse.x, vp_mouse.y));
             }
             else hovering_id_ = entity_handle_null;
 

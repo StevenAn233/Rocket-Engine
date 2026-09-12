@@ -261,7 +261,7 @@ namespace rke
         if(!pixel_pbo_) return;
         auto data{ reinterpret_cast<GLubyte*>
             (pixel_pbo_->map(PixelBuffer::Access::Write)) };
-        if(data) { memset(data, 0, 4); pixel_pbo_->unmap(); }
+        if(data) { memset(data, 0xFF, 4); pixel_pbo_->unmap(); }
     }
 
     bool glFrameBuffer::zero_sized() const
