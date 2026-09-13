@@ -238,6 +238,8 @@ namespace rke
 {
     bool SceneSerializer::serialize(const Scene& scene, const Path& filepath)
     {
+        CORE_ASSERT(!scene.temporary_, u8"SceneRenderer:"
+            u8" Can't serialize temporary scene!");
         Scope<ConfigWriter> writer{ ConfigWriter::create() };
         writer->begin_map();
 
@@ -277,6 +279,8 @@ namespace rke
 
     bool SceneSerializer::deserialize(Scene& scene, const Path& filepath)
     {
+        CORE_ASSERT(!scene.temporary_, u8"SceneRenderer:"
+            u8" Can't deserialize to temporary scene!");
         if(!filepath.exists()) {
             CORE_ERROR(u8"SceneSerializer: File '{}' doesn't exist!", filepath);
             return false;

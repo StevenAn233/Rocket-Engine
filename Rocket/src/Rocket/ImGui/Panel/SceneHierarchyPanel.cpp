@@ -65,9 +65,9 @@ namespace rke
         ImGui::End();
 
     // Expanded(Entity or Scene)
-        ImGui::Begin("##expanded", nullptr, ImGuiWindowFlags_NoTitleBar);
         ImGui::PushID(get_name().raw());
-
+        ImGui::Begin("Selected", nullptr);
+        
         Entity selected{ context_->get_selected_entity() };
         if(selected.valid()) {
             draw_components(selected);
@@ -75,8 +75,8 @@ namespace rke
         }
         else if(is_scene_selected_) draw_scene_settings();
 
-        ImGui::PopID();
         ImGui::End();
+        ImGui::PopID();
     }
 
     void SceneHierarchyPanel::draw_entity_node(Entity entity, Entity selected)
