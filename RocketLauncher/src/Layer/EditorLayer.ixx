@@ -79,6 +79,7 @@ export namespace rke
 
         Toolbar toolbar_{ u8"Toolbar" };
         SceneHierarchyPanel scene_hierarchy_panel_{ u8"Scene Hierarchy" };
+        AnimationEditorPanel animation_editor_panel_{ u8"Animation Editor" };
 
         bool in_main_viewport_dragging_{ false };
         bool in_entity_popup_{ false };

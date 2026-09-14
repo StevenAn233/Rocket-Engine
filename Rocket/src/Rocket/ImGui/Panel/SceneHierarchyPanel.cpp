@@ -349,8 +349,9 @@ namespace rke
                 String display_name{ txc.tex_uuid.empty() ? u8"<No Texture>" :
                     am.get_asset_path(txc.tex_uuid).filename().string() };
 
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                if(ImGui::Button(display_name.raw(), ImVec2(ImGui::GetContentRegionAvail().x, 0.0f)))
+                float avail_width{ ImGui::GetContentRegionAvail().x };
+                ImGui::SetNextItemWidth(avail_width);
+                if(ImGui::Button(display_name.raw(), ImVec2(avail_width, 0.0f)))
                 {
                     txc.tex_uuid = UUID(0);
                     context_->mark_modified();

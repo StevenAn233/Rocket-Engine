@@ -189,6 +189,7 @@ namespace rke
         app().register_panel(cam_viewport_.get());
 
         app().register_panel(&scene_hierarchy_panel_);
+        app().register_panel(&animation_editor_panel_);
         app().register_panel(&toolbar_, { .always_on = true });
     }
 
@@ -202,6 +203,7 @@ namespace rke
         app().unregister_panel(cam_viewport_.get());
 
         app().unregister_panel(&scene_hierarchy_panel_);
+        app().unregister_panel(&animation_editor_panel_);
         app().unregister_panel(&toolbar_);
 
         editor_setting_panel_.reset();

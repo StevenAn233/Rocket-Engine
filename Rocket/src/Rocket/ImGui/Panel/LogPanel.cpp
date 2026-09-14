@@ -318,13 +318,13 @@ namespace rke
     {
         if(ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)
         && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-            ImGui::OpenPopup("##log_context"); // the row, if any, set context_row_
+            ImGui::OpenPopup("##log_context");
 
         if(!ImGui::BeginPopup("##log_context")) return;
 
-        if(context_row_ >= 0 && static_cast<Size>(context_row_) < visible_.size())
+        if(context_row_ >= 0 && context_row_ < visible_.size())
         {
-            const Size index{ visible_[static_cast<Size>(context_row_)] };
+            Size index{ visible_[context_row_] };
             if(ImGui::MenuItem("Copy Line"))    ImGui::SetClipboardText(formatted_[index].raw());
             if(ImGui::MenuItem("Copy Message")) ImGui::SetClipboardText(entries_[index].message.raw());
             ImGui::Separator();

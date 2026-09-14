@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <utility>
-#include <unordered_map>
+#include <map>
 #include <unordered_set>
 #include "rke_macros.h"
 
@@ -61,7 +61,7 @@ export namespace rke
         AssetResolve resolved_tex_{};
 
         std::vector<String> clip_names_{}; // for editor
-        std::unordered_map<String, AnimClip> clips_{};
+        std::map<String, AnimClip> clips_{};
         mutable std::unordered_set<String> failed_{};
     };
 }
