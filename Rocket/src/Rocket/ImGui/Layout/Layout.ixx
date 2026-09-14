@@ -136,4 +136,6 @@ export namespace rke::layout
         });
         return data_changed;
     }
+
+    RKE_API void vertical_separator(float height);
 }

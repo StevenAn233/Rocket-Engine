@@ -1,6 +1,7 @@
 ﻿module;
 module LogPanel;
 
+import Layout;
 import FileUtils;
 import ConfigProxy;
 
@@ -72,16 +73,6 @@ namespace {
             (StringView(str::to_char8(entry.file ? entry.file : ""))) };
         return String::format(u8"[{:%T}][{}:{}] {}",
             zoned_time, file_name, entry.line, entry.message);
-    }
-
-    static void vertical_separator(float height)
-    {
-        const ImVec2 top{ ImGui::GetCursorScreenPos() };
-
-        ImGui::Dummy(ImVec2(1.0f, height));
-        ImGui::GetWindowDrawList()->AddLine(top, ImVec2(top.x, top.y + height),
-            ImGui::GetColorU32(ImGuiCol_Separator), 1.0f);
-        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemSpacing.x);
     }
 }
 
@@ -215,14 +206,14 @@ namespace rke
             search_buffer_, sizeof(search_buffer_)))
             visible_dirty_ = true;
         ImGui::SameLine();
-        vertical_separator(row_height);
+        layout::vertical_separator(row_height);
 
     // group 2: senders
         if(ImGui::Checkbox("Core", &filters_.core)) visible_dirty_ = true;
         ImGui::SameLine(0.0f, 10.0f);
         if(ImGui::Checkbox("Client", &filters_.client)) visible_dirty_ = true;
         ImGui::SameLine();
-        vertical_separator(row_height);
+        layout::vertical_separator(row_height);
 
     // group 3: level toggles, colored like the rows themselves
         for(Size i{ 0 }; i < filters_.levels.size(); ++i)

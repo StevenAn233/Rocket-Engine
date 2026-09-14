@@ -41,8 +41,5 @@ export namespace rke
         Size   selected_frame_{ 0 };
         bool   preview_playing_{ false };
         float  preview_time_{ 0.0f };
-
-        char   name_buffer_[64]{};
-        String name_buffer_for_{};
     };
 }
