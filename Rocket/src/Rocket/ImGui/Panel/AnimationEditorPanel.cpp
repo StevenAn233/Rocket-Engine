@@ -14,6 +14,8 @@ import GTexture;
 import Project;
 import Application;
 import ImGuiSetup;
+import Components;
+import Layout;
 
 namespace {
     static void ImGui_ImplOpenGL3_DisableBindSampler(const ImDrawList*, const ImDrawCmd*)
@@ -57,6 +59,9 @@ namespace rke
 
         if(has_drop) open(dropped_uuid);
 
+        if(ImGui::SmallButton("~")) clear();
+        ImGui::SameLine();
+
         if(asset_uuid_.empty())
         {
             ImGui::TextDisabled("No animation.");
@@ -64,10 +69,8 @@ namespace rke
             return;
         }
 
-    // root window
-        if(ImGui::SmallButton("~")) clear();
-        ImGui::SameLine();
-
+        CORE_ASSERT(!asset_path_.empty(), u8"AnimationEditorPanel:"
+            u8" Asset '{}' path empty!", asset_uuid_.value())
         ImGui::Text("%s", asset_path_.string().raw());
         if(modified_) {
             ImGui::SameLine();
@@ -95,13 +98,12 @@ namespace rke
         asset_uuid_ = UUID(0);
         asset_path_.clear();
         anim_ = Animation{};
+        modified_ = false;
+
         selected_clip_.clear();
         selected_frame_ = 0;
         preview_playing_ = false;
         preview_time_ = 0.0f;
-        modified_ = false;
-        name_buffer_for_.clear();
-        name_buffer_[0] = '\0';
     }
 
     void AnimationEditorPanel::open(AssetUUID uuid)
@@ -150,8 +152,7 @@ namespace rke
             if(const ImGuiPayload* payload{ ImGui::
                 AcceptDragDropPayload("CONTENT_BROWSER_ASSET_TEXTURE") })
             {
-                anim_.tex_uuid_
-                    = *reinterpret_cast<const AssetUUID*>(payload->Data);
+                anim_.tex_uuid_ = *reinterpret_cast<const AssetUUID*>(payload->Data);
                 anim_.resolved_tex_ = AssetResolve{}; // the old handle is stale
                 modified_ = true;
             }
@@ -168,20 +169,20 @@ namespace rke
         }};
 
     // clips managing
-        bool to_remove_selected{ false };
+        std::vector<const String*> to_remove{};
         for(const String& name : anim_.get_clip_names())
         {
             if(ImGui::Selectable(name.raw(), name == selected_clip_))
                 set_selected(name);
-            if(selected_clip_ == name)
-                to_remove_selected = clip_popup(name);
+            if(clip_popup(name)) to_remove.push_back(&name);
         }
-        if(to_remove_selected)
+        for(const String* name : to_remove)
         {
-            anim_.remove_clip(selected_clip_);
-            selected_clip_.clear();
+            if(*name == selected_clip_) selected_clip_.clear();
+            anim_.remove_clip(*name);
             modified_ = true;
         }
+        to_remove.clear();
         if(anim_.get_clip_names().empty()) ImGui::TextDisabled("no clips");
 
         ImGui::Separator();
@@ -214,20 +215,18 @@ namespace rke
             return;
         }
 
-        AnimClip clip{ *source }; // edited here, written back through replace_clip
+        AnimClip clip{ *source };
         bool changed{ false };
+        constexpr float basic_width{ 160.0f };
 
-    // name
-        if(name_buffer_for_ != selected_clip_)
-        {
-            name_buffer_for_ = selected_clip_;
-            std::snprintf(name_buffer_, sizeof(name_buffer_), "%s", selected_clip_.raw());
-        }
-        ImGui::SetNextItemWidth(180.0f);
-        if(ImGui::InputText("##clip_name", name_buffer_, sizeof(name_buffer_),
+    // name editing
+        char name_buffer[AnimatorComponent::clip_name_cap]{};
+        std::memcpy(name_buffer, selected_clip_.raw(), sizeof(name_buffer) - 1);
+        ImGui::SetNextItemWidth(basic_width + ImGui::CalcTextSize("Cell Size").x);
+        if(ImGui::InputText("##clip_name", name_buffer, sizeof(name_buffer),
             ImGuiInputTextFlags_EnterReturnsTrue))
         {
-            const String new_name{ String{ str::to_char8(name_buffer_) } };
+            String new_name{ String{ str::to_char8(name_buffer) } };
             const std::vector<String>& names{ anim_.get_clip_names() };
             const bool taken{ std::find(names.begin(), names.end(), new_name) != names.end() };
 
@@ -249,8 +248,7 @@ namespace rke
                 }
 
                 anim_.remove_clip(old_name);
-                selected_clip_ = new_name;
-                name_buffer_for_ = new_name;
+                selected_clip_ = std::move(new_name);
                 changed = true;
             }
         }
@@ -258,42 +256,45 @@ namespace rke
         ImGui::TextDisabled("(enter to rename)");
 
     // clip parameters
+        const float row_height{ ImGui::GetFrameHeight() };
+        int cell[2]{ clip.cell_size.first, clip.cell_size.second };
+        ImGui::SetNextItemWidth(basic_width);
+        if(ImGui::DragInt2("Cell Size", cell, 1.0f, 1, 8192, "%d px"))
+        { 
+            clip.cell_size = { cell[0], cell[1] };
+            changed = true;
+        }
+
+        ImGui::SameLine();
+        layout::vertical_separator(row_height);
+
+        int fps{ static_cast<int>(clip.fps) };
+        ImGui::SetNextItemWidth(basic_width * 0.4f);
+        if(ImGui::DragInt("FPS", &fps, 1.0f, 1, 240))
         {
-            int cell[2]{ clip.cell_size.first, clip.cell_size.second };
-            ImGui::SetNextItemWidth(150.0f);
-            if(ImGui::DragInt2("Cell Size", cell, 1.0f, 1, 8192, "%d px"))
-            { 
-                clip.cell_size = { cell[0], cell[1] };
-                changed = true;
-            }
+            clip.fps = static_cast<uint32>(fps);
+            changed = true;
+        }
 
-            ImGui::SameLine();
-            int fps{ static_cast<int>(clip.fps) };
-            ImGui::SetNextItemWidth(90.0f);
-            if(ImGui::DragInt("FPS", &fps, 1.0f, 1, 240))
+        ImGui::SameLine();
+        layout::vertical_separator(row_height);
+
+        if(ImGui::Checkbox("Loop", &clip.loop)) changed = true;
+
+        const String next_label{ clip.next.empty() ? u8"<None>"_s : clip.next };
+        ImGui::SetNextItemWidth(basic_width);
+        if(ImGui::BeginCombo("Next", next_label.raw()))
+        {
+            if(ImGui::Selectable("<None>", clip.next.empty()))
+                { clip.next.clear(); changed = true; }
+
+            for(const String& other : anim_.get_clip_names())
             {
-                clip.fps = static_cast<uint32>(fps);
-                changed = true;
+                if(other == selected_clip_) continue; // no self transition
+                if(ImGui::Selectable(other.raw(), other == clip.next))
+                    { clip.next = other; changed = true; }
             }
-
-            ImGui::SameLine();
-            if(ImGui::Checkbox("Loop", &clip.loop)) changed = true;
-
-            const String next_label{ clip.next.empty() ? u8"<None>"_s : clip.next };
-            ImGui::SetNextItemWidth(160.0f);
-            if(ImGui::BeginCombo("Next", next_label.raw()))
-            {
-                if(ImGui::Selectable("<None>", clip.next.empty()))
-                    { clip.next.clear(); changed = true; }
-
-                for(const String& other : anim_.get_clip_names())
-                {
-                    if(other == selected_clip_) continue; // no self transition
-                    if(ImGui::Selectable(other.raw(), other == clip.next))
-                        { clip.next = other; changed = true; }
-                }
-                ImGui::EndCombo();
-            }
+            ImGui::EndCombo();
         }
 
     // frames
@@ -532,11 +533,7 @@ namespace rke
     bool AnimationEditorPanel::clip_popup(const String& name)
     {
         if(name.empty()) return false;
-        if(ImGui::IsItemHovered()
-        && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-            ImGui::OpenPopup(name.raw());
-
-        if(!ImGui::BeginPopup(name.raw())) return false;
+        if(!ImGui::BeginPopupContextItem(name.raw())) return false;
 
         bool to_remove{ false };
         if(ImGui::MenuItem("Remove"))
