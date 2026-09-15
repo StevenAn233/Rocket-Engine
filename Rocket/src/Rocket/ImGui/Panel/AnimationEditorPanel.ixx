@@ -26,7 +26,7 @@ export namespace rke
         void open(AssetUUID uuid);
 
         void clips_managing(AssetsManager& am);
-        void selected_clip_editing(AssetsManager& am); // TO MODIFY
+        void selected_clip_editing(AssetsManager& am);
 
         void anim_popup(AssetsManager& am);
         bool clip_popup(const String& name);
@@ -38,8 +38,7 @@ export namespace rke
 
     // states
         String selected_clip_{};
-        Size   selected_frame_{ 0 };
-        bool   preview_playing_{ false };
-        float  preview_time_{ 0.0f };
+        Size selected_frame_{ 0 };
+        float sheet_zoom_{ 1.0f }; // multiplier over "fit the width"
     };
 }
