@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <numbers>
+#include <numeric>
 #include <memory>
 #include <utility>
 #include <functional>

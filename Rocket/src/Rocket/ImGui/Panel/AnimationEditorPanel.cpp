@@ -102,8 +102,6 @@ namespace rke
 
         selected_clip_.clear();
         selected_frame_ = 0;
-        preview_playing_ = false;
-        preview_time_ = 0.0f;
     }
 
     void AnimationEditorPanel::open(AssetUUID uuid)
@@ -165,7 +163,6 @@ namespace rke
         {
             selected_clip_ = name;
             selected_frame_ = 0;
-            preview_time_ = 0.0f;
         }};
 
     // clips managing
@@ -222,7 +219,7 @@ namespace rke
     // name editing
         char name_buffer[AnimatorComponent::clip_name_cap]{};
         std::memcpy(name_buffer, selected_clip_.raw(), sizeof(name_buffer) - 1);
-        ImGui::SetNextItemWidth(basic_width + ImGui::CalcTextSize("Cell Size").x);
+        ImGui::SetNextItemWidth(basic_width);
         if(ImGui::InputText("##clip_name", name_buffer, sizeof(name_buffer),
             ImGuiInputTextFlags_EnterReturnsTrue))
         {
@@ -259,9 +256,12 @@ namespace rke
         const float row_height{ ImGui::GetFrameHeight() };
         int cell[2]{ clip.cell_size.first, clip.cell_size.second };
         ImGui::SetNextItemWidth(basic_width);
-        if(ImGui::DragInt2("Cell Size", cell, 1.0f, 1, 8192, "%d px"))
-        { 
-            clip.cell_size = { cell[0], cell[1] };
+        if(ImGui::DragInt2("Cell Size", cell, 1.0f, -8192, 8192, "%d px"))
+        {
+            clip.cell_size = {
+                (cell[0]) == 0 ? 1 : cell[0],
+                (cell[1]) == 0 ? 1 : cell[1]
+            };
             changed = true;
         }
 
@@ -269,8 +269,8 @@ namespace rke
         layout::vertical_separator(row_height);
 
         int fps{ static_cast<int>(clip.fps) };
-        ImGui::SetNextItemWidth(basic_width * 0.4f);
-        if(ImGui::DragInt("FPS", &fps, 1.0f, 1, 240))
+        ImGui::SetNextItemWidth(row_height * 1.33f);
+        if(ImGui::DragInt("FPS", &fps, 1.0f, 1, 144))
         {
             clip.fps = static_cast<uint32>(fps);
             changed = true;
@@ -281,9 +281,11 @@ namespace rke
 
         if(ImGui::Checkbox("Loop", &clip.loop)) changed = true;
 
-        const String next_label{ clip.next.empty() ? u8"<None>"_s : clip.next };
+        ImGui::SameLine();
+        layout::vertical_separator(row_height);
+
         ImGui::SetNextItemWidth(basic_width);
-        if(ImGui::BeginCombo("Next", next_label.raw()))
+        if(ImGui::BeginCombo("Next", clip.next.empty() ? "<None>" : clip.next.raw()))
         {
             if(ImGui::Selectable("<None>", clip.next.empty()))
                 { clip.next.clear(); changed = true; }
@@ -296,204 +298,387 @@ namespace rke
             }
             ImGui::EndCombo();
         }
+        ImGui::Separator();
+
+    // frames editing
+        const AssetHandle tex_handle{ anim_.get_tex_handle(am).first };
+        if(tex_handle == asset_handle_null)
+            { ImGui::TextDisabled("no texture."); return; }
+
+        Texture* texture{ am.get_asset<Texture>(tex_handle) };
+        GTexture* gtex{ texture ?
+            texture->get_gtexture(GTextureSettings
+            {
+                .filt = GTexture::FiltFormat::Nearest,
+                .wrap = GTexture::WrapFormat::Repeat,
+                .srgb = false
+            })
+            : nullptr };
+        CORE_ASSERT(gtex, u8"AnimationEditorPanel: Texture format invalid!");
+
+        const float tex_w{ static_cast<float>(texture->get_width ()) };
+        const float tex_h{ static_cast<float>(texture->get_height()) };
+
+        const float cell_w_px{ static_cast<float>
+            (std::max(1, std::abs(clip.cell_size.first ))) };
+        const float cell_h_px{ static_cast<float>
+            (std::max(1, std::abs(clip.cell_size.second))) };
+
+        const float cell_uscale{ static_cast<float>(clip.cell_size.first ) / tex_w };
+        const float cell_vscale{ static_cast<float>(clip.cell_size.second) / tex_h };
+
+        const int cols{ static_cast<int>(ceil(1.0f / std::abs(cell_uscale))) };
+        const int rows{ static_cast<int>(ceil(1.0f / std::abs(cell_vscale))) };
 
     // frames
-        ImGui::Separator();
-        ImGui::Text("Frames: %zu", static_cast<size_t>(clip.frames.size()));
-
-        Size edit_index{ clip.frames.size() };
-        int  edit_action{ 0 }; // 1 remove, 2 move left, 3 move right
-        for(Size i{}; i < clip.frames.size(); ++i)
+        if(ImGui::SmallButton("~") && !clip.frames.empty())
         {
-            ImGui::PushID(static_cast<int>(i));
-            const String label{ String::format(u8"{}:({},{})", i,
-                clip.frames[i].first, clip.frames[i].second) };
-
-            if(ImGui::Selectable(label.raw(), i == selected_frame_,
-                ImGuiSelectableFlags_None, ImVec2(84.0f, 0.0f)))
-                selected_frame_ = i;
-
-            if(ImGui::BeginPopupContextItem("##frame"))
-            {
-                if(ImGui::MenuItem("Remove")) { edit_index = i; edit_action = 1; }
-                if(ImGui::MenuItem("Move Left", nullptr, false, i > 0))
-                { edit_index = i; edit_action = 2; }
-                if(ImGui::MenuItem("Move Right", nullptr, false, i + 1 < clip.frames.size()))
-                { edit_index = i; edit_action = 3; }
-                ImGui::EndPopup();
-            }
-            ImGui::PopID();
-
-            if((i + 1) % 6 != 0 && (i + 1) < clip.frames.size()) ImGui::SameLine();
+            clip.frames.clear();
+            selected_frame_ = 0;
+            changed = true;
         }
+        ImGui::SameLine();
+        ImGui::Text("Frames: %zu", clip.frames.size());
+        
+        Size edit_index{ clip.frames.size() };
+        int edit_action{ 0 };
+        // 1 remove, 2 move left, 3 move right,
+        // 4 insert before, 5 insert after
+
+        constexpr float thumb_fit{ 48.0f };
+        const float thumb_scale{ thumb_fit / std::max(cell_w_px, cell_h_px) };
+        const ImVec2 thumb_size{ cell_w_px * thumb_scale, cell_h_px * thumb_scale };
+
+        const ImGuiStyle& style{ ImGui::GetStyle() };
+        const float column_width{ thumb_size.x
+            + style.FramePadding.x * 2.0f   // the ImageButton frame
+            + style.CellPadding.x  * 2.0f }; // the gap a table column adds
+        const float usable_width{ ImGui::GetContentRegionAvail().x
+            - style.CellPadding.x * 2.0f }; // the table's own outer padding
+        const int frame_columns{ std::max(1, std::min
+        (
+            static_cast<int>(usable_width / column_width),
+            static_cast<int>(clip.frames.size())
+        ))};
+
+        if(!clip.frames.empty())
+            ImGui::GetWindowDrawList()->AddCallback
+                (ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
+
+        if(!clip.frames.empty() && ImGui::BeginTable("##frames",
+            frame_columns, ImGuiTableFlags_SizingFixedFit))
+        {
+            for(Size i{}; i < clip.frames.size(); ++i)
+            {
+                const std::pair<int, int>& cell{ clip.frames[i] };
+                ImGui::PushID(static_cast<int>(i));
+                ImGui::TableNextColumn(); // wraps into the next row on its own
+
+                const ImVec2 uv0
+                {
+                    static_cast<float>(cell.first) * cell_uscale,
+                    static_cast<float>(cell.second + 1) * cell_vscale
+                };
+                const ImVec2 uv1
+                {
+                    static_cast<float>(cell.first + 1) * cell_uscale,
+                    static_cast<float>(cell.second) * cell_vscale
+                };
+
+                if(ImGui::ImageButton("##frame", ImTextureRef
+                    (static_cast<ImTextureID>(gtex->get_gal_id())),
+                    thumb_size, uv0, uv1)) selected_frame_ = i;
+
+                const float item_width{ ImGui::GetItemRectSize().x };
+                if(i == selected_frame_)
+                    ImGui::GetWindowDrawList()->AddRect
+                    (
+                        ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
+                        IM_COL32(255, 210, 0, 255), 0.0f, 0, 2.0f
+                    );
+
+                if(ImGui::BeginPopupContextItem("##frame"))
+                {
+                    if(ImGui::MenuItem("Insert Before"))
+                        { edit_index = i; edit_action = 4; }
+                    if(ImGui::MenuItem("Insert After"))
+                        { edit_index = i; edit_action = 5; }
+                    ImGui::Separator();
+                    if(ImGui::MenuItem("Move Left", nullptr, false, i > 0))
+                        { edit_index = i; edit_action = 2; }
+                    if(ImGui::MenuItem("Move Right", nullptr, false, i + 1 < clip.frames.size()))
+                        { edit_index = i; edit_action = 3; }
+                    ImGui::Separator();
+                    if(ImGui::MenuItem("Remove")) { edit_index = i; edit_action = 1; }
+                    ImGui::EndPopup();
+                }
+
+            // centre the index
+                char index_label[16]{};
+                std::snprintf(index_label, sizeof(index_label), "%zu", i);
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX()
+                    + (item_width - ImGui::CalcTextSize(index_label).x) * 0.5f);
+                ImGui::TextDisabled("%s", index_label);
+                ImGui::PopID();
+            }
+            ImGui::EndTable();
+        }
+
+        if(!clip.frames.empty())
+            ImGui::GetWindowDrawList()->AddCallback
+                (ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
 
     // applied after the loop, the indices in it are only valid before an edit
         if(edit_action != 0 && edit_index < clip.frames.size())
         {
             const auto pos{ clip.frames.begin() + static_cast<std::ptrdiff_t>(edit_index) };
+            const std::pair<int, int> frame{ *pos }; // insert may move the storage
             switch(edit_action)
             {
             case 1: clip.frames.erase(pos); break;
-            case 2: std::swap(*pos, *(pos - 1)); --selected_frame_; break;
-            case 3: std::swap(*pos, *(pos + 1)); ++selected_frame_; break;
+            case 2:
+                std::swap(*pos, *(pos - 1));
+                if(selected_frame_ == edit_index) selected_frame_ = edit_index - 1;
+                break;
+            case 3:
+                std::swap(*pos, *(pos + 1));
+                if(selected_frame_ == edit_index) selected_frame_ = edit_index + 1;
+                break;
+            case 4:
+                clip.frames.insert(pos, frame);
+                selected_frame_ = edit_index + 1;
+                break;
+            case 5:
+                clip.frames.insert(pos + 1, frame);
+                selected_frame_ = edit_index;
+                break;
             default: break;
             }
             if(selected_frame_ >= clip.frames.size())
                 selected_frame_ = clip.frames.empty() ? 0 : clip.frames.size() - 1;
             changed = true;
         }
-
-        if(ImGui::Button("+ Frame"))
-        {
-        // the next cell of the same row, the usual way sheets are laid out;
-        // clicking the sheet below overrides it anyway
-            std::pair<int, int> cell{ 0, 0 };
-            if(!clip.frames.empty())
-            { cell = clip.frames.back(); ++cell.first; }
-
-            clip.frames.push_back(cell);
-            selected_frame_ = clip.frames.size() - 1;
-            changed = true;
-        }
-        ImGui::SameLine();
-        if(ImGui::Button("Clear Frames") && !clip.frames.empty())
-        {
-            clip.frames.clear();
-            selected_frame_ = 0;
-            changed = true;
-        }
-
-    // preview playback
-        if(clip.frames.empty()) preview_playing_ = false;
-        else {
-            if(selected_frame_ >= clip.frames.size())
-                selected_frame_ = clip.frames.size() - 1;
-
-            if(preview_playing_)
-            {
-                preview_time_ += ImGui::GetIO().DeltaTime
-                    * static_cast<float>(std::max(1u, clip.fps));
-
-                const Size total{ clip.frames.size() };
-                const Size at{ static_cast<Size>(preview_time_) };
-
-                if(clip.loop) selected_frame_ = at % total;
-                else if(at + 1 >= total) preview_playing_ = false;
-                else selected_frame_ = at;
-            }
-        }
-
-        if(ImGui::Button(preview_playing_ ? "Pause" : "Play"))
-        {
-            preview_playing_ = !preview_playing_;
-            preview_time_ = static_cast<float>(selected_frame_);
-        }
-        ImGui::SameLine();
-        ImGui::Text("frame %zu / %zu", static_cast<size_t>(clip.frames.empty()
-            ? 0 : selected_frame_ + 1), static_cast<size_t>(clip.frames.size()));
-
         ImGui::Separator();
 
-    // sheet, click a cell to select the frame using it or to append one   
-        const AssetHandle tex_handle{ anim_.get_tex_handle(am).first };
-        Texture* texture{ am.get_asset<Texture>(tex_handle) };
-        GTexture* gtex{ texture ?
-            texture->get_gtexture(GTextureSettings
-            {
-                .filt = GTexture::FiltFormat::Nearest,
-                .wrap = GTexture::WrapFormat::Clamp2Edge,
-                .srgb = false
-            }) : nullptr };
-        CORE_ASSERT(gtex, u8"AnimationEditorPanel: Texture format invalid!");
+    // the view controls, zoom is a multiplier over "fit the width"
+        if(ImGui::SmallButton("-")) sheet_zoom_ = std::max(0.05f, sheet_zoom_ * 0.8f);
+        ImGui::SameLine();
+        if(ImGui::SmallButton("+")) sheet_zoom_ = std::min(64.0f, sheet_zoom_ * 1.25f);
+        ImGui::SameLine();
+        if(ImGui::SmallButton("Fit")) sheet_zoom_ = 1.0f;
+        ImGui::SameLine();
+        ImGui::TextDisabled("x%.2f", sheet_zoom_);
+        if(ImGui::IsItemHovered()) ImGui::SetTooltip
+        (
+            "Ctrl+wheel zooms, wheel scrolls,\n"
+            "shift+wheel scrolls sideways, middle drag pans."
+        );
 
-        const float tex_w{ static_cast<float>(texture->get_width()) };
-        const float tex_h{ static_cast<float>(texture->get_height()) };
-        const float cell_w_px{ static_cast<float>(std::max(1, clip.cell_size.first)) };
-        const float cell_h_px{ static_cast<float>(std::max(1, clip.cell_size.second)) };
-        const int columns{ std::max(1, static_cast<int>(tex_w / cell_w_px)) };
-        const int rows   { std::max(1, static_cast<int>(tex_h / cell_h_px)) };
+    // sheet: a canvas, not just the texture. Cells past the sheet are legal;
+    // the lattice keeps going right and up and the view scrolls and zooms over it.
+        ImGui::BeginChild("##sheet_view", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders,
+            ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        
+        ImGuiIO& io{ ImGui::GetIO() };
 
-        float scale{ 1.0f };
-        if(const float avail{ ImGui::GetContentRegionAvail().x };
-            avail > 16.0f && tex_w > 0.0f)
-            scale = std::clamp(avail / tex_w, 0.05f, 8.0f);
-
-        const ImVec2 sheet_size{ tex_w * scale, tex_h * scale };
-        const ImVec2 origin{ ImGui::GetCursorScreenPos() };
-        const float  cell_w{ cell_w_px * scale };
-        const float  cell_h{ cell_h_px * scale };
-
-    // uv0/uv1 below already flip the sheet upright, so cell row 0 is the one
-    // drawn at the bottom. Drop the 'rows - 1 -' flips if your highlight ends
-    // up mirrored.
-        const auto cell_rect{ [&](const std::pair<int, int>& cell)
+        int lat_c_min{}, lat_c_max{ cols };
+        int lat_r_min{}, lat_r_max{ rows };
+        for(std::pair<int, int> frame : clip.frames)
         {
-            const float x{ origin.x + static_cast<float>(cell.first) * cell_w };
-            const float y{ origin.y + static_cast<float>(rows - 1 - cell.second) * cell_h };
-            return std::pair<ImVec2, ImVec2>{ { x, y }, { x + cell_w, y + cell_h } };
-        }};
+            lat_c_min = std::min(lat_c_min, frame.first);
+            lat_c_max = std::max(lat_c_max, frame.first + 1);
+            lat_r_min = std::min(lat_r_min, frame.second);
+            lat_r_max = std::max(lat_r_max, frame.second + 1);
+        }
 
-        ImGui::GetWindowDrawList()->AddCallback
-            (ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
-        ImGui::Image(ImTextureRef(static_cast<ImTextureID>(gtex->get_gal_id())),
-            sheet_size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
-        ImGui::GetWindowDrawList()->AddCallback
-            (ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
+    // the zoom comes first, this frame's sizes are a result of it
+        const float zoom_before{ sheet_zoom_ };
+        if(ImGui::IsWindowHovered() && io.KeyCtrl && io.MouseWheel != 0.0f)
+            sheet_zoom_ = std::clamp(sheet_zoom_ * std::pow(1.15f, io.MouseWheel), 0.05f, 64.0f);
 
-        ImGui::SetCursorScreenPos(origin);
-        ImGui::InvisibleButton("##sheet", sheet_size, ImGuiButtonFlags_MouseButtonLeft);
+        const float fit{ tex_w > 0.0f ? ImGui::GetContentRegionAvail().x / tex_w : 1.0f };
+        const float scale{ std::clamp(fit * sheet_zoom_, 0.02f, 64.0f) };
+        const float old_scale{ std::clamp(fit * zoom_before, 0.02f, 64.0f) };
+
+    // the lattice origin(sheet's bottom left) stays where it is while zooming,
+    // or the view would crawl away from what one is looking at.
+    // SetScroll only takes effect next frame, so the drawing gets shifted
+    // by the same amount here as well to keep this frame in step.
+        float scroll_dx{}, scroll_dy{};
+        if(scale != old_scale)
+        {
+            const float ratio{ scale / old_scale };
+            scroll_dx = (ratio - 1.0f)
+                * -static_cast<float>(lat_c_min) * cell_w_px * old_scale;
+            scroll_dy = (ratio - 1.0f)
+                * static_cast<float>(lat_r_max) * cell_h_px * old_scale;
+
+            ImGui::SetScrollX(ImGui::GetScrollX() + scroll_dx);
+            ImGui::SetScrollY(ImGui::GetScrollY() + scroll_dy);
+        }
+
+        const float cell_w{ cell_w_px * scale };
+        const float cell_h{ cell_h_px * scale };
+        const ImVec2 sheet_size{ tex_w * scale, tex_h * scale };
+        const ImVec2 canvas_size
+        {
+            static_cast<float>(lat_c_max - lat_c_min) * cell_w,
+            static_cast<float>(lat_r_max - lat_r_min) * cell_h
+        };
+
+        const ImVec2 cursor{ ImGui::GetCursorScreenPos() };
+        const ImVec2 canvas_origin{ cursor.x - scroll_dx, cursor.y - scroll_dy };
+        const ImVec2 sheet_origin
+        {
+            canvas_origin.x - static_cast<float>(lat_c_min) * cell_w,
+            canvas_origin.y + static_cast<float>(lat_r_max) * cell_h - sheet_size.y
+        };
+
+        if(ImGui::IsWindowHovered() && !io.KeyCtrl && io.MouseWheel != 0.0f)
+        {
+            const float step{ ImGui::GetTextLineHeight() * 3.0f };
+            if(io.KeyShift) ImGui::SetScrollX(ImGui::GetScrollX() - io.MouseWheel * step);
+            else ImGui::SetScrollY(ImGui::GetScrollY() - io.MouseWheel * step);
+        }
 
         ImDrawList* draw{ ImGui::GetWindowDrawList() };
-        for(int column{}; column <= columns; ++column)
+
+    // behind the see through parts of the texture
+        draw->AddRectFilled(canvas_origin,
+            ImVec2(canvas_origin.x + canvas_size.x, canvas_origin.y + canvas_size.y),
+            IM_COL32(0, 0, 0, 80));
+
+        ImGui::SetCursorScreenPos(canvas_origin);
+        draw->AddCallback(ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
+        ImGui::Image(ImTextureRef(static_cast<ImTextureID>(gtex->get_gal_id())),
+            canvas_size,
+            ImVec2(lat_c_min * cell_uscale, lat_r_max * cell_vscale),
+            ImVec2(lat_c_max * cell_uscale, lat_r_min * cell_vscale));
+        draw->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
+
+    // one item over the whole canvas,
+    // so every cell of the lattice can be clicked,
+    // not only the ones that fall on the texture.
+        ImGui::SetCursorScreenPos(canvas_origin);
+        ImGui::InvisibleButton("##sheet", canvas_size,
+            ImGuiButtonFlags_MouseButtonLeft  |
+            ImGuiButtonFlags_MouseButtonMiddle);
+
+        if(ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Middle))
         {
-            const float x{ origin.x + static_cast<float>(column) * cell_w };
-            draw->AddLine(ImVec2(x, origin.y), ImVec2(x, origin.y + sheet_size.y),
-                IM_COL32(255, 255, 255, 40));
+            ImGui::SetScrollX(ImGui::GetScrollX() - io.MouseDelta.x);
+            ImGui::SetScrollY(ImGui::GetScrollY() - io.MouseDelta.y);
         }
-        for(int row{}; row <= rows; ++row)
+
+        for(int col{}; col <= lat_c_max - lat_c_min; ++col)
         {
-            const float y{ origin.y + static_cast<float>(row) * cell_h };
-            draw->AddLine(ImVec2(origin.x, y), ImVec2(origin.x + sheet_size.x, y),
-                IM_COL32(255, 255, 255, 40));
+            const float x{ canvas_origin.x + static_cast<float>(col) * cell_w };
+            draw->AddLine(ImVec2(x, canvas_origin.y),
+                ImVec2(x, canvas_origin.y + canvas_size.y), IM_COL32(255, 255, 255, 40));
         }
+        for(int row{}; row <= lat_r_max - lat_r_min; ++row)
+        {
+            const float y{ canvas_origin.y + static_cast<float>(row) * cell_h };
+            draw->AddLine(ImVec2(canvas_origin.x, y),
+                ImVec2(canvas_origin.x + canvas_size.x, y), IM_COL32(255, 255, 255, 40));
+        }
+
+        const ImVec2 sheet_max
+        {
+            sheet_origin.x + sheet_size.x,
+            sheet_origin.y + sheet_size.y
+        };
+        const float mark{ std::min(20.0f,
+            std::min(sheet_size.x, sheet_size.y) * 0.25f) };
+        constexpr ImU32 extent_color{ IM_COL32(120, 255, 170, 255) };
+
+        draw->AddRect(ImVec2(sheet_origin.x - 1.0f, sheet_origin.y - 1.0f),
+            ImVec2(sheet_max.x + 1.0f, sheet_max.y + 1.0f),
+            IM_COL32(0, 0, 0, 150), 0.0f, 0, 3.0f);
+        draw->AddRect(sheet_origin, sheet_max, extent_color, 0.0f, 0, 2.0f);
+
+        const ImVec2 corners[4]
+        {
+            sheet_origin,
+            ImVec2(sheet_max.x, sheet_origin.y),
+            sheet_max,
+            ImVec2(sheet_origin.x, sheet_max.y)
+        };
+        for(int i{}; i < 4; ++i)
+        {
+            const float dx{ (i == 1 || i == 2) ? -mark : mark };
+            const float dy{ (i >= 2) ? -mark : mark };
+            draw->AddLine(corners[i], ImVec2(corners[i].x + dx, corners[i].y),
+                extent_color, 3.0f);
+            draw->AddLine(corners[i], ImVec2(corners[i].x, corners[i].y + dy),
+                extent_color, 3.0f);
+        }
+
+        const auto cell_rect{ [&](const std::pair<int, int>& cell)
+        {
+            const ImVec2 pos
+            {
+                canvas_origin.x + static_cast<float>(cell.first - lat_c_min) * cell_w,
+                canvas_origin.y
+                    + static_cast<float>(lat_r_max - cell.second - 1) * cell_h
+            };
+            return std::pair<ImVec2, ImVec2>{ pos, ImVec2(pos.x + cell_w, pos.y + cell_h) };
+        }};
 
         for(Size i{}; i < clip.frames.size(); ++i)
         {
             const auto [lo, hi]{ cell_rect(clip.frames[i]) };
-            const bool current{ i == selected_frame_ };
-            draw->AddRect(lo, hi, current ? IM_COL32(255, 210, 0, 255)
-                : IM_COL32(120, 190, 255, 200), 0.0f, 0, current ? 2.5f : 1.5f);
+            draw->AddRect(lo, hi, IM_COL32(120, 190, 255, 200), 0.0f, 0, 1.5f);
         }
+        if(selected_frame_ < clip.frames.size())
+        {
+            const auto [lo, hi]{ cell_rect(clip.frames[selected_frame_]) };
+            draw->AddRect(lo, hi, IM_COL32(255, 210, 0, 255), 0.0f, 0, 2.5f);
+        }
+
+    // the other way round: what the mouse is over -> the cell stored in the file
+        const auto cell_at{ [&](ImVec2 mouse, std::pair<int, int>& cell)
+        {
+            const int col{ lat_c_min + static_cast<int>
+                ((mouse.x - canvas_origin.x) / cell_w) };
+            const int row{ lat_r_max - 1 - static_cast<int>
+                ((mouse.y - canvas_origin.y) / cell_h) };
+
+            if(col < lat_c_min || col >= lat_c_max) return false;
+            if(row < lat_r_min || row >= lat_r_max) return false;
+            cell = { col, row };
+            return true;
+        }};
 
         if(ImGui::IsItemHovered())
         {
-            const ImVec2 mouse{ ImGui::GetIO().MousePos };
-            const int column{ static_cast<int>((mouse.x - origin.x) / cell_w) };
-            const int row{ rows - 1 - static_cast<int>((mouse.y - origin.y) / cell_h) };
-
-            if(column >= 0 && column < columns && row >= 0 && row < rows)
+            std::pair<int, int> hovered{ 0, 0 };
+            if(cell_at(io.MousePos, hovered))
             {
-                const auto [lo, hi]{ cell_rect({ column, row }) };
-                draw->AddRectFilled(lo, hi, IM_COL32(255, 255, 255, 40));
-                ImGui::SetTooltip("(%d, %d)", column, row);
+                const auto [lo, hi]{ cell_rect(hovered) };
+                draw->AddRectFilled(lo, hi, IM_COL32(255, 255, 255, 80));
+
+                const bool append{ io.KeyShift || clip.frames.empty() };
+                if(append) ImGui::SetTooltip (
+                    "Cell (%d, %d)\nClick to append.",
+                    hovered.first, hovered.second);
+                else ImGui::SetTooltip (
+                    "Cell (%d, %d)\nClick to set frame %zu.\n"
+                    "Click+shift to append.",
+                    hovered.first, hovered.second, selected_frame_);
 
                 if(ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 {
-                    Size found{ clip.frames.size() }; // append when unused
-                    for(Size i{}; i < clip.frames.size(); ++i)
-                        if(clip.frames[i] == std::pair<int, int>{ column, row })
-                        { found = i; break; }
-
-                    if(found == clip.frames.size())
-                    {
-                        clip.frames.emplace_back(column, row);
-                        found = clip.frames.size() - 1;
-                        changed = true;
+                    changed = true;
+                    if(append) {
+                        clip.frames.push_back(hovered);
+                        selected_frame_ = clip.frames.size() - 1;
                     }
-                    selected_frame_ = found;
+                    else clip.frames[selected_frame_] = hovered;
                 }
             }
         }
+        ImGui::EndChild();
 
         if(changed)
         {

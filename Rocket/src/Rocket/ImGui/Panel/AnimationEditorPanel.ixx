@@ -1,4 +1,4 @@
-﻿module;
+module;
 
 #include <utility>
 #include "rke_macros.h"
@@ -38,8 +38,7 @@ export namespace rke
 
     // states
         String selected_clip_{};
-        Size   selected_frame_{ 0 };
-        bool   preview_playing_{ false };
-        float  preview_time_{ 0.0f };
+        Size selected_frame_{ 0 };
+        float sheet_zoom_{ 1.0f }; // multiplier over "fit the width"
     };
 }
