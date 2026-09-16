@@ -1,4 +1,4 @@
-﻿module;
+module;
 
 #include <utility>
 #include "rke_macros.h"
