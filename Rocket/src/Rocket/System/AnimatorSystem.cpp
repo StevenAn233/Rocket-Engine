@@ -202,6 +202,8 @@ namespace rke
 
             state.frame_index = 0;
             if(clip->loop) continue;
+
+            if(clip->next.empty()) break;
             state.active = clip->next;
         }
         state.acc = 0.0;
