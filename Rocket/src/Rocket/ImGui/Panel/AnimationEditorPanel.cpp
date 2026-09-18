@@ -351,10 +351,10 @@ namespace rke
 
         const ImGuiStyle& style{ ImGui::GetStyle() };
         const float column_width{ thumb_size.x
-            + style.FramePadding.x * 2.0f   // the ImageButton frame
+            + style.FramePadding.x * 2.0f    // the ImageButton frame
             + style.CellPadding.x  * 2.0f }; // the gap a table column adds
         const float usable_width{ ImGui::GetContentRegionAvail().x
-            - style.CellPadding.x * 2.0f }; // the table's own outer padding
+            - style.CellPadding.x * 2.0f };  // the table's own outer padding
         const int frame_columns{ std::max(1, std::min
         (
             static_cast<int>(usable_width / column_width),
@@ -492,18 +492,14 @@ namespace rke
         }
 
     // the zoom comes first, this frame's sizes are a result of it
-        const float zoom_before{ sheet_zoom_ };
+        const float last_zoom{ sheet_zoom_ };
         if(ImGui::IsWindowHovered() && io.KeyCtrl && io.MouseWheel != 0.0f)
             sheet_zoom_ = std::clamp(sheet_zoom_ * std::pow(1.15f, io.MouseWheel), 0.05f, 64.0f);
 
         const float fit{ tex_w > 0.0f ? ImGui::GetContentRegionAvail().x / tex_w : 1.0f };
         const float scale{ std::clamp(fit * sheet_zoom_, 0.02f, 64.0f) };
-        const float old_scale{ std::clamp(fit * zoom_before, 0.02f, 64.0f) };
+        const float old_scale{ std::clamp(fit * last_zoom, 0.02f, 64.0f) };
 
-    // the lattice origin(sheet's bottom left) stays where it is while zooming,
-    // or the view would crawl away from what one is looking at.
-    // SetScroll only takes effect next frame, so the drawing gets shifted
-    // by the same amount here as well to keep this frame in step.
         float scroll_dx{}, scroll_dy{};
         if(scale != old_scale)
         {
@@ -556,9 +552,6 @@ namespace rke
             ImVec2(lat_c_max * cell_uscale, lat_r_min * cell_vscale));
         draw->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
 
-    // one item over the whole canvas,
-    // so every cell of the lattice can be clicked,
-    // not only the ones that fall on the texture.
         ImGui::SetCursorScreenPos(canvas_origin);
         ImGui::InvisibleButton("##sheet", canvas_size,
             ImGuiButtonFlags_MouseButtonLeft  |
