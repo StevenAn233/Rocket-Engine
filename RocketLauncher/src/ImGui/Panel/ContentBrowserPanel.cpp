@@ -23,7 +23,7 @@ namespace rke
         : Panel(std::move(name))
     {
         name_buffer_ = create_scope<std::array<char, 256>>();
-        std::memcpy(name_buffer_->data(), "Untitled", 9);
+        std::memcpy(name_buffer_->data(), "Untitled", 8);
 
         uint32 pixels[4]
         {

@@ -30,13 +30,11 @@ export namespace rke
         char8 tag[tag_size];
         UUID uuid;
 
-        IdentityComponent()
-            : tag({}), uuid() { std::memcpy(&tag[0], u8"Null", 4); }
-        IdentityComponent(const char8* str)
-            : tag({}), uuid() { std::memcpy(&tag[0], str, tag_size - 1); }
-        IdentityComponent(const char8* str, UUID specified)
-            : tag({}), uuid(specified) { std::memcpy(&tag[0], str, tag_size - 1); }
+        IdentityComponent();
+        IdentityComponent(const char8* str, UUID uuid = UUID());
         IdentityComponent(const IdentityComponent&) = default;
+
+        void set_tag(StringView new_tag);
     };
 
     struct RKE_API TransformComponent // MUST OWNED

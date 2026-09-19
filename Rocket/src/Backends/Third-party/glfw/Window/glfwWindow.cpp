@@ -196,6 +196,7 @@ namespace rke
             images[0].pixels = pixels;
 
             glfwSetWindowIcon(context_.as<GLFWwindow>(), 1, images);
+            stbi_image_free(pixels);
         }
         else if(!props.icon_path.empty())
             CORE_ERROR(u8"glfwWidnow: Icon path '{}' doesn't exist!", props.icon_path);

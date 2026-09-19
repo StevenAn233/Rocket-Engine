@@ -26,6 +26,19 @@ namespace rke
         })
     );
 
+    IdentityComponent::IdentityComponent()
+        : tag({}), uuid() { std::memcpy(&tag[0], u8"Null", 4); }
+
+    IdentityComponent::IdentityComponent(const char8* str, UUID uuid)
+        : tag({}), uuid(uuid) { set_tag(StringView(str)); }
+
+    void IdentityComponent::set_tag(StringView new_tag)
+    {
+        Size count{ std::min(new_tag.size(), tag_size - 1) };
+        std::memcpy(&tag[0], new_tag.data(), count);
+        tag[count] = u8'\0';
+    }
+
     glm::mat4 TransformComponent::get_transform() const
     {
         return glm::translate(glm::mat4(1.0f), translation)

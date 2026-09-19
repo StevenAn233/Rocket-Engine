@@ -218,7 +218,8 @@ namespace rke
 
     // name editing
         char name_buffer[AnimatorComponent::clip_name_cap]{};
-        std::memcpy(name_buffer, selected_clip_.raw(), sizeof(name_buffer) - 1);
+        std::memcpy(name_buffer, selected_clip_.raw(),
+            std::min(selected_clip_.length(), sizeof(name_buffer) - 1));
         ImGui::SetNextItemWidth(basic_width);
         if(ImGui::InputText("##clip_name", name_buffer, sizeof(name_buffer),
             ImGuiInputTextFlags_EnterReturnsTrue))

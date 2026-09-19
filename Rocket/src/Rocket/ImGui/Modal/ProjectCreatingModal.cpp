@@ -12,7 +12,7 @@ namespace rke
     {
         name_buffer_ = create_scope<std::array<char, 256>>();
         path_buffer_ = create_scope<std::array<char, 512>>();
-        std::memcpy(name_buffer_->data(), "New Project", 12);
+        std::memcpy(name_buffer_->data(), "New Project", 11);
         copy_to_buffer(file::root_dir().string());
     }
 

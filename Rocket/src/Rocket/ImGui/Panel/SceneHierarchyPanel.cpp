@@ -199,12 +199,14 @@ namespace rke
     {
         layout::tree_node_branch<u8"Name">([this]()
         {
-            char buffer[256]{};
             const String& name{ context_->get_name() };
-            std::memcpy(buffer, name.raw(), sizeof(buffer) - 1);
-            if(ImGui::InputText("##tag", buffer, sizeof(buffer),
-                ImGuiInputTextFlags_EnterReturnsTrue))
-                context_->set_name(String(str::to_char8(buffer)));
+            char name_buffer[256]{};
+            std::memcpy(name_buffer, name.raw(),
+                std::min(name.length(), sizeof(name_buffer) - 1));
+            if(ImGui::InputText (
+                "##tag", name_buffer, sizeof(name_buffer),
+                ImGuiInputTextFlags_EnterReturnsTrue
+            )) context_->set_name(String(str::to_char8(name_buffer)));
         });
 
         layout::tree_node_branch<u8"Physics">([this]()
@@ -222,12 +224,13 @@ namespace rke
         check_then_draw<IdentityComponent, u8"Tag">(entity, [this](Entity ent)
         {
             auto& ic{ ent.get_mut<IdentityComponent>() };
-            char buffer[ic.tag_size]{};
-            std::memcpy(buffer, &ic.tag[0], ic.tag_size - 1);
-            if(ImGui::InputText("##tag", buffer,
-                sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
+            char name_buffer[ic.tag_size]{};
+            std::memcpy(name_buffer, &ic.tag[0],
+                std::min(StringView(ic.tag).size(), ic.tag_size - 1));
+            if(ImGui::InputText("##tag", name_buffer,
+                sizeof(name_buffer), ImGuiInputTextFlags_EnterReturnsTrue))
             {
-                std::memcpy(&ic.tag[0], buffer, ic.tag_size - 1);
+                ic.set_tag(StringView(str::to_char8(name_buffer)));
                 context_->mark_modified();
             }
         });
