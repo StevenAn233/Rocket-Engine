@@ -247,13 +247,11 @@ namespace rke
         writer->write(u8"Gravity", scene.get_gravity());
 
         writer->begin_array(u8"Entities");
-        auto view{ scene.registry_->view<IdentityComponent>() };
-        for(auto it{ view.rbegin() }; it != view.rend(); ++it)
+        scene.for_each_entity([&](Entity entity)
         {
-            Entity entity{ scene.get_entity(static_cast<EntityHandle>(*it)) };
-            if(!entity.valid()) continue;
+            if(!entity.valid()) return;
             serialize_entity(scene, *(writer.get()), entity);
-        }
+        });
         writer->end_array();
 
         Entity selected{ scene.get_selected_entity() };

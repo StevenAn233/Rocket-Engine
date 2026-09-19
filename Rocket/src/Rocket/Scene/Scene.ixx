@@ -129,6 +129,14 @@ export namespace rke
         Scope<Scene> duplicate(bool temp = true); // will copy entity uuid
 
         Entity create_entity(const String& tag = String(u8"New Entity"), UUID uuid = {});
+
+        void destroy_entity(Entity entity);
+        inline void destroy_entity(EntityHandle handle)
+            { destroy_entity(get_entity(handle)); }
+        inline void destroy_entity(UUID uuid)
+            { destroy_entity(get_entity(uuid)); }
+        void destroy_selected_entity() { destroy_entity(selected_entity_); }
+
         bool has_entity(UUID uuid) const;
 
         Entity get_entity(EntityHandle handle);
@@ -142,13 +150,6 @@ export namespace rke
         Entity copy_entity_towards(Entity entity, Scene* owner);
         inline Entity copy_entity(Entity entity)
             { return copy_entity_towards(entity, this); }
-
-        void destroy_entity(Entity entity);
-        inline void destroy_entity(EntityHandle handle)
-            { destroy_entity(get_entity(handle)); }
-        inline void destroy_entity(UUID uuid)
-            { destroy_entity(get_entity(uuid)); }
-        void destroy_selected_entity() { destroy_entity(selected_entity_); }
 
         void set_selected_entity(Entity entity);
         inline void set_selected_entity(EntityHandle handle)
@@ -171,14 +172,10 @@ export namespace rke
 
         template<typename Func>
         requires std::invocable<Func, Entity>
-        void for_each_entity(Func&& func)
+        void for_each_entity(Func&& func) const
         {
-            auto view{ registry_->view<IdentityComponent>() };
-            for(entt::entity ent : view)
-            {
-                Entity entity{ get_entity(static_cast<EntityHandle>(ent)) };
-                std::invoke(std::forward<Func>(func), entity);
-            }
+            for(auto handle : all_entities_)
+                std::invoke(std::forward<Func>(func), get_entity(handle));
         }
 
         void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
@@ -225,7 +222,8 @@ export namespace rke
         String name_;
 
         Scope<entt::registry> registry_{};
-        std::vector<Entity> to_destroy_{};
+        std::vector<EntityHandle> all_entities_{};
+        std::vector<EntityHandle> to_destroy_{};
 
         uint32 viewport_w_{}, viewport_h_{};
         Gravity2D gravity_{};

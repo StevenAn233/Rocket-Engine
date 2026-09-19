@@ -132,8 +132,7 @@ namespace rke
         const Size count{ storage.size() };
         for(Size i{}; i < count; i++)
             (void)new_scene->registry_->create(entities_data[i]);
-        // make sure orderly creation
-
+        
         components::each([&](auto type_id)
         {
             using ComponentType = decltype(type_id)::Type;
@@ -147,6 +146,7 @@ namespace rke
             }
         });
 
+        new_scene->all_entities_ = all_entities_; // deep copy
         new_scene->gravity_ = gravity_;
 
         // after IdentityComponents are copied
@@ -165,13 +165,30 @@ namespace rke
     Entity Scene::create_entity(const String& tag, UUID uuid)
     {
         Entity entity{ static_cast<EntityHandle>(registry_->create()), this };
-        
+        all_entities_.push_back(entity.handle_);
+
         entity.emplace<IdentityComponent>(tag.c_str(), uuid);
         if(!uuid.empty()) entity_map_[entity.get_uuid()] = entity.handle_;
         entity.emplace<TransformComponent>();
 
         mark_modified();
         return entity;
+    }
+
+    void Scene::destroy_entity(Entity entity)
+    {
+        if(entity.empty()) return;
+        if(!entity.belongs_to(this)) {
+            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
+            return;
+        }
+        if(entity == selected_entity_) set_selected_entity(Entity{});
+        if(entity == master_cam_) master_cam_ = {};
+        if(entity == demo_cam_) demo_cam_ = {};
+        to_destroy_.push_back(entity.get_handle());
+        std::erase_if(all_entities_, [&entity](EntityHandle handle)
+            { return handle == entity.handle_; });
+        mark_modified();
     }
 
     bool Scene::has_entity(UUID uuid) const
@@ -228,18 +245,12 @@ namespace rke
             CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
             return Entity{};
         }
-        Entity copied_entity{ static_cast<EntityHandle>
-            (owner->registry_->create()), owner };
-        owner->mark_modified();
-
-        if(!owner->temporary_) {
-            copied_entity.emplace<IdentityComponent>
-                (entity.get<IdentityComponent>().tag, UUID());
-            owner->entity_map_[copied_entity.get_uuid()] = copied_entity.handle_;
-        } else {
-            copied_entity.emplace<IdentityComponent>
-                (entity.get<IdentityComponent>().tag, UUID(0));
-        }
+        UUID new_uuid{ owner->temporary_ ? UUID(0) : UUID() };
+        Entity copied_entity{ owner->create_entity
+        (
+            entity.get<IdentityComponent>().tag,
+            new_uuid
+        )};
         
         components::each([&](auto type_id)
         {
@@ -249,20 +260,8 @@ namespace rke
                     .emplace_or_replace<ComponentType>(entity.get<ComponentType>());
         });
 
+        owner->mark_modified();
         return copied_entity;
-    }
-
-    void Scene::destroy_entity(Entity entity)
-    {
-        if(entity.empty()) return;
-        if(!entity.belongs_to(this)) {
-            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
-            return;
-        }
-        if(entity == selected_entity_) set_selected_entity(Entity{});
-        if(entity == master_cam_) master_cam_ = {};
-        if(entity == demo_cam_) demo_cam_ = {};
-        to_destroy_.push_back(entity);
     }
 
     void Scene::set_selected_entity(Entity entity)
@@ -414,6 +413,7 @@ namespace rke
             return;
         }
         registry_ ->clear();
+        all_entities_.clear();
         to_destroy_.clear();
         entity_map_.clear();
         gravity_ = {};
@@ -481,15 +481,14 @@ namespace rke
     {
         while(!to_destroy_.empty())
         {
-            Entity curr{ to_destroy_.back() };
+            auto handle{ static_cast<entt::entity>(to_destroy_.back()) };
             to_destroy_.pop_back();
-            if(!curr.valid()) continue;
+            if(!registry_->valid(handle)) continue;
 
-            UUID uuid{ curr.get_uuid() };
+            UUID uuid{ registry_->get<IdentityComponent>(handle).uuid };
             if(!uuid.empty()) entity_map_.erase(uuid);
 
-            registry_->destroy(static_cast<entt::entity>(curr.handle_));
-            mark_modified();
+            registry_->destroy(handle);
         }
     }
 

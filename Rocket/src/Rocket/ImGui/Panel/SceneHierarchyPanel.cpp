@@ -48,8 +48,14 @@ namespace rke
         }
 
         if(opened) {
+            bool entity_created{ false };
+            draw_entity_popup(entity_created);
             context_->for_each_entity([this](Entity entity)
-                { draw_entity_node(entity, context_->get_selected_entity()); });
+            {
+                draw_entity_node(entity,
+                    context_->get_selected_entity());
+            });
+            if(entity_created) ImGui::SetScrollHereY(1.0f); // very bottom
 
             if(ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0)
             && !ImGui::IsAnyItemHovered())
@@ -57,8 +63,7 @@ namespace rke
                 is_scene_selected_ = false;
                 context_->set_selected_entity(Entity{});
             }
-            draw_entity_popup();
-
+            
             ImGui::TreePop();
         }
         
@@ -115,7 +120,7 @@ namespace rke
         ImGui::PopID();
     }
 
-    void SceneHierarchyPanel::draw_entity_popup()
+    void SceneHierarchyPanel::draw_entity_popup(bool& entity_created)
     {
         constexpr ImGuiPopupFlags POPUP_FLAGS
         {
@@ -126,7 +131,10 @@ namespace rke
         if(ImGui::BeginPopupContextWindow(0, POPUP_FLAGS))
         {
             if(ImGui::MenuItem("Create Entity"))
+            {
                 context_->set_selected_entity(context_->create_entity());
+                entity_created = true;
+            }
             ImGui::EndPopup();
         }
     }

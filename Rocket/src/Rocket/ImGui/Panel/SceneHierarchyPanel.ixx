@@ -63,7 +63,7 @@ export namespace rke
         void on_imgui_render() override;
 
         void draw_entity_node(Entity entity, Entity selected);
-        void draw_entity_popup();
+        void draw_entity_popup(bool& entity_created);
 
         void draw_scene_settings();
         void draw_components(Entity selected);
