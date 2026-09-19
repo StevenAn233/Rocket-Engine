@@ -1,4 +1,4 @@
-﻿module;
+module;
 module Scene;
 
 import Log;
@@ -309,6 +309,30 @@ namespace rke
             return;
         }
         demo_cam_ = entity;
+    }
+
+    void Scene::move_entity(Entity entity, Entity before)
+    {
+        if(entity.empty() || !entity.belongs_to(this)) return;
+        if(before == entity) return; // dropped right onto itself
+
+        if(!before.belongs_to(this)) before = {};
+
+        const EntityHandle handle{ entity.get_handle() };
+        auto it{ std::find(all_entities_.begin(), all_entities_.end(), handle) };
+        if(it == all_entities_.end()) return;
+        all_entities_.erase(it);
+
+        const EntityHandle target{ before.valid() ?
+            before.get_handle() : entity_handle_null };
+
+        auto at{ target == entity_handle_null ?
+            all_entities_.end() : std::find
+                (all_entities_.begin(), all_entities_.end(), target)
+        };
+        all_entities_.insert(at, handle);
+
+        mark_modified();
     }
 
     void Scene::grip_move_entity(Entity entity, glm::vec3 delta, double dt)

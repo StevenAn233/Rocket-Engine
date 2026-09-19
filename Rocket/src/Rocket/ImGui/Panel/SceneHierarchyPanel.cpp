@@ -1,4 +1,4 @@
-﻿module;
+module;
 module SceneHierarchyPanel;
 
 import Log;
@@ -9,6 +9,10 @@ import PhysicsLayers;
 import Application;
 import Project;
 import AssetsManager;
+
+namespace {
+    constexpr const char* entity_drag_payload{ "SCENE_ENTITY" };
+}
 
 namespace rke
 {
@@ -50,11 +54,27 @@ namespace rke
         if(opened) {
             bool entity_created{ false };
             draw_entity_popup(entity_created);
-            context_->for_each_entity([this](Entity entity)
+
+            Size index{}; drop_index_ = drop_none_;
+            context_->for_each_entity([&](Entity entity)
             {
                 draw_entity_node(entity,
-                    context_->get_selected_entity());
+                    context_->get_selected_entity(), index++);
             });
+
+            if(drop_index_ != drop_none_)
+            {
+                const Size count{ context_->all_entities_.size() };
+                const EntityHandle before{ drop_index_ < count ?
+                    context_->all_entities_[drop_index_] : entity_handle_null };
+
+                context_->move_entity (
+                    context_->get_entity(drag_entity_),
+                    context_->get_entity(before)
+                );
+                drop_index_ = drop_none_;
+            }
+
             if(entity_created) ImGui::SetScrollHereY(1.0f); // very bottom
 
             if(ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0)
@@ -84,7 +104,7 @@ namespace rke
         ImGui::PopID();
     }
 
-    void SceneHierarchyPanel::draw_entity_node(Entity entity, Entity selected)
+    void SceneHierarchyPanel::draw_entity_node(Entity entity, Entity selected, Size index)
     {
         ImGui::PushID(static_cast<int>(entity.get_handle()) + 1);
         const char8* tag{ entity.get<IdentityComponent>().tag };
@@ -94,15 +114,51 @@ namespace rke
           | ImGuiTreeNodeFlags_SpanAvailWidth
         }; // keep clicked entity selected
 
-        bool opened {
-            ImGui::TreeNodeEx("entity_node", flags,
-                "%s", reinterpret_cast<const char*>(tag))
-        };
+        bool opened{ ImGui::TreeNodeEx
+        (
+            "entity_node", flags,
+            "%s", reinterpret_cast<const char*>(tag)
+        )};
 
         if(ImGui::IsItemClicked())
         {
             is_scene_selected_ = false;
             context_->set_selected_entity(entity);
+        }
+
+        if(ImGui::BeginDragDropSource())
+        {
+            const EntityHandle handle{ entity.get_handle() };
+            ImGui::SetDragDropPayload(entity_drag_payload, &handle, sizeof(EntityHandle));
+
+            drag_entity_ = handle;
+            ImGui::TextUnformatted(reinterpret_cast<const char*>(tag)); // drag preview
+            ImGui::EndDragDropSource();
+        }
+
+        if(ImGui::BeginDragDropTarget())
+        {
+            const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload
+            (
+                entity_drag_payload,
+                ImGuiDragDropFlags_AcceptPeekOnly |
+                ImGuiDragDropFlags_AcceptNoPreviewTooltip
+            )};
+            if(payload) {
+                const ImVec2 min { ImGui::GetItemRectMin () };
+                const ImVec2 size{ ImGui::GetItemRectSize() };
+                const bool below{ ImGui::GetIO().MousePos.y > min.y + size.y * 0.5f };
+                const float line_y{ below ? min.y + size.y : min.y };
+
+                ImGui::GetWindowDrawList()->AddLine
+                (
+                    ImVec2(min.x, line_y), ImVec2(min.x + size.x, line_y),
+                    ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f
+                );
+
+                if(payload->IsDelivery()) drop_index_ = index + (below ? 1 : 0);
+            }
+            ImGui::EndDragDropTarget();
         }
 
         if(ImGui::BeginPopupContextItem())

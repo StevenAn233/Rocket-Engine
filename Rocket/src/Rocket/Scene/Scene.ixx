@@ -1,4 +1,4 @@
-﻿module;
+module;
 
 #include <string>
 #include <vector>
@@ -177,6 +177,7 @@ export namespace rke
             for(auto handle : all_entities_)
                 std::invoke(std::forward<Func>(func), get_entity(handle));
         }
+        void move_entity(Entity entity, Entity before = {});
 
         void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
         void set_entity_transform(Entity entity, glm::vec3 translation, glm::vec3 rotation);

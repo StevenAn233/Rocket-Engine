@@ -1,4 +1,4 @@
-﻿module;
+module;
 
 #include <bit>
 #include <utility>
@@ -11,8 +11,10 @@ export module SceneHierarchyPanel;
 
 import Panel;
 import Layout;
+import Types;
 import UUID;
 import Scene;
+import EntityAccess;
 import String;
 import Components;
 
@@ -62,7 +64,7 @@ export namespace rke
     private:
         void on_imgui_render() override;
 
-        void draw_entity_node(Entity entity, Entity selected);
+        void draw_entity_node(Entity entity, Entity selected, Size index);
         void draw_entity_popup(bool& entity_created);
 
         void draw_scene_settings();
@@ -75,8 +77,13 @@ export namespace rke
         void texture_comp_popup_content(Entity entity, bool& to_delete);
         void animator_comp_popup_content(Entity entity, bool& to_delete);
     private:
+        static constexpr Size drop_none_{ static_cast<Size>(-1) };
+
         Scene* context_{};
         bool is_scene_selected_{ false };
         EntityNodeCallback on_entity_node_render_{};
+
+        EntityHandle drag_entity_{ entity_handle_null }; // what a drag carries
+        Size drop_index_{ drop_none_ };
     };
 }
