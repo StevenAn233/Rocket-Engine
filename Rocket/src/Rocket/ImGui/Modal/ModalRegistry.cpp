@@ -7,6 +7,7 @@ namespace rke
 {
     void ModalRegistry::register_modal(Modal* handle, Attrib attrib)
     {
+        if(!handle) { CORE_WARN(u8"ModalRegistry: Handle null!"); return; }
         if(attribs_.contains(handle))
         {
             CORE_ERROR(u8"ModalRegistry: Modal already registered!");
@@ -17,16 +18,16 @@ namespace rke
 
     void ModalRegistry::unregister_modal(Modal* handle)
     {
-        if(attribs_.contains(handle))
-            attribs_.erase(handle);
+        if(!handle) { CORE_WARN(u8"ModalRegistry: Handle null!"); return; }
+        auto it{ attribs_.find(handle) };
+        if(it != attribs_.end()) attribs_.erase(it);
     }
 
     void ModalRegistry::render_all()
     {
         for(const auto& [handle, attrib] : attribs_)
         {
-            if(attrib.popup_condition())
-                handle->popup();
+            if(attrib.popup_condition()) handle->popup();
             handle->on_imgui_render();
         }
     }

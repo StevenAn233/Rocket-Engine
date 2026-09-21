@@ -68,25 +68,25 @@ namespace rke
 
     void Application::register_panel(Panel* handle, PanelRegistry::Attrib attrib)
     {
-        if(!dockspace_) return;
+        if(!dockspace_ || !handle) return;
         dockspace_->get_panel_registry().register_panel(handle, attrib);
     }
 
     void Application::unregister_panel(Panel* handle)
     {
-        if(!dockspace_) return;
+        if(!dockspace_ || !handle) return;
         dockspace_->get_panel_registry().unregister_panel(handle);
     }
 
     void Application::register_modal(Modal* handle, ModalRegistry::Attrib attrib)
     {
-        if(!dockspace_) return;
+        if(!dockspace_ || !handle) return;
         dockspace_->get_modal_registry().register_modal(handle, attrib);
     }
 
     void Application::unregister_modal(Modal* handle)
     {
-        if(!dockspace_) return;
+        if(!dockspace_ || !handle) return;
         dockspace_->get_modal_registry().unregister_modal(handle);
     }
 }

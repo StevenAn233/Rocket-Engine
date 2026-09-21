@@ -18,7 +18,6 @@ import Layer;
 import LayerStack;
 import NativeWindow;
 import Panel;
-import WindowSettingPanel;
 import Renderer;
 
 export namespace rke
@@ -60,7 +59,7 @@ export namespace rke
         inline Renderer& renderer() { return *renderer_; }
         inline double get_smoothed_fps() const { return smoothed_fps_; }
 
-        inline Panel* get_panel_handle() { return &setting_panel_; }
+        Panel* get_panel_handle() const;
 
         inline Size get_mouse_blocking_index() const
             { return mouse_blocking_layer_index_; }
@@ -114,6 +113,6 @@ export namespace rke
         Size keyboard_blocking_layer_index_{};
         double smoothed_fps_{};
 
-        WindowSettingPanel setting_panel_;
+        Scope<Panel> setting_panel_{};
     };
 }

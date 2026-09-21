@@ -2,16 +2,21 @@
 module Window;
 
 import WindowsLib;
+import WindowSettingPanel; // may modify
 import Application;
 
 namespace rke
 {
     Window::Window(String name, Scope<Props> props)
         : name_(std::move(name)), props_(std::move(props))
-        , setting_panel_(name_, this)
-        {} // not responsible for registering the panel
+    {
+        setting_panel_ = create_scope<WindowSettingPanel>(name_, this);
+        // not responsible for registering the panel
+    }
 
     Window::~Window() {}
+
+    Panel* Window::get_panel_handle() const { return setting_panel_.get(); }
 
     void Window::check_layer_blocking()
     {

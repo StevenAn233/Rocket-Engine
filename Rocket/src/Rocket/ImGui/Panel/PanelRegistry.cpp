@@ -8,6 +8,7 @@ namespace rke
 {
     void PanelRegistry::register_panel(Panel* handle, Attrib attrib)
     {
+        if(!handle) { CORE_WARN(u8"PanelRegistry: Handle null!"); return; }
         Panel& panel{ *handle };
         if(config_.contains(panel.get_name()))
             panel.on_ = config_[panel.get_name()];
@@ -21,6 +22,7 @@ namespace rke
 
     void PanelRegistry::unregister_panel(Panel* handle)
     {
+        if(!handle) { CORE_WARN(u8"PanelRegistry: Handle null!"); return; }
         auto it{ attribs_.find(handle) };
         if(it != attribs_.end())
         {
