@@ -17,6 +17,7 @@ import Path;
 import Layer;
 import LayerStack;
 import NativeWindow;
+import Panel;
 import WindowSettingPanel;
 import Renderer;
 
@@ -25,7 +26,6 @@ export namespace rke
     class RKE_API Window
     {
     public:
-        friend class Application;
         friend class WindowsLib;
 
         struct Props
@@ -59,6 +59,8 @@ export namespace rke
 
         inline Renderer& renderer() { return *renderer_; }
         inline double get_smoothed_fps() const { return smoothed_fps_; }
+
+        inline Panel* get_panel_handle() { return &setting_panel_; }
 
         inline Size get_mouse_blocking_index() const
             { return mouse_blocking_layer_index_; }

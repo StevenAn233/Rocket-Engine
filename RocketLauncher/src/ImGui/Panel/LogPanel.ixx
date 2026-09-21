@@ -1,17 +1,7 @@
 ﻿module;
-
-#include <array>
-#include <vector>
-#include <utility>
-#include "rke_macros.h"
-
 export module LogPanel;
 
-import Log;
-import Panel;
-import Path;
-import String;
-import Types;
+import rke;
 
 export namespace rke
 {
@@ -23,7 +13,7 @@ export namespace rke
         
         void load_from(Path filepath);
     private:
-        RKE_API void on_imgui_render() override; // callback
+        void on_imgui_render() override; // callback
         
         // copies whatever the history gained since last frame
         void pull_new_entries(); 

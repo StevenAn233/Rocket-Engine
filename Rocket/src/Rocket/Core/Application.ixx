@@ -6,6 +6,7 @@
 
 export module Application;
 
+import Log;
 import Window;
 import WindowsLib;
 import String;
@@ -13,9 +14,6 @@ import Path;
 import Event;
 import Font;
 import HeapManager;
-import LogPanel;
-import ApplicationPanel;
-import ProjectSettingPanel;
 import Panel;
 import PanelRegistry;    
 import Modal;
@@ -41,8 +39,10 @@ export namespace rke
         Application(Application&&) = delete;
         Application& operator=(Application&&) = delete;
 
-        virtual void init();
-        virtual void shutdown();
+        virtual void init() = 0;
+        virtual void shutdown() = 0;
+        virtual void on_main_window_closing() = 0;
+
         void run();
         
         void send_event(Event& e);
@@ -61,7 +61,7 @@ export namespace rke
         void register_modal(Modal* handle, ModalRegistry::Attrib attrib);
         void unregister_modal(Modal* handle);
     protected:
-        void set_dockspace_editor_runtime(std::function<bool()> func);
+        DockSpace* dockspace_{}; // owned by WindowsLib::LayerStack::DockSpaceLayer
     private:
         WindowsLib windows_lib_{};
 
@@ -70,14 +70,9 @@ export namespace rke
 
         Scope<Project> project_{};
         Scope<RenderCommand> render_command_{};
-
-        DockSpace* dockspace_{}; // owned by WindowsLib::LayerStack::DockSpaceLayer
-
-        Scope<LogPanel> log_panel_{};
-        Scope<ApplicationPanel> app_panel_{};
-        Scope<ProjectSettingPanel> proj_panel_{};
     };
 
+    RKE_API LogHistory& log_history();
     RKE_API Application& app();
     RKE_API void execute(Scope<Application> app);
 }

@@ -36,16 +36,15 @@ export namespace rke
         void loop();
         void on_event(Event& e);
 
-        Window& load_main(Scope<Window::Props> props);
-        void remove_main();
-
         Window& load(String name, Scope<Window::Props> props);
-        void remove(const String& name);
+        void make_useless(const String& name);
+        Window& load_main(Scope<Window::Props> props);
+        void make_main_useless();
         
         Window& operator[](const String& name);
         const Window& operator[](const String& name) const;
-        Window& get_main() { return *main_window_; }
-        const Window& get_main() const { return *main_window_; }
+        Window& get_main();
+        const Window& get_main() const;
 
         inline Size size () const { return map_.size (); }
         inline bool empty() const { return map_.empty(); }

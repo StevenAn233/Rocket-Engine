@@ -21,10 +21,11 @@ namespace rke
 
     void PanelRegistry::unregister_panel(Panel* handle)
     {
-        if(attribs_.contains(handle))
+        auto it{ attribs_.find(handle) };
+        if(it != attribs_.end())
         {
             config_[handle->get_name()] = handle->on();
-            attribs_.erase(handle);
+            attribs_.erase(it);
         }
     }
 

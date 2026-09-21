@@ -1,10 +1,6 @@
 module;
 module ApplicationPanel;
 
-import Layout;
-import Instrumentor;
-import Application;
-
 namespace rke
 {
     void ApplicationPanel::on_imgui_render()

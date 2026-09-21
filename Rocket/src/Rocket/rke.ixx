@@ -39,6 +39,7 @@ export import Modal;
 export import PanelRegistry;
 
 // editor-owned(put in engine side for friendship): may modify
+export import DockSpace;
 export import AnimationEditorPanel;
 export import SceneHierarchyPanel;
 

@@ -99,8 +99,6 @@ namespace rke
         return end;
     }
 
-    extern LogHistory log_history;
-
     void log(LogType type, LogLevel level,
         const std::source_location& loc, String str)
     {
@@ -116,7 +114,7 @@ namespace rke
         };
 
         if(entry.level == LogLevel::Critical) console_out(entry); // may modify
-        log_history.push(std::move(entry));
+        log_history().push(std::move(entry));
     }
 
     void log(LogType type, LogLevel level,
@@ -135,6 +133,6 @@ namespace rke
         };
 
         if(entry.level == LogLevel::Critical) console_out(entry); // may modify
-        log_history.push(std::move(entry));
+        log_history().push(std::move(entry));
     }
 }

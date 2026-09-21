@@ -14,8 +14,7 @@ import ProjectEvent;
 namespace rke
 {
     DockSpace::DockSpace(String name, Path config_path, NativeWindow context)
-        : name_(std::move(name))
-        , config_path_(std::move(config_path))
+        : name_(std::move(name)), config_path_(std::move(config_path))
     {
         imgui::init(context);
 

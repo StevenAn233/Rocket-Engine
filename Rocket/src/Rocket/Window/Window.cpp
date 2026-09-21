@@ -9,9 +9,9 @@ namespace rke
     Window::Window(String name, Scope<Props> props)
         : name_(std::move(name)), props_(std::move(props))
         , setting_panel_(name_, this)
-        { app().register_panel(&setting_panel_); }
+        {} // not responsible for registering the panel
 
-    Window::~Window() { app().unregister_panel(&setting_panel_); }
+    Window::~Window() {}
 
     void Window::check_layer_blocking()
     {

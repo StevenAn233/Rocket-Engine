@@ -35,7 +35,6 @@ export namespace rke
     {
     public:
         friend class Application;
-        friend struct std::default_delete<Project>;
 
         Project(const Path& rkproj_path);
         ~Project();
@@ -69,6 +68,7 @@ export namespace rke
         inline AssetsManager& get_assets_manager_mut() { return *assets_manager_; }
         inline ScriptRegistry& get_script_registry_mut() { return *script_registry_; }
 
+        void set_aa(AntiAliasing aa_opt);
         bool create_scene(const String& name);
         Scene* load_scene(const String& name, SceneSerializer& scene_serializer);
         void save_scene(const Scene& scene, SceneSerializer& scene_serializer);

@@ -4,6 +4,8 @@ module Project;
 import Log;
 import FileUtils;
 import ConfigProxy;
+import ProjectEvent;
+import Application;
 
 namespace rke
 {
@@ -108,6 +110,23 @@ namespace rke
         for(auto& [_, scene] : scene_map_)
             scene->on_script_dylib_hot_reloading(*script_registry_, *new_reg);
         script_registry_.reset(new_reg.release());
+    }
+
+    void Project::set_aa(AntiAliasing aa_opt)
+    {
+        project_config_.anti_aliasing = aa_opt;
+
+        uint32 samples{ 1 };
+        switch(aa_opt)
+        {
+        case AntiAliasing::MSAAx2:  samples = 2;  break;
+        case AntiAliasing::MSAAx4:  samples = 4;  break;
+        case AntiAliasing::MSAAx8:  samples = 8;  break;
+        case AntiAliasing::MSAAx16: samples = 16; break;
+        }
+        
+        ProjectSamplesSetEvent event{ u8"main", samples };
+        app().send_event(event);
     }
 
     bool Project::create_scene(const String& name)

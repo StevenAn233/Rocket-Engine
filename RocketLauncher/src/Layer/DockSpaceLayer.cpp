@@ -1,23 +1,19 @@
 ﻿module;
 module DockSpaceLayer;
 
-import EventDispatcher;
-import KeyEvent;
-
 namespace rke
 {
     DockSpaceLayer::DockSpaceLayer(String name, Window* owner, Path config_path)
         : Layer(std::move(name), owner)
-        , dockspace_(u8"Rocket Dockspace",
-            std::move(config_path), owner->get_context()) {}
+        , dockspace_(u8"Rocket Dockspace", std::move(config_path), owner->get_context()) {}
 
     void DockSpaceLayer::on_event(Event& e)
     {
         if(e.handled()) return;
 
         EventDispatcher dispacher{ e };
-        dispacher.dispatch<KeyPressedEvent> (
-            [this](KeyPressedEvent& e)
+        dispacher.dispatch<KeyPressedEvent>
+            ([this](KeyPressedEvent& e)
                 { return dockspace_.on_key_pressed(e); });
         
         if(e.belongs_to(EventCategoryMouse))

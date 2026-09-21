@@ -1,23 +1,14 @@
 ﻿module;
-
-#include <string>
-#include <filesystem>
-
 export module DockSpaceLayer;
 
-import String;
-import Path;
-import Layer;
-import DockSpace;
-import Event;
-import Window;
+import rke;
 
 export namespace rke
 {
     class DockSpaceLayer : public Layer
     {
     public:
-        friend class Application;
+        friend class RocketLauncher;
 
         DockSpaceLayer(String name, Window* owner, Path config_path);
         ~DockSpaceLayer() override = default;

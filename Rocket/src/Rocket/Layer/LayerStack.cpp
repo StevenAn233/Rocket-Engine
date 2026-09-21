@@ -6,8 +6,7 @@ import Layer;
 
 namespace rke
 {
-    LayerStack::~LayerStack()
-        { while(!layers_.empty()) pop_back(); }
+    LayerStack::~LayerStack() { while(!layers_.empty()) pop_back(); }
 
     void LayerStack::push_layer(Scope<Layer> layer)
     {
@@ -36,7 +35,8 @@ namespace rke
             CORE_ERROR(u8"LayerStack: Layers empty!");
             return nullptr;
         }
-        auto it{ layers_.end() + (--insert_index_) };
+        --insert_index_;
+        auto it{ layers_.begin() + insert_index_ };
         Scope<Layer> to_detach{ std::move(*it) };
         layers_.erase(it);
         for(Size i{ insert_index_ }; i < layers_.size(); i++)
@@ -56,12 +56,16 @@ namespace rke
 
     Scope<Layer> LayerStack::pop_back()
     {
-        auto it{ layers_.end() - 1 };
-        Scope<Layer> to_detach{ std::move(*it) };
-        layers_.erase(it);
+        CORE_ASSERT(!layers_.empty(), u8"LayerStack: Empty!");
+        Scope<Layer> to_detach{ std::move(layers_.back()) };
+        layers_.pop_back();
         to_detach->on_detach();
         return to_detach;
     }
 
-    Layer& LayerStack::back() { return *(layers_.back().get()); }
+    Layer& LayerStack::back()
+    {
+        CORE_ASSERT(!layers_.empty(), u8"LayerStack: Empty!");
+        return *(layers_.back().get());
+    }
 }

@@ -58,25 +58,27 @@ namespace rke
     {
         if(!main_window_) return;
         glfwPollEvents();
-        if(main_window_->should_close())
-        {
-            map_.erase(u8"main");
-            main_window_ = nullptr;
-        }
-        std::erase_if(map_, [this](auto& pair)
-        {
-            Window& window{ *(pair.second.get()) };
-            if(!main_window_ || window.should_close()) return true;
 
+        if(main_window_->should_close()) {
+            map_.clear(); main_window_ = nullptr;
+        } else {
+            std::erase_if(map_, [this](auto& pair)
+            {
+                if(pair.second->should_close()) return true;
+                return false;
+            });
+        }
+        
+        for(auto& [_, window] : map_)
+        {
             switch(render_backend::get_graphics_api())
             {
             case GraphicsAPI::OpenGL:
-                glfwSwapBuffers(window.get_context().as<GLFWwindow>());
+                glfwSwapBuffers(window->get_context().as<GLFWwindow>());
                 break;
             default:
                 CORE_ASSERT(false, u8"glfwWindow: Other API not supported!");
             }
-            return false;
-        });
+        }
     }
 }

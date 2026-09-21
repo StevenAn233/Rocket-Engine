@@ -1,10 +1,6 @@
 ﻿module;
 module LogPanel;
 
-import Layout;
-import FileUtils;
-import ConfigProxy;
-
 namespace {
     using namespace rke;
 
@@ -78,8 +74,6 @@ namespace {
 
 namespace rke
 {
-    extern LogHistory log_history;
-
     LogPanel::~LogPanel()
     {
         if(filepath_.empty()) return;
@@ -132,8 +126,8 @@ namespace rke
 
     void LogPanel::pull_new_entries()
     {
-        if(log_history.written() == consumed_) return;
-        consumed_ = log_history.copy_since(consumed_, entries_);
+        if(log_history().written() == consumed_) return;
+        consumed_ = log_history().copy_since(consumed_, entries_);
         visible_dirty_ = true;
     }
 
@@ -230,7 +224,7 @@ namespace rke
         }
         
         ImGui::Text("%zu entries, %zu shown", entries_.size(), visible_.size());
-        const uint64 recycled{ log_history.dropped() };
+        const uint64 recycled{ log_history().dropped() };
         if(recycled > 0)
         {
             ImGui::SameLine();
@@ -364,10 +358,10 @@ namespace rke
 
     void LogPanel::clear_entries()
     {
-        log_history.clear();
+        log_history().clear();
 
         entries_.clear();
-        consumed_ = log_history.written();
+        consumed_ = log_history().written();
 
         formatted_.clear();
         formatted_heights_.clear();

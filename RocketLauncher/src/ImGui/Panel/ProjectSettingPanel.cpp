@@ -5,11 +5,6 @@
 
 module ProjectSettingPanel;
 
-import Types;
-import ProjectEvent;
-import Application;
-import Layout;
-
 namespace {
     void add_text_vertical(ImDrawList* draw_list, const char* text, ImVec2 pos, ImU32 text_color)
     {
@@ -29,24 +24,6 @@ namespace {
 
 namespace rke
 {
-    void ProjectSettingPanel::set_aa(AntiAliasing aa_opt)
-    {
-        Project* project{ app().get_project() };
-        if(project) project->get_config_mut().anti_aliasing = aa_opt;
-
-        uint32 samples{ 1 };
-        switch(aa_opt)
-        {
-        case AntiAliasing::MSAAx2:  samples = 2;  break;
-        case AntiAliasing::MSAAx4:  samples = 4;  break;
-        case AntiAliasing::MSAAx8:  samples = 8;  break;
-        case AntiAliasing::MSAAx16: samples = 16; break;
-        }
-        
-        ProjectSamplesSetEvent event{ u8"main", samples };
-        app().send_event(event);
-    }
-
     void ProjectSettingPanel::on_imgui_render()
     {
         Project* project{ app().get_project() };
@@ -111,7 +88,7 @@ namespace rke
                         case 4: aa = AntiAliasing::MSAAx16; break;
                         case 5: aa = AntiAliasing::FXAA;    break;
                         }
-                        set_aa(aa);
+                        project->set_aa(aa);
                     }
                 });
                 ImGui::EndTabItem();
