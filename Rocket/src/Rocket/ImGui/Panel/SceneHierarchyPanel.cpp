@@ -244,7 +244,7 @@ namespace rke
             bool tra_changed{ false };
             bool rot_changed{ false };
 
-            if(tc.locked) {
+            if(tc.is_static) {
                 tra_changed = layout::drag_float3_control<u8"Translation">
                 (
                     tc.translation, 0.0f, glm::vec3(0.0f),
@@ -258,7 +258,7 @@ namespace rke
                 );
             }
 
-            if(tc.locked) {
+            if(tc.is_static) {
                 rot_changed = layout::drag_float3_control<u8"Rotation">
                 (
                     tc.rotation, 0.0f, glm::vec3(0.0f),
@@ -280,7 +280,7 @@ namespace rke
                 if(rot_changed) rbc.angular_velocity = 0.0f;
             }
 
-            if(tc.locked || ent.has<CameraComponent>())
+            if(tc.is_static || ent.has<CameraComponent>())
             {
                 context_->mark_modified_if (
                     layout::drag_float3_control<u8"Scale">
@@ -295,6 +295,8 @@ namespace rke
                         (tc.scale, 0.1f, glm::vec3(1.0f))
                 );
             }
+
+            context_->mark_modified_if(ImGui::Checkbox("Static", &tc.is_static));
         });
 
         check_then_draw<CameraComponent, u8"Camera">(entity, [&](Entity ent)
@@ -671,15 +673,27 @@ namespace rke
 
             layout::two_columns_table<u8"Body Type">([&]()
             {
-                constexpr const char* items[]{ "Unsimulated", "Simulated" };
-                int option{ static_cast<int>(rbc.type) };
+                const auto& tc{ ent.get<TransformComponent>() };
+                if(tc.is_static) {
+                    constexpr const char* item[]{ "Static" };
+                    float available_width{ ImGui::GetContentRegionAvail().x };
+                    ImGui::SetNextItemWidth(available_width);
 
-                float available_width{ ImGui::GetContentRegionAvail().x };
-                ImGui::SetNextItemWidth(available_width);
-                if(ImGui::Combo("##body_type", &option, items, (int)std::size(items)))
-                {
-                    rbc.type = static_cast<BodyType>(option);
-                    context_->mark_modified();
+                    ImGui::BeginDisabled();
+                    int whatever{};
+                    ImGui::Combo("##body_type", &whatever, item, 1);
+                    ImGui::EndDisabled();
+                } else {
+                    constexpr const char* items[]{ "Unsimulated", "Simulated" };
+                    int option{ static_cast<int>(rbc.type) };
+
+                    float available_width{ ImGui::GetContentRegionAvail().x };
+                    ImGui::SetNextItemWidth(available_width);
+                    if(ImGui::Combo("##body_type", &option, items, (int)std::size(items)))
+                    {
+                        rbc.type = static_cast<BodyType>(option);
+                        context_->mark_modified();
+                    }
                 }
             });
             context_->mark_modified_if(ImGui::Checkbox("Rotation Fixed", &rbc.rotation_fixed));
@@ -889,18 +903,6 @@ namespace rke
 
     void SceneHierarchyPanel::general_comp_popup_content(bool& to_delete)
         { if(ImGui::MenuItem("Delete")) to_delete = true; }
-
-    void SceneHierarchyPanel::transform_comp_popup_content(Entity entity, bool& to_delete)
-    {
-        auto& tc{ entity.get_mut<TransformComponent>() };
-        if(tc.locked) {
-            if(ImGui::MenuItem("Unlock"))
-                { tc.locked = false; context_->mark_modified(); }
-        } else {
-            if(ImGui::MenuItem("Lock"))
-                { tc.locked = true; context_->mark_modified(); }
-        }
-    }
 
     void SceneHierarchyPanel::camera_comp_popup_content(Entity entity, bool& to_delete)
     {

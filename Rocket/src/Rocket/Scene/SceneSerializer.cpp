@@ -30,7 +30,7 @@ namespace {
             writer.write(u8"Translation", ConfigValue(tc.translation));
             writer.write(u8"Rotation",    ConfigValue(tc.rotation   ));
             writer.write(u8"Scale",       ConfigValue(tc.scale      ));
-            writer.write(u8"Locked",      ConfigValue(tc.locked     ));
+            writer.write(u8"Static",      ConfigValue(tc.is_static  ));
 
             writer.end_map();
         }
@@ -144,9 +144,9 @@ namespace {
         if(tc_reader) {
             auto& tc{ entity.get_mut<TransformComponent>() };
             tc.translation = tc_reader->get_at(u8"Translation", tc.translation);
-            tc.rotation = tc_reader->get_at(u8"Rotation", tc.rotation);
-            tc.scale  = tc_reader->get_at(u8"Scale" , tc.scale );
-            tc.locked = tc_reader->get_at(u8"Locked", tc.locked);
+            tc.rotation    = tc_reader->get_at(u8"Rotation"   , tc.rotation   );
+            tc.scale       = tc_reader->get_at(u8"Scale"      , tc.scale      );
+            tc.is_static   = tc_reader->get_at(u8"Static"     , tc.is_static  );
         }
 
         Scope<ConfigReader> cc_reader{ reader.get_child(u8"Camera Component") };

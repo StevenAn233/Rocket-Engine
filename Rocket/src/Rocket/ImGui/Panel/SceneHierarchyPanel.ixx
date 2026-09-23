@@ -47,7 +47,7 @@ export namespace rke
                     if constexpr(std::is_same_v<Component, IdentityComponent>)
                         { ImGui::CloseCurrentPopup(); }
                     else if constexpr(std::is_same_v<Component, TransformComponent>)
-                        { transform_comp_popup_content(entity, to_delete); }
+                        { ImGui::CloseCurrentPopup(); }
                     else if constexpr(std::is_same_v<Component, CameraComponent>)
                         { camera_comp_popup_content(entity, to_delete); }
                     else if constexpr(std::is_same_v<Component, TextureComponent>)
@@ -72,7 +72,6 @@ export namespace rke
         void add_components_popup(Entity selected);
 
         void general_comp_popup_content(bool& to_delete);
-        void transform_comp_popup_content(Entity entity, bool& to_delete);
         void camera_comp_popup_content(Entity entity, bool& to_delete);
         void texture_comp_popup_content(Entity entity, bool& to_delete);
         void animator_comp_popup_content(Entity entity, bool& to_delete);
