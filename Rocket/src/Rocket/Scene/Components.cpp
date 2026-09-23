@@ -39,11 +39,12 @@ namespace rke
         tag[count] = u8'\0';
     }
 
-    glm::mat4 TransformComponent::get_transform() const
+    glm::mat4 TransformComponent::get_transform(glm::vec3 mesh_centre) const
     {
         return glm::translate(glm::mat4(1.0f), translation)
              * glm::mat4_cast(glm::quat(glm::radians(rotation)))
-             * glm::scale(glm::mat4(1.0f), scale);
+             * glm::scale(glm::mat4(1.0f), scale)
+             * glm::translate(glm::mat4(1.0f), -mesh_centre);
     }
 
     SpriteComponent::SpriteComponent() : quad(&s_quad) {}

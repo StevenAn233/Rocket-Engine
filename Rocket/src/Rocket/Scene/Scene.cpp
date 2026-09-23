@@ -1,4 +1,4 @@
-module;
+﻿module;
 module Scene;
 
 import Log;
@@ -55,6 +55,16 @@ namespace rke
         return nullptr;
     }
 
+    glm::vec3 Entity::compute_centre() const
+    {
+        const TransformComponent& tc{ get<TransformComponent>() };
+        const Mesh* mesh{ get_mesh() };
+        if(!mesh) return tc.translation;
+
+    // mat3() drops the translation column, leaving exactly R*S.
+        return tc.translation + glm::mat3(tc.get_transform()) * mesh->get_centre();
+    }
+
     AABB Entity::compute_aabb() const
     {
         if(!has<BoxCollider2DComponent>()) return AABB{};
@@ -66,7 +76,7 @@ namespace rke
         return AABB(tc.rotation.z,
             glm::vec2(mesh->get_size()) * glm::vec2(tc.scale),
             bcc.half_extent,
-            glm::vec2(mesh->get_centre()) + glm::vec2(tc.translation),
+            glm::vec2(compute_centre()),
             bcc.offset
         );
     }

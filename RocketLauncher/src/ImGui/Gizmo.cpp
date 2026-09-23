@@ -42,7 +42,9 @@ namespace rke::gizmo
         const glm::mat4& cam_view{ cam.get_view() };
 
         auto& tc{ selected_entity.get_mut<TransformComponent>() };
-        glm::mat4 transform{ tc.get_transform() };
+        const Mesh* mesh{ selected_entity.get_mesh() };
+        glm::mat4 transform{ tc.get_transform
+            (mesh ? mesh->get_centre() : glm::vec3(0.0f)) };
 
         float snap_value{ 0.5f };
         if(gizmo_mode == ImGuizmo::OPERATION::ROTATE)

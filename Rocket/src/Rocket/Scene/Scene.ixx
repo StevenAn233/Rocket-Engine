@@ -1,4 +1,4 @@
-module;
+﻿module;
 
 #include <string>
 #include <vector>
@@ -53,6 +53,7 @@ export namespace rke
         RKE_API UUID get_uuid() const;
         RKE_API const Mesh* get_mesh() const;
         RKE_API AABB compute_aabb() const;
+        RKE_API glm::vec3 compute_centre() const;
 
         RKE_API bool valid() const;
         RKE_API void invalidate_if_unavailable();

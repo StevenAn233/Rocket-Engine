@@ -133,7 +133,8 @@ namespace rke
             const auto& proj{ camera.get<CameraComponent>().camera.get_proj() };
 
             glm::mat4 view_proj{ proj * glm::inverse(tc.get_transform()) };
-            return render(scene, view_proj, tc.translation + glm::vec3(0.0f));
+        // a camera has no mesh, so this is just its translation
+            return render(scene, view_proj, camera.compute_centre());
         }
         return nullptr;
     }
@@ -175,7 +176,8 @@ namespace rke
             GTexture* gtex{ tex ? tex->get_gtexture(gtex_settings) : nullptr };
             context_->renderer().push(sc.quad, gtex, RenderProps
             {
-                .transform{ reg.get<TransformComponent>(entity).get_transform() },
+                .transform{ reg.get<TransformComponent>(entity)
+                    .get_transform(sc.quad->get_centre()) },
                 .uv_offset{ sc.uv_offset },
                 .uv_scale { sc.uv_scale  },
                 .color{ sc.color }, .entity_handle{ handle }
@@ -202,11 +204,11 @@ namespace rke
             const auto& sc{ view.get<SpriteComponent>(entity) };
             if(sc.color.a < 0.01f) continue;
 
-            glm::vec3 pos { tc.translation + sc.quad->get_centre() };
+            EntityHandle handle{ static_cast<EntityHandle>(entity) };
+            glm::vec3 pos { scene->get_entity(handle).compute_centre() };
             glm::vec3 size{ tc.scale * sc.quad->get_size() };
             if(should_cull(pos, size, planes)) continue;
 
-            EntityHandle handle{ static_cast<EntityHandle>(entity) };
             switch(sc.blending_mode)
             {
             case BlendingMode::Opaque:

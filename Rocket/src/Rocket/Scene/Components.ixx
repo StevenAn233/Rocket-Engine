@@ -45,11 +45,10 @@ export namespace rke
         bool locked{ false };
 
         TransformComponent() = default;
-        TransformComponent(glm::vec3 tra, glm::vec3 rot, glm::vec3 scl)
-            : translation(std::move(tra)), rotation(std::move(rot)), scale(std::move(scl)) {}
         TransformComponent(const TransformComponent&) = default;
 
-        glm::mat4 get_transform() const;
+    // T(translation)* R * S * T(-mesh_centre)
+        glm::mat4 get_transform(glm::vec3 mesh_centre = glm::vec3(0.0f)) const;
     };
 
     struct RKE_API CameraComponent

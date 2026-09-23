@@ -34,7 +34,7 @@ namespace rke
                 const auto& sc{ target.get<SpriteComponent>() };
                 context_->renderer().push(sc.quad, nullptr,
                     RenderProps {
-                        .transform{ tc.get_transform() },
+                        .transform{ tc.get_transform(sc.quad->get_centre()) },
                         .color{ glm::vec4(1.0f) }
                     }
                 );
