@@ -49,7 +49,7 @@ namespace {
     static bool is_one_way_allowed(Entity platform,
         b2ShapeId platform_shape, b2ShapeId other_shape)
     {
-        const auto& tc { platform.get<TransformComponent>() };
+        const auto& tc{ platform.get<TransformComponent>() };
         const Mesh* mesh{ platform.get_mesh() };
         if(!mesh) return true;
         const auto& bcc{ platform.get<BoxCollider2DComponent>() };
@@ -58,7 +58,8 @@ namespace {
         b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
 
         // allow only when the other body's center is above the platform top
-        float platform_half_height{ bcc.half_extent.y * std::abs(tc.scale.y) * mesh->get_size().y };
+        float platform_half_height
+            { bcc.half_extent.y * std::abs(tc.scale.y) * mesh->get_size().y };
         return other_pos.y > platform_pos.y + platform_half_height;
     }
 }
@@ -287,15 +288,20 @@ namespace rke
         const auto& tc{ entity.get<TransformComponent>() };
         const Mesh* mesh{ entity.get_mesh() };
         CORE_ASSERT(mesh, u8"box2DPhysicsEngine2D: Entity has no geometry mesh!");
-        float size_x{ std::abs(tc.scale.x) * mesh->get_size().x };
-        float size_y{ std::abs(tc.scale.y) * mesh->get_size().y };
-        if(size_x < 0.001f || size_y < 0.001f) return;
+
+        const glm::vec2 mesh_size{ mesh->get_size() };
+        const glm::vec2 raw_size {
+            std::abs(tc.scale.x) * mesh_size.x,
+            std::abs(tc.scale.y) * mesh_size.y
+        };
+        if(raw_size.x < 0.001f || raw_size.y < 0.001f) return;
+
+        const glm::vec2 half{ bcc.half_extent * raw_size };
 
         b2Polygon box_geometry{ b2MakeOffsetBox
         (
-            bcc.half_extent.x * size_x,
-            bcc.half_extent.y * size_y,
-            b2Vec2(bcc.offset.x, bcc.offset.y), // centre
+            half.x, half.y,
+            b2Vec2(bcc.offset.x, bcc.offset.y),
             b2MakeRot(0.0f)
         )};
 
@@ -323,8 +329,7 @@ namespace rke
         state.shape = b2CreatePolygonShape(state.body, &shape_def, &box_geometry);
         CORE_ASSERT(B2_IS_NON_NULL(state.shape), u8"box2dPhysicsEngine: Shape id null!");
 
-        state.shape_size = glm::vec2
-            (bcc.half_extent.x * size_x, bcc.half_extent.y * size_y);
+        state.shape_size = half;
         entity.get_mut<Rigidbody2DComponent>().mass = b2Body_GetMass(state.body);
 
     // register: null id will NEVER be registered
@@ -362,12 +367,15 @@ namespace rke
         const auto& tc{ entity.get<TransformComponent>() };
         const Mesh* mesh{ entity.get_mesh() };
         CORE_ASSERT(mesh, u8"box2DPhysicsEngine2D: Entity has no geometry mesh!");
-        glm::vec2 expected {
-            bcc.half_extent.x * std::abs(tc.scale.x) * mesh->get_size().x,
-            bcc.half_extent.y * std::abs(tc.scale.y) * mesh->get_size().y
+        const glm::vec2 mesh_size{ mesh->get_size() };
+        const glm::vec2 raw_size {
+            std::abs(tc.scale.x) * mesh_size.x,
+            std::abs(tc.scale.y) * mesh_size.y
         };
-        if(state.shape_size != expected) return true;
-        
+        const glm::vec2 expected{ bcc.half_extent * raw_size };
+        const glm::vec2 delta{ state.shape_size - expected };
+        if(std::abs(delta.x) > 0.001f || std::abs(delta.y) > 0.001f) return true;
+
         return false;
     }
 
@@ -410,7 +418,7 @@ namespace rke
 
             const auto& tc{ entity.get<TransformComponent>() };
             glm::vec3 centre{ mesh->get_centre() };
-            glm::vec2 pos { tc.translation.x + centre.x, tc.translation.y + centre.y };
+            glm::vec2 pos{ tc.translation.x + centre.x, tc.translation.y + centre.y };
             float rot{ glm::radians(tc.rotation.z) }; // radian
             
             if(last_pos != pos || std::abs(last_rot - rot) > 0.01f)

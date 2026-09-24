@@ -5,9 +5,7 @@ namespace rke
 {
     static const Mesh s_quad ( // may modify
         4, 6,
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(1.0f, 1.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f), // front
         Scope<glm::vec4[]>(new glm::vec4[4]
         {
             glm::vec4( 0.5f,  0.5f, 0.0f, 1.0f),

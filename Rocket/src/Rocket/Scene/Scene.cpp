@@ -65,6 +65,12 @@ namespace rke
         return tc.translation + glm::mat3(tc.get_transform()) * mesh->get_centre();
     }
 
+    glm::vec2 Entity::compute_flat_size(glm::vec3 axis) const
+    {
+        glm::vec3 normal{ glm::normalize(axis) };
+        return glm::vec2();
+    }
+
     AABB Entity::compute_aabb() const
     {
         if(!has<BoxCollider2DComponent>()) return AABB{};

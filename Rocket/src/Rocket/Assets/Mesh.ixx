@@ -14,8 +14,7 @@ export namespace rke
     class RKE_API Mesh
     {
     public:
-        Mesh(uint32 vc, uint32 ic,
-            glm::vec3 centre, glm::vec3 size, glm::vec3 front,
+        Mesh(uint32 vc, uint32 ic, glm::vec3 front,
             Scope<glm::vec4[]> pos, Scope<uint32[]> indices,
             Scope<glm::vec3[]> nor = nullptr,
             Scope<glm::vec4[]> col = nullptr,
@@ -31,9 +30,12 @@ export namespace rke
         inline uint32 get_vertex_count() const { return vertex_count_; }
         inline uint32 get_index_count() const { return index_count_; }
 
-        inline glm::vec3 get_centre() const { return centre_; }
-        inline glm::vec3 get_size() const { return size_; }
-        inline glm::vec3 get_front() const { return front_; }
+        inline glm::vec3 get_bounds_max() const { return bounds_max_; }
+        inline glm::vec3 get_bounds_min() const { return bounds_min_; }
+
+        inline glm::vec3 get_centre() const { return 0.5f * (bounds_max_ + bounds_min_); }
+        inline glm::vec3 get_size  () const { return bounds_max_ - bounds_min_; }
+        inline glm::vec3 get_front () const { return front_; }
 
         inline bool has_normals() const { return normals_.get() != nullptr; }
         inline bool has_colors() const { return colors_.get() != nullptr; }
@@ -48,9 +50,9 @@ export namespace rke
         uint32 vertex_count_;
         uint32 index_count_;
 
-        glm::vec3 centre_;
-        glm::vec3 size_;
-        glm::vec3 front_;
+        glm::vec3 bounds_max_{};
+        glm::vec3 bounds_min_{};
+        glm::vec3 front_{};
 
         Scope<glm::vec4[]> positions_;
         Scope<glm::vec3[]> normals_;
