@@ -61,28 +61,57 @@ namespace rke
         const Mesh* mesh{ get_mesh() };
         if(!mesh) return tc.translation;
 
-    // mat3() drops the translation column, leaving exactly R*S.
+    // The pivot/anchor point the physics body origin is placed at. A pivot that is
+    // off-centre still gets rotated around the mesh centre by this matrix.
         return tc.translation + glm::mat3(tc.get_transform()) * mesh->get_centre();
     }
 
     glm::vec2 Entity::compute_flat_size(glm::vec3 axis) const
     {
-        glm::vec3 normal{ glm::normalize(axis) };
-        return glm::vec2();
+        const Mesh* mesh{ get_mesh() };
+        if(!mesh) return glm::vec2(0.0f);
+
+        const PlaneBasis basis{ axis };
+        const glm::mat3 to_plane{ basis.get_mat() }; // rows are u, v, normal
+        const TransformComponent& tc{ get<TransformComponent>() };
+
+    // The mesh's extent in the PLANE's frame, with only SCALE applied. The authored
+    // rotation is deliberately left out: the collider lives in the BODY's frame and
+    // Box2D rotates the body, so the shape must keep a constant size. Baking the
+    // rotation in here would recompute the axis-aligned footprint of the rotated box,
+    // which changes with the angle (0 deg -> 0.5, 45 deg -> 0.707) and would both
+    // resize the collider as it turns and rebuild the shape every frame.
+    // Scale alone is rotation-independent, so this is constant for a spinning body.
+        const glm::vec3 local{ mesh->get_size() * glm::abs(tc.scale) };
+
+    // fold the axis components together: a tilted mesh still contributes its depth
+        const glm::vec3 projected{ glm::abs(to_plane) * (0.5f * local) };
+        return glm::vec2(projected.x, projected.y);
     }
 
-    AABB Entity::compute_aabb() const
+    float Entity::compute_flat_rotation(glm::vec3 axis) const
+    {
+    // Read the in-plane angle back out of the total orientation. This is well defined
+    // even when the object is tilted: a tilt turns the object out of the plane (or, if
+    // it is a rotation about the normal, turns it within the plane) but always leaves
+    // the in-plane DIRECTION of the local x axis intact.
+        return PlaneBasis(axis).plane_angle_of
+            (glm::quat(glm::radians(get<TransformComponent>().rotation)));
+    }
+
+    AABB Entity::compute_aabb(glm::vec3 axis) const
     {
         if(!has<BoxCollider2DComponent>()) return AABB{};
-        const Mesh* mesh{ get_mesh() };
-        if(!mesh) return AABB{};
 
-        const auto& tc{ get<TransformComponent>() };
         const auto& bcc{ get<BoxCollider2DComponent>() };
-        return AABB(tc.rotation.z,
-            glm::vec2(mesh->get_size()) * glm::vec2(tc.scale),
-            bcc.half_extent,
-            glm::vec2(compute_centre()),
+        const PlaneBasis basis{ axis };
+        const glm::vec3 normal{ basis.get_normal() };
+
+        return AABB (
+            compute_flat_rotation(normal),
+            compute_flat_size(normal),
+            bcc.size_scale * 0.5f,
+            basis.to_plane(compute_centre()),
             bcc.offset
         );
     }
@@ -372,6 +401,9 @@ namespace rke
         if(!entity.valid() || !entity.belongs_to(this)) return;
 
         auto& tc{ entity.get_mut<TransformComponent>() };
+    // `rot` is the full visible orientation, so it replaces the total -- including
+    // whatever angle the physics engine had applied. The engine re-reads the in-plane
+    // angle from here on its next sync, so nothing needs resetting on its side.
         tc.translation = tra; tc.rotation = rot;
 
     // clear velocity completely

@@ -111,11 +111,11 @@ namespace {
             const auto& bcc{ entity.get<BoxCollider2DComponent>() };
             writer.write(u8"Collider Type", static_cast<uint32>(bcc.type));
             writer.write(u8"Physics Layer", static_cast<uint32>(bcc.layer_index));
-            writer.write(u8"Offset",        ConfigValue(bcc.offset     ));
-            writer.write(u8"Half-Extent",   ConfigValue(bcc.half_extent));
-            writer.write(u8"Density",       ConfigValue(bcc.density    ));
-            writer.write(u8"Friction",      ConfigValue(bcc.friction   ));
-            writer.write(u8"Restitution",   ConfigValue(bcc.restitution));
+            writer.write(u8"Offset", ConfigValue(bcc.offset));
+            writer.write(u8"Collider Scale", ConfigValue(bcc.size_scale));
+            writer.write(u8"Density", ConfigValue(bcc.density));
+            writer.write(u8"Friction", ConfigValue(bcc.friction));
+            writer.write(u8"Restitution", ConfigValue(bcc.restitution));
 
             writer.end_map();
         }
@@ -217,10 +217,10 @@ namespace {
             auto& bcc{ entity.emplace<BoxCollider2DComponent>() };
             bcc.type = static_cast<ColliderType>(bcc_reader->get_at(u8"Collider Type", 0u));
             bcc.layer_index = bcc_reader->get_at(u8"Physics Layer", 0ui32);
-            bcc.offset      = bcc_reader->get_at(u8"Offset"     , glm::vec2(0.0f));
-            bcc.half_extent = bcc_reader->get_at(u8"Half-Extent", glm::vec2(0.5f));
-            bcc.density     = bcc_reader->get_at(u8"Density"    , 1.0f);
-            bcc.friction    = bcc_reader->get_at(u8"Friction"   , 0.5f);
+            bcc.offset = bcc_reader->get_at(u8"Offset", glm::vec2(0.0f));
+            bcc.size_scale = bcc_reader->get_at(u8"Collider Scale", glm::vec2(1.0f));
+            bcc.density = bcc_reader->get_at(u8"Density", 1.0f);
+            bcc.friction = bcc_reader->get_at(u8"Friction", 0.5f);
             bcc.restitution = bcc_reader->get_at(u8"Restitution", 0.0f);
         }
 

@@ -204,11 +204,11 @@ namespace rke
             const auto& sc{ view.get<SpriteComponent>(entity) };
             if(sc.color.a < 0.01f) continue;
 
-            EntityHandle handle{ static_cast<EntityHandle>(entity) };
-            glm::vec3 pos { scene->get_entity(handle).compute_centre() };
+            glm::vec3 pos{ tc.get_transform(sc.quad->get_centre())[3] };
             glm::vec3 size{ tc.scale * sc.quad->get_size() };
             if(should_cull(pos, size, planes)) continue;
 
+            EntityHandle handle{ static_cast<EntityHandle>(entity) };
             switch(sc.blending_mode)
             {
             case BlendingMode::Opaque:

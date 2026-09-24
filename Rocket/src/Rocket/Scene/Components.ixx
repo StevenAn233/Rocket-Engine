@@ -172,7 +172,7 @@ export namespace rke
         uint8 layer_index{ 0 }; // 0 for default
 
         glm::vec2 offset{ 0.0f, 0.0f };
-        glm::vec2 half_extent{ 0.5f, 0.5f }; // half w, half h (0.0 to 1.0)
+        glm::vec2 size_scale{ 1.0f, 1.0f };
         
         float density{ 1.0f };
         float friction{ 0.5f };

@@ -11,6 +11,7 @@
 export module PhysicsEngine2D:box2D;
 
 import :Base;
+import Plane;
 import Scene;
 import EntityAccess;
 import PhysicsLayers;
@@ -47,6 +48,12 @@ namespace rke
             b2BodyId  body { b2_nullBodyId  };
             b2ShapeId shape{ b2_nullShapeId };
             glm::vec2 shape_size{ 0.0f }; // last resolved half extent(pixels)
+        // The in-plane angle THIS engine last applied, in degrees. Engine bookkeeping:
+        // the component's `rotation` always holds the TOTAL visible pose, so the
+        // per-frame delta is measured against this and folded in. Keeping it here and
+        // not on the component is what makes moving an entity between engines a no-op
+        // -- the angle never travels with the entity.
+            float plane_angle{ 0.0f };
         };
 
         PhysicsState* find_state(EntityHandle handle) noexcept; // nullptr: no state yet

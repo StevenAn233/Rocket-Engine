@@ -746,9 +746,9 @@ namespace rke
                 ));
 
             context_->mark_modified_if (
-                layout::drag_float2_control<u8"Half-Extent"> (
-                    bcc.half_extent, 0.01f, glm::vec2( 0.5f, 0.5f),
-                    glm::vec2(0.01f, 1.0f), glm::vec2(0.01f, 1.0f)
+                layout::drag_float2_control<u8"Scale"> (
+                    bcc.size_scale, 0.01f, glm::vec2(1.0f, 1.0f),
+                    glm::vec2(0.01f, 2.0f), glm::vec2(0.01f, 2.0f)
                 ));
 
             context_->mark_modified_if (
