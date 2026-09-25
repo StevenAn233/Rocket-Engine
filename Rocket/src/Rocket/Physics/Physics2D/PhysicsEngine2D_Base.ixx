@@ -9,6 +9,7 @@ namespace rke { class Scene; class Entity; }
 export module PhysicsEngine2D:Base;
 
 import Types;
+import Plane;
 import EntityAccess;
 import HeapManager;
 
@@ -24,7 +25,7 @@ export namespace rke
     class PhysicsEngine2D
     {
     public:
-        PhysicsEngine2D(Scene* scene);
+        PhysicsEngine2D(Scene* scene, glm::vec3 axis);
         virtual ~PhysicsEngine2D() = default;
 
         virtual void on_runtime_start() = 0;
@@ -43,9 +44,10 @@ export namespace rke
         inline const std::vector<Contact>& get_end_contacts_sensor() const
             { return end_contacts_sensor_; }
 
-        static Scope<PhysicsEngine2D> create(Scene* owner);
+        static Scope<PhysicsEngine2D> create(Scene* owner, glm::vec3 axis);
     protected:
         inline Scene& get_owner() { return *owner_; }
+        inline const PlaneBasis& get_plane() const { return plane_; }
         entt::registry& get_registry();
     protected:
     // synced/refreshed in on_update
@@ -55,5 +57,6 @@ export namespace rke
         std::vector<Contact> end_contacts_sensor_{};
     private:
         Scene* owner_;
+        const PlaneBasis plane_; // may modify
     };
 }

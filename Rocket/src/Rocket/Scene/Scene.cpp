@@ -1,4 +1,8 @@
 ﻿module;
+
+// Module units skip include/rke_pch.h, so this file names what it uses from glm.
+#include <glm/glm.hpp>
+
 module Scene;
 
 import Log;
@@ -60,58 +64,53 @@ namespace rke
         const TransformComponent& tc{ get<TransformComponent>() };
         const Mesh* mesh{ get_mesh() };
         if(!mesh) return tc.translation;
-
-    // The pivot/anchor point the physics body origin is placed at. A pivot that is
-    // off-centre still gets rotated around the mesh centre by this matrix.
+        
         return tc.translation + glm::mat3(tc.get_transform()) * mesh->get_centre();
     }
 
-    glm::vec2 Entity::compute_flat_size(glm::vec3 axis) const
+    glm::vec2 Entity::compute_flat_size(const PlaneBasis& plane) const
     {
         const Mesh* mesh{ get_mesh() };
         if(!mesh) return glm::vec2(0.0f);
-
-        const PlaneBasis basis{ axis };
-        const glm::mat3 to_plane{ basis.get_mat() }; // rows are u, v, normal
         const TransformComponent& tc{ get<TransformComponent>() };
+        const glm::vec3 raw_size{ mesh->get_size() * glm::abs(tc.scale) };
 
-    // The mesh's extent in the PLANE's frame, with only SCALE applied. The authored
-    // rotation is deliberately left out: the collider lives in the BODY's frame and
-    // Box2D rotates the body, so the shape must keep a constant size. Baking the
-    // rotation in here would recompute the axis-aligned footprint of the rotated box,
-    // which changes with the angle (0 deg -> 0.5, 45 deg -> 0.707) and would both
-    // resize the collider as it turns and rebuild the shape every frame.
-    // Scale alone is rotation-independent, so this is constant for a spinning body.
-        const glm::vec3 local{ mesh->get_size() * glm::abs(tc.scale) };
-
-    // fold the axis components together: a tilted mesh still contributes its depth
-        const glm::vec3 projected{ glm::abs(to_plane) * (0.5f * local) };
-        return glm::vec2(projected.x, projected.y);
+        const float spin{ glm::radians(compute_flat_rotation(plane)) };
+        const glm::mat3 rotation {
+            glm::mat3_cast(glm::quat(glm::radians(tc.rotation))) *
+            plane.get_mat()
+        };
+        const glm::mat3 unspin
+        {
+            std::cos(spin), -std::sin(spin), 0.0f,
+            std::sin(spin),  std::cos(spin), 0.0f,
+            0.0f, 0.0f, 1.0f
+        };
+        const glm::vec2 x_axis{ unspin * (rotation * glm::vec3(1.0f, 0.0f, 0.0f)) };
+        const glm::vec2 y_axis{ unspin * (rotation * glm::vec3(0.0f, 1.0f, 0.0f)) };
+        
+        return glm::vec2 (
+            glm::abs(x_axis.x) * raw_size.x + glm::abs(y_axis.x) * raw_size.y,
+            glm::abs(x_axis.y) * raw_size.x + glm::abs(y_axis.y) * raw_size.y
+        );
     }
 
-    float Entity::compute_flat_rotation(glm::vec3 axis) const
+    float Entity::compute_flat_rotation(const PlaneBasis& plane) const
     {
-    // Read the in-plane angle back out of the total orientation. This is well defined
-    // even when the object is tilted: a tilt turns the object out of the plane (or, if
-    // it is a rotation about the normal, turns it within the plane) but always leaves
-    // the in-plane DIRECTION of the local x axis intact.
-        return PlaneBasis(axis).plane_angle_of
-            (glm::quat(glm::radians(get<TransformComponent>().rotation)));
+        return plane.angle_of(glm::quat
+            (glm::radians(get<TransformComponent>().rotation)));
     }
 
-    AABB Entity::compute_aabb(glm::vec3 axis) const
+    AABB Entity::compute_aabb(const PlaneBasis& plane) const
     {
         if(!has<BoxCollider2DComponent>()) return AABB{};
 
         const auto& bcc{ get<BoxCollider2DComponent>() };
-        const PlaneBasis basis{ axis };
-        const glm::vec3 normal{ basis.get_normal() };
-
         return AABB (
-            compute_flat_rotation(normal),
-            compute_flat_size(normal),
+            compute_flat_rotation(plane),
+            compute_flat_size(plane),
             bcc.size_scale * 0.5f,
-            basis.to_plane(compute_centre()),
+            plane.to_uv(compute_centre()),
             bcc.offset
         );
     }
@@ -141,7 +140,8 @@ namespace rke
         registry_ = create_scope<entt::registry>();
 
         script_manager_ = create_scope<ScriptManager>(this);
-        physics_engine_ = PhysicsEngine2D::create(this);
+        physics_engine_ = PhysicsEngine2D::create(this,
+            glm::vec3(0.0f, 0.0f, 1.0f)); // hard-coded, to modify
         animator_system_ = create_scope<AnimatorSystem>(this);
 
         registry_->ctx().emplace<RegistryContext>

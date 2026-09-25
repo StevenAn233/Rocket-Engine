@@ -11,7 +11,6 @@
 export module PhysicsEngine2D:box2D;
 
 import :Base;
-import Plane;
 import Scene;
 import EntityAccess;
 import PhysicsLayers;
@@ -33,7 +32,7 @@ namespace rke
     class box2DPhysicsEngine2D : public PhysicsEngine2D
     {
     public:
-        box2DPhysicsEngine2D(Scene* owner);
+        box2DPhysicsEngine2D(Scene* owner, glm::vec3 axis);
 
         void on_runtime_start() override;
         void on_runtime_stop () override;
@@ -48,12 +47,6 @@ namespace rke
             b2BodyId  body { b2_nullBodyId  };
             b2ShapeId shape{ b2_nullShapeId };
             glm::vec2 shape_size{ 0.0f }; // last resolved half extent(pixels)
-        // The in-plane angle THIS engine last applied, in degrees. Engine bookkeeping:
-        // the component's `rotation` always holds the TOTAL visible pose, so the
-        // per-frame delta is measured against this and folded in. Keeping it here and
-        // not on the component is what makes moving an entity between engines a no-op
-        // -- the angle never travels with the entity.
-            float plane_angle{ 0.0f };
         };
 
         PhysicsState* find_state(EntityHandle handle) noexcept; // nullptr: no state yet
@@ -79,6 +72,7 @@ namespace rke
         void sync_all_from_body();
 
     // callback for box2d
+        bool is_one_way_allowed(Entity platform, b2ShapeId platform_shape, b2ShapeId other_shape);
         bool allow_one_way_contact(b2ShapeId shape_a, b2ShapeId shape_b);
         static bool one_way_pre_solve(b2ShapeId shape_a, b2ShapeId shape_b,
             b2Manifold* manifold, void* context);

@@ -45,32 +45,13 @@ namespace {
         return entity.valid() && entity.has<BoxCollider2DComponent>()
             && entity.get<BoxCollider2DComponent>().type == ColliderType::OneWay;
     }
-
-// the platform's own shape is handed in by box2d, so no cached id is needed
-    static bool is_one_way_allowed(Entity platform,
-        b2ShapeId platform_shape, b2ShapeId other_shape)
-    {
-        const auto& tc{ platform.get<TransformComponent>() };
-        const Mesh* mesh{ platform.get_mesh() };
-        if(!mesh) return true;
-        const auto& bcc{ platform.get<BoxCollider2DComponent>() };
-
-        b2Vec2 platform_pos{ b2Body_GetPosition(b2Shape_GetBody(platform_shape)) };
-        b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
-
-        // allow only when the other body's center is above the platform top.
-        // Both are 2D, and the footprint is already the projected size.
-        float platform_half_height{ bcc.size_scale.y
-            * platform.compute_flat_size(plane_axis()).y };
-        return other_pos.y > platform_pos.y + platform_half_height;
-    }
 }
 
 namespace rke
 {
 // public
-    box2DPhysicsEngine2D::box2DPhysicsEngine2D(Scene* owner)
-        : PhysicsEngine2D(owner), physics_world_(b2_nullWorldId)
+    box2DPhysicsEngine2D::box2DPhysicsEngine2D(Scene* owner, glm::vec3 axis)
+        : PhysicsEngine2D(owner, axis), physics_world_(b2_nullWorldId)
     {
         get_registry().on_destroy<Rigidbody2DComponent>()
             .connect<&on_physics_com_destroy>();
@@ -254,18 +235,15 @@ namespace rke
         const auto& rbc{ entity.get<Rigidbody2DComponent>() };
         b2BodyDef body_def{ b2DefaultBodyDef() };
         body_def.type = to_b2_body_type(rbc.type);
-    // same basis change as the per-frame sync, so the initial pose cannot disagree
-    // with the one sync_all_to_body() would write a moment later
+
         body_def.position = std::bit_cast<b2Vec2>
-            (PlaneBasis(plane_axis()).to_plane(entity.compute_centre()));
+            (get_plane().to_uv(entity.compute_centre()));
         body_def.rotation = b2MakeRot(glm::radians
-            (entity.compute_flat_rotation(plane_axis())));
+            (entity.compute_flat_rotation(get_plane())));
         body_def.fixedRotation = rbc.rotation_fixed;
 
         state.body = b2CreateBody(physics_world_, &body_def);
         CORE_ASSERT(B2_IS_NON_NULL(state.body), u8"box2dPhysicsEngine2D: Body id null!");
-
-        state.plane_angle = glm::degrees(b2Rot_GetAngle(b2Body_GetRotation(state.body)));
     }
 
     void box2DPhysicsEngine2D::create_shape
@@ -291,19 +269,13 @@ namespace rke
         const Mesh* mesh{ entity.get_mesh() };
         CORE_ASSERT(mesh, u8"box2DPhysicsEngine2D: Entity has no geometry mesh!");
 
-        const glm::vec2 flat_size{ entity.compute_flat_size(plane_axis()) * bcc.size_scale };
+        const glm::vec2 flat_size{ entity.compute_flat_size(get_plane()) * bcc.size_scale };
         if(flat_size.x < 0.001f || flat_size.y < 0.001f) return;
-
-        // offset is authored in mesh space, so it has to go through R*S and then the
-        // change of basis before it means anything to Box2D
-        const glm::mat3 m{ tc.get_transform() };
-        const PlaneBasis plane_basis{ plane_axis() };
-        const glm::vec2 offset_plane{ plane_basis.to_plane(m * glm::vec3(bcc.offset, 0.0f)) };
 
         b2Polygon box_geometry{ b2MakeOffsetBox
         (
-            flat_size.x, flat_size.y,
-            b2Vec2(offset_plane.x, offset_plane.y),
+            flat_size.x * 0.5f, flat_size.y * 0.5f,
+            std::bit_cast<b2Vec2>(bcc.offset),
             b2MakeRot(0.0f)
         )};
 
@@ -366,10 +338,7 @@ namespace rke
         if(b2Shape_GetFriction(shape) != bcc.friction) return true;
         if(b2Shape_GetRestitution(shape) != bcc.restitution) return true;
 
-        // Mirror create_shape's arithmetic exactly, so the stored value and the
-        // recomputed one agree bit-for-bit. Only the footprint is baked into the
-        // shape: position lives on the body, so moving an entity must not rebuild it.
-        const glm::vec2 flat_size{ entity.compute_flat_size(plane_axis()) };
+        const glm::vec2 flat_size{ entity.compute_flat_size(get_plane()) };
         const glm::vec2 expected{ bcc.size_scale * flat_size };
         const glm::vec2 delta{ state.shape_size - expected };
         if(std::abs(delta.x) > 0.001f || std::abs(delta.y) > 0.001f) return true;
@@ -414,12 +383,10 @@ namespace rke
             glm::vec2 last_pos{ std::bit_cast<glm::vec2>(b2Body_GetPosition(body)) };
             float last_rot{ b2Rot_GetAngle(b2Body_GetRotation(body)) }; // radian
 
-            const auto& tc{ entity.get<TransformComponent>() };
-        // both operands are already in 2D collider space
-            glm::vec2 pos{ PlaneBasis(plane_axis()).to_plane(entity.compute_centre()) };
-            float rot{ glm::radians(entity.compute_flat_rotation(plane_axis())) };
+            glm::vec2 pos{ get_plane().to_uv(entity.compute_centre()) };
+            float rot{ glm::radians(entity.compute_flat_rotation(get_plane())) };
             
-            if(last_pos != pos || std::abs(last_rot - rot) > 0.01f)
+            if(last_pos != pos || std::abs(last_rot - rot) > 0.001f)
                 b2Body_SetTransform(body, std::bit_cast<b2Vec2>(pos), b2MakeRot(rot));
 
         // Velocity -> b2Body
@@ -470,35 +437,44 @@ namespace rke
                 b2Rot  rotation{ b2Body_GetRotation(body) };
 
                 auto& tc{ entity.get_mut<TransformComponent>() };
-
-                const PlaneBasis plane_basis{ plane_axis() };
-            // Take the body's in-plane displacement from where sync_all_to_body() last
-            // put it, so the difference is exactly the translation's motion. Only u/v
-            // belong to this plane; the normal component keeps its value.
-                const glm::vec2 was{ plane_basis.to_plane(entity.compute_centre()) };
+                // no modification on tc between sync-to & sync-from;
+                // get 'was' from tc freshly is fine(at lease for now).
+                const glm::vec2 was{ get_plane().to_uv(entity.compute_centre()) };
                 const glm::vec2 now{ position.x, position.y };
-                tc.translation += plane_basis.from_plane(now - was);
+                tc.translation += get_plane().to_world(now - was);
 
-            // Fold only the DELTA of this engine's angle into the total orientation.
-            // Because the turn is about the plane normal it commutes with any tilt
-            // already in `rotation`, so folding preserves that tilt -- no separate spin
-            // field is needed, and the renderer just reads `rotation` as-is.
                 const float angle{ glm::degrees(b2Rot_GetAngle(rotation)) };
-                const float delta{ angle - state->plane_angle };
-                if(delta != 0.0f)
-                {
+                const float delta{ angle - entity.compute_flat_rotation(get_plane()) };
+                if(std::abs(delta) > 0.001f) {
                     tc.rotation = glm::degrees(glm::eulerAngles
                     (
-                        plane_basis.compose_plane_spin
+                        get_plane().compose_spin
                             (glm::quat(glm::radians(tc.rotation)), delta)
                     ));
                 }
-                state->plane_angle = angle;
             }
         }
     }
 
 // callback for box2d
+    bool box2DPhysicsEngine2D::is_one_way_allowed
+        (Entity platform, b2ShapeId platform_shape, b2ShapeId other_shape)
+    {
+        const auto& tc{ platform.get<TransformComponent>() };
+        const Mesh* mesh{ platform.get_mesh() };
+        if(!mesh) return true;
+        const auto& bcc{ platform.get<BoxCollider2DComponent>() };
+
+        b2Vec2 platform_pos{ b2Body_GetPosition(b2Shape_GetBody(platform_shape)) };
+        b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
+
+        // allow only when the other body's center is above the platform top.
+        // Both are 2D, and the footprint is already the projected size.
+        float platform_half_height{ bcc.size_scale.y
+            * platform.compute_flat_size(get_plane()).y * 0.5f };
+        return other_pos.y > platform_pos.y + platform_half_height;
+    }
+
     bool box2DPhysicsEngine2D::allow_one_way_contact(b2ShapeId shape_a, b2ShapeId shape_b)
     {
         Entity ent_a{ get_owner().get_entity(get_entity_from_shape(shape_a)) };

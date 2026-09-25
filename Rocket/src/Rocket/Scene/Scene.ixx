@@ -55,9 +55,9 @@ export namespace rke
         RKE_API const Mesh* get_mesh() const;
 
         RKE_API glm::vec3 compute_centre() const;
-        RKE_API glm::vec2 compute_flat_size(glm::vec3 axis) const;
-        RKE_API float compute_flat_rotation(glm::vec3 axis) const;
-        RKE_API AABB compute_aabb(glm::vec3 axis) const;
+        RKE_API glm::vec2 compute_flat_size(const PlaneBasis& plane) const;
+        RKE_API float compute_flat_rotation(const PlaneBasis& plane) const;
+        RKE_API AABB compute_aabb(const PlaneBasis& plane) const;
 
         RKE_API bool valid() const;
         RKE_API void invalidate_if_unavailable();
