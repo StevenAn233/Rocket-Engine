@@ -76,19 +76,12 @@ namespace rke
         const glm::vec3 raw_size{ mesh->get_size() * glm::abs(tc.scale) };
 
         const float spin{ glm::radians(compute_flat_rotation(plane)) };
-        const glm::mat3 rotation {
-            glm::mat3_cast(glm::quat(glm::radians(tc.rotation))) *
-            plane.get_mat()
-        };
-        const glm::mat3 unspin
-        {
-            std::cos(spin), -std::sin(spin), 0.0f,
-            std::sin(spin),  std::cos(spin), 0.0f,
-            0.0f, 0.0f, 1.0f
-        };
-        const glm::vec2 x_axis{ unspin * (rotation * glm::vec3(1.0f, 0.0f, 0.0f)) };
-        const glm::vec2 y_axis{ unspin * (rotation * glm::vec3(0.0f, 1.0f, 0.0f)) };
-        
+        const glm::quat untilted{ glm::angleAxis(-spin, plane.get_normal())
+            * glm::quat(glm::radians(tc.rotation)) };
+        const glm::mat3 rotation{ glm::mat3_cast(untilted) };
+
+        const glm::vec2 x_axis{ plane.to_uv(rotation * glm::vec3(1.0f, 0.0f, 0.0f)) };
+        const glm::vec2 y_axis{ plane.to_uv(rotation * glm::vec3(0.0f, 1.0f, 0.0f)) };
         return glm::vec2 (
             glm::abs(x_axis.x) * raw_size.x + glm::abs(y_axis.x) * raw_size.y,
             glm::abs(x_axis.y) * raw_size.x + glm::abs(y_axis.y) * raw_size.y
