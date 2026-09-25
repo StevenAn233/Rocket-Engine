@@ -1,4 +1,4 @@
-export module rke;
+﻿export module rke;
 
 export import Application;
 
@@ -43,7 +43,7 @@ export import DockSpace;
 export import AnimationEditorPanel;
 export import SceneHierarchyPanel;
 
-export import Gravity2D;
+export import Gravity;
 export import PhysicsLayers;
 
 export import AssetAccess;

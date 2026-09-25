@@ -1,4 +1,4 @@
-module;
+﻿module;
 module SceneSerializer;
 
 import Types;
@@ -290,7 +290,8 @@ namespace rke
 
         Scope<ConfigReader> reader{ ConfigReader::create(filepath) };
         scene.set_name(reader->get_at(u8"Scene", String{}));
-        scene.get_gravity_mut() = reader->get_at(u8"Gravity", Gravity2D::get_default());
+        scene.get_gravity_mut() = reader->get_at(u8"Gravity", Gravity::get_default());
+
 
         Scope<ConfigReader> entities{ reader->get_child(u8"Entities") };
         if(!entities) {

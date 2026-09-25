@@ -29,7 +29,7 @@ import MouseEvent;
 import ApplicationEvent;
 import HeapManager;
 import PhysicsLayers;
-import Gravity2D;
+import Gravity;
 import PhysicsEngine2D;
 import Animation;
 import AnimatorSystem;
@@ -218,8 +218,8 @@ export namespace rke
         inline void mark_modified() const { modified_ = true; }
         inline void mark_modified_if(bool condition) const { if(condition) modified_ = true; }
 
-        inline glm::vec2 get_gravity() const { return gravity_.get(); }
-        inline glm::vec2& get_gravity_mut() { return gravity_.get_mut(); }
+        inline glm::vec3 get_gravity() const { return gravity_.get(); }
+        inline glm::vec3& get_gravity_mut() { return gravity_.get_mut(); }
     private:
         void flush_destroy_queue();
         const AnimatorSystem::AnimPlayState* animator_state(Entity entity); // for SceneHierarchyPanel
@@ -232,7 +232,7 @@ export namespace rke
         std::vector<EntityHandle> to_destroy_{};
 
         uint32 viewport_w_{}, viewport_h_{};
-        Gravity2D gravity_{};
+        Gravity gravity_{};
         bool in_runtime_{ false };
 
         mutable bool modified_{ false };

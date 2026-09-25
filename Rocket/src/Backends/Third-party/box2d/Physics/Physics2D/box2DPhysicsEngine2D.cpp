@@ -8,7 +8,6 @@ import :box2D;
 
 import Log;
 import Types;
-import Gravity2D;
 import Renderer;
 import Components;
 import Mesh;
@@ -45,6 +44,9 @@ namespace {
         return entity.valid() && entity.has<BoxCollider2DComponent>()
             && entity.get<BoxCollider2DComponent>().type == ColliderType::OneWay;
     }
+
+    static b2Vec2 to_b2_gravity(const PlaneBasis& plane, glm::vec3 world_gravity)
+        { return std::bit_cast<b2Vec2>(plane.to_uv(world_gravity)); }
 }
 
 namespace rke
@@ -66,7 +68,7 @@ namespace rke
 
     // Create physics world
         b2WorldDef world_def{ b2DefaultWorldDef() };
-        world_def.gravity = std::bit_cast<b2Vec2>(get_owner().get_gravity());
+        world_def.gravity = to_b2_gravity(get_plane(), get_owner().get_gravity());
 
         physics_world_ = b2CreateWorld(&world_def);
         b2World_SetPreSolveCallback(physics_world_,
@@ -92,7 +94,7 @@ namespace rke
     {
         if(empty()) return;
 
-        b2Vec2 gravity{ std::bit_cast<b2Vec2>(get_owner().get_gravity()) };
+        b2Vec2 gravity{ to_b2_gravity(get_plane(), get_owner().get_gravity()) };
         if(gravity != b2World_GetGravity(physics_world_))
             b2World_SetGravity(physics_world_, gravity);
         
