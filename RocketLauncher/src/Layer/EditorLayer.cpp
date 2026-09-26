@@ -373,18 +373,6 @@ namespace rke
                     (main_renderer_.get_hovering_id(vp_mouse.x, vp_mouse.y));
             }
             else hovering_id_ = entity_handle_null;
-
-            if(scene_edit_ && cam_viewport_->on() &&
-              !cam_viewport_->hidden() && cam_viewport_->visible())
-            {
-                // switch to cam demo viewport size
-                auto size{ cam_viewport_->get_size() };
-                scene_edit_->set_viewport(size.x, size.y);
-                cam_output_ = cam_renderer_.render
-                    (scene_edit_, scene_edit_->get_demo_camera());
-                scene_edit_->set_viewport(size.x, size.y);
-            }
-            else cam_output_ = nullptr;
         }
         else if(testing())
         {
@@ -393,9 +381,20 @@ namespace rke
                 scene_test_.get(),
                 scene_test_->get_master_camera()
             );
-            cam_output_ = nullptr;
         }
-        else { main_output_ = cam_output_ = nullptr; }
+        else { main_output_ = nullptr; }
+
+        if(scene_edit_ && cam_viewport_->on() && current_scene()
+         && !cam_viewport_->hidden() && cam_viewport_->visible())
+        {
+            Scene& scene{ *current_scene() };
+            auto cv_size{ cam_viewport_->get_size() };
+            scene.set_viewport(static_cast<uint32>(cv_size.x), static_cast<uint32>(cv_size.y));
+            cam_output_ = cam_renderer_.render(&scene, scene.get_demo_camera());
+            auto mv_size{ main_viewport_->get_size() };
+            scene.set_viewport(static_cast<uint32>(mv_size.x), static_cast<uint32>(mv_size.y));
+        }
+        else cam_output_ = nullptr;
     }
 
     bool EditorLayer::should_block_mouse() { return editing(); }
@@ -410,8 +409,6 @@ namespace rke
 
         CORE_ASSERT(scene_test_, u8"EditorLayer: Failed to copy edit scene!");
         scene_test_->set_selected_entity(scene_edit_->get_selected_entity().get_uuid());
-
-        cam_viewport_->hide();
         scene_test_->on_runtime_start();
     }
 
@@ -420,8 +417,6 @@ namespace rke
         if(!testing()) return;
 
         scene_test_->on_runtime_stop();
-        cam_viewport_->show();
-
         scene_edit_->set_selected_entity(scene_test_->get_selected_entity().get_uuid());
 
         attach_scene(scene_edit_);

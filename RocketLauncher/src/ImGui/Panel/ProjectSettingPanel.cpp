@@ -124,25 +124,20 @@ namespace rke
         // only depends on font_size and frame_padding, also the size of checkbox
         constexpr float label_width{ 110.0f + spacing };
 
-        ImDrawList* draw_list { ImGui::GetWindowDrawList() };
-        ImU32 text_col { ImGui::GetColorU32(ImGuiCol_Text) };
-        float font_size{ ImGui::GetFontSize() };
-
         char name_buffer[64]{};
         for(uint8 row{}; row < count; row++)
         {
             const String& row_name{ layers.get_name(row) };
-
-            float text_w{ ImGui::CalcTextSize(row_name.raw()).x };
             ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x);
 
+            std::memset(name_buffer, 0, sizeof(name_buffer));
             std::memcpy(name_buffer, row_name.raw(),
                 std::min(row_name.size(), sizeof(name_buffer) - 1));
             ImGui::PushID(row);
             ImGui::SetNextItemWidth(label_width - spacing);
             if(ImGui::InputText("##Name", name_buffer, sizeof(name_buffer),
                 ImGuiInputTextFlags_EnterReturnsTrue))
-                layers.set_name(row, String(str::to_char8(name_buffer), strlen(name_buffer)));
+                layers.set_name(row, String(str::to_char8(name_buffer)));
             ImGui::PopID();
 
             ImGui::SameLine();
@@ -173,6 +168,8 @@ namespace rke
         }
 
         ImVec2 cursor_screen_pos{ ImGui::GetCursorScreenPos() };
+        ImDrawList* draw_list{ ImGui::GetWindowDrawList() };
+        ImU32 text_col{ ImGui::GetColorU32(ImGuiCol_Text) };
         float start_x{ cursor_screen_pos.x + label_width };
         float start_y{ cursor_screen_pos.y };
         for(uint8 i{}; i < count; i++)

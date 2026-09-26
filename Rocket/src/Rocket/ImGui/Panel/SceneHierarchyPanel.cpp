@@ -211,10 +211,9 @@ namespace rke
 
         layout::tree_node_branch<u8"Physics">([this]()
         {
-            static glm::vec3 recover{ Gravity::get_default() };
             context_->mark_modified_if (
                 layout::drag_float3_control<u8"Gravity">
-                    (context_->get_gravity_mut(), 0.01f, recover)
+                    (context_->get_gravity_mut(), 0.01f, Gravity::get_default())
             );
         });
     }
