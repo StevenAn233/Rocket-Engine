@@ -52,8 +52,8 @@ namespace {
 namespace rke
 {
 // public
-    box2DPhysicsEngine2D::box2DPhysicsEngine2D(Scene* owner, glm::vec3 axis, Gravity g)
-        : PhysicsEngine2D(owner, axis, std::move(g)), physics_world_(b2_nullWorldId)
+    box2DPhysicsEngine2D::box2DPhysicsEngine2D(Scene* owner)
+        : PhysicsEngine2D(owner), physics_world_(b2_nullWorldId)
     {
         get_registry().on_destroy<Rigidbody2DComponent>()
             .connect<&on_physics_com_destroy>();

@@ -130,8 +130,7 @@ namespace rke
         registry_ = create_scope<entt::registry>();
 
         script_manager_ = create_scope<ScriptManager>(this);
-        physics_engine_ = PhysicsEngine2D::create(this,
-            glm::vec3(0.0f, 0.0f, 1.0f), Gravity{}); // hard-coded, to modify
+        physics_engine_ = PhysicsEngine2D::create(this);
         animator_system_ = create_scope<AnimatorSystem>(this);
 
         registry_->ctx().emplace<RegistryContext>
@@ -161,6 +160,11 @@ namespace rke
 
         new_scene->viewport_h_ = viewport_h_;
         new_scene->viewport_w_ = viewport_w_;
+
+        glm::vec3 gval{ physics_engine_->get_gravity().val() };
+        new_scene->physics_engine_->set_gravity(gval);
+        glm::vec3 axis{ physics_engine_->get_plane_axis() };
+        new_scene->physics_engine_->set_plane(axis);
 
         const auto& storage{ registry_->storage<entt::entity>() };
         const auto* entities_data{ storage.data() };

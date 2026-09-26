@@ -26,7 +26,7 @@ export namespace rke
     class PhysicsEngine2D
     {
     public:
-        PhysicsEngine2D(Scene* scene, glm::vec3 axis, Gravity g);
+        PhysicsEngine2D(Scene* scene);
         virtual ~PhysicsEngine2D() = default;
 
         virtual void on_runtime_start() = 0;
@@ -37,11 +37,12 @@ export namespace rke
         virtual void apply_force(Entity entity, glm::vec2 force) = 0;
 
         inline void set_gravity(glm::vec3 val) { gravity_.ref() = val; }
-        inline void set_plane(glm::vec3 axis) { plane_ = PlaneBasis(axis); }
+        inline void set_plane(glm::vec3 axis) // may modify
+            { plane_axis_ = axis; plane_ = PlaneBasis(axis); }
 
         inline const PlaneBasis& get_plane() const { return plane_; }
         inline PlaneBasis& get_plane() { return plane_; }
-        
+        inline glm::vec3 get_plane_axis() const { return plane_axis_;}
         inline const Gravity& get_gravity() const { return gravity_; }
         inline Gravity& get_gravity() { return gravity_; }
 
@@ -54,7 +55,7 @@ export namespace rke
         inline const std::vector<Contact>& get_end_contacts_sensor() const
             { return end_contacts_sensor_; }
 
-        static Scope<PhysicsEngine2D> create(Scene* owner, glm::vec3 axis, Gravity g = {});
+        static Scope<PhysicsEngine2D> create(Scene* owner);
     protected:
         inline Scene& get_owner() { return *owner_; }
         entt::registry& get_registry();
@@ -66,7 +67,8 @@ export namespace rke
         std::vector<Contact> end_contacts_sensor_{};
     private:
         Scene* owner_;
-        PlaneBasis plane_;
+        glm::vec3 plane_axis_{ 0.0f, 0.0f, 1.0f }; // for serialization
+        PlaneBasis plane_{ plane_axis_ };
         Gravity gravity_{};
     };
 }

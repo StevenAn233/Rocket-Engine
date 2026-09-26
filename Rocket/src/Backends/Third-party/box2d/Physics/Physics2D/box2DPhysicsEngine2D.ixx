@@ -32,7 +32,7 @@ namespace rke
     class box2DPhysicsEngine2D : public PhysicsEngine2D
     {
     public:
-        box2DPhysicsEngine2D(Scene* owner, glm::vec3 axis, Gravity g);
+        box2DPhysicsEngine2D(Scene* owner);
 
         void on_runtime_start() override;
         void on_runtime_stop () override;

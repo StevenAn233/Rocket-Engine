@@ -27,8 +27,7 @@ export namespace rke
 
         SceneHierarchyPanel(String name);
 
-        inline void set_context(Scene* context)
-            { context_ = context; is_scene_selected_ = false; }
+        inline void set_context(Scene* context) { context_ = context; }
         inline void set_on_entity_node_render(EntityNodeCallback callback)
             { on_entity_node_render_ = std::move(callback); }
 
@@ -64,7 +63,7 @@ export namespace rke
     private:
         void on_imgui_render() override;
 
-        void draw_entity_node(Entity entity, Entity selected, Size index);
+        void draw_entity_node(Entity entity, bool is_selected, Size index);
         void draw_entity_popup(bool& entity_created);
 
         void draw_scene_settings();
@@ -75,6 +74,9 @@ export namespace rke
         void camera_comp_popup_content(Entity entity, bool& to_delete);
         void texture_comp_popup_content(Entity entity, bool& to_delete);
         void animator_comp_popup_content(Entity entity, bool& to_delete);
+
+        void set_scene_node_selected();
+        void set_entity_node_selected(Entity entity);
     private:
         static constexpr Size drop_none_{ static_cast<Size>(-1) };
 

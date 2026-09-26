@@ -248,6 +248,7 @@ namespace rke
         {
             writer->begin_map(u8"Physics");
             writer->write(u8"Gravity", physics_engine->get_gravity().val());
+            writer->write(u8"Plane Axis", physics_engine->get_plane_axis());
             writer->end_map();
         }
 
@@ -299,8 +300,11 @@ namespace rke
         auto* physics_engine{ scene.physics_engine_.get() };
         if(reader->has_key(u8"Physics") && physics_engine)
         {
-            glm::vec3 gval{ reader->get_at(u8"Gravity", Gravity::default_val()) };
+            Scope<ConfigReader> physics{ reader->get_child(u8"Physics") };
+            glm::vec3 gval{ physics->get_at(u8"Gravity", Gravity::default_val()) };
             physics_engine->set_gravity(gval);
+            glm::vec3 axis{ physics->get_at(u8"Plane Axis", glm::vec3(0.0f, 0.0f, 1.0f)) };
+            physics_engine->set_plane(axis);
         }
         
         Scope<ConfigReader> entities{ reader->get_child(u8"Entities") };

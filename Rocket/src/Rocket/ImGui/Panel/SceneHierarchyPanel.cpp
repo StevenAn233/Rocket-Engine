@@ -45,22 +45,17 @@ namespace rke
             (context_->to_save() ? "%s*" : "%s"),
             context_->get_name().raw()
         )};
-        if(ImGui::IsItemClicked())
-        {
-            is_scene_selected_ = true;
-            context_->set_selected_entity(Entity{});
-        }
+        if(ImGui::IsItemClicked()) set_scene_node_selected();
 
         if(opened) {
             bool entity_created{ false };
             draw_entity_popup(entity_created);
 
             Size index{}; drop_index_ = drop_none_;
+            Entity selected{ context_->get_selected_entity() };
+            if(selected.valid()) is_scene_selected_ = false;
             context_->for_each_entity([&](Entity entity)
-            {
-                draw_entity_node(entity,
-                    context_->get_selected_entity(), index++);
-            });
+                { draw_entity_node(entity, entity == selected, index++); });
 
             if(drop_index_ != drop_none_)
             {
@@ -77,12 +72,9 @@ namespace rke
 
             if(entity_created) ImGui::SetScrollHereY(1.0f); // very bottom
 
-            if(ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0)
-            && !ImGui::IsAnyItemHovered())
-            {
-                is_scene_selected_ = false;
-                context_->set_selected_entity(Entity{});
-            }
+            if(ImGui::IsWindowHovered() && 
+               ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered()
+            ) set_entity_node_selected(Entity{});
             
             ImGui::TreePop();
         }
@@ -94,7 +86,8 @@ namespace rke
         ImGui::Begin("Selected", nullptr);
         
         Entity selected{ context_->get_selected_entity() };
-        if(selected.valid()) {
+        if(selected.valid())
+        {
             draw_components(selected);
             add_components_popup(selected);
         }
@@ -104,12 +97,12 @@ namespace rke
         ImGui::PopID();
     }
 
-    void SceneHierarchyPanel::draw_entity_node(Entity entity, Entity selected, Size index)
+    void SceneHierarchyPanel::draw_entity_node(Entity entity, bool is_selected, Size index)
     {
         ImGui::PushID(static_cast<int>(entity.get_handle()) + 1);
         const char8* tag{ entity.get<IdentityComponent>().tag };
         ImGuiTreeNodeFlags flags {
-        ((selected == entity) ? ImGuiTreeNodeFlags_Selected : 0)
+        (is_selected ? ImGuiTreeNodeFlags_Selected : 0)
           | ImGuiTreeNodeFlags_OpenOnArrow
           | ImGuiTreeNodeFlags_SpanAvailWidth
         }; // keep clicked entity selected
@@ -120,11 +113,7 @@ namespace rke
             "%s", reinterpret_cast<const char*>(tag)
         )};
 
-        if(ImGui::IsItemClicked())
-        {
-            is_scene_selected_ = false;
-            context_->set_selected_entity(entity);
-        }
+        if(ImGui::IsItemClicked()) set_entity_node_selected(entity);
 
         if(ImGui::BeginDragDropSource())
         {
@@ -163,8 +152,7 @@ namespace rke
 
         if(ImGui::BeginPopupContextItem())
         {
-            if(ImGui::IsWindowAppearing())
-                context_->set_selected_entity(entity);
+            if(ImGui::IsWindowAppearing()) set_entity_node_selected(entity);
             on_entity_node_render_(context_, context_->get_selected_entity());
             ImGui::EndPopup();
         }
@@ -188,7 +176,7 @@ namespace rke
         {
             if(ImGui::MenuItem("Create Entity"))
             {
-                context_->set_selected_entity(context_->create_entity());
+                set_entity_node_selected(context_->create_entity());
                 entity_created = true;
             }
             ImGui::EndPopup();
@@ -220,6 +208,10 @@ namespace rke
                         0.01f, Gravity::default_val()
                     )
                 );
+                glm::vec3 axis{ physics_engine->get_plane_axis() };
+                if(layout::drag_float3_control<u8"Plane Axis">
+                    (axis, 0.01f, glm::vec3(0.0f, 0.0f, 1.0f)))
+                { context_->mark_modified(); physics_engine->set_plane(axis); }
             });
         }
     }
@@ -937,5 +929,17 @@ namespace rke
         }
         ImGui::Separator();
         if(ImGui::MenuItem("Delete")) to_delete = true;
+    }
+
+    void SceneHierarchyPanel::set_scene_node_selected()
+    {
+        is_scene_selected_ = true;
+        if(context_) context_->set_selected_entity(Entity{});
+    }
+
+    void SceneHierarchyPanel::set_entity_node_selected(Entity entity)
+    {
+        is_scene_selected_ = false;
+        if(context_) context_->set_selected_entity(entity);
     }
 }
