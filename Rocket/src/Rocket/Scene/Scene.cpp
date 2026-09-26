@@ -184,19 +184,16 @@ namespace rke
                     emplace_or_replace<ComponentType>(src_entt, src_com);
             }
         });
-
         new_scene->all_entities_ = all_entities_; // deep copy
 
         // after IdentityComponents are copied
         new_scene->for_each_entity([&new_scene](Entity entity)
             { new_scene->entity_map_[entity.get_uuid()] = entity.handle_; });
 
-        Entity master_cam{ get_master_camera() }; // refresh
-        if(master_cam.valid())
-            new_scene->master_cam_ = new_scene->get_entity(master_cam.get_uuid());
-        // don't call set_camera_master() here cause it has already been copied
+        new_scene->set_selected_entity(get_selected_entity().get_uuid());
+        new_scene->set_master_camera(get_master_camera().get_uuid());
+        new_scene->set_demo_camera(get_demo_camera().get_uuid());
 
-        new_scene->selected_entity_ = {};
         return new_scene;
     }
 
@@ -315,6 +312,7 @@ namespace rke
 
     void Scene::set_master_camera(Entity entity)
     {
+        if(entity.empty()) { master_cam_ = {}; return; }
         if(entity == master_cam_) return;
         if(!entity.belongs_to(this) || !entity.valid())
             { CORE_ERROR(u8"Scene: Entity invalid!"); return; }
@@ -326,6 +324,7 @@ namespace rke
 
     void Scene::set_demo_camera(Entity entity)
     {
+        if(entity.empty()) { demo_cam_ = {}; return; }
         if(entity == demo_cam_) return;
         if(!entity.belongs_to(this) || !entity.valid())
             { CORE_ERROR(u8"Scene: Entity invalid!"); return; }

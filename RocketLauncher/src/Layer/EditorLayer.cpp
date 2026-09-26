@@ -402,10 +402,9 @@ namespace rke
         if(!editing()) return;
 
         scene_test_ = scene_edit_->duplicate();
-        attach_scene(scene_test_.get());
-
         CORE_ASSERT(scene_test_, u8"EditorLayer: Failed to copy edit scene!");
-        scene_test_->set_selected_entity(scene_edit_->get_selected_entity().get_uuid());
+
+        attach_scene(scene_test_.get());
         scene_test_->on_runtime_start();
     }
 
@@ -414,7 +413,10 @@ namespace rke
         if(!testing()) return;
 
         scene_test_->on_runtime_stop();
+        
+    // may modify
         scene_edit_->set_selected_entity(scene_test_->get_selected_entity().get_uuid());
+        scene_edit_->set_demo_camera(scene_test_->get_demo_camera().get_uuid());
 
         attach_scene(scene_edit_);
         scene_test_.reset();
