@@ -438,13 +438,7 @@ namespace rke
             {
                 b2Vec2 position{ b2Body_GetPosition(body) };
                 b2Rot  rotation{ b2Body_GetRotation(body) };
-
                 auto& tc{ entity.get_mut<TransformComponent>() };
-                // no modification on tc between sync-to & sync-from;
-                // get 'was' from tc freshly is fine(at lease for now).
-                const glm::vec2 was{ get_plane().to_uv(entity.compute_centre()) };
-                const glm::vec2 now{ position.x, position.y };
-                tc.translation += get_plane().to_world(now - was);
 
                 const float angle{ glm::degrees(b2Rot_GetAngle(rotation)) };
                 const float delta{ angle - entity.compute_flat_rotation(get_plane()) };
@@ -455,6 +449,13 @@ namespace rke
                             (glm::quat(glm::radians(tc.rotation)), delta)
                     ));
                 }
+
+                const Mesh* mesh{ entity.get_mesh() };
+                const glm::vec3 to_centre{ mesh ?
+                    glm::mat3_cast(glm::quat(glm::radians(tc.rotation)))
+                        * ((mesh->get_centre() - tc.pivot) * tc.scale)
+                    : glm::vec3(0.0f) };
+                tc.translation = get_plane().to_world({ position.x, position.y }) - to_centre;
             }
         }
     }

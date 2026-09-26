@@ -56,9 +56,8 @@ namespace rke
     {
         const TransformComponent& tc{ get<TransformComponent>() };
         const Mesh* mesh{ get_mesh() };
-        if(!mesh) return tc.translation;
-        
-        return tc.translation + glm::mat3(tc.get_transform()) * mesh->get_centre();
+        return glm::vec3(tc.get_transform() *
+            glm::vec4(mesh ? mesh->get_centre() : glm::vec3(0.0f), 1.0f));
     }
 
     glm::vec2 Entity::compute_flat_size(const PlaneBasis& plane) const

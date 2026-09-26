@@ -39,9 +39,11 @@ namespace rke
 
     glm::mat4 TransformComponent::get_transform() const
     {
+    // T(translation) * R * S * T(-pivot)
         return glm::translate(glm::mat4(1.0f), translation)
              * glm::mat4_cast(glm::quat(glm::radians(rotation)))
-             * glm::scale(glm::mat4(1.0f), scale);
+             * glm::scale(glm::mat4(1.0f), scale)
+             * glm::translate(glm::mat4(1.0f), -pivot);
     }
 
     SpriteComponent::SpriteComponent() : quad(&s_quad) {}
