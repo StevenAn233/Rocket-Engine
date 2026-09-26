@@ -42,7 +42,7 @@ export namespace rke
         glm::vec3 translation{ 0.0f };
         glm::vec3 rotation{ 0.0f };
         glm::vec3 scale{ 1.0f };
-        glm::vec3 pivot{ 0.0f };
+        glm::vec3 anchor{ 0.0f };
         bool is_static{ false };
 
         TransformComponent() = default;

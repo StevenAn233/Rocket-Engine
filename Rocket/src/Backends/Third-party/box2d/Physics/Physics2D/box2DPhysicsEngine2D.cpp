@@ -453,7 +453,7 @@ namespace rke
                 const Mesh* mesh{ entity.get_mesh() };
                 const glm::vec3 to_centre{ mesh ?
                     glm::mat3_cast(glm::quat(glm::radians(tc.rotation)))
-                        * ((mesh->get_centre() - tc.pivot) * tc.scale)
+                        * ((mesh->get_centre() - tc.anchor) * tc.scale)
                     : glm::vec3(0.0f) };
                 tc.translation = get_plane().to_world({ position.x, position.y }) - to_centre;
             }

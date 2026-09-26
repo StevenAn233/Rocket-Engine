@@ -293,8 +293,8 @@ namespace rke
                 );
             }
             context_->mark_modified_if (
-                layout::drag_float3_control<u8"Pivot">
-                    (tc.pivot, 0.01f, glm::vec3(0.0f))
+                layout::drag_float3_control<u8"Anchor">
+                    (tc.anchor, 0.01f, glm::vec3(0.0f))
             );
 
             context_->mark_modified_if(ImGui::Checkbox("Static", &tc.is_static));
