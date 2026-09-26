@@ -1,8 +1,4 @@
 ﻿module;
-
-// Module units skip include/rke_pch.h, so this file names what it uses from glm.
-#include <glm/glm.hpp>
-
 module Scene;
 
 import Log;
