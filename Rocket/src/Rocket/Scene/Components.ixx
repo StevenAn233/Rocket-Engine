@@ -170,8 +170,8 @@ export namespace rke
         ColliderType type{ ColliderType::Solid };
         uint8 layer_index{ 0 }; // 0 for default
 
-        glm::vec2 offset{ 0.0f, 0.0f };
-        glm::vec2 size_scale{ 1.0f, 1.0f };
+        glm::vec2 offset{ 0.0f, 0.0f }; // in the collider's units: scales with size_scale
+        glm::vec2 size_scale{ 1.0f, 1.0f }; // 1 == collider matches the mesh, >1 grows it
         
         float density{ 1.0f };
         float friction{ 0.5f };

@@ -97,7 +97,7 @@ namespace rke
             compute_flat_size(plane),
             bcc.size_scale * 0.5f,
             plane.to_uv(compute_centre()),
-            bcc.offset
+            bcc.offset * bcc.size_scale // same units as the size, so it scales with it
         );
     }
 

@@ -274,10 +274,11 @@ namespace rke
         const glm::vec2 flat_size{ entity.compute_flat_size(get_plane()) * bcc.size_scale };
         if(flat_size.x < 0.001f || flat_size.y < 0.001f) return;
 
+        const glm::vec2 offset{ bcc.offset * bcc.size_scale };
         b2Polygon box_geometry{ b2MakeOffsetBox
         (
             flat_size.x * 0.5f, flat_size.y * 0.5f,
-            std::bit_cast<b2Vec2>(bcc.offset),
+            std::bit_cast<b2Vec2>(offset),
             b2MakeRot(0.0f)
         )};
 
