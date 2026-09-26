@@ -131,7 +131,7 @@ namespace rke
 
         script_manager_ = create_scope<ScriptManager>(this);
         physics_engine_ = PhysicsEngine2D::create(this,
-            glm::vec3(0.0f, 0.0f, 1.0f)); // hard-coded, to modify
+            glm::vec3(0.0f, 0.0f, 1.0f), Gravity{}); // hard-coded, to modify
         animator_system_ = create_scope<AnimatorSystem>(this);
 
         registry_->ctx().emplace<RegistryContext>
@@ -182,7 +182,6 @@ namespace rke
         });
 
         new_scene->all_entities_ = all_entities_; // deep copy
-        new_scene->gravity_ = gravity_;
 
         // after IdentityComponents are copied
         new_scene->for_each_entity([&new_scene](Entity entity)
@@ -458,7 +457,6 @@ namespace rke
         all_entities_.clear();
         to_destroy_.clear();
         entity_map_.clear();
-        gravity_ = {};
         demo_cam_ = {};
         master_cam_ = {};
         selected_entity_ = {};

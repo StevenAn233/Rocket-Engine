@@ -244,7 +244,12 @@ namespace rke
         writer->begin_map();
 
         writer->write(u8"Scene", scene.get_name());
-        writer->write(u8"Gravity", scene.get_gravity());
+        if(const auto* physics_engine{ scene.physics_engine_.get() })
+        {
+            writer->begin_map(u8"Physics");
+            writer->write(u8"Gravity", physics_engine->get_gravity().val());
+            writer->end_map();
+        }
 
         writer->begin_array(u8"Entities");
         scene.for_each_entity([&](Entity entity)
@@ -290,9 +295,14 @@ namespace rke
 
         Scope<ConfigReader> reader{ ConfigReader::create(filepath) };
         scene.set_name(reader->get_at(u8"Scene", String{}));
-        scene.get_gravity_mut() = reader->get_at(u8"Gravity", Gravity::get_default());
 
-
+        auto* physics_engine{ scene.physics_engine_.get() };
+        if(reader->has_key(u8"Physics") && physics_engine)
+        {
+            glm::vec3 gval{ reader->get_at(u8"Gravity", Gravity::default_val()) };
+            physics_engine->set_gravity(gval);
+        }
+        
         Scope<ConfigReader> entities{ reader->get_child(u8"Entities") };
         if(!entities) {
             CORE_WARN(u8"SceneSerializer: No entities found in file '{}'!", filepath);

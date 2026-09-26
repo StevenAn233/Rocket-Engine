@@ -10,13 +10,19 @@ export namespace rke
     class RKE_API Gravity
     {
     public:
-        static glm::vec3 get_default() { return { 0.00f, -9.81f, 0.00f }; }
+        Gravity(glm::vec3 val = default_val()) : data_(val) {}
 
-        glm::vec3 get() const { return gravity_; }
-        glm::vec3& get_mut() { return gravity_; }
+        Gravity(const Gravity&) = default;
+        Gravity& operator=(const Gravity&) = default;
+        Gravity(Gravity&&) = default;
+        Gravity& operator=(Gravity&&) = default;
 
-        inline void set_to(float x, float y, float z) { gravity_ = { x, y, z }; }
+        glm::vec3 val() const { return data_; }
+        glm::vec3& ref() { return data_; }
+
+        inline void set_to(float x, float y, float z) { data_ = { x, y, z }; }
+        static glm::vec3 default_val() { return { 0.00f, -9.81f, 0.00f }; }
     private:
-        glm::vec3 gravity_{ 0.00f, -9.81f, 0.00f };
+        glm::vec3 data_;
     };
 }

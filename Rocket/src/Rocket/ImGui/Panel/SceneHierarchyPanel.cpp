@@ -209,13 +209,19 @@ namespace rke
             )) context_->set_name(String(str::to_char8(name_buffer)));
         });
 
-        layout::tree_node_branch<u8"Physics">([this]()
+        if(auto* physics_engine{ context_->physics_engine_.get() })
         {
-            context_->mark_modified_if (
-                layout::drag_float3_control<u8"Gravity">
-                    (context_->get_gravity_mut(), 0.01f, Gravity::get_default())
-            );
-        });
+            layout::tree_node_branch<u8"Physics">([this, physics_engine]()
+            {
+                context_->mark_modified_if (
+                    layout::drag_float3_control<u8"Gravity">
+                    (
+                        physics_engine->get_gravity().ref(),
+                        0.01f, Gravity::default_val()
+                    )
+                );
+            });
+        }
     }
 
     void SceneHierarchyPanel::draw_components(Entity entity)

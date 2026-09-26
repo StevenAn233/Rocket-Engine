@@ -218,9 +218,6 @@ export namespace rke
     // or these thing should be implemented together with Undoing?
         inline void mark_modified() const { modified_ = true; }
         inline void mark_modified_if(bool condition) const { if(condition) modified_ = true; }
-
-        inline glm::vec3 get_gravity() const { return gravity_.get(); }
-        inline glm::vec3& get_gravity_mut() { return gravity_.get_mut(); }
     private:
         void flush_destroy_queue();
         const AnimatorSystem::AnimPlayState* animator_state(Entity entity); // for SceneHierarchyPanel
@@ -233,7 +230,6 @@ export namespace rke
         std::vector<EntityHandle> to_destroy_{};
 
         uint32 viewport_w_{}, viewport_h_{};
-        Gravity gravity_{};
         bool in_runtime_{ false };
 
         mutable bool modified_{ false };

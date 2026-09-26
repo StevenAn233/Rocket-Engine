@@ -52,8 +52,8 @@ namespace {
 namespace rke
 {
 // public
-    box2DPhysicsEngine2D::box2DPhysicsEngine2D(Scene* owner, glm::vec3 axis)
-        : PhysicsEngine2D(owner, axis), physics_world_(b2_nullWorldId)
+    box2DPhysicsEngine2D::box2DPhysicsEngine2D(Scene* owner, glm::vec3 axis, Gravity g)
+        : PhysicsEngine2D(owner, axis, std::move(g)), physics_world_(b2_nullWorldId)
     {
         get_registry().on_destroy<Rigidbody2DComponent>()
             .connect<&on_physics_com_destroy>();
@@ -68,7 +68,7 @@ namespace rke
 
     // Create physics world
         b2WorldDef world_def{ b2DefaultWorldDef() };
-        world_def.gravity = to_b2_gravity(get_plane(), get_owner().get_gravity());
+        world_def.gravity = to_b2_gravity(get_plane(), get_gravity().val());
 
         physics_world_ = b2CreateWorld(&world_def);
         b2World_SetPreSolveCallback(physics_world_,
@@ -94,7 +94,7 @@ namespace rke
     {
         if(empty()) return;
 
-        b2Vec2 gravity{ to_b2_gravity(get_plane(), get_owner().get_gravity()) };
+        b2Vec2 gravity{ to_b2_gravity(get_plane(), get_gravity().val()) };
         if(gravity != b2World_GetGravity(physics_world_))
             b2World_SetGravity(physics_world_, gravity);
         
