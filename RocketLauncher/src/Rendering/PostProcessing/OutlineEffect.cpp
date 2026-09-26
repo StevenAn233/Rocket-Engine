@@ -34,11 +34,9 @@ namespace rke
                 const auto& sc{ target.get<SpriteComponent>() };
                 context_->renderer().push(sc.quad, nullptr,
                     RenderProps {
-                        .transform{ tc.get_transform(sc.quad->get_centre()) },
+                        .transform{ tc.get_transform() },
                         .color{ glm::vec4(1.0f) }
-                    }
-                );
-
+                    });
                 context_->renderer().end_scene();
             }
         //  else if(target_.has<MeshComponent>()) {...}

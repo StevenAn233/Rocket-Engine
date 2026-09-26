@@ -154,7 +154,8 @@ namespace rke
         mesh_geometry_groups_.clear();
         current_group_ = {};
         
-        instance_it_ = reinterpret_cast<InstanceData*>(instance_vbo_->map(GBuffer::Access::Write));
+        instance_it_ = reinterpret_cast<InstanceData*>
+            (instance_vbo_->map(GBuffer::Access::Write));
         CORE_ASSERT(instance_it_, u8"Renderer: Failed to map instance buffer!");
     }
 

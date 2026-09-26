@@ -176,8 +176,7 @@ namespace rke
             GTexture* gtex{ tex ? tex->get_gtexture(gtex_settings) : nullptr };
             context_->renderer().push(sc.quad, gtex, RenderProps
             {
-                .transform{ reg.get<TransformComponent>(entity)
-                    .get_transform(sc.quad->get_centre()) },
+                .transform{ reg.get<TransformComponent>(entity).get_transform() },
                 .uv_offset{ sc.uv_offset },
                 .uv_scale { sc.uv_scale  },
                 .color{ sc.color }, .entity_handle{ handle }
@@ -204,7 +203,8 @@ namespace rke
             const auto& sc{ view.get<SpriteComponent>(entity) };
             if(sc.color.a < 0.01f) continue;
 
-            glm::vec3 pos{ tc.get_transform(sc.quad->get_centre())[3] };
+            glm::vec3 pos{ scene->get_entity
+                (static_cast<EntityHandle>(entity)).compute_centre() };
             glm::vec3 size{ tc.scale * sc.quad->get_size() };
             if(should_cull(pos, size, planes)) continue;
 

@@ -47,8 +47,7 @@ export namespace rke
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
 
-    // T(translation)* R * S * T(-mesh_centre)
-        glm::mat4 get_transform(glm::vec3 mesh_centre = glm::vec3(0.0f)) const;
+        glm::mat4 get_transform() const;
     };
 
     struct RKE_API CameraComponent

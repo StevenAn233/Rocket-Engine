@@ -43,12 +43,10 @@ namespace rke::gizmo
 
         auto& tc{ selected_entity.get_mut<TransformComponent>() };
         const Mesh* mesh{ selected_entity.get_mesh() };
-        glm::mat4 transform{ tc.get_transform
-            (mesh ? mesh->get_centre() : glm::vec3(0.0f)) };
+        glm::mat4 transform{ tc.get_transform() };
 
         float snap_value{ 0.5f };
-        if(gizmo_mode == ImGuizmo::OPERATION::ROTATE)
-            snap_value = 45.0f;
+        if(gizmo_mode == ImGuizmo::OPERATION::ROTATE) snap_value = 45.0f;
 
         float snap_values[3]{ snap_value, snap_value, snap_value };
         scene.mark_modified_if(ImGuizmo::Manipulate
