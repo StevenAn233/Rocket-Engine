@@ -165,7 +165,7 @@ namespace rke
         {
             if(ImGui::IsWindowAppearing())
                 context_->set_selected_entity(entity);
-            on_entity_node_render_(context_);
+            on_entity_node_render_(context_, context_->get_selected_entity());
             ImGui::EndPopup();
         }
 

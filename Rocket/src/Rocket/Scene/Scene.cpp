@@ -22,11 +22,8 @@ namespace rke
 
     bool Entity::valid() const
     {
-        if(empty()) return false;
-        if(!owner_scene_) return false;
-        if(!owner_scene_->registry_
-            ->valid(static_cast<entt::entity>(handle_))) return false;
-        return true;
+        if(empty() || !owner_scene_) return false;
+        return owner_scene_->is_handle_valid(handle_);
     }
 
     void Entity::invalidate_if_unavailable()
@@ -235,11 +232,13 @@ namespace rke
         return entity_map_.contains(uuid);
     }
 
+    bool Scene::is_handle_valid(EntityHandle handle) const
+        { return registry_->valid(static_cast<entt::entity>(handle)); }
+
     Entity Scene::get_entity(EntityHandle handle)
     {
         if(handle == entity_handle_null) return {};
-        if(registry_->valid(static_cast<entt::entity>(handle)))
-            return Entity(handle, this);
+        if(is_handle_valid(handle)) return Entity(handle, this);
         CORE_WARN(u8"Scene: Entity handle not valid!");
         return {};
     }
@@ -259,7 +258,7 @@ namespace rke
     const Entity Scene::get_entity(EntityHandle handle) const
     {
         if(handle == entity_handle_null) return {};
-        if(registry_->valid(static_cast<entt::entity>(handle)))
+        if(is_handle_valid(handle))
             return Entity(handle, const_cast<Scene*>(this));
         CORE_WARN(u8"Scene: Entity handle not valid");
         return {};
@@ -304,15 +303,9 @@ namespace rke
 
     void Scene::set_selected_entity(Entity entity)
     {
-        if(entity.empty())
-        {
-            selected_entity_ = {};
-            return;
-        }
-        if(!entity.valid() || !entity.belongs_to(this)) {
-            CORE_ERROR(u8"Scene: Entity doesn't belong to this scene!");
-            return;
-        }
+        if(entity.empty()) { selected_entity_ = {}; return; }
+        if(!entity.belongs_to(this) || !entity.valid()) 
+            { CORE_ERROR(u8"Scene: Entity invalid!"); return; }
         selected_entity_ = entity;
         if(entity.has<CameraComponent>()) set_demo_camera(entity);
     }
@@ -320,15 +313,10 @@ namespace rke
     void Scene::set_master_camera(Entity entity)
     {
         if(entity == master_cam_) return;
-        if(!entity.valid() || !entity.belongs_to(this))
-        {
-            CORE_ERROR(u8"Scene: Entity invalid!");
-            return;
-        }
-        if(!entity.has<CameraComponent>()) {
-            CORE_ERROR(u8"Scene: Entity isn't a camera!");
-            return;
-        }
+        if(!entity.belongs_to(this) || !entity.valid())
+            { CORE_ERROR(u8"Scene: Entity invalid!"); return; }
+        if(!entity.has<CameraComponent>())
+            { CORE_ERROR(u8"Scene: Entity isn't a camera!"); return; }
         master_cam_ = entity;
         mark_modified();
     }
@@ -336,16 +324,10 @@ namespace rke
     void Scene::set_demo_camera(Entity entity)
     {
         if(entity == demo_cam_) return;
-        if(!entity.valid() || !entity.belongs_to(this))
-        {
-            CORE_ERROR(u8"Scene: Entity invalid!");
-            return;
-        }
+        if(!entity.belongs_to(this) || !entity.valid())
+            { CORE_ERROR(u8"Scene: Entity invalid!"); return; }
         if(!entity.has<CameraComponent>())
-        {
-            CORE_ERROR(u8"Scene: Entity isn't a camera!");
-            return;
-        }
+            { CORE_ERROR(u8"Scene: Entity isn't a camera!"); return; }
         demo_cam_ = entity;
     }
 
@@ -364,10 +346,8 @@ namespace rke
         const EntityHandle target{ before.valid() ?
             before.get_handle() : entity_handle_null };
 
-        auto at{ target == entity_handle_null ?
-            all_entities_.end() : std::find
-                (all_entities_.begin(), all_entities_.end(), target)
-        };
+        auto at{ target == entity_handle_null ? all_entities_.end()
+            : std::find(all_entities_.begin(), all_entities_.end(), target) };
         all_entities_.insert(at, handle);
 
         mark_modified();
@@ -375,7 +355,7 @@ namespace rke
 
     void Scene::grip_move_entity(Entity entity, glm::vec3 delta, double dt)
     {
-        if(!entity.valid() || !entity.belongs_to(this)) return;
+        if(!entity.belongs_to(this) || !entity.valid()) return;
         entity.get_mut<TransformComponent>().translation += delta;
 
     // clear previously-accumulated(force/mass * dt) velocity
@@ -394,9 +374,6 @@ namespace rke
         if(!entity.valid() || !entity.belongs_to(this)) return;
 
         auto& tc{ entity.get_mut<TransformComponent>() };
-    // `rot` is the full visible orientation, so it replaces the total -- including
-    // whatever angle the physics engine had applied. The engine re-reads the in-plane
-    // angle from here on its next sync, so nothing needs resetting on its side.
         tc.translation = tra; tc.rotation = rot;
 
     // clear velocity completely

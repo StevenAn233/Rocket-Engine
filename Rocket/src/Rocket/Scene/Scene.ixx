@@ -143,6 +143,7 @@ export namespace rke
         void destroy_selected_entity() { destroy_entity(selected_entity_); }
 
         bool has_entity(UUID uuid) const;
+        bool is_handle_valid(EntityHandle handle) const;
 
         Entity get_entity(EntityHandle handle);
         Entity get_entity(UUID uuid);

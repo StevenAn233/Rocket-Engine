@@ -23,7 +23,7 @@ export namespace rke
     class RKE_API SceneHierarchyPanel : public Panel
     {
     public:
-        using EntityNodeCallback = std::function<void(Scene*)>;
+        using EntityNodeCallback = std::function<void(Scene*, Entity)>;
 
         SceneHierarchyPanel(String name);
 

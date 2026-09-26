@@ -7,17 +7,13 @@ import FXAAEffect;
 namespace
 {
     using namespace rke;
-    static void entity_right_click_popup_content(Scene* scene)
+    static void entity_right_click_popup_content(Scene* scene, Entity entity)
     {
         if(!scene) return;
         if(ImGui::MenuItem("Copy"))
-        {
-            Entity selected{ scene->get_selected_entity() };
-            Entity copied{ scene->copy_entity(selected) };
-            scene->set_selected_entity(copied);
-        }
+            scene->set_selected_entity(scene->copy_entity(entity)); // may modify
         ImGui::Separator();
-        if(ImGui::MenuItem("Delete")) scene->destroy_selected_entity();
+        if(ImGui::MenuItem("Delete")) scene->destroy_entity(entity);
     }
 }
 
@@ -56,7 +52,8 @@ namespace rke
             },
             [this]() -> Entity
             {
-                if(editing()) return scene_edit_->get_entity(hovering_id_);
+                if(editing() && scene_edit_->is_handle_valid(hovering_id_))
+                    return scene_edit_->get_entity(hovering_id_);
                 return Entity{};
             }
         )};
@@ -157,16 +154,16 @@ namespace rke
         // Entity Pop-up
             if(ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
             {
-                if(ImGui::IsWindowAppearing() && scene_edit_
-                && (hovering_id_ != entity_handle_null))
+                if(ImGui::IsWindowAppearing() &&
+                   scene_edit_ && scene_edit_->is_handle_valid(hovering_id_))
                 {
                     in_entity_popup_ = true;
                     scene_edit_->set_selected_entity(hovering_id_);
                 }
                 if(in_entity_popup_)
-                    entity_right_click_popup_content(scene_edit_);
-                else {
-                // may modify
+                    entity_right_click_popup_content
+                        (scene_edit_, scene_edit_->get_selected_entity());
+                else { // may modify
                     if(ImGui::MenuItem("Refresh Shaders"))
                     {
                         Renderer::refresh_shader();
@@ -294,7 +291,7 @@ namespace rke
 
         if(e.get_mouse_button() == Mouse::Left)
         {
-            if(hovering_id_ != entity_handle_null)
+            if(scene_edit_->is_handle_valid(hovering_id_))
                 scene_edit_->set_selected_entity(hovering_id_);
             else if(main_viewport_->is_focused())
                 scene_edit_->set_selected_entity(Entity{});
