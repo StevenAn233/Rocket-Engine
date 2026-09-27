@@ -36,14 +36,18 @@ namespace rke::gizmo
             static_cast<float>(ImGui::GetWindowHeight()));
 
         Entity selected_entity{ scene.get_selected_entity() };
-        if(!selected_entity.valid() || selected_entity.get<TransformComponent>().is_static) return;
+        if(!selected_entity.valid() ||
+            selected_entity.get<TransformComponent>().is_static) return;
         
         const glm::mat4& cam_proj{ cam.get_proj() };
         const glm::mat4& cam_view{ cam.get_view() };
 
         auto& tc{ selected_entity.get_mut<TransformComponent>() };
-        const Mesh* mesh{ selected_entity.get_mesh() };
-        glm::mat4 transform{ tc.get_transform() };
+        glm::mat4 transform { // ignore anchor
+            glm::translate(glm::mat4(1.0f), tc.translation) *
+            glm::mat4_cast(glm::quat(glm::radians(tc.rotation))) *
+            glm::scale(glm::mat4(1.0f), tc.scale)
+        }; // may modify(but i think this is pretty good)
 
         float snap_value{ 0.5f };
         if(gizmo_mode == ImGuizmo::OPERATION::ROTATE) snap_value = 45.0f;
