@@ -47,6 +47,7 @@ namespace rke
             b2BodyId  body { b2_nullBodyId  };
             b2ShapeId shape{ b2_nullShapeId };
             glm::vec2 shape_size{ 0.0f }; // last resolved half extent(pixels)
+            float depth{ 0.0f };
         };
 
         PhysicsState* find_state(EntityHandle handle) noexcept; // nullptr: no state yet
@@ -62,6 +63,7 @@ namespace rke
         EntityHandle get_entity_from_shape(b2ShapeId shape_id) const;
 
         void ensure_body(Entity entity, PhysicsState& state);
+        b2Vec2 to_b2_pos(Entity entity, float depth) const;
 
         void create_shape(Entity entity, PhysicsState& state, const PhysicsLayers& layers);
         void rebuild_shape(Entity entity, PhysicsState& state, const PhysicsLayers& layers);

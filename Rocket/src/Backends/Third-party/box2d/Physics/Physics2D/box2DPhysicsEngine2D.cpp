@@ -238,14 +238,21 @@ namespace rke
         b2BodyDef body_def{ b2DefaultBodyDef() };
         body_def.type = to_b2_body_type(rbc.type);
 
-        body_def.position = std::bit_cast<b2Vec2>
-            (get_plane().to_uv(entity.compute_centre()));
+        state.depth = glm::dot(entity.compute_centre(), get_plane().get_normal());
+
+        body_def.position = to_b2_pos(entity, state.depth);
         body_def.rotation = b2MakeRot(glm::radians
             (entity.compute_flat_rotation(get_plane())));
         body_def.fixedRotation = rbc.rotation_fixed;
 
         state.body = b2CreateBody(physics_world_, &body_def);
         CORE_ASSERT(B2_IS_NON_NULL(state.body), u8"box2dPhysicsEngine2D: Body id null!");
+    }
+
+    b2Vec2 box2DPhysicsEngine2D::to_b2_pos(Entity entity, float depth) const
+    {
+        return std::bit_cast<b2Vec2>(get_plane()
+            .to_uv(entity.compute_centre() + get_plane().get_normal() * depth));
     }
 
     void box2DPhysicsEngine2D::create_shape
@@ -386,9 +393,9 @@ namespace rke
             glm::vec2 last_pos{ std::bit_cast<glm::vec2>(b2Body_GetPosition(body)) };
             float last_rot{ b2Rot_GetAngle(b2Body_GetRotation(body)) }; // radian
 
-            glm::vec2 pos{ get_plane().to_uv(entity.compute_centre()) };
+            glm::vec2 pos{ std::bit_cast<glm::vec2>(to_b2_pos(entity, state.depth)) };
             float rot{ glm::radians(entity.compute_flat_rotation(get_plane())) };
-            
+
             if(last_pos != pos || std::abs(last_rot - rot) > 0.001f)
                 b2Body_SetTransform(body, std::bit_cast<b2Vec2>(pos), b2MakeRot(rot));
 
@@ -450,8 +457,9 @@ namespace rke
                     ));
                 }
 
-                const glm::vec3 centre{ entity.compute_centre() };
-                tc.translation += get_plane().to_world({ position.x, position.y }) - centre;
+                tc.translation += get_plane().to_world({ position.x, position.y })
+                    + get_plane().get_normal() * state->depth
+                    - entity.compute_centre();
             }
         }
     }
