@@ -458,8 +458,7 @@ namespace rke
                 }
 
                 tc.translation += get_plane().to_world({ position.x, position.y })
-                    + get_plane().get_normal() * state->depth
-                    - entity.compute_centre();
+                    - (entity.compute_centre() - get_plane().get_normal() * state->depth);
             }
         }
     }
