@@ -185,6 +185,7 @@ export namespace rke
         }
         void move_entity(Entity entity, Entity before = {});
 
+        void set_physics_plane(glm::vec3 axis); // 2D only; may modify
         void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
         void set_entity_transform(Entity entity, glm::vec3 translation, glm::vec3 rotation);
         void apply_force(Entity entity, glm::vec2 force);

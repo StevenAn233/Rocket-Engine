@@ -350,6 +350,9 @@ namespace rke
         mark_modified();
     }
 
+    void Scene::set_physics_plane(glm::vec3 axis)
+        { physics_engine_->set_plane(axis); }
+
     void Scene::grip_move_entity(Entity entity, glm::vec3 delta, double dt)
     {
         if(!entity.belongs_to(this) || !entity.valid()) return;

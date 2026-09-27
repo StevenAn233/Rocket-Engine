@@ -63,8 +63,6 @@ namespace rke
         EntityHandle get_entity_from_shape(b2ShapeId shape_id) const;
 
         void ensure_body(Entity entity, PhysicsState& state);
-        b2Vec2 to_b2_pos(Entity entity, float depth) const;
-
         void create_shape(Entity entity, PhysicsState& state, const PhysicsLayers& layers);
         void rebuild_shape(Entity entity, PhysicsState& state, const PhysicsLayers& layers);
         bool shape_spec_changed(Entity entity, const PhysicsState& state,

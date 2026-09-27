@@ -37,8 +37,12 @@ export namespace rke
         virtual void apply_force(Entity entity, glm::vec2 force) = 0;
 
         inline void set_gravity(glm::vec3 val) { gravity_.ref() = val; }
-        inline void set_plane(glm::vec3 axis) // may modify
-            { plane_axis_ = axis; plane_ = PlaneBasis(axis); }
+        inline void set_plane(glm::vec3 axis)
+        {
+            if(plane_axis_ == axis) return;
+            plane_axis_ = axis; plane_ = PlaneBasis(axis);
+            plane_dirty_ = true;
+        }
 
         inline const PlaneBasis& get_plane() const { return plane_; }
         inline PlaneBasis& get_plane() { return plane_; }
@@ -59,6 +63,9 @@ export namespace rke
     protected:
         inline Scene& get_owner() { return *owner_; }
         entt::registry& get_registry();
+
+        inline bool plane_dirty() const { return plane_dirty_; }
+        inline void plane_cleaned() { plane_dirty_ = false; }
     protected:
     // synced/refreshed in on_update
         std::vector<Contact> begin_contacts_solid_{};
@@ -69,6 +76,7 @@ export namespace rke
         Scene* owner_;
         glm::vec3 plane_axis_{ 0.0f, 0.0f, 1.0f }; // for serialization
         PlaneBasis plane_{ plane_axis_ };
+        bool plane_dirty_{ false };
         Gravity gravity_{};
     };
 }

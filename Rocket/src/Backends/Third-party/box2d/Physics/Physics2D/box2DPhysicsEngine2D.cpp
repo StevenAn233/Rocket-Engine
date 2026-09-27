@@ -38,6 +38,12 @@ namespace {
         return b2_kinematicBody;
     }
 
+    static b2Vec2 to_b2_pos(Entity entity, const PlaneBasis& plane, float depth)
+    {
+        return std::bit_cast<b2Vec2>(plane.to_uv
+            (entity.compute_centre() + (plane.get_normal() * depth)));
+    }
+
 // for one-way callback
     static bool is_one_way(Entity entity)
     {
@@ -232,27 +238,20 @@ namespace rke
     {
         if(!entity.valid() || !entity.has<Rigidbody2DComponent>())
             { CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!"); return; }
+        state.depth = glm::dot(entity.compute_centre(), get_plane().get_normal());
         if(b2Body_IsValid(state.body)) return;
 
         const auto& rbc{ entity.get<Rigidbody2DComponent>() };
         b2BodyDef body_def{ b2DefaultBodyDef() };
         body_def.type = to_b2_body_type(rbc.type);
 
-        state.depth = glm::dot(entity.compute_centre(), get_plane().get_normal());
-
-        body_def.position = to_b2_pos(entity, state.depth);
+        body_def.position = to_b2_pos(entity, get_plane(), state.depth);
         body_def.rotation = b2MakeRot(glm::radians
             (entity.compute_flat_rotation(get_plane())));
         body_def.fixedRotation = rbc.rotation_fixed;
 
         state.body = b2CreateBody(physics_world_, &body_def);
         CORE_ASSERT(B2_IS_NON_NULL(state.body), u8"box2dPhysicsEngine2D: Body id null!");
-    }
-
-    b2Vec2 box2DPhysicsEngine2D::to_b2_pos(Entity entity, float depth) const
-    {
-        return std::bit_cast<b2Vec2>(get_plane()
-            .to_uv(entity.compute_centre() + get_plane().get_normal() * depth));
     }
 
     void box2DPhysicsEngine2D::create_shape
@@ -370,11 +369,14 @@ namespace rke
 
             auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
             PhysicsState& state{ state_of(entity.get_handle()) };
-            if(!b2Body_IsValid(state.body))
-            {
+            if(!b2Body_IsValid(state.body) || plane_dirty())
                 ensure_body(entity, state);
-                if(!b2Body_IsValid(state.body)) continue; // creation failed: skip this frame
+            if(!b2Body_IsValid(state.body)) 
+            {
+                CORE_ERROR(u8"box2DPhysicsEngine2D: Failed creating body!");
+                continue; // creation failed: skip this frame
             }
+            
             b2BodyId body{ state.body };
 
         // Body type -> b2Body
@@ -393,7 +395,7 @@ namespace rke
             glm::vec2 last_pos{ std::bit_cast<glm::vec2>(b2Body_GetPosition(body)) };
             float last_rot{ b2Rot_GetAngle(b2Body_GetRotation(body)) }; // radian
 
-            glm::vec2 pos{ std::bit_cast<glm::vec2>(to_b2_pos(entity, state.depth)) };
+            glm::vec2 pos{ std::bit_cast<glm::vec2>(to_b2_pos(entity, get_plane(), state.depth)) };
             float rot{ glm::radians(entity.compute_flat_rotation(get_plane())) };
 
             if(last_pos != pos || std::abs(last_rot - rot) > 0.001f)
@@ -413,10 +415,11 @@ namespace rke
                 const auto& physics_layers{ project->get_config().physics_layers };
                 if(!b2Shape_IsValid(state.shape))
                     create_shape(entity, state, physics_layers);
-                else if(shape_spec_changed(entity, state, physics_layers))
+                else if(plane_dirty() || shape_spec_changed(entity, state, physics_layers))
                     rebuild_shape(entity, state, physics_layers);
             }
         }
+        plane_cleaned();
     }
 
     void box2DPhysicsEngine2D::sync_all_from_body()
