@@ -32,10 +32,12 @@ namespace {
     {
         switch(type)
         {
-        case BodyType::Simulated:   return b2_dynamicBody;
-        case BodyType::Unsimulated: return b2_kinematicBody;
+        case BodyType::Static:    return b2_staticBody;
+        case BodyType::Kinematic: return b2_kinematicBody;
+        case BodyType::Dynamic:   return b2_dynamicBody;
         }
-        return b2_kinematicBody;
+        CORE_WARN(u8"box2DPhysicsEngine2D: Unknown body type!");
+        return b2_staticBody;
     }
 
     static b2Vec2 to_b2_pos(Entity entity, const PlaneBasis& plane, float depth)
@@ -154,9 +156,7 @@ namespace rke
 
     void box2DPhysicsEngine2D::apply_force(Entity entity, glm::vec2 force)
     {
-        if(empty()) return;
-        if(!entity.valid() || !entity.has<Rigidbody2DComponent>()) return;
-        if(entity.get<Rigidbody2DComponent>().type != BodyType::Simulated) return;
+        if(empty() || !entity.valid()) return;
 
         const PhysicsState* state{ find_state(entity.get_handle()) };
         if(!state || !b2Body_IsValid(state->body)) return;
@@ -444,25 +444,22 @@ namespace rke
             rbc.angular_velocity = b2Body_GetAngularVelocity(body);
 
         // b2Pos & b2Rot -> Transform
-            if(rbc.type == BodyType::Simulated)
-            {
-                b2Vec2 position{ b2Body_GetPosition(body) };
-                b2Rot  rotation{ b2Body_GetRotation(body) };
-                auto& tc{ entity.get_mut<TransformComponent>() };
+            b2Vec2 position{ b2Body_GetPosition(body) };
+            b2Rot  rotation{ b2Body_GetRotation(body) };
+            auto& tc{ entity.get_mut<TransformComponent>() };
 
-                const float angle{ glm::degrees(b2Rot_GetAngle(rotation)) };
-                const float delta{ angle - entity.compute_flat_rotation(get_plane()) };
-                if(std::abs(delta) > 0.001f) {
-                    tc.rotation = glm::degrees(glm::eulerAngles
-                    (
-                        get_plane().compose_spin
-                            (glm::quat(glm::radians(tc.rotation)), delta)
-                    ));
-                }
-
-                tc.translation += get_plane().to_world({ position.x, position.y })
-                    - (entity.compute_centre() - get_plane().get_normal() * state->depth);
+            const float angle{ glm::degrees(b2Rot_GetAngle(rotation)) };
+            const float delta{ angle - entity.compute_flat_rotation(get_plane()) };
+            if(std::abs(delta) > 0.001f) {
+                tc.rotation = glm::degrees(glm::eulerAngles
+                (
+                    get_plane().compose_spin
+                        (glm::quat(glm::radians(tc.rotation)), delta)
+                ));
             }
+
+            tc.translation += get_plane().to_world({ position.x, position.y }) -
+                (entity.compute_centre() - get_plane().get_normal() * state->depth);
         }
     }
 

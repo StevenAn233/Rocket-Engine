@@ -43,7 +43,6 @@ export namespace rke
         glm::vec3 rotation{ 0.0f };
         glm::vec3 scale{ 1.0f };
         glm::vec3 anchor{ 0.0f };
-        bool is_static{ false };
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
@@ -142,13 +141,14 @@ export namespace rke
 
     enum class BodyType : uint32
     {
-        Unsimulated = 0,
-        Simulated   = 1
+        Static    = 0,
+        Kinematic = 1,
+        Dynamic   = 2,
     };
 
     struct RKE_API Rigidbody2DComponent
     {
-        BodyType type{ BodyType::Unsimulated };
+        BodyType type{ BodyType::Static };
         bool rotation_fixed{ false };
 
         float mass{ 0.0f };

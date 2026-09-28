@@ -328,7 +328,7 @@ namespace rke
         demo_cam_ = entity;
     }
 
-    void Scene::move_entity(Entity entity, Entity before)
+    void Scene::order_entity(Entity entity, Entity before)
     {
         if(entity.empty() || !entity.belongs_to(this)) return;
         if(before == entity) return; // dropped right onto itself
@@ -366,22 +366,6 @@ namespace rke
                 rbc.velocity = { delta.x / dt, delta.y / dt };
                 rbc.angular_velocity = 0.0f;
             }
-        }
-    }
-
-    void Scene::set_entity_transform(Entity entity, glm::vec3 tra, glm::vec3 rot)
-    {
-        if(!entity.valid() || !entity.belongs_to(this)) return;
-
-        auto& tc{ entity.get_mut<TransformComponent>() };
-        tc.translation = tra; tc.rotation = rot;
-
-    // clear velocity completely
-        if(entity.has<Rigidbody2DComponent>())
-        {
-            auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-            rbc.velocity = { 0.0f, 0.0f };
-            rbc.angular_velocity = 0.0f;
         }
     }
 

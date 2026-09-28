@@ -63,7 +63,7 @@ namespace rke
                 const EntityHandle before{ drop_index_ < count ?
                     context_->all_entities_[drop_index_] : entity_handle_null };
 
-                context_->move_entity (
+                context_->order_entity (
                     context_->get_entity(drag_entity_),
                     context_->get_entity(before)
                 );
@@ -235,49 +235,22 @@ namespace rke
         check_then_draw<TransformComponent, u8"Transform">(entity, [&](Entity ent)
         {
             auto& tc{ ent.get_mut<TransformComponent>() };
-            bool has_sprite{ ent.has<SpriteComponent>() };
-            bool has_camera{ ent.has<CameraComponent>() };
 
-            bool tra_changed{ false };
-            bool rot_changed{ false };
-
-            if(tc.is_static) {
-                tra_changed = layout::drag_float3_control<u8"Translation">
-                (
-                    tc.translation, 0.0f, glm::vec3(0.0f),
-                    std::nullopt, std::nullopt, std::nullopt
-                );
-            } else {
-                tra_changed = layout::drag_float3_control<u8"Translation">
-                (
-                    tc.translation, 0.1f, glm::vec3(0.0f),
-                    glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-                );
-            }
-
-            if(tc.is_static) {
-                rot_changed = layout::drag_float3_control<u8"Rotation">
-                (
-                    tc.rotation, 0.0f, glm::vec3(0.0f),
-                    std::nullopt, std::nullopt, std::nullopt
-                );
-            } else {
-                rot_changed = layout::drag_float3_control<u8"Rotation">
-                (
-                    tc.rotation, 0.5f, glm::vec3(0.0f),
-                    glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-                );
-            }
-
-            context_->mark_modified_if(tra_changed || rot_changed);
-            if(context_->in_runtime() && ent.has<Rigidbody2DComponent>()) // may modify
+            bool translated{ layout::drag_float3_control
+                <u8"Translation">(tc.translation, 0.1f, glm::vec3(0.0f)) };
+            if(entity.has<Rigidbody2DComponent>() && translated)
             {
-                auto& rbc{ ent.get_mut<Rigidbody2DComponent>() };
-                if(tra_changed) rbc.velocity = glm::vec2(0.0f);
-                if(rot_changed) rbc.angular_velocity = 0.0f;
+                auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
+                // only dynamic bodies are impacted by forces
+                if(rbc.type == BodyType::Dynamic) rbc.velocity = {};
             }
+            context_->mark_modified_if(translated);
 
-            if(tc.is_static || ent.has<CameraComponent>())
+            context_->mark_modified_if (
+                layout::drag_float3_control<u8"Rotation">
+                    (tc.rotation, 0.5f, glm::vec3(0.0f)));
+   
+            if(ent.has<CameraComponent>())
             {
                 context_->mark_modified_if (
                     layout::drag_float3_control<u8"Scale">
@@ -296,8 +269,6 @@ namespace rke
                 layout::drag_float3_control<u8"Anchor">
                     (tc.anchor, 0.01f, glm::vec3(0.0f))
             );
-
-            context_->mark_modified_if(ImGui::Checkbox("Static", &tc.is_static));
         });
 
         check_then_draw<CameraComponent, u8"Camera">(entity, [&](Entity ent)
@@ -660,42 +631,32 @@ namespace rke
         check_then_draw<Rigidbody2DComponent, u8"Rigidbody 2D">(entity, [this](Entity ent)
         {
             auto& rbc{ ent.get_mut<Rigidbody2DComponent>() };
+            const auto& tc{ ent.get<TransformComponent>() };
             layout::two_columns_table<u8"Body Type">([&]()
             {
-                const auto& tc{ ent.get<TransformComponent>() };
-                if(tc.is_static) {
-                    constexpr const char* item[]{ "Static" };
-                    float available_width{ ImGui::GetContentRegionAvail().x };
-                    ImGui::SetNextItemWidth(available_width);
+                constexpr const char* items[]{ "Static", "Kinematic", "Dynamic" };
+                int option{ static_cast<int>(rbc.type) };
 
-                    ImGui::BeginDisabled();
-                    int whatever{};
-                    ImGui::Combo("##body_type", &whatever, item, 1);
-                    ImGui::EndDisabled();
-                } else {
-                    constexpr const char* items[]{ "Unsimulated", "Simulated" };
-                    int option{ static_cast<int>(rbc.type) };
-
-                    float available_width{ ImGui::GetContentRegionAvail().x };
-                    ImGui::SetNextItemWidth(available_width);
-                    if(ImGui::Combo("##body_type", &option, items, (int)std::size(items)))
-                    {
-                        rbc.type = static_cast<BodyType>(option);
-                        context_->mark_modified();
-                    }
+                float available_width{ ImGui::GetContentRegionAvail().x };
+                ImGui::SetNextItemWidth(available_width);
+                if(ImGui::Combo("##body_type", &option, items, (int)std::size(items)))
+                {
+                    rbc.type = static_cast<BodyType>(option);
+                    context_->mark_modified();
                 }
             });
             layout::drag_float_control<u8"Mass">(rbc.mass, 0.0f, 0.0f, std::nullopt);
             
-            float empty_val{}; glm::vec2 empty_vec{};
-            bool simulated{ rbc.type == BodyType::Simulated };
+            glm::vec2 empty_vec{};
+            bool is_static{ rbc.type == BodyType::Static };
             layout::drag_float2_control<u8"Velocity">
             (
-                simulated ? rbc.velocity : empty_vec, 0.1f, glm::vec2(0.0f),
-                simulated ? std::optional<glm::vec2>(glm::vec2(0.0f)) : std::nullopt,
-                simulated ? std::optional<glm::vec2>(glm::vec2(0.0f)) : std::nullopt
+                !is_static ? rbc.velocity : empty_vec, 0.1f, glm::vec2(0.0f),
+                !is_static ? std::optional<glm::vec2>(glm::vec2(0.0f)) : std::nullopt,
+                !is_static ? std::optional<glm::vec2>(glm::vec2(0.0f)) : std::nullopt
             );
-            bool want_rotate{ simulated && !rbc.rotation_fixed };
+            float empty_val{};
+            bool want_rotate{ !is_static && !rbc.rotation_fixed };
             layout::drag_float_control<u8"Angular Vel">
             (
                 want_rotate ? rbc.angular_velocity : empty_val, 0.1f, 0.0f,

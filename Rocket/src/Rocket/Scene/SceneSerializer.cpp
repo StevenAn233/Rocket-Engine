@@ -31,7 +31,6 @@ namespace {
             writer.write(u8"Rotation",    ConfigValue(tc.rotation   ));
             writer.write(u8"Scale",       ConfigValue(tc.scale      ));
             writer.write(u8"Anchor",      ConfigValue(tc.anchor     ));
-            writer.write(u8"Static",      ConfigValue(tc.is_static  ));
 
             writer.end_map();
         }
@@ -148,7 +147,6 @@ namespace {
             tc.rotation    = tc_reader->get_at(u8"Rotation"   , tc.rotation   );
             tc.scale       = tc_reader->get_at(u8"Scale"      , tc.scale      );
             tc.anchor      = tc_reader->get_at(u8"Anchor"     , tc.anchor     );
-            tc.is_static   = tc_reader->get_at(u8"Static"     , tc.is_static  );
         }
 
         Scope<ConfigReader> cc_reader{ reader.get_child(u8"Camera Component") };
