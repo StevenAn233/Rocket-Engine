@@ -660,18 +660,6 @@ namespace rke
         check_then_draw<Rigidbody2DComponent, u8"Rigidbody 2D">(entity, [this](Entity ent)
         {
             auto& rbc{ ent.get_mut<Rigidbody2DComponent>() };
-
-            layout::drag_float_control<u8"Mass">(rbc.mass, 0.0f, 0.0f, std::nullopt);
-            if(rbc.type == BodyType::Simulated) {
-                layout::drag_float2_control<u8"Velocity">(rbc.velocity, 0.1f, glm::vec2(0.0f));
-                layout::drag_float_control<u8"Angular Vel">(rbc.angular_velocity, 0.1f, 0.0f);
-            } else {
-                layout::drag_float2_control<u8"Velocity">
-                    (rbc.velocity, 0.0f, glm::vec2(0.0f), std::nullopt, std::nullopt);
-                layout::drag_float_control<u8"Angular Vel">
-                    (rbc.angular_velocity, 0.0f, 0.0f, std::nullopt);
-            }
-
             layout::two_columns_table<u8"Body Type">([&]()
             {
                 const auto& tc{ ent.get<TransformComponent>() };
@@ -697,6 +685,23 @@ namespace rke
                     }
                 }
             });
+            layout::drag_float_control<u8"Mass">(rbc.mass, 0.0f, 0.0f, std::nullopt);
+            
+            float empty_val{}; glm::vec2 empty_vec{};
+            bool simulated{ rbc.type == BodyType::Simulated };
+            layout::drag_float2_control<u8"Velocity">
+            (
+                simulated ? rbc.velocity : empty_vec, 0.1f, glm::vec2(0.0f),
+                simulated ? std::optional<glm::vec2>(glm::vec2(0.0f)) : std::nullopt,
+                simulated ? std::optional<glm::vec2>(glm::vec2(0.0f)) : std::nullopt
+            );
+            bool want_rotate{ simulated && !rbc.rotation_fixed };
+            layout::drag_float_control<u8"Angular Vel">
+            (
+                want_rotate ? rbc.angular_velocity : empty_val, 0.1f, 0.0f,
+                want_rotate ? std::optional<glm::vec2>(glm::vec2(0.0f)) : std::nullopt
+            );
+
             context_->mark_modified_if(ImGui::Checkbox("Rotation Fixed", &rbc.rotation_fixed));
         });
 
