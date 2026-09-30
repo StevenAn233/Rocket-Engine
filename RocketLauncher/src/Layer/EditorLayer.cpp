@@ -81,15 +81,11 @@ namespace rke
         )};
         selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
 
-        auto fxaa{ create_scope<FXAAEffect>
-        (
-            u8"Fxaa",
+        auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa",
             [this]() -> bool
             {
-                Project* project{ app().get_project() };
-                if(project) return project->get_config()
-                    .anti_aliasing == AntiAliasing::FXAA;
-                return false;
+                if(!context_) return false;
+                return context_->get_config().anti_aliasing == AntiAliasing::FXAA;
             }
         )};
 
@@ -300,18 +296,31 @@ namespace rke
         return false;
     }
 
-    bool EditorLayer::on_project_loaded(ProjectLoadedEvent& e)
+    void EditorLayer::attach_context(Project* project)
     {
         CORE_ASSERT(!testing(), u8"EditorLayer: Can't load project while testing!");
         clear_scene_edit();
-        content_browser_panel_->on_project_loaded();
-        return true;
+        context_ = project;
+        content_browser_panel_->on_project_loaded(context_);
+        animation_editor_panel_.on_project_loaded(context_);
+    }
+
+    bool EditorLayer::on_project_loaded(ProjectLoadedEvent& e)
+    {
+        attach_context(app().get_project());
+        return false; // do not block
+    }
+
+    bool EditorLayer::on_project_cleared(ProjectClearedEvent& e)
+    {
+        attach_context(nullptr);
+        return false; // do not block
     }
 
     bool EditorLayer::on_project_saved(ProjectSavedEvent& e)
     {
         save_scene_edit();
-        return true;
+        return false; // do not block
     }
 
     bool EditorLayer::on_project_samples_set(ProjectSamplesSetEvent& e)
@@ -319,7 +328,7 @@ namespace rke
         uint32 samples{ e.get_samples() };
         main_renderer_.set_samples(samples);
         editor_setting_panel_->set_outline_samples(samples);
-        return true;     
+        return false; // do not block
     }
 
     void EditorLayer::on_update(double dt)
@@ -424,13 +433,12 @@ namespace rke
 
     bool EditorLayer::load_scene_edit(const String& name)
     {
-        if(!app().get_project())
-        {
-            CORE_ERROR(u8"EditorLayer: No project loaded!");
+        if(!context_) {
+            CORE_ERROR(u8"EditorLayer: Context project null!");
             clear_scene_edit();
             return false;
         }
-        scene_edit_ = app().get_project()->load_scene(name, scene_serializer_);
+        scene_edit_ = context_->load_scene(name, scene_serializer_);
         if(scene_edit_) // may modify
         {
             Scope<ConfigReader> reader{ ConfigReader::create
@@ -444,15 +452,27 @@ namespace rke
 
     void EditorLayer::save_scene_edit()
     {
-        if(!scene_edit_) return;
-        if(editing() && app().get_project())
-            app().get_project()->save_scene(*scene_edit_, scene_serializer_);
+        if(!scene_edit_ || !context_) return;
+        if(editing()) context_->save_scene(*scene_edit_, scene_serializer_);
     }
 
     void EditorLayer::clear_scene_edit()
     {
+        // not reloading the scene, only clear handle
         scene_edit_ = nullptr;
         attach_scene(nullptr);
+    }
+
+    void EditorLayer::unload_scene_edit()
+    {
+        if(!scene_edit_) return;
+        if(editing()) {
+            String name{ scene_edit_->get_name() };
+            clear_scene_edit();
+            CORE_ASSERT(context_, u8"EditorLayer: "
+                u8"Context project can't be null since scene edit exists!")
+            context_->remove_scene(name);
+        }
     }
 
     void EditorLayer::attach_scene(Scene* scene)

@@ -29,6 +29,8 @@ namespace rke
 
     AnimationEditorPanel::~AnimationEditorPanel() { clear(); }
 
+    void AnimationEditorPanel::on_project_loaded(Project* project) { context_ = project; }
+
     void AnimationEditorPanel::on_imgui_render()
     {
         ImGui::Begin(get_name().raw());
@@ -49,8 +51,7 @@ namespace rke
             }
         }
 
-        Project* project{ app().get_project() };
-        if(!project)
+        if(!context_)
         {
             ImGui::TextDisabled("No project loaded.");
             ImGui::End(); 
@@ -77,7 +78,7 @@ namespace rke
             ImGui::TextColored(ImVec4(0.95f, 0.85f, 0.40f, 1.0f), "* unsaved");
         }
 
-        auto& am{ project->get_assets_manager_mut() };
+        auto& am{ context_->get_assets_manager_mut() };
         anim_popup(am);
 
         ImGui::BeginChild("##clips_managing", ImVec2(160.0f, 0.0f), ImGuiChildFlags_Borders);
@@ -107,15 +108,11 @@ namespace rke
     void AnimationEditorPanel::open(AssetUUID uuid)
     {
         clear();
-        if(uuid.empty()) return;
+        if(uuid.empty() || !context_) return;
 
-        Project* project{ app().get_project() };
-        if(!project) return;
-
-        AssetsManager& am{ project->get_assets_manager_mut() };
+        AssetsManager& am{ context_->get_assets_manager_mut() };
         Animation* asset{ am.get_asset<Animation>(am.load_asset(uuid)) };
-        if(!asset)
-        {
+        if(!asset) {
             CORE_ERROR(u8"AnimationEditorPanel: Failed to load animation '{}'!", uuid.value());
             return;
         }

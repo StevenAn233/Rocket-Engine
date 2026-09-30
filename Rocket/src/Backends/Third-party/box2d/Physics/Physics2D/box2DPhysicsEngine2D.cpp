@@ -410,7 +410,7 @@ namespace rke
         // Shape create or rebuild
             if(entity.has<BoxCollider2DComponent>())
             {
-                Project* project{ app().get_project() };
+                Project* project{ get_owner().get_owner() };
                 CORE_ASSERT(project, u8"box2dPhysicsEngine2D: Project null!");
                 const auto& physics_layers{ project->get_config().physics_layers };
                 if(!b2Shape_IsValid(state.shape))

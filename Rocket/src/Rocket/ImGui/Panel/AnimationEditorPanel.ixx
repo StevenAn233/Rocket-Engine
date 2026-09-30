@@ -4,6 +4,7 @@
 
 export module AnimationEditorPanel;
 
+import Project;
 import Panel;
 import Animation;
 import String;
@@ -18,6 +19,8 @@ export namespace rke
     public:
         AnimationEditorPanel(String name);
         ~AnimationEditorPanel() override;
+
+        void on_project_loaded(Project* project);
     private:
         void on_imgui_render() override;
 
@@ -30,6 +33,8 @@ export namespace rke
         void anim_popup(AssetsManager& am);
         bool clip_popup(const String& name);
     private:
+        Project* context_{};
+        
         Animation anim_{}; // working copy, written back on demand
         AssetUUID asset_uuid_{ 0 };
         Path asset_path_{};

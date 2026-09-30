@@ -15,7 +15,7 @@ export namespace rke
         void set_image_icon (const Path& filepath);
         void set_file_icon  (const Path& filepath);
 
-        void on_project_loaded();
+        void on_project_loaded(Project* context);
         void load_from(Path filepath);
     private:
         void on_imgui_render() override;

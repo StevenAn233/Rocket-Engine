@@ -55,13 +55,11 @@ namespace rke
         writer->push_to_file(filepath_);
     }
 
-    void ContentBrowserPanel::on_project_loaded()
+    void ContentBrowserPanel::on_project_loaded(Project* context)
     {
-        context_ = app().get_project();
+        context_ = context;
         if(!context_) {
-            CORE_ERROR(u8"ContentBrowerPanel: Project null!");
-            assets_dir_.clear();
-            current_dir_.clear();
+            assets_dir_.clear(); current_dir_.clear();
             return;
         }
         assets_dir_ = context_->get_assets_dir();

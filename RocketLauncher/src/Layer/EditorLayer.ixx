@@ -38,6 +38,7 @@ export namespace rke
         bool load_scene_edit(const String& name);
         void save_scene_edit();
         void clear_scene_edit();
+        void unload_scene_edit();
         
         void attach_scene(Scene* scene);
 
@@ -45,7 +46,9 @@ export namespace rke
         bool on_mouse_scrolled(MouseScrolledEvent& e);
         bool on_mouse_button_pressed(MouseButtonPressedEvent& e);
 
+        void attach_context(Project* project);
         bool on_project_loaded(ProjectLoadedEvent& e);
+        bool on_project_cleared(ProjectClearedEvent& e);
         bool on_project_saved(ProjectSavedEvent& e);
         bool on_project_samples_set(ProjectSamplesSetEvent& e);
 
@@ -64,6 +67,7 @@ export namespace rke
         OutlineEffect* selected_outline_{};
 
         EntityHandle hovering_id_{ entity_handle_null };
+        Project* context_{};
         Scene* scene_edit_{};
         Scope<Scene> scene_test_{}; // A copy of scene_edit_; Temporary.
         SceneSerializer scene_serializer_{};

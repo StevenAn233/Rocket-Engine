@@ -26,31 +26,31 @@ namespace rke
 {
     void ProjectSettingPanel::on_imgui_render()
     {
-        Project* project{ app().get_project() };
         ImGui::PushID(get_name().raw());
         ImGui::Begin (get_name().raw());
 
-        if(!project) { ImGui::Text("No Active Project"); goto end; }
+        Project* active{ app().get_project() };
+        if(!active) { ImGui::Text("No Active Project"); goto end; }
 
         if(ImGui::BeginTabBar("##project_settings_tabs"))
         {
             if(ImGui::BeginTabItem("Config"))
             {
-                layout::tree_node_branch<u8"Name">([this]()
+                layout::tree_node_branch<u8"Name">([this, active]()
                 {
-                    const String& name{ app().get_project()->get_name() };
+                    const String& name{ active->get_name() };
                     char name_buffer[256]{};
                     std::memcpy(name_buffer, name.raw(),
                         std::min(name.length(), sizeof(name_buffer) - 1));
                     if(ImGui::InputText("##tag", name_buffer, sizeof(name_buffer),
                         ImGuiInputTextFlags_EnterReturnsTrue))
-                        app().get_project()->set_name(String(str::to_char8(name_buffer)));
+                        active->set_name(String(str::to_char8(name_buffer)));
                 });
                 ImGui::EndTabItem();
             }
             if(ImGui::BeginTabItem("Physics"))
             {
-                draw_layer_collision_matrix(project->get_config_mut().physics_layers);
+                draw_layer_collision_matrix(active->get_config_mut().physics_layers);
                 ImGui::EndTabItem();
             }
             if(ImGui::BeginTabItem("Render"))
@@ -67,7 +67,7 @@ namespace rke
                         "FXAA"      // 5
                     };
                     int aa_opt{};
-                    switch(project->get_config().anti_aliasing)
+                    switch(active->get_config().anti_aliasing)
                     {
                     case AntiAliasing::Off:     aa_opt = 0; break;
                     case AntiAliasing::MSAAx2:  aa_opt = 1; break;
@@ -88,7 +88,7 @@ namespace rke
                         case 4: aa = AntiAliasing::MSAAx16; break;
                         case 5: aa = AntiAliasing::FXAA;    break;
                         }
-                        project->set_aa(aa);
+                        active->set_aa(aa);
                     }
                 });
                 ImGui::EndTabItem();

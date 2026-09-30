@@ -7,7 +7,7 @@ namespace rke
 {
     EditorSettingPanel::EditorSettingPanel(String name, EditorLayer* owner)
         : Panel(std::move(name)), owner_(owner)
-    { CORE_ASSERT(owner_, u8"EditorSettingPanel: Owner null!"); }
+        { CORE_ASSERT(owner_, u8"EditorSettingPanel: Owner null!"); }
 
     EditorSettingPanel::~EditorSettingPanel()
     {
@@ -19,7 +19,7 @@ namespace rke
 
         writer->begin_map();
 
-        Project* project{ app().get_project() };
+        Project* project{ owner_->context_ };
         writer->write(u8"Last Project Path",
             project ? project->get_rkproj_path().string() : String{});
         auto* scene_edit{ owner_->scene_edit_ };
@@ -56,7 +56,6 @@ namespace rke
         Path proj_dir{ reader->get_at(u8"Last Project Path", String{}) };
         app().load_project(proj_dir);
 
-        Project* project{ app().get_project() };
         String scene_edit_name{ reader->get_at(u8"Scene Edit", String{}) };
         owner_->load_scene_edit(scene_edit_name);
 

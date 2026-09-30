@@ -47,6 +47,11 @@ namespace rke
     void Application::load_project(const Path& path)
     {
         clear_project();
+        if(path.empty() || !path.exists())
+        {
+            CORE_ERROR(u8"Application: Project path '{}' invalid!", path);
+            return;
+        }
         project_ = create_scope<Project>(path);
         if(!project_) {
             CORE_ERROR(u8"Application: Failed to load project '{}'!", path);
