@@ -148,7 +148,8 @@ namespace rke
             } else in_main_viewport_dragging_ = false;
 
         // Entity Pop-up
-            if(ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
+            if(editing() && ImGui::BeginPopupContextWindow
+                (0, ImGuiPopupFlags_MouseButtonRight))
             {
                 if(ImGui::IsWindowAppearing() &&
                    scene_edit_ && scene_edit_->is_handle_valid(hovering_id_))
@@ -160,6 +161,9 @@ namespace rke
                     entity_right_click_popup_content
                         (scene_edit_, scene_edit_->get_selected_entity());
                 else { // may modify
+                    if(ImGui::MenuItem("Reload Scene"))
+                        reload_scene_edit();
+                    ImGui::Separator();
                     if(ImGui::MenuItem("Refresh Shaders"))
                     {
                         Renderer::refresh_shader();
@@ -431,6 +435,22 @@ namespace rke
         scene_test_.reset();
     }
 
+    void EditorLayer::attach_scene(Scene* scene)
+    {
+        scene_hierarchy_panel_.set_context(scene);
+        hovering_id_ = entity_handle_null;
+        main_output_ = nullptr;
+        cam_output_  = nullptr;
+        main_renderer_.clean_up();
+        cam_renderer_ .clean_up();
+
+        if(!scene) return;
+        
+        glm::vec2 size{ main_viewport_ ?
+            main_viewport_->get_size() : glm::vec2(0.0f) };
+        scene->set_viewport(size.x, size.y);
+    }
+
     bool EditorLayer::load_scene_edit(const String& name)
     {
         if(!context_) {
@@ -475,20 +495,11 @@ namespace rke
         }
     }
 
-    void EditorLayer::attach_scene(Scene* scene)
+    void EditorLayer::reload_scene_edit()
     {
-        scene_hierarchy_panel_.set_context(scene);
-        hovering_id_ = entity_handle_null;
-        main_output_ = nullptr;
-        cam_output_  = nullptr;
-        main_renderer_.clean_up();
-        cam_renderer_ .clean_up();
-
-        if(!scene) return;
-        
-        glm::vec2 size{ main_viewport_ ?
-            main_viewport_->get_size() : glm::vec2(0.0f) };
-        scene->set_viewport(size.x, size.y);
+        String name{ scene_edit_->get_name() };
+        unload_scene_edit();
+        load_scene_edit(name);
     }
 
     Scene* EditorLayer::current_scene()

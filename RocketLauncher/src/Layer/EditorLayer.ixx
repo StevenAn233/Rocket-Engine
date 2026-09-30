@@ -35,13 +35,13 @@ export namespace rke
         void on_runtime_start();
         void on_runtime_stop ();
 
+        void attach_scene(Scene* scene);
         bool load_scene_edit(const String& name);
         void save_scene_edit();
         void clear_scene_edit();
         void unload_scene_edit();
+        void reload_scene_edit();
         
-        void attach_scene(Scene* scene);
-
         bool on_key_pressed(KeyPressedEvent& e);
         bool on_mouse_scrolled(MouseScrolledEvent& e);
         bool on_mouse_button_pressed(MouseButtonPressedEvent& e);
