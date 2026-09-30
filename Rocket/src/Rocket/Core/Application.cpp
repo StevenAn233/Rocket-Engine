@@ -32,17 +32,7 @@ namespace rke
         }
     }
 
-    void Application::send_event(Event& e)
-    {
-        EventDispatcher(e).dispatch<WindowClosedEvent>
-        ([this](WindowClosedEvent& e)
-        {
-            if(e.get_window_name() == u8"main")
-                on_main_window_closing();
-            return false;
-        });
-        windows_lib_.on_event(e);
-    }
+    void Application::send_event(Event& e) { windows_lib_.on_event(e); }
 
     void Application::load_project(const Path& path)
     {

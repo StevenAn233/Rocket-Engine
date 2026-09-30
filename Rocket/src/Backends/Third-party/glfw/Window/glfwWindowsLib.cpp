@@ -5,6 +5,7 @@
 module WindowsLib;
 
 import Log;
+import Application;
 import RenderBackend;
 
 namespace {
@@ -59,15 +60,18 @@ namespace rke
         if(!main_window_) return;
         glfwPollEvents();
 
-        if(main_window_->should_close()) {
-            map_.clear(); main_window_ = nullptr;
-        } else {
-            std::erase_if(map_, [this](auto& pair)
-            {
-                if(pair.second->should_close()) return true;
-                return false;
-            });
+        if(main_window_->should_close())
+        {
+            app().on_main_window_closing(); // may modify
+            main_window_ = nullptr;
+            map_.clear(); return;
         }
+
+        std::erase_if(map_, [this](auto& pair)
+        {
+            if(pair.second->should_close()) return true;
+            return false;
+        });
         
         for(auto& [_, window] : map_)
         {

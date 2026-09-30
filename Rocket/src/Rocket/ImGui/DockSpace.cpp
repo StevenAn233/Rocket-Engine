@@ -59,8 +59,6 @@ namespace rke
 
     void DockSpace::render(glm::vec2 offset, glm::vec2 scale)
     {
-        static bool enable_dockspace{ true };
-
         imgui::begin_render();
 
         const ImGuiViewport* viewport{ ImGui::GetMainViewport() };
@@ -94,7 +92,7 @@ namespace rke
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
-        ImGui::Begin(name_.raw(), &enable_dockspace, window_flags);
+        ImGui::Begin(name_.raw(), &enabled_, window_flags);
 
         ImGuiIO& io{ ImGui::GetIO() };
         if(io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
@@ -112,12 +110,10 @@ namespace rke
             if(ImGui::BeginMenu("Window"))
             {
                 if(ImGui::MenuItem("Close", "Alt+F4"))
-                {
-                    WindowClosedEvent e{ u8"main" };
-                    app().send_event(e);
-                }
+                    app().get_windows_lib().make_main_useless();
                 ImGui::EndMenu();
             }
+
             if(ImGui::BeginMenu("Docking"))
             {
             // MenuItem: const char* label, const char* shortcut, bool selected, bool enabled

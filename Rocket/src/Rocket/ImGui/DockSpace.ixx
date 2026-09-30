@@ -50,6 +50,7 @@ export namespace rke
 
         ProjectCreatingModal project_creating_modal_{ u8"Create New Project" };
         bool to_create_project_{ false };
+        bool enabled_{ true };
         bool ctrl_pressed_{ false };
 
         std::function<bool()> editor_runtime_{};

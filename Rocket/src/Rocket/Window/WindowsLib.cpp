@@ -2,8 +2,6 @@
 module WindowsLib;
 
 import Log;
-import Renderer;
-import HeapManager;
 import EventDispatcher;
 import ApplicationEvent;
 
@@ -40,11 +38,8 @@ namespace rke
 
         for(auto& [name, window] : map_)
         {
-            if(e.get_window_name() == name)
-            {
-                window->on_event(e);
-                return;
-            }
+            if(window->should_close()) continue;
+            if(e.get_window_name() == name) { window->on_event(e); break; }
         }
     }
 
