@@ -15,12 +15,15 @@ namespace {
     {
         CORE_ASSERT(entity.valid(), u8"SceneSerializer: Entity invalid!");
         
-        auto& ic{ entity.get<IdentityComponent>() };
+        const auto& ic{ entity.get<IdentityComponent>() };
         if(ic.uuid.empty()) return;
 
         writer.begin_map();
         writer.write(u8"Entity", ConfigValue(ic.uuid.value()));
         writer.write(u8"Tag", ConfigValue(String(ic.tag)));
+
+        const Entity parent{ scene.get_parent(entity) };
+        writer.write(u8"Parent", ConfigValue(parent.valid() ? parent.get_uuid().value() : 0));
         
         if(entity.has<TransformComponent>())
         {
@@ -34,6 +37,7 @@ namespace {
 
             writer.end_map();
         }
+
         if(entity.has<CameraComponent>())
         {
             writer.begin_map(u8"Camera Component");
@@ -52,6 +56,7 @@ namespace {
 
             writer.end_map();
         }
+
         if(entity.has<SpriteComponent>())
         {
             writer.begin_map(u8"Sprite Component");
@@ -63,6 +68,7 @@ namespace {
 
             writer.end_map();
         }
+
         if(entity.has<TextureComponent>())
         {
             writer.begin_map(u8"Texture Component");
@@ -79,6 +85,7 @@ namespace {
 
             writer.end_map();
         }
+
         if(entity.has<AnimatorComponent>())
         {
             writer.begin_map(u8"Animator Component");
@@ -92,6 +99,7 @@ namespace {
 
             writer.end_map();
         }
+
         if(entity.has<Rigidbody2DComponent>())
         {
             writer.begin_map(u8"Rigidbody 2D Component");
@@ -104,6 +112,7 @@ namespace {
 
             writer.end_map();
         }
+
         if(entity.has<BoxCollider2DComponent>())
         {
             writer.begin_map(u8"Box Collider 2D Component");
@@ -119,6 +128,7 @@ namespace {
 
             writer.end_map();
         }
+
         if(entity.has<NativeScriptComponent>())
         {
             writer.begin_map(u8"Native-Script Component");
@@ -318,8 +328,23 @@ namespace rke
         }
         // When you traverse a Sequence, each time you get a Node.
         // When you traverse a Map, each time you get a pair<Node, Node>.
-        entities->for_each([&scene](Scope<ConfigReader> config)
-            { deserialize_entity(scene, *(config.get())); });
+        
+        std::vector<std::pair<UUID, UUID>> links{};
+        entities->for_each([&scene, &links](Scope<ConfigReader> config)
+        {
+            const UUID uuid{ config->get_at(u8"Entity", 0ui64) };
+            const UUID parent_uuid{ config->get_at(u8"Parent", 0ui64) };
+            if(!parent_uuid.empty() && parent_uuid != uuid)
+                links.emplace_back(uuid, parent_uuid);
+
+            deserialize_entity(scene, *(config.get()));
+        });
+
+        for(const auto& [child_uuid, parent_uuid] : links)
+        {
+            if(!scene.has_entity(child_uuid) || !scene.has_entity(parent_uuid)) continue;
+            scene.set_parent(scene.get_entity(child_uuid), scene.get_entity(parent_uuid));
+        }
 
         if(reader->has_key(u8"Selected Entity")) {
             UUID uuid{ reader->get_at(u8"Selected Entity", 0ui64) };

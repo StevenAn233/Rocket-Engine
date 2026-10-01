@@ -54,20 +54,21 @@ export namespace rke
         RKE_API UUID get_uuid() const;
         RKE_API const Mesh* get_mesh() const;
 
+        RKE_API Entity get_parent() const;
+        RKE_API glm::mat4 get_world_transform() const;
+
         RKE_API glm::vec3 compute_centre() const;
         RKE_API glm::vec2 compute_flat_size(const PlaneBasis& plane) const;
         RKE_API float compute_flat_rotation(const PlaneBasis& plane) const;
         RKE_API AABB compute_aabb(const PlaneBasis& plane) const;
 
         RKE_API bool valid() const;
-        RKE_API void invalidate_if_unavailable();
-
         RKE_API bool operator==(const Entity& other) const;
         RKE_API bool operator!=(const Entity& other) const;
 
+        inline EntityHandle get_handle() const { return handle_; }
         inline Scene* get_owner() { return owner_scene_; } // mutable
 
-        inline EntityHandle get_handle() const { return handle_; }
         inline bool empty() const { return handle_ == entity_handle_null; }
         inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
 
@@ -117,6 +118,12 @@ export namespace rke
             ScriptManager* script_manager{};
             PhysicsEngine2D* physics_engine{};
             AnimatorSystem* animator_system_{};
+        };
+
+        struct Row
+        {
+            EntityHandle parent{ entity_handle_null };
+            std::vector<EntityHandle> children{};
         };
 
         Scene(Project* owner, String name = u8"Untitled");
@@ -185,6 +192,18 @@ export namespace rke
         }
         void order_entity(Entity entity, Entity before = {});
 
+    // the only way to parent or unparent anything; keeps parent and children in sync
+        bool set_parent(Entity child, Entity parent = {});
+        inline bool set_parent(EntityHandle child, EntityHandle parent = entity_handle_null)
+            { return set_parent(get_entity(child), get_entity(parent)); }
+
+        Entity get_parent(Entity entity) const;
+        std::vector<EntityHandle> get_parent_chain(Entity entity) const;
+        std::pair<const EntityHandle*, Size> get_children(Entity entity) const;
+        
+        inline bool is_root(Entity entity) const { return get_parent(entity).empty(); }
+        std::vector<EntityHandle> get_roots() const;
+
         void set_physics_plane(glm::vec3 axis); // 2D only; may modify
         void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
         void apply_force(Entity entity, glm::vec2 force);
@@ -226,7 +245,8 @@ export namespace rke
         String name_;
 
         Scope<entt::registry> registry_{};
-        std::vector<EntityHandle> all_entities_{};
+        std::vector<EntityHandle> all_entities_{}; // traversal order, owned by order_entity()
+        std::unordered_map<EntityHandle, Row> relations_{}; // hierarchy
         std::vector<EntityHandle> to_destroy_{};
 
         uint32 viewport_w_{}, viewport_h_{};
