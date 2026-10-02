@@ -30,17 +30,8 @@ namespace rke
     }
 
     float PlaneBasis::angle_of(glm::quat orientation) const
-    {
-        return project_angle (
-            glm::mat3_cast(orientation) *
-            glm::vec3(1.0f, 0.0f, 0.0f)
-        );
-    }
+        { return project_angle(glm::mat3_cast(orientation) * glm::vec3(1.0f, 0.0f, 0.0f)); }
 
     glm::quat PlaneBasis::compose_spin(glm::quat orientation, float spin_degrees) const
-    {
-        return glm::angleAxis
-            (glm::radians(spin_degrees), normal_)
-        * orientation;
-    }
+        { return glm::angleAxis(glm::radians(spin_degrees), normal_) * orientation; }
 }
