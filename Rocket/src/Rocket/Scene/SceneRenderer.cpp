@@ -171,12 +171,14 @@ namespace rke
 
         if(reg.all_of<TransformComponent, SpriteComponent>(entity))
         {
-            auto [tex, gtex_settings]{ get_texture(manager, scene->get_entity(handle)) };
+            const Entity self{ scene->get_entity(handle) };
+            auto [tex, gtex_settings]{ get_texture(manager, self) };
             auto& sc{ reg.get<SpriteComponent>(entity) };
             GTexture* gtex{ tex ? tex->get_gtexture(gtex_settings) : nullptr };
             context_->renderer().push(sc.quad, gtex, RenderProps
             {
-                .transform{ reg.get<TransformComponent>(entity).get_transform() },
+            // the accumulated transform, so a child follows its parent
+                .transform{ self.get_world_transform().matrix },
                 .uv_offset{ sc.uv_offset },
                 .uv_scale { sc.uv_scale  },
                 .color{ sc.color }, .entity_handle{ handle }
@@ -199,16 +201,15 @@ namespace rke
         context_->renderer().begin_scene();
         for(entt::entity entity : view)
         {
-            const auto& tc{ view.get<TransformComponent>(entity) };
             const auto& sc{ view.get<SpriteComponent>(entity) };
             if(sc.color.a < 0.01f) continue;
 
-            glm::vec3 pos{ scene->get_entity
-                (static_cast<EntityHandle>(entity)).compute_centre() };
-            glm::vec3 size{ tc.scale * sc.quad->get_size() };
+            const Entity self{ scene->get_entity(static_cast<EntityHandle>(entity)) };
+            glm::vec3 pos { self.compute_centre() };
+            glm::vec3 size{ self.get_world_transform().scale * sc.quad->get_size() };
             if(should_cull(pos, size, planes)) continue;
 
-            EntityHandle handle{ static_cast<EntityHandle>(entity) };
+            EntityHandle handle{ self.get_handle() };
             switch(sc.blending_mode)
             {
             case BlendingMode::Opaque:

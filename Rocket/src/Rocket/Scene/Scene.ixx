@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <functional>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <entt/entt.hpp>
 #include "rke_macros.h"
 
@@ -18,7 +19,6 @@ namespace rke
 
 export module Scene;
 
-import AABB;
 import Plane;
 import Mesh;
 import UUID;
@@ -38,6 +38,15 @@ import EntityAccess;
 
 export namespace rke
 {
+    struct RKE_API WorldTransform
+    {
+        glm::mat4 matrix{ 1.0f };
+        glm::quat rotation{ 1.0f, 0.0f, 0.0f, 0.0f };
+        glm::vec3 scale{ 1.0f };
+
+        WorldTransform composed_with(const TransformComponent& local) const;
+    };
+
     class Entity
     {
     public:
@@ -53,14 +62,14 @@ export namespace rke
 
         RKE_API UUID get_uuid() const;
         RKE_API const Mesh* get_mesh() const;
-
         RKE_API Entity get_parent() const;
-        RKE_API glm::mat4 get_world_transform() const;
+
+        RKE_API WorldTransform get_world_transform() const;
+        RKE_API glm::vec3 to_local_delta(glm::vec3 world_delta) const;
 
         RKE_API glm::vec3 compute_centre() const;
         RKE_API glm::vec2 compute_flat_size(const PlaneBasis& plane) const;
         RKE_API float compute_flat_rotation(const PlaneBasis& plane) const;
-        RKE_API AABB compute_aabb(const PlaneBasis& plane) const;
 
         RKE_API bool valid() const;
         RKE_API bool operator==(const Entity& other) const;
@@ -71,6 +80,7 @@ export namespace rke
 
         inline bool empty() const { return handle_ == entity_handle_null; }
         inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
+        inline bool is_root() const { return get_parent().empty(); }
 
         template<typename Component>
         bool has() const;

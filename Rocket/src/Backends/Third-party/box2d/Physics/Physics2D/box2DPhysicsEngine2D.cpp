@@ -238,6 +238,7 @@ namespace rke
     {
         if(!entity.valid() || !entity.has<Rigidbody2DComponent>())
             { CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!"); return; }
+
         state.depth = glm::dot(entity.compute_centre(), get_plane().get_normal());
         if(b2Body_IsValid(state.body)) return;
 
@@ -362,10 +363,9 @@ namespace rke
         auto view{ get_registry().view<Rigidbody2DComponent>() };
         for(entt::entity ent : view)
         {
+        // do not support sub-entity for now; may modify
             Entity entity{ get_owner().get_entity(static_cast<EntityHandle>(ent)) };
-            if(!entity.valid()) continue;
-            const Mesh* mesh{ entity.get_mesh() };
-            if(!mesh) continue;
+            if(!entity.valid() || !entity.is_root()) continue;
 
             auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
             PhysicsState& state{ state_of(entity.get_handle()) };
@@ -450,16 +450,25 @@ namespace rke
 
             const float angle{ glm::degrees(b2Rot_GetAngle(rotation)) };
             const float delta{ angle - entity.compute_flat_rotation(get_plane()) };
-            if(std::abs(delta) > 0.001f) {
+            if(std::abs(delta) > 0.001f)
+            {
+                const glm::quat parent_rotation
+                    { entity.get_parent().get_world_transform().rotation };
+                const glm::quat local{ glm::quat(glm::radians(tc.rotation)) };
+
                 tc.rotation = glm::degrees(glm::eulerAngles
                 (
-                    get_plane().compose_spin
-                        (glm::quat(glm::radians(tc.rotation)), delta)
+                    glm::inverse(parent_rotation)
+                    * get_plane().compose_spin(parent_rotation * local, delta)
                 ));
             }
 
-            tc.translation += get_plane().to_world({ position.x, position.y }) -
-                (entity.compute_centre() - get_plane().get_normal() * state->depth);
+            const glm::vec3 world_delta
+            {
+                get_plane().to_world({ position.x, position.y }) -
+                (entity.compute_centre() - get_plane().get_normal() * state->depth)
+            };
+            tc.translation += entity.to_local_delta(world_delta);
         }
     }
 

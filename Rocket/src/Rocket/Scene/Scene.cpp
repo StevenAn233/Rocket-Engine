@@ -13,6 +13,16 @@ import SceneHierarchyPanel;
 
 namespace rke
 {
+    WorldTransform WorldTransform::composed_with(const TransformComponent& local) const
+    {
+        return WorldTransform
+        {
+            .matrix  { matrix * local.get_transform() },
+            .rotation{ rotation * glm::quat(glm::radians(local.rotation)) },
+            .scale   { scale * local.scale }
+        };       
+    }
+
     Entity::Entity(EntityHandle handle, Scene* scene)
         : handle_(handle), owner_scene_(scene) {}
 
@@ -50,9 +60,9 @@ namespace rke
         return owner_scene_->get_parent(*this);
     }
 
-    glm::mat4 Entity::get_world_transform() const
+    WorldTransform Entity::get_world_transform() const
     {
-        glm::mat4 world{ glm::mat4(1.0f) };
+        WorldTransform world{};
         if(!valid()) return world;
 
         auto& reg{ *owner_scene_->registry_ };
@@ -62,17 +72,32 @@ namespace rke
             EntityHandle handle{ *it };
             CORE_ASSERT(owner_scene_->is_handle_valid(handle),
                 u8"Entity: Parent handle invalid!");
-            world *= reg.get<TransformComponent>
-                (static_cast<entt::entity>(handle)).get_transform();
+            world = world.composed_with(reg.get<TransformComponent>
+                (static_cast<entt::entity>(handle)));
         }
         return world;
     }
 
+    glm::vec3 Entity::to_local_delta(glm::vec3 world_delta) const
+    {
+        const Entity parent{ get_parent() };
+        if(!parent.valid()) return world_delta;
+
+        const WorldTransform parent_world{ parent.get_world_transform() };
+        const glm::vec3 abs_scale{ glm::abs(parent_world.scale) };
+        if(glm::length(abs_scale) < 1e-6f)
+        {
+            CORE_ERROR(u8"Entity: Parent is scaled to zero, "
+                u8"can't convert a world-space delta!");
+            return glm::vec3(0.0f);
+        }
+        return glm::inverse(glm::mat3(parent_world.matrix)) * world_delta;
+    }
+
     glm::vec3 Entity::compute_centre() const
     {
-        const TransformComponent& tc{ get<TransformComponent>() };
         const Mesh* mesh{ get_mesh() };
-        return glm::vec3(tc.get_transform() *
+        return glm::vec3(get_world_transform().matrix *
             glm::vec4(mesh ? mesh->get_centre() : glm::vec3(0.0f), 1.0f));
     }
 
@@ -80,12 +105,12 @@ namespace rke
     {
         const Mesh* mesh{ get_mesh() };
         if(!mesh) return glm::vec2(0.0f);
-        const TransformComponent& tc{ get<TransformComponent>() };
-        const glm::vec3 raw_size{ mesh->get_size() * glm::abs(tc.scale) };
 
-        const float spin{ glm::radians(compute_flat_rotation(plane)) };
-        const glm::quat untilted{ glm::angleAxis(-spin, plane.get_normal())
-            * glm::quat(glm::radians(tc.rotation)) };
+        const WorldTransform world{ get_world_transform() };
+        const glm::vec3 raw_size{ mesh->get_size() * glm::abs(world.scale) };
+
+        const float spin{ glm::radians(plane.angle_of(world.rotation)) };
+        const glm::quat untilted{ glm::angleAxis(-spin, plane.get_normal()) * world.rotation };
         const glm::mat3 rotation{ glm::mat3_cast(untilted) };
 
         const glm::vec2 x_axis{ plane.to_uv(rotation * glm::vec3(1.0f, 0.0f, 0.0f)) };
@@ -97,24 +122,7 @@ namespace rke
     }
 
     float Entity::compute_flat_rotation(const PlaneBasis& plane) const
-    {
-        return plane.angle_of(glm::quat
-            (glm::radians(get<TransformComponent>().rotation)));
-    }
-
-    AABB Entity::compute_aabb(const PlaneBasis& plane) const
-    {
-        if(!has<BoxCollider2DComponent>()) return AABB{};
-
-        const auto& bcc{ get<BoxCollider2DComponent>() };
-        return AABB (
-            compute_flat_rotation(plane),
-            compute_flat_size(plane),
-            bcc.size_scale * 0.5f,
-            plane.to_uv(compute_centre()),
-            bcc.offset * bcc.size_scale // same units as the size, so it scales with it
-        );
-    }
+        { return plane.angle_of(get_world_transform().rotation); }
 
     void Entity::check_assert() const { CORE_ASSERT(valid(), u8"Entity: Invalid!"); }
 
@@ -403,6 +411,12 @@ namespace rke
             return false;
         }
 
+        if(child.has<Rigidbody2DComponent>())
+        {
+            CORE_WARN(u8"Scene: Child physics not supported yet!");
+            return false;
+        }
+
     // a loop would make get_parent_chain() unbounded and the world transform undefined
         for(Entity ancestor{ parent }; ancestor.valid(); ancestor = get_parent(ancestor))
             if(ancestor == child)
@@ -517,14 +531,15 @@ namespace rke
     void Scene::grip_move_entity(Entity entity, glm::vec3 delta, double dt)
     {
         if(!entity.belongs_to(this) || !entity.valid()) return;
-        entity.get_mut<TransformComponent>().translation += delta;
+        entity.get_mut<TransformComponent>().translation += entity.to_local_delta(delta);
 
     // clear previously-accumulated(force/mass * dt) velocity
         if(entity.has<Rigidbody2DComponent>())
         {
             auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
             if(dt > 0.0) {
-                rbc.velocity = { delta.x / dt, delta.y / dt };
+                rbc.velocity = physics_engine_->get_plane()
+                    .to_uv(delta) / static_cast<float>(dt);
                 rbc.angular_velocity = 0.0f;
             }
         }
