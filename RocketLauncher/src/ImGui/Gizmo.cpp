@@ -42,11 +42,13 @@ namespace rke::gizmo
         const glm::mat4& cam_view{ cam.get_view() };
 
         auto& tc{ selected_entity.get_mut<TransformComponent>() };
-        glm::mat4 transform { // ignore anchor
+        glm::mat4 parent_mat{ selected_entity
+            .get_parent().get_world_transform().matrix };
+        glm::mat4 transform { parent_mat *
             glm::translate(glm::mat4(1.0f), tc.translation) *
             glm::mat4_cast(glm::quat(glm::radians(tc.rotation))) *
             glm::scale(glm::mat4(1.0f), tc.scale)
-        }; // may modify(but i think this is pretty good)
+        }; // ignore anchor
 
         float snap_value{ 0.5f };
         if(gizmo_mode == ImGuizmo::OPERATION::ROTATE) snap_value = 45.0f;
@@ -63,9 +65,10 @@ namespace rke::gizmo
 
         if(ImGuizmo::IsUsing() && !mouse_blocked)
         {
+            glm::mat4 local{ glm::inverse(parent_mat) * transform };
             ImGuizmo::DecomposeMatrixToComponents
             (
-                glm::value_ptr(transform),
+                glm::value_ptr(local),
                 glm::value_ptr(tc.translation),
                 glm::value_ptr(tc.rotation),
                 glm::value_ptr(tc.scale)

@@ -13,14 +13,11 @@ import SceneHierarchyPanel;
 
 namespace rke
 {
-    WorldTransform WorldTransform::composed_with(const TransformComponent& local) const
+    void WorldTransform::compose_with(const TransformComponent& local)
     {
-        return WorldTransform
-        {
-            .matrix  { matrix * local.get_transform() },
-            .rotation{ rotation * glm::quat(glm::radians(local.rotation)) },
-            .scale   { scale * local.scale }
-        };       
+        matrix   *= local.get_transform();
+        rotation *= glm::quat(glm::radians(local.rotation));
+        scale    *= local.scale;
     }
 
     Entity::Entity(EntityHandle handle, Scene* scene)
@@ -72,8 +69,8 @@ namespace rke
             EntityHandle handle{ *it };
             CORE_ASSERT(owner_scene_->is_handle_valid(handle),
                 u8"Entity: Parent handle invalid!");
-            world = world.composed_with(reg.get<TransformComponent>
-                (static_cast<entt::entity>(handle)));
+            world.compose_with(reg.get
+                <TransformComponent>(static_cast<entt::entity>(handle)));
         }
         return world;
     }

@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <functional>
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <entt/entt.hpp>
 #include "rke_macros.h"
 
@@ -44,7 +43,7 @@ export namespace rke
         glm::quat rotation{ 1.0f, 0.0f, 0.0f, 0.0f };
         glm::vec3 scale{ 1.0f };
 
-        WorldTransform composed_with(const TransformComponent& local) const;
+        void compose_with(const TransformComponent& local);
     };
 
     class Entity
