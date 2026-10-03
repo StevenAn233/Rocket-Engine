@@ -194,24 +194,40 @@ export namespace rke
 
         template<typename Func>
         requires std::invocable<Func, Entity>
-        void for_each_entity(Func&& func) const
+        void for_each_entity(Func&& func) const // tree order
         {
-            for(auto handle : all_entities_)
-                std::invoke(std::forward<Func>(func), get_entity(handle));
+            std::vector<EntityHandle> stack{};
+            stack.reserve(registry_->view<entt::entity>().size());
+
+            const auto [roots, root_count]{ get_roots() };
+            for(Size i{ root_count }; i > 0; --i) stack.push_back(roots[i - 1]);
+            while(!stack.empty())
+            {
+                const EntityHandle handle{ stack.back() };
+                stack.pop_back();
+
+                Entity entity{ get_entity(handle) };
+                if(!entity.valid()) continue;
+                std::invoke(std::forward<Func>(func), entity);
+                if(!entity.valid()) continue; // the callback may have destroyed it
+
+                const auto [children, child_count]{ get_children(entity) };
+                for(Size i{ child_count }; i > 0; --i) stack.push_back(children[i - 1]);
+            }
         }
         void order_entity(Entity entity, Entity before = {});
-
-    // the only way to parent or unparent anything; keeps parent and children in sync
-        bool set_parent(Entity child, Entity parent = {});
-        inline bool set_parent(EntityHandle child, EntityHandle parent = entity_handle_null)
-            { return set_parent(get_entity(child), get_entity(parent)); }
+        bool set_parent(Entity child, Entity parent = {}, Entity before = {});
+        inline bool set_parent(EntityHandle child,
+            EntityHandle parent = entity_handle_null,
+            EntityHandle before = entity_handle_null
+        ) { return set_parent(get_entity(child), get_entity(parent), get_entity(before)); }
 
         Entity get_parent(Entity entity) const;
         std::vector<EntityHandle> get_parent_chain(Entity entity) const;
         std::pair<const EntityHandle*, Size> get_children(Entity entity) const;
         
         inline bool is_root(Entity entity) const { return get_parent(entity).empty(); }
-        std::vector<EntityHandle> get_roots() const;
+        std::pair<const EntityHandle*, Size> get_roots() const;
 
         void set_physics_plane(glm::vec3 axis); // 2D only; may modify
         void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
@@ -247,6 +263,7 @@ export namespace rke
         inline void mark_modified() const { modified_ = true; }
         inline void mark_modified_if(bool condition) const { if(condition) modified_ = true; }
     private:
+        void reset_relations();
         void flush_destroy_queue();
         const AnimatorSystem::AnimPlayState* animator_state(Entity entity); // for SceneHierarchyPanel
     private:
@@ -254,8 +271,7 @@ export namespace rke
         String name_;
 
         Scope<entt::registry> registry_{};
-        std::vector<EntityHandle> all_entities_{}; // traversal order, owned by order_entity()
-        std::unordered_map<EntityHandle, Row> relations_{}; // hierarchy
+        std::unordered_map<EntityHandle, Row> relations_{};
         std::vector<EntityHandle> to_destroy_{};
 
         uint32 viewport_w_{}, viewport_h_{};

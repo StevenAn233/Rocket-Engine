@@ -144,6 +144,7 @@ namespace rke
         : owner_(owner), name_(std::move(name))
     {
         registry_ = create_scope<entt::registry>();
+        reset_relations();
 
         script_manager_ = create_scope<ScriptManager>(this);
         physics_engine_ = PhysicsEngine2D::create(this);
@@ -200,7 +201,6 @@ namespace rke
                     emplace_or_replace<ComponentType>(src_entt, src_com);
             }
         });
-        new_scene->all_entities_ = all_entities_; // deep copy
         new_scene->relations_ = relations_; // keys are EntityHandles, reused verbatim above
 
         // after IdentityComponents are copied
@@ -220,8 +220,8 @@ namespace rke
         CORE_ASSERT(entity.handle_ != entity_handle_null,
             u8"Scene: Failed to create entity!");
 
-        all_entities_.push_back(entity.handle_);
         relations_.emplace(entity.handle_, Row{});
+        relations_[entity_handle_null].children.push_back(entity.handle_);
 
         entity.emplace<IdentityComponent>(tag.c_str(), uuid);
         if(!uuid.empty()) entity_map_[entity.get_uuid()] = entity.handle_;
@@ -245,20 +245,16 @@ namespace rke
         auto it{ relations_.find(entity.get_handle()) };
         CORE_ASSERT(it != relations_.end(), u8"Scene: Entity invalid!");
 
-    // Children are promoted to roots instead of being destroyed with their parent    
-        const auto& row{ it->second };
-        if(row.parent != entity_handle_null)
+        const EntityHandle handle{ entity.get_handle() };
         {
-            auto parent_it{ relations_.find(row.parent) };
-            if(parent_it != relations_.end())
-                std::erase(parent_it->second.children, entity.get_handle());
+            auto parent_it{ relations_.find(it->second.parent) };
+            CORE_ASSERT(parent_it != relations_.end(), u8"Scene: Parent invalid!")
+            std::erase(parent_it->second.children, handle);
         }
-        for(EntityHandle child : row.children)
-            set_parent(child, entity_handle_null);
-        relations_.erase(it);
-        
-        std::erase_if(all_entities_, [&entity](EntityHandle handle)
-            { return handle == entity.get_handle(); });
+        const std::vector<EntityHandle> orphans{ it->second.children };
+        for(EntityHandle child : orphans) set_parent(child, entity_handle_null);
+
+        relations_.erase(handle);        
         to_destroy_.push_back(entity.get_handle());
         mark_modified();
     }
@@ -393,7 +389,7 @@ namespace rke
         demo_cam_ = entity;
     }
 
-    bool Scene::set_parent(Entity child, Entity parent)
+    bool Scene::set_parent(Entity child, Entity parent, Entity before)
     {
         if(!child.belongs_to(this) || !child.valid()) {
             CORE_ERROR(u8"Scene: Can't parent an entity that isn't in this scene!");
@@ -408,40 +404,46 @@ namespace rke
             return false;
         }
 
-        if(child.has<Rigidbody2DComponent>())
-        {
-            CORE_WARN(u8"Scene: Child physics not supported yet!");
-            return false;
-        }
-
-    // a loop would make get_parent_chain() unbounded and the world transform undefined
-        for(Entity ancestor{ parent }; ancestor.valid(); ancestor = get_parent(ancestor))
-            if(ancestor == child)
-            {
-                CORE_ERROR(u8"Scene: Can't parent entity '{}' "
-                    u8"to its own descendant!", child.get_uuid().value());
-                return false;
-            }
-
         const EntityHandle child_handle{ child.get_handle() };
         const EntityHandle new_parent{ parent.get_handle() };
 
-    // unbind old relations
         const auto child_it{ relations_.find(child_handle) };
-        if(child_it != relations_.end())
-        {
-            const EntityHandle old_parent{ child_it->second.parent };
-            if(old_parent == new_parent) return false;
-
-            if(old_parent != entity_handle_null)
-                if(auto it{ relations_.find(old_parent) }; it != relations_.end())
-                    std::erase(it->second.children, child_handle);
+        if(child_it == relations_.end()) {
+            CORE_ERROR(u8"Scene: Entity in registry but doesn't have relations!");
+            return false;
         }
+        const EntityHandle old_parent{ child_it->second.parent };
+
+        if(old_parent != new_parent) // validation check
+        {
+            if(!parent.empty() && child.has<Rigidbody2DComponent>())
+            {
+                CORE_WARN(u8"Scene: Child physics not supported yet!");
+                return false;
+            }
+
+        // a loop would make get_parent_chain() unbounded and the world transform undefined
+            for(Entity ancestor{ parent }; ancestor.valid(); ancestor = get_parent(ancestor))
+                if(ancestor == child)
+                {
+                    CORE_ERROR(u8"Scene: Can't parent entity '{}' "
+                        u8"to its own descendant!", child.get_uuid().value());
+                    return false;
+                }
+        }
+
+    // unbind old relations
+        if(child_it != relations_.end())
+            if(auto it{ relations_.find(old_parent) }; it != relations_.end())
+                std::erase(it->second.children, child_handle);
         
-    // bind new relations
+    // bind new relations, at the requested position
+        auto& list{ relations_[new_parent].children };
+        const auto pos{ before.empty() ? list.end()
+            : std::find(list.begin(), list.end(), before.get_handle()) };
+        list.insert(pos, child_handle);
+
         relations_[child_handle].parent = new_parent;
-        if(new_parent != entity_handle_null)
-            relations_[new_parent].children.push_back(child_handle);
 
         mark_modified();
         return true;
@@ -479,7 +481,9 @@ namespace rke
 
     std::pair<const EntityHandle*, Size> Scene::get_children(Entity entity) const
     {
-        if(!entity.belongs_to(this) || !entity.valid()) return { nullptr, 0 };
+        if(!entity.empty() && (!entity.belongs_to(this) || !entity.valid()))
+            return { nullptr, 0 };
+
         const auto it{ relations_.find(entity.get_handle()) };
         if(it == relations_.end()) {
             CORE_ERROR(u8"Scene: Entity in registry but doesn't have relations!");
@@ -489,37 +493,14 @@ namespace rke
         return { children.data(), children.size() };
     }
 
-    std::vector<EntityHandle> Scene::get_roots() const
-    {
-        std::vector<EntityHandle> roots{};
-        for_each_entity([this, &roots](Entity entity)
-        {
-            if(!entity.empty() && is_root(entity))
-                roots.push_back(entity.get_handle());
-        });
-        return roots;
-    }
+    std::pair<const EntityHandle*, Size> Scene::get_roots() const
+        { return get_children(Entity{}); }
 
     void Scene::order_entity(Entity entity, Entity before)
     {
-        if(entity.empty() || !entity.belongs_to(this)) return;
+        if(entity.empty() || !entity.belongs_to(this) || !entity.valid()) return;
         if(before == entity) return; // dropped right onto itself
-
-        if(!before.belongs_to(this)) before = {};
-
-        const EntityHandle handle{ entity.get_handle() };
-        auto it{ std::find(all_entities_.begin(), all_entities_.end(), handle) };
-        if(it == all_entities_.end()) return;
-        all_entities_.erase(it);
-
-        const EntityHandle target{ before.valid() ?
-            before.get_handle() : entity_handle_null };
-
-        auto at{ target == entity_handle_null ? all_entities_.end()
-            : std::find(all_entities_.begin(), all_entities_.end(), target) };
-        all_entities_.insert(at, handle);
-
-        mark_modified();
+        (void)set_parent(entity, get_parent(entity), before);
     }
 
     void Scene::set_physics_plane(glm::vec3 axis)
@@ -612,8 +593,7 @@ namespace rke
             return;
         }
         registry_ ->clear();
-        all_entities_.clear();
-        relations_.clear();
+        reset_relations();
         to_destroy_.clear();
         entity_map_.clear();
         demo_cam_ = {};
@@ -674,6 +654,12 @@ namespace rke
         if(!in_runtime()) return;
         script_manager_->on_mouse_scrolled
             (e.get_x_offset(), e.get_y_offset());
+    }
+
+    void Scene::reset_relations()
+    {
+        relations_.clear();
+        relations_.emplace(entity_handle_null, Row{});
     }
 
     void Scene::flush_destroy_queue()
