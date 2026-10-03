@@ -11,7 +11,9 @@ namespace
     {
         if(!scene) return;
         if(ImGui::MenuItem("Copy"))
-            scene->set_selected_entity(scene->copy_entity(entity)); // may modify
+            scene->set_selected_entity(scene->copy_entity(entity));
+        if(ImGui::MenuItem("Create Child"))
+            scene->set_selected_entity(entity.create_child());
         ImGui::Separator();
         if(ImGui::MenuItem("Delete")) scene->destroy_entity(entity);
     }

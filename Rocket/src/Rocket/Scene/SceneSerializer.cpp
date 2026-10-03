@@ -148,7 +148,7 @@ namespace {
     {
         UUID uuid{ reader.get_at(u8"Entity", 0ui64) };
         String name{ reader.get_at(u8"Tag", String{}) };
-        Entity entity{ scene.create_entity(name, uuid) };
+        Entity entity{ scene.create_entity({}, name, uuid) };
 
         Scope<ConfigReader> tc_reader{ reader.get_child(u8"Transform Component") };
         if(tc_reader) {

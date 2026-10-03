@@ -60,8 +60,15 @@ export namespace rke
         RKE_API Entity& operator=(Entity&&) = default;
 
         RKE_API UUID get_uuid() const;
+        RKE_API StringView get_tag() const;
         RKE_API const Mesh* get_mesh() const;
+
         RKE_API Entity get_parent() const;
+        RKE_API std::pair<const EntityHandle*, Size> get_children() const;
+
+        RKE_API Entity create_child();
+        RKE_API void detach_child(Entity child);
+        RKE_API void detach_all_children();
 
         RKE_API WorldTransform get_world_transform() const;
         RKE_API glm::vec3 to_local_delta(glm::vec3 world_delta) const;
@@ -80,6 +87,7 @@ export namespace rke
         inline bool empty() const { return handle_ == entity_handle_null; }
         inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
         inline bool is_root() const { return get_parent().empty(); }
+        inline bool has_any_child() const { return get_children().second > 0; }
 
         template<typename Component>
         bool has() const;
@@ -129,12 +137,6 @@ export namespace rke
             AnimatorSystem* animator_system_{};
         };
 
-        struct Row
-        {
-            EntityHandle parent{ entity_handle_null };
-            std::vector<EntityHandle> children{};
-        };
-
         Scene(Project* owner, String name = u8"Untitled");
         ~Scene();
 
@@ -149,7 +151,10 @@ export namespace rke
 
         Scope<Scene> duplicate(bool temp = true); // will copy entity uuid
 
-        Entity create_entity(const String& tag = String(u8"New Entity"), UUID uuid = {});
+        Entity create_entity(Entity parent = {},
+            const String& tag = String(u8"New Entity"),
+            UUID uuid = {});
+        Entity copy_entity(Entity entity); // will not copy entity uuid
 
         void destroy_entity(Entity entity);
         inline void destroy_entity(EntityHandle handle)
@@ -167,11 +172,6 @@ export namespace rke
         const Entity get_entity(UUID uuid) const;
         inline Entity get_selected_entity() const { return selected_entity_; }
         inline Entity get_master_camera() const { return master_cam_; }
-
-    // will not copy entity uuid!
-        Entity copy_entity_towards(Entity entity, Scene* owner);
-        inline Entity copy_entity(Entity entity)
-            { return copy_entity_towards(entity, this); }
 
         void set_selected_entity(Entity entity);
         inline void set_selected_entity(EntityHandle handle)
@@ -222,10 +222,15 @@ export namespace rke
             EntityHandle before = entity_handle_null
         ) { return set_parent(get_entity(child), get_entity(parent), get_entity(before)); }
 
+        void detach_child(Entity entity, Entity child);
+        void detach_all_children(Entity entity);
+
         Entity get_parent(Entity entity) const;
         std::vector<EntityHandle> get_parent_chain(Entity entity) const;
         std::pair<const EntityHandle*, Size> get_children(Entity entity) const;
-        
+        inline bool has_any_child(Entity entity) const
+            { return get_children(entity).second > 0; }
+
         inline bool is_root(Entity entity) const { return get_parent(entity).empty(); }
         std::pair<const EntityHandle*, Size> get_roots() const;
 
@@ -263,6 +268,7 @@ export namespace rke
         inline void mark_modified() const { modified_ = true; }
         inline void mark_modified_if(bool condition) const { if(condition) modified_ = true; }
     private:
+        bool vertified(Entity entity) const;
         void reset_relations();
         void flush_destroy_queue();
         const AnimatorSystem::AnimPlayState* animator_state(Entity entity); // for SceneHierarchyPanel
@@ -270,8 +276,14 @@ export namespace rke
         Project* owner_;
         String name_;
 
+        struct Relation
+        {
+            EntityHandle parent{ entity_handle_null };
+            std::vector<EntityHandle> children{};
+        };
+
         Scope<entt::registry> registry_{};
-        std::unordered_map<EntityHandle, Row> relations_{};
+        std::unordered_map<EntityHandle, Relation> relations_{};
         std::vector<EntityHandle> to_destroy_{};
 
         uint32 viewport_w_{}, viewport_h_{};

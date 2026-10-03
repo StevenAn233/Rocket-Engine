@@ -129,11 +129,8 @@ namespace rke
     {
         if(camera.valid() && camera.belongs_to(scene) && camera.has<CameraComponent>())
         {
-            const auto& tc{ camera.get<TransformComponent>() };
             const auto& proj{ camera.get<CameraComponent>().camera.get_proj() };
-
-            glm::mat4 view_proj{ proj * glm::inverse(tc.get_transform()) };
-        // a camera has no mesh, so this is just its translation
+            glm::mat4 view_proj{ proj * glm::inverse(camera.get_world_transform().matrix) };
             return render(scene, view_proj, camera.compute_centre());
         }
         return nullptr;

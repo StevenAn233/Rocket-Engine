@@ -29,17 +29,16 @@ namespace rke
             if(target.has<SpriteComponent>())
             {
                 context_->renderer().begin_scene();
-
-                const auto& tc{ target.get<TransformComponent>() };
-                const auto& sc{ target.get<SpriteComponent>() };
-                context_->renderer().push(sc.quad, nullptr,
+                context_->renderer().push
+                (
+                    target.get<SpriteComponent>().quad, nullptr,
                     RenderProps {
-                        .transform{ tc.get_transform() },
+                        .transform{ target.get_world_transform().matrix },
                         .color{ glm::vec4(1.0f) }
-                    });
+                    }
+                );
                 context_->renderer().end_scene();
             }
-        //  else if(target_.has<MeshComponent>()) {...}
         });
 
         auto* silhouette{ outline_fbo_->get_gtexture_attached() };
