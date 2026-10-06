@@ -389,13 +389,7 @@ namespace rke
             else hovering_id_ = entity_handle_null;
         }
         else if(testing())
-        {
-            main_output_ = main_renderer_.render
-            (
-                scene_test_.get(),
-                scene_test_->get_master_camera()
-            );
-        }
+            main_output_ = main_renderer_.render(scene_test_->get_master_camera());
         else { main_output_ = nullptr; }
 
         if(scene_edit_ && cam_viewport_->on() && current_scene()
@@ -404,7 +398,7 @@ namespace rke
             Scene& scene{ *current_scene() };
             auto cv_size{ cam_viewport_->get_size() };
             scene.set_viewport(static_cast<uint32>(cv_size.x), static_cast<uint32>(cv_size.y));
-            cam_output_ = cam_renderer_.render(&scene, scene.get_demo_camera());
+            cam_output_ = cam_renderer_.render(scene.get_demo_camera());
             auto mv_size{ main_viewport_->get_size() };
             scene.set_viewport(static_cast<uint32>(mv_size.x), static_cast<uint32>(mv_size.y));
         }

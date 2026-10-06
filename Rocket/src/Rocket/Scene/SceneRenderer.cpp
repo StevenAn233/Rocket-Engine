@@ -11,16 +11,18 @@ import Texture;
 
 namespace
 {
-    using namespace rke;
-
-    static bool should_cull(glm::vec3 pos, glm::vec2 size,
-        const std::array<glm::vec4, 6>& frustum_planes)
+    static bool should_cull(glm::vec3 pos, const glm::mat3& axes,
+        glm::vec3 half_size, const std::array<glm::vec4, 6>& frustum_planes)
     {
-        float radius{ glm::length(size) * 0.5f };
         for(const auto& plane : frustum_planes)
         {
-            if((glm::dot(glm::vec3(plane), pos) + plane.w) < -radius)
-                return true;
+            const glm::vec3 normal{ glm::vec3(plane) };
+            const float support {
+                half_size.x * std::abs(glm::dot(axes[0], normal))
+              + half_size.y * std::abs(glm::dot(axes[1], normal))
+              + half_size.z * std::abs(glm::dot(axes[2], normal))
+            };
+            if(glm::dot(normal, pos) + plane.w + support < 0.0f) return true;
         }
         return false;
     }
@@ -51,6 +53,7 @@ namespace
         };
     }
 
+    using namespace rke;
     static std::pair<Texture*, GTextureSettings> get_texture(AssetsManager& am, Entity entity)
     {
         if(!entity.is_valid() || !entity.has<SpriteComponent>()) return { nullptr, {} };
@@ -125,13 +128,13 @@ namespace rke
         return post_processor_.process(scene_fbo_->get_gtexture_attached(0));
     }
 
-    const GTexture2D* SceneRenderer::render(const Scene* scene, Entity camera)
+    const GTexture2D* SceneRenderer::render(Entity camera)
     {
-        if(camera.is_valid() && camera.belongs_to(scene) && camera.has<CameraComponent>())
+        if(camera.is_valid() && camera.has<CameraComponent>())
         {
             const auto& proj{ camera.get<CameraComponent>().camera.get_proj() };
             glm::mat4 view_proj{ proj * glm::inverse(camera.get_world_transform().matrix) };
-            return render(scene, view_proj, camera.compute_centre());
+            return render(camera.get_owner(), view_proj, camera.compute_centre());
         }
         return nullptr;
     }
@@ -192,21 +195,23 @@ namespace rke
     // frustum culling
         auto planes{ get_planes_normal(vp) };
         AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager_mut() };
-        auto view{ scene->registry_->view<TransformComponent, SpriteComponent>() };
-
+        
         transparent_queue_.clear();
         context_->renderer().begin_scene();
-        for(entt::entity entity : view)
+        auto view{ scene->registry_->view<TransformComponent, SpriteComponent>() };
+        for(entt::entity ent : view)
         {
-            const auto& sc{ view.get<SpriteComponent>(entity) };
+            const auto& sc{ view.get<SpriteComponent>(ent) };
             if(sc.color.a < 0.01f) continue;
 
-            const Entity self{ scene->get_entity(static_cast<EntityHandle>(entity)) };
-            glm::vec3 pos { self.compute_centre() };
-            glm::vec3 size{ self.get_world_transform().scale * sc.quad->get_size() };
-            if(should_cull(pos, size, planes)) continue;
+            const EntityHandle handle{ static_cast<EntityHandle>(ent) };
+            const Entity entity{ scene->get_entity(handle) };
+            const glm::mat4 world_mat{ entity.get_world_transform().matrix };
+            const glm::vec3 pos{ glm::vec3(world_mat * glm::vec4(sc.quad->get_centre(), 1.0f)) };
+            const glm::mat3 axes{ glm::mat3(world_mat) };
+            const glm::vec3 half_size{ 0.5f * sc.quad->get_size() };
+            if(should_cull(pos, axes, half_size, planes)) continue;
 
-            EntityHandle handle{ self.get_handle() };
             switch(sc.blending_mode)
             {
             case BlendingMode::Opaque:

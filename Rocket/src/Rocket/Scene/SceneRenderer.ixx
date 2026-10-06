@@ -35,7 +35,7 @@ export namespace rke
         Scope<PostProcessEffect> pop_effect();
         void refresh_post_processor_shaders();
         const GTexture2D* render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
-        const GTexture2D* render(const Scene* scene, Entity camera);
+        const GTexture2D* render(Entity camera);
 
         void on_viewport_resized(uint32 w, uint32 h);
 
