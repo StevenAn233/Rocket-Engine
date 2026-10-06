@@ -3,6 +3,7 @@ module ScriptManager;
 
 import Log;
 import Scene;
+import Script;
 import Project;
 import ScriptRegistry;
 
@@ -15,21 +16,7 @@ namespace rke
             .connect<&on_script_com_destroy>();
     }
 
-    void ScriptManager::on_runtime_start()
-    {
-        align_cache();
-        Size index{};
-        auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        for(auto&& [ent, nsc] : storage.reach())
-        {
-        #ifdef RKE_DEBUG
-            CORE_ASSERT(index == storage.index(ent),
-                u8"ScriptManager: Indices are not matching: {}, {}!",
-                index, storage.index(ent));
-        #endif
-            refresh_cache(static_cast<EntityHandle>(ent), nsc, index++);
-        }
-    }
+    void ScriptManager::on_runtime_start() { sync_all_to_cache(); }
 
     void ScriptManager::on_runtime_stop()
     {
@@ -78,7 +65,7 @@ namespace rke
             contact_callback(contact.entity_a, contact.entity_b, ContactType::SensorEnd);
     }
 
-    Scope<Script> ScriptManager::create_script(ScriptType type, EntityHandle owner)
+    Scope<Script> ScriptManager::create_script(ScriptType type, EntityHandle handle)
     {
         if(type == script_type_null) return nullptr;
 
@@ -89,7 +76,8 @@ namespace rke
             CORE_ERROR(u8"ScriptManager: Failed to create script!");
             return nullptr;
         }
-        script->owner_ = owner_->get_entity(owner);
+        script->owner_handle_ = handle;
+        script->owner_scene_  = owner_;
         script->on_create();
         return script;
     }
@@ -113,19 +101,18 @@ namespace rke
     }
 
     ScriptManager::RuntimeCache* ScriptManager::refresh_cache
-        (EntityHandle handle, NativeScriptComponent& nsc, Size index)
+        (EntityHandle handle, ScriptType type, Size index)
     {
-        const entt::entity ent{ static_cast<entt::entity>(handle) };
         CORE_ASSERT(index < script_cache_.size(),
             u8"ScriptManager: Index out of bound!");
         RuntimeCache& cache{ script_cache_[index] };
 
-        if(cache.owner != handle || cache.script_type != nsc.script_type)
+        if(cache.owner != handle || cache.script_type != type)
         {
             destroy_script(std::move(cache.script));
             cache.owner       = handle;
-            cache.script_type = nsc.script_type;
-            cache.script      = create_script(nsc.script_type, handle);
+            cache.script_type = type;
+            cache.script      = create_script(type, handle);
         }
         return &cache;
     }
@@ -142,37 +129,47 @@ namespace rke
                 u8"ScriptManager: Indices are not matching: {}, {}!",
                 index, storage.index(ent));
         #endif
-            refresh_cache(static_cast<EntityHandle>(ent), nsc, index++);
+            refresh_cache(static_cast<EntityHandle>(ent), nsc.script_type, index++);
         }
     }
 
     void ScriptManager::flush_scripts() { graveyard_.clear(); }
 
     void ScriptManager::contact_callback
-        (EntityHandle owner_handle, EntityHandle other_handle, ContactType type)
+        (EntityHandle lhs, EntityHandle rhs, ContactType type)
     {
-        Entity owner{ owner_->get_entity(owner_handle) };
-        if(!owner.valid() || !owner.has<NativeScriptComponent>()) return;
-
-        Entity other{ owner_->get_entity(other_handle) };
-        if(!other.valid()) return;
+        if(!owner_->is_handle_valid(lhs) || !owner_->is_handle_valid(rhs)) return;
+        entt::entity ent{ static_cast<entt::entity>(lhs) };
+        if(!owner_->registry_->all_of<NativeScriptComponent>(ent)) return;
 
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        entt::entity ent{ static_cast<entt::entity>(owner_handle) };
         const Size index{ storage.index(ent) };
         auto& nsc{ storage.get(ent) };
 
-        RuntimeCache* cache{ refresh_cache(owner_handle, nsc, index) };
+        RuntimeCache* cache{ refresh_cache(lhs, nsc.script_type, index) };
         if(!cache || !cache->script) return;
-        Script& script{ *(cache->script) };
+        Script& script{ *(cache->script) }; // belongs to entity(lhs)
         switch(type)
         {
-        case ContactType::SolidBegin:  script.on_contact_solid_begin (other); break;
-        case ContactType::SolidEnd:    script.on_contact_solid_end   (other); break;
-        case ContactType::SensorBegin: script.on_contact_sensor_begin(other); break;
-        case ContactType::SensorEnd:   script.on_contact_sensor_end  (other); break;
+        case ContactType::SolidBegin:  script.on_contact_solid_begin (rhs); break;
+        case ContactType::SolidEnd:    script.on_contact_solid_end   (rhs); break;
+        case ContactType::SensorBegin: script.on_contact_sensor_begin(rhs); break;
+        case ContactType::SensorEnd:   script.on_contact_sensor_end  (rhs); break;
         default: break;
         }
+    }
+
+    Script* ScriptManager::get_script(EntityHandle handle)
+    {
+        if(!owner_->in_runtime()) return nullptr;
+        Entity entity{ owner_->get_entity(handle) };
+        if(!entity.is_valid() || !entity.has<NativeScriptComponent>()) return nullptr;
+        auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
+        const auto* cache{ refresh_cache(handle,
+            entity.get<NativeScriptComponent>().script_type,
+            storage.index(static_cast<entt::entity>(handle))
+        )};
+        return cache ? cache->script.get() : nullptr;
     }
 
     void ScriptManager::on_script_com_destroy(entt::registry& reg, entt::entity ent)
@@ -182,9 +179,6 @@ namespace rke
 
         auto& script_cache{ ctx.script_manager->script_cache_ };
         auto& storage{ reg.storage<NativeScriptComponent>() };
-    // fires *before* EnTT pops the element: mirror the upcoming swap-and-pop
-    // while both arrays are in sync, otherwise let the per-frame identity
-    // check of refresh_cache() repair the cache on its own.
         if(script_cache.size() != storage.size()) return;
         CORE_ASSERT(storage.contains(ent),
             u8"ScriptManager: Entity doesn't has script component!");

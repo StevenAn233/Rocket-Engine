@@ -49,7 +49,7 @@ namespace {
 // for one-way callback
     static bool is_one_way(Entity entity)
     {
-        return entity.valid() && entity.has<BoxCollider2DComponent>()
+        return entity.is_valid() && entity.has<BoxCollider2DComponent>()
             && entity.get<BoxCollider2DComponent>().type == ColliderType::OneWay;
     }
 
@@ -154,13 +154,11 @@ namespace rke
 
     bool box2DPhysicsEngine2D::empty() const { return B2_IS_NULL(physics_world_); }
 
-    void box2DPhysicsEngine2D::apply_force(Entity entity, glm::vec2 force)
+    void box2DPhysicsEngine2D::apply_force(EntityHandle handle, glm::vec2 force)
     {
-        if(empty() || !entity.valid()) return;
-
-        const PhysicsState* state{ find_state(entity.get_handle()) };
+        if(empty() || !get_owner().is_handle_valid(handle)) return;
+        const PhysicsState* state{ find_state(handle) };
         if(!state || !b2Body_IsValid(state->body)) return;
-
         b2Body_ApplyForceToCenter(state->body, b2Vec2(force.x, force.y), true);
     }
 
@@ -210,7 +208,7 @@ namespace rke
 
     // mass changes once the shape is gone: write it back if the component is still there
         Entity entity{ get_owner().get_entity(handle) };
-        if(entity.valid() && entity.has<Rigidbody2DComponent>()
+        if(entity.is_valid() && entity.has<Rigidbody2DComponent>()
         && b2Body_IsValid(it->second.body))
             entity.get_mut<Rigidbody2DComponent>().mass = b2Body_GetMass(it->second.body);
     }
@@ -234,10 +232,15 @@ namespace rke
         return entity_handle_null;
     }
 
-    void box2DPhysicsEngine2D::ensure_body(Entity entity, PhysicsState& state)
+    void box2DPhysicsEngine2D::ensure_body(EntityHandle handle, PhysicsState& state)
     {
-        if(!entity.valid() || !entity.has<Rigidbody2DComponent>())
-            { CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!"); return; }
+        Entity entity{ get_owner().get_entity(handle) };
+        if(!entity.is_valid() || !entity.has<Rigidbody2DComponent>())
+        {
+            CORE_WARN(u8"box2DPhysicsEngine2D: "
+                u8"Entity '{}' not valid!", entity.get_tag());
+            return;
+        }
 
         state.depth = glm::dot(entity.compute_centre(), get_plane().get_normal());
         if(b2Body_IsValid(state.body)) return;
@@ -255,12 +258,14 @@ namespace rke
         CORE_ASSERT(B2_IS_NON_NULL(state.body), u8"box2dPhysicsEngine2D: Body id null!");
     }
 
-    void box2DPhysicsEngine2D::create_shape
-        (Entity entity, PhysicsState& state, const PhysicsLayers& layers)
+    void box2DPhysicsEngine2D::create_shape(EntityHandle handle,
+        PhysicsState& state, const PhysicsLayers& layers)
     {
-        if(!entity.valid() || !entity.has<BoxCollider2DComponent>())
+        Entity entity{ get_owner().get_entity(handle) };
+        if(!entity.is_valid() || !entity.has<BoxCollider2DComponent>())
         {
-            CORE_ERROR(u8"box2DPhysicsEngine2D: Entity not valid!");
+            CORE_ERROR(u8"box2DPhysicsEngine2D: "
+                u8"Entity '{}' not valid!", entity.get_tag());
             return;
         }
         if(!entity.has<Rigidbody2DComponent>()) return;
@@ -270,14 +275,12 @@ namespace rke
             return;
         }
 
-        if(b2Shape_IsValid(state.shape))
-            { CORE_ERROR(u8"box2DPhysicsEngine2D: Already has shape!"); return; }
+        if(b2Shape_IsValid(state.shape)) {
+            CORE_ERROR(u8"box2DPhysicsEngine2D: Already has shape!");
+            return;
+        }
 
-        const auto& bcc{ entity.get<BoxCollider2DComponent>() };
-        const auto& tc{ entity.get<TransformComponent>() };
-        const Mesh* mesh{ entity.get_mesh() };
-        CORE_ASSERT(mesh, u8"box2DPhysicsEngine2D: Entity has no geometry mesh!");
-
+        const auto& bcc { entity.get<BoxCollider2DComponent>() };
         const glm::vec2 flat_size{ entity.compute_flat_size(get_plane()) * bcc.size_scale };
         if(flat_size.x < 0.001f || flat_size.y < 0.001f) return;
 
@@ -320,18 +323,24 @@ namespace rke
         register_shape_entity(state.shape, entity.get_handle());
     }
 
-    void box2DPhysicsEngine2D::rebuild_shape
-        (Entity entity, PhysicsState& state, const PhysicsLayers& layers)
+    void box2DPhysicsEngine2D::rebuild_shape(EntityHandle handle,
+        PhysicsState& state, const PhysicsLayers& layers)
     {
         destroy_shape(state);
-        create_shape(entity, state, layers);
+        create_shape(handle, state, layers);
     }
 
-    bool box2DPhysicsEngine2D::shape_spec_changed(Entity entity,
+    bool box2DPhysicsEngine2D::shape_spec_changed(EntityHandle handle,
         const PhysicsState& state, const PhysicsLayers& layers) const
     {
-        CORE_ASSERT(entity.has<BoxCollider2DComponent>(),
-            u8"box2DPhysicsEngine2D: Entity not valid!");
+        const Entity entity{ get_owner().get_entity(handle) };
+        if(!entity.is_valid() || !entity.has<BoxCollider2DComponent>())
+        {
+            CORE_WARN(u8"box2DPhysicsEngine2D: "
+                u8"Entity '{}' not valid!", entity.get_tag());
+            return false;
+        }
+        
         const auto& bcc{ entity.get<BoxCollider2DComponent>() };
         b2ShapeId shape{ state.shape };
         CORE_ASSERT(B2_IS_NON_NULL(shape), u8"box2DPhysicsEngine2D: Shape id null!");
@@ -363,14 +372,22 @@ namespace rke
         auto view{ get_registry().view<Rigidbody2DComponent>() };
         for(entt::entity ent : view)
         {
-        // do not support sub-entity for now; may modify
-            Entity entity{ get_owner().get_entity(static_cast<EntityHandle>(ent)) };
-            if(!entity.valid() || !entity.is_root()) continue;
+            auto& rbc{ view.get<Rigidbody2DComponent>(ent) };
+            PhysicsState& state{ state_of(static_cast<EntityHandle>(ent)) };
 
-            auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-            PhysicsState& state{ state_of(entity.get_handle()) };
+            Entity entity{ get_owner().get_entity(static_cast<EntityHandle>(ent)) };
+            if(!entity.is_valid()) continue;
+            // do not support sub-entity for now; may modify
+            if(state.is_root != entity.is_root())
+            {
+                state.is_root = entity.is_root();
+                if(!state.is_root && b2Body_IsValid(state.body))
+                    destroy_body(state);
+            }
+            if(!state.is_root) continue;
+
             if(!b2Body_IsValid(state.body) || plane_dirty())
-                ensure_body(entity, state);
+                ensure_body(entity.get_handle(), state);
             if(!b2Body_IsValid(state.body)) 
             {
                 CORE_ERROR(u8"box2DPhysicsEngine2D: Failed creating body!");
@@ -414,9 +431,9 @@ namespace rke
                 CORE_ASSERT(project, u8"box2dPhysicsEngine2D: Project null!");
                 const auto& physics_layers{ project->get_config().physics_layers };
                 if(!b2Shape_IsValid(state.shape))
-                    create_shape(entity, state, physics_layers);
-                else if(plane_dirty() || shape_spec_changed(entity, state, physics_layers))
-                    rebuild_shape(entity, state, physics_layers);
+                    create_shape(entity.get_handle(), state, physics_layers);
+                else if(plane_dirty() || shape_spec_changed(entity.get_handle(), state, physics_layers))
+                    rebuild_shape(entity.get_handle(), state, physics_layers);
             }
         }
         plane_cleaned();
@@ -430,13 +447,13 @@ namespace rke
         for(entt::entity ent : view)
         {
             Entity entity{ get_owner().get_entity(static_cast<EntityHandle>(ent)) };
-            if(!entity.valid()) continue;
+            if(!entity.is_valid()) continue;
 
             PhysicsState* state{ find_state(entity.get_handle()) };
             if(!state || !b2Body_IsValid(state->body)) continue;
             b2BodyId body{ state->body };
 
-            auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
+            auto& rbc{ view.get<Rigidbody2DComponent>(ent) };
 
         // b2Velocity -> RigidBody
             b2Vec2 velocity{ b2Body_GetLinearVelocity(body) };
@@ -474,30 +491,32 @@ namespace rke
 
 // callback for box2d
     bool box2DPhysicsEngine2D::is_one_way_allowed
-        (Entity platform, b2ShapeId platform_shape, b2ShapeId other_shape)
+        (EntityHandle platform, b2ShapeId platform_shape, b2ShapeId other_shape)
     {
-        const auto& tc{ platform.get<TransformComponent>() };
-        const Mesh* mesh{ platform.get_mesh() };
-        if(!mesh) return true;
-        const auto& bcc{ platform.get<BoxCollider2DComponent>() };
+        Entity entity{ get_owner().get_entity(platform) };
+        if(!entity.is_valid() || !entity.has<BoxCollider2DComponent>())
+        {
+            CORE_WARN(u8"box2DPhysicsEngine2D: "
+                u8"Entity '{}' not valid!", entity.get_tag());
+            return false;
+        }
+        const auto& bcc{ entity.get<BoxCollider2DComponent>() };
 
         b2Vec2 platform_pos{ b2Body_GetPosition(b2Shape_GetBody(platform_shape)) };
         b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
 
-        // allow only when the other body's center is above the platform top.
-        // Both are 2D, and the footprint is already the projected size.
         float platform_half_height{ bcc.size_scale.y
-            * platform.compute_flat_size(get_plane()).y * 0.5f };
+            * entity.compute_flat_size(get_plane()).y * 0.5f };
         return other_pos.y > platform_pos.y + platform_half_height;
     }
 
     bool box2DPhysicsEngine2D::allow_one_way_contact(b2ShapeId shape_a, b2ShapeId shape_b)
     {
         Entity ent_a{ get_owner().get_entity(get_entity_from_shape(shape_a)) };
-        if(is_one_way(ent_a)) return is_one_way_allowed(ent_a, shape_a, shape_b);
+        if(is_one_way(ent_a)) return is_one_way_allowed(ent_a.get_handle(), shape_a, shape_b);
 
         Entity ent_b{ get_owner().get_entity(get_entity_from_shape(shape_b)) };
-        if(is_one_way(ent_b)) return is_one_way_allowed(ent_b, shape_b, shape_a);
+        if(is_one_way(ent_b)) return is_one_way_allowed(ent_b.get_handle(), shape_b, shape_a);
 
         return true;
     }

@@ -40,7 +40,7 @@ namespace rke
         void on_update(double dt) override;
         bool empty() const override;
 
-        void apply_force(Entity entity, glm::vec2 force) override;
+        void apply_force(EntityHandle handle, glm::vec2 force) override;
     private:
         struct PhysicsState
         {
@@ -48,6 +48,7 @@ namespace rke
             b2ShapeId shape{ b2_nullShapeId };
             glm::vec2 shape_size{ 0.0f }; // last resolved half extent(pixels)
             float depth{ 0.0f };
+            bool is_root{ true };
         };
 
         PhysicsState* find_state(EntityHandle handle) noexcept; // nullptr: no state yet
@@ -62,17 +63,19 @@ namespace rke
         void unregister_shape_entity(b2ShapeId shape_id);
         EntityHandle get_entity_from_shape(b2ShapeId shape_id) const;
 
-        void ensure_body(Entity entity, PhysicsState& state);
-        void create_shape(Entity entity, PhysicsState& state, const PhysicsLayers& layers);
-        void rebuild_shape(Entity entity, PhysicsState& state, const PhysicsLayers& layers);
-        bool shape_spec_changed(Entity entity, const PhysicsState& state,
-            const PhysicsLayers& layers) const;
+        void ensure_body(EntityHandle handle, PhysicsState& state);
+        void create_shape(EntityHandle handle,
+            PhysicsState& state, const PhysicsLayers& layers);
+        void rebuild_shape(EntityHandle handle,
+            PhysicsState& state, const PhysicsLayers& layers);
+        bool shape_spec_changed(EntityHandle handle,
+            const PhysicsState& state, const PhysicsLayers& layers) const;
 
         void sync_all_to_body();
         void sync_all_from_body();
 
     // callback for box2d
-        bool is_one_way_allowed(Entity platform, b2ShapeId platform_shape, b2ShapeId other_shape);
+        bool is_one_way_allowed(EntityHandle platform, b2ShapeId platform_shape, b2ShapeId other_shape);
         bool allow_one_way_contact(b2ShapeId shape_a, b2ShapeId shape_b);
         static bool one_way_pre_solve(b2ShapeId shape_a, b2ShapeId shape_b,
             b2Manifold* manifold, void* context);

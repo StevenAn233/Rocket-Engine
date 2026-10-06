@@ -9,6 +9,7 @@ import PhysicsLayers;
 import Application;
 import Project;
 import AssetsManager;
+import ScriptManager;
 
 namespace {
     constexpr const char* entity_drag_payload{ "SCENE_ENTITY" };
@@ -45,40 +46,33 @@ namespace rke
             (context_->to_save() ? "%s*" : "%s"),
             context_->get_name().raw()
         )};
+        clear_drop();
+        
         if(ImGui::IsItemClicked()) set_scene_node_selected();
-
+        draw_scene_node_drop_target(); // move entity to root tail
+        
         if(opened) {
             bool entity_created{ false };
             draw_entity_popup(entity_created);
 
-            Size index{}; drop_index_ = drop_none_;
             Entity selected{ context_->get_selected_entity() };
-            if(selected.valid()) is_scene_selected_ = false;
-            context_->for_each_entity([&](Entity entity)
-                { draw_entity_node(entity, entity == selected, index++); });
+            if(selected.is_valid()) is_scene_selected_ = false;
 
-            if(drop_index_ != drop_none_)
-            {
-                const Size count{ context_->all_entities_.size() };
-                const EntityHandle before{ drop_index_ < count ?
-                    context_->all_entities_[drop_index_] : entity_handle_null };
-
-                context_->order_entity (
-                    context_->get_entity(drag_entity_),
-                    context_->get_entity(before)
-                );
-                drop_index_ = drop_none_;
-            }
+            const auto [root_list, root_count]{ context_->get_roots() };
+            const std::vector<EntityHandle> snapshot{ root_list, root_list + root_count };
+            for(EntityHandle handle : snapshot) draw_entity_node(handle);
+            draw_root_tail_drop_target();
 
             if(entity_created) ImGui::SetScrollHereY(1.0f); // very bottom
 
             if(ImGui::IsWindowHovered() && 
-               ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered()
-            ) set_entity_node_selected(Entity{});
+               ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered())
+                set_entity_node_selected(Entity{});
             
             ImGui::TreePop();
         }
-        
+        apply_pending_drop();
+
         ImGui::End();
 
     // Expanded(Entity or Scene)
@@ -86,7 +80,7 @@ namespace rke
         ImGui::Begin("Selected", nullptr);
         
         Entity selected{ context_->get_selected_entity() };
-        if(selected.valid())
+        if(selected.is_valid())
         {
             draw_components(selected);
             add_components_popup(selected);
@@ -97,15 +91,22 @@ namespace rke
         ImGui::PopID();
     }
 
-    void SceneHierarchyPanel::draw_entity_node(Entity entity, bool is_selected, Size index)
+    void SceneHierarchyPanel::draw_entity_node(EntityHandle handle)
     {
-        ImGui::PushID(static_cast<int>(entity.get_handle()) + 1);
+        Entity entity{ context_->get_entity(handle) };
+        if(!entity.is_valid()) return;
+
+        ImGui::PushID(static_cast<int>(handle) + 1);
         const char8* tag{ entity.get<IdentityComponent>().tag };
+
+        const bool is_leaf{ !entity.has_any_child() };
         ImGuiTreeNodeFlags flags {
-        (is_selected ? ImGuiTreeNodeFlags_Selected : 0)
+        (entity == context_->get_selected_entity() ? ImGuiTreeNodeFlags_Selected : 0)
           | ImGuiTreeNodeFlags_OpenOnArrow
           | ImGuiTreeNodeFlags_SpanAvailWidth
+          | ImGuiTreeNodeFlags_DefaultOpen // may modify
         }; // keep clicked entity selected
+        if(is_leaf) flags |= (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
 
         bool opened{ ImGui::TreeNodeEx
         (
@@ -117,51 +118,158 @@ namespace rke
 
         if(ImGui::BeginDragDropSource())
         {
-            const EntityHandle handle{ entity.get_handle() };
             ImGui::SetDragDropPayload(entity_drag_payload, &handle, sizeof(EntityHandle));
 
-            drag_entity_ = handle;
             ImGui::TextUnformatted(reinterpret_cast<const char*>(tag)); // drag preview
             ImGui::EndDragDropSource();
         }
 
-        if(ImGui::BeginDragDropTarget())
-        {
-            const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload
-            (
-                entity_drag_payload,
-                ImGuiDragDropFlags_AcceptPeekOnly |
-                ImGuiDragDropFlags_AcceptNoPreviewTooltip
-            )};
-            if(payload) {
-                const ImVec2 min { ImGui::GetItemRectMin () };
-                const ImVec2 size{ ImGui::GetItemRectSize() };
-                const bool below{ ImGui::GetIO().MousePos.y > min.y + size.y * 0.5f };
-                const float line_y{ below ? min.y + size.y : min.y };
-
-                ImGui::GetWindowDrawList()->AddLine
-                (
-                    ImVec2(min.x, line_y), ImVec2(min.x + size.x, line_y),
-                    ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f
-                );
-
-                if(payload->IsDelivery()) drop_index_ = index + (below ? 1 : 0);
-            }
-            ImGui::EndDragDropTarget();
-        }
+        draw_entity_drop_target(handle);
 
         if(ImGui::BeginPopupContextItem())
         {
             if(ImGui::IsWindowAppearing()) set_entity_node_selected(entity);
-            on_entity_node_render_(context_, context_->get_selected_entity());
+            on_entity_node_render_(context_->get_selected_entity());
             ImGui::EndPopup();
         }
 
-        if(opened) {
-            // Sub-Entity?
+        if(opened && !is_leaf)
+        {
+            const auto [kids, count]{ entity.get_children() };
+            const std::vector<EntityHandle> snapshot{ kids, kids + count };
+            for(EntityHandle child : snapshot) draw_entity_node(child);
             ImGui::TreePop();
         }
         ImGui::PopID();
+    }
+
+    // dropping on a row: the top strip inserts before that node, the rest makes it a child
+    void SceneHierarchyPanel::draw_entity_drop_target(EntityHandle handle)
+    {
+        if(!ImGui::BeginDragDropTarget()) return;
+
+        const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload
+        (
+            entity_drag_payload,
+            ImGuiDragDropFlags_AcceptPeekOnly |
+            ImGuiDragDropFlags_AcceptNoPreviewTooltip
+        )};
+        if(!payload) { ImGui::EndDragDropTarget(); return; }
+
+        const ImVec2 min { ImGui::GetItemRectMin () };
+        const ImVec2 size{ ImGui::GetItemRectSize() };
+        const bool as_sibling{ ImGui::GetIO().MousePos.y - min.y < size.y * 0.25f };
+
+        ImDrawList* draw_list{ ImGui::GetWindowDrawList() };
+        if(as_sibling) {
+        // a line along the top edge: it would land just before this node
+            draw_list->AddLine
+            (
+                ImVec2(min.x, min.y), ImVec2(min.x + size.x, min.y),
+                ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f
+            );
+        } else {
+        // the whole row lights up: it would become a child of this node
+            draw_list->AddRectFilled
+            (
+                min, ImVec2(min.x + size.x, min.y + size.y),
+                ImGui::GetColorU32(ImGuiCol_DragDropTarget, 0.25f)
+            );
+        }
+        if(!payload->IsDelivery()) { ImGui::EndDragDropTarget(); return; }
+
+        const EntityHandle dragged{ *static_cast<const EntityHandle*>(payload->Data) };
+        drop_child_ = dragged;
+
+        if(!as_sibling) {
+            drop_parent_ = handle;
+            drop_before_ = entity_handle_null; // a new child goes last
+        } else {
+        // before this node, so under this node's parent
+            drop_parent_ = context_->get_parent(handle).get_handle();
+            drop_before_ = handle;
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    void SceneHierarchyPanel::draw_scene_node_drop_target()
+    {
+        if(!ImGui::BeginDragDropTarget()) return;
+
+        const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload
+        (
+            entity_drag_payload,
+            ImGuiDragDropFlags_AcceptPeekOnly |
+            ImGuiDragDropFlags_AcceptNoPreviewTooltip
+        )};
+        if(payload) {
+            const ImVec2 min { ImGui::GetItemRectMin () };
+            const ImVec2 size{ ImGui::GetItemRectSize() };
+            ImGui::GetWindowDrawList()->AddRectFilled
+            (
+                min, ImVec2(min.x + size.x, min.y + size.y),
+                ImGui::GetColorU32(ImGuiCol_DragDropTarget, 0.25f)
+            );
+
+            if(payload->IsDelivery())
+            {
+                drop_child_  = *static_cast<const EntityHandle*>(payload->Data);
+                drop_parent_ = entity_handle_null; // no parent: is root
+                drop_before_ = entity_handle_null;
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    void SceneHierarchyPanel::draw_root_tail_drop_target()
+    {
+        if(!ImGui::GetDragDropPayload()) return;
+
+        const float width{ ImGui::GetContentRegionAvail().x };
+        if(width <= 1.0f) return;
+
+        const ImVec2 pos{ ImGui::GetCursorScreenPos() };
+        ImGui::InvisibleButton("##root_tail", ImVec2(width, ImGui::GetTextLineHeight()));
+
+        if(!ImGui::BeginDragDropTarget()) return;
+
+        const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload
+        (
+            entity_drag_payload,
+            ImGuiDragDropFlags_AcceptPeekOnly |
+            ImGuiDragDropFlags_AcceptNoPreviewTooltip
+        )};
+        if(payload) {
+            ImGui::GetWindowDrawList()->AddLine
+            (
+                pos, ImVec2(pos.x + width, pos.y),
+                ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.0f
+            );
+
+            if(payload->IsDelivery())
+            {
+                drop_child_  = *static_cast<const EntityHandle*>(payload->Data);
+                drop_parent_ = entity_handle_null;
+                drop_before_ = entity_handle_null;
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    void SceneHierarchyPanel::apply_pending_drop()
+    {
+        if(context_->is_handle_null (drop_child_) ||
+          !context_->is_handle_valid(drop_child_)) goto clear_end;
+        context_->set_parent(drop_child_, drop_parent_, drop_before_);
+    clear_end:
+        clear_drop();
+    }
+
+    void SceneHierarchyPanel::clear_drop()
+    {
+        drop_child_  = entity_handle_null;
+        drop_parent_ = entity_handle_null;
+        drop_before_ = entity_handle_null;
     }
 
     void SceneHierarchyPanel::draw_entity_popup(bool& entity_created)
@@ -232,15 +340,15 @@ namespace rke
             }
         });
 
-        check_then_draw<TransformComponent, u8"Transform">(entity, [&](Entity ent)
+        check_then_draw<TransformComponent, u8"Transform">(entity, [this](Entity ent)
         {
             auto& tc{ ent.get_mut<TransformComponent>() };
 
             bool translated{ layout::drag_float3_control
                 <u8"Translation">(tc.translation, 0.1f, glm::vec3(0.0f)) };
-            if(entity.has<Rigidbody2DComponent>() && translated)
+            if(ent.has<Rigidbody2DComponent>() && translated)
             {
-                auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
+                auto& rbc{ ent.get_mut<Rigidbody2DComponent>() };
                 // only dynamic bodies are impacted by forces
                 if(rbc.type == BodyType::Dynamic) rbc.velocity = {};
             }
@@ -271,7 +379,7 @@ namespace rke
             );
         });
 
-        check_then_draw<CameraComponent, u8"Camera">(entity, [&](Entity ent)
+        check_then_draw<CameraComponent, u8"Camera">(entity, [this](Entity ent)
         {
             auto& camera{ ent.get_mut<CameraComponent>().camera };
 
@@ -459,9 +567,9 @@ namespace rke
         check_then_draw<AnimatorComponent, u8"Animation">(entity, [this](Entity ent)
         {
             ImGui::SameLine();
-            bool playing{ context_->animator_playing(ent) };
+            bool playing{ ent.is_anim_playing() };
             if(playing) {
-                bool paused{ context_->animator_paused(ent) };
+                bool paused{ ent.is_anim_paused() };
                 const char* second_text{ paused ? "Resume" : "Pause" };
                 float avail_width{ ImGui::GetContentRegionAvail().x };
                 float first_btn_width{ ImGui::CalcTextSize("Stop").x
@@ -472,24 +580,17 @@ namespace rke
                 ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width
                     - first_btn_width - spacing - second_btn_width);
 
-                if(ImGui::SmallButton("Stop"))
-                    context_->animator_stop(ent);
+                if(ImGui::SmallButton("Stop")) ent.anim_stop();
                 ImGui::SameLine();
-                if(paused) {
-                    if(ImGui::SmallButton("Resume"))
-                        context_->animator_resume(ent);
-                } else {
-                    if(ImGui::SmallButton("Pause"))
-                        context_->animator_pause(ent);
-                }
+                if(paused) { if(ImGui::SmallButton("Resume")) ent.anim_resume(); }
+                else { if(ImGui::SmallButton("Pause")) ent.anim_pause(); }
             } else {
                 float avail_width{ ImGui::GetContentRegionAvail().x };
                 float btn_width{ ImGui::CalcTextSize("Play").x
                     + ImGui::GetStyle().FramePadding.x * 2.0f };
                 ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width - btn_width);
 
-                if(ImGui::SmallButton("Play"))
-                    context_->animator_play(ent);
+                if(ImGui::SmallButton("Play")) ent.anim_play();
             }
 
             auto& ac{ ent.get_mut<AnimatorComponent>() };
@@ -597,7 +698,7 @@ namespace rke
                 }
             });
             
-            const auto* state{ context_->animator_state(ent) };
+            const auto* state{ context_->animator_state(ent.get_handle()) };
             if(!state) return;
             layout::tree_node_branch<u8"State">([&]()
             {
@@ -675,8 +776,7 @@ namespace rke
                 constexpr const char* items[]{ "Solid", "Sensor", "One-Way" };
                 int option{ static_cast<int>(bcc.type) };
 
-                float available_width{ ImGui::GetContentRegionAvail().x };
-                ImGui::SetNextItemWidth(available_width);
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 if(ImGui::Combo("##collider_type", &option, items, (int)std::size(items)))
                 {
                     bcc.type = static_cast<ColliderType>(option);
@@ -686,8 +786,7 @@ namespace rke
 
             layout::two_columns_table<u8"Physics Layer">([&]()
             {
-                float available_width{ ImGui::GetContentRegionAvail().x };
-                ImGui::SetNextItemWidth(available_width);
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 uint8 index{ bcc.layer_index };
                 auto& physics_layers{ context_->get_owner()->get_config_mut().physics_layers };
                 if(ImGui::BeginCombo("##physics_layer", physics_layers.get_name(index).raw()))
@@ -735,43 +834,50 @@ namespace rke
             const ScriptRegistry& script_reg
                 { context_->get_owner()->get_script_registry() };
 
-            String curr_script_name{ u8"No Script" };
-            bool no_script{ nsc.script_type == script_type_null };
-            if(!no_script) {
-                if(script_reg.has_script_type(nsc.script_type))
-                    curr_script_name = script_reg.get_script_name(nsc.script_type);
-                else curr_script_name = String(u8"<Missing Script>");
-            }
-            // script_name  empty : No Script
-            // script_name !empty && name  found : <Script Name>
-            // script_name !empty && name !found : <Missing Script>
-
-            if(ImGui::BeginCombo("##script", curr_script_name.raw()))
+            layout::two_columns_table<u8"Type">([&]()
             {
-                if(ImGui::Selectable("No Script", no_script))
-                {
-                    nsc.script_type = script_type_null;
-                    context_->mark_modified();
+                String curr_script_name{ u8"No Script" };
+                bool no_script{ nsc.script_type == script_type_null };
+                if(!no_script) {
+                    if(script_reg.has_script_type(nsc.script_type))
+                        curr_script_name = script_reg.get_script_name(nsc.script_type);
+                    else curr_script_name = String(u8"<Missing Script>");
                 }
-                if(no_script) ImGui::SetItemDefaultFocus();
+                // script_name  empty : No Script
+                // script_name !empty && name  found : <Script Name>
+                // script_name !empty && name !found : <Missing Script>
 
-                for(ScriptType type : script_reg.get_script_types())
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                if(ImGui::BeginCombo("##script", curr_script_name.raw()))
                 {
-                    bool is_selected{ nsc.script_type == type };
-                    if(ImGui::Selectable(std::bit_cast<const char*>(type), is_selected))
+                    if(ImGui::Selectable("No Script", no_script))
                     {
-                        nsc.script_type = type;
+                        nsc.script_type = script_type_null;
                         context_->mark_modified();
                     }
-                    if(is_selected) ImGui::SetItemDefaultFocus();
-                }
+                    if(no_script) ImGui::SetItemDefaultFocus();
 
-                ImGui::EndCombo();
-            }
+                    for(ScriptType type : script_reg.get_script_types())
+                    {
+                        bool is_selected{ nsc.script_type == type };
+                        if(ImGui::Selectable(std::bit_cast<const char*>(type), is_selected))
+                        {
+                            nsc.script_type = type;
+                            context_->mark_modified();
+                        }
+                        if(is_selected) ImGui::SetItemDefaultFocus();
+                    }
+
+                    ImGui::EndCombo();
+                }
+            });
+            
+            Script* script{ context_->script_manager_->get_script(ent.get_handle()) };
+            if(script) script->on_imgui_render();
         });
     }
 
-    void SceneHierarchyPanel::add_components_popup(Entity selected)
+    void SceneHierarchyPanel::add_components_popup(Entity entity)
     {
         constexpr ImGuiPopupFlags popup_flags
         {
@@ -786,18 +892,18 @@ namespace rke
         if(!menu_opened){ ImGui::EndPopup(); return; }
 
         bool nothing_to_add{ true };
-        components::each([this, &selected, &nothing_to_add](auto type_id)
+        components::each([this, &entity, &nothing_to_add](auto type_id)
         {
             using Component = decltype(type_id)::Type;
-            if(selected.has<Component>()) return;
+            if(entity.has<Component>()) return;
             
             if constexpr(std::is_same_v<Component, CameraComponent>)
             {
                 nothing_to_add = false;
                 if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                 {
-                    selected.emplace<CameraComponent>();
-                    selected.get_mut<CameraComponent>().camera
+                    entity.emplace<CameraComponent>();
+                    entity.get_mut<CameraComponent>().camera
                         .set_viewport(context_->get_viewport_h(), context_->get_viewport_w());
 
                     ImGui::CloseCurrentPopup();
@@ -805,48 +911,48 @@ namespace rke
             }
             else if constexpr(std::is_same_v<Component, TextureComponent>)
             {
-                if(selected.has<SpriteComponent>() && !selected.has<AnimatorComponent>())
+                if(entity.has<SpriteComponent>() && !entity.has<AnimatorComponent>())
                 {
                     nothing_to_add = false;
                     if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                     {
-                        selected.emplace<TextureComponent>();
+                        entity.emplace<TextureComponent>();
                         ImGui::CloseCurrentPopup();
                     }
                 }
             }
             else if constexpr(std::is_same_v<Component, AnimatorComponent>)
             {
-                if(selected.has<SpriteComponent>() && !selected.has<TextureComponent>())
+                if(entity.has<SpriteComponent>() && !entity.has<TextureComponent>())
                 {
                     nothing_to_add = false;
                     if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                     {
-                        selected.emplace<AnimatorComponent>();
+                        entity.emplace<AnimatorComponent>();
                         ImGui::CloseCurrentPopup();
                     }
                 }
             }
             else if constexpr(std::is_same_v<Component, Rigidbody2DComponent>)
             {
-                if(selected.has<SpriteComponent>())
+                if(entity.has<SpriteComponent>())
                 {
                     nothing_to_add = false;
                     if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                     {
-                        selected.emplace<Rigidbody2DComponent>();
+                        entity.emplace<Rigidbody2DComponent>();
                         ImGui::CloseCurrentPopup();
                     }
                 }
             }
             else if constexpr(std::is_same_v<Component, BoxCollider2DComponent>)
             {
-                if(selected.has<SpriteComponent>())
+                if(entity.has<SpriteComponent>())
                 {
                     nothing_to_add = false;
                     if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                     {
-                        selected.emplace<BoxCollider2DComponent>();
+                        entity.emplace<BoxCollider2DComponent>();
                         ImGui::CloseCurrentPopup();
                     }
                 }
@@ -856,7 +962,7 @@ namespace rke
                 nothing_to_add = false;
                 if(ImGui::MenuItem(type_id.name.raw_unsafe()))
                 {
-                    selected.emplace<Component>();
+                    entity.emplace<Component>();
                     ImGui::CloseCurrentPopup();
                 }
             }
@@ -874,7 +980,7 @@ namespace rke
     void SceneHierarchyPanel::camera_comp_popup_content(Entity entity, bool& to_delete)
     {
         if(ImGui::MenuItem("Make Master"))
-            context_->set_master_camera(entity);
+            context_->set_master_camera(entity.get_handle());
         ImGui::Separator();
         if(ImGui::MenuItem("Delete")) to_delete = true;
     }
@@ -904,12 +1010,12 @@ namespace rke
     void SceneHierarchyPanel::set_scene_node_selected()
     {
         is_scene_selected_ = true;
-        if(context_) context_->set_selected_entity(Entity{});
+        if(context_) context_->set_selected_entity(entity_handle_null);
     }
 
     void SceneHierarchyPanel::set_entity_node_selected(Entity entity)
     {
         is_scene_selected_ = false;
-        if(context_) context_->set_selected_entity(entity);
+        if(context_) context_->set_selected_entity(entity.get_handle());
     }
 }

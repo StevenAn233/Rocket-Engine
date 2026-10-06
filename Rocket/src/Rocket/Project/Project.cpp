@@ -141,8 +141,8 @@ namespace rke
             CORE_WARN(u8"Project: Scene name empty!");
             return false;
         }
-        SceneSerializer scene_creator_{}; // TO MODIFY
-        Scope<Scene> empty_scene{ create_scope<Scene>(this, name) };
+        SceneSerializer scene_creator_{}; // may modify
+        Scope<Scene> empty_scene{ new Scene(this, name) };
         scene_creator_.serialize(*empty_scene, new_scene_path);
         return true;
     }
@@ -157,7 +157,7 @@ namespace rke
             CORE_ERROR(u8"Project: Scene '{}' not found!", scene_path);
             return nullptr;
         }
-        Scope<Scene> scene{ create_scope<Scene>(this, name) };
+        Scope<Scene> scene{ new Scene(this, name) };
         if(scene_serializer.deserialize(*scene, scene_path))
         {
             CORE_INFO(u8"Project: Scene '{}' loaded.", scene_path);

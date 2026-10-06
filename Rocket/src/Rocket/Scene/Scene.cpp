@@ -23,10 +23,31 @@ namespace rke
     Entity::Entity(EntityHandle handle, Scene* scene)
         : handle_(handle), owner_scene_(scene) {}
 
-    bool Entity::valid() const
+    bool Entity::is_valid() const
     {
-        if(empty() || !owner_scene_) return false;
+        if(is_null() || !owner_scene_) return false;
         return owner_scene_->is_handle_valid(handle_);
+    }
+
+    UUID Entity::get_uuid() const
+    {
+        if(!is_valid()) return UUID(0);
+        return get<IdentityComponent>().uuid;
+    }
+
+    StringView Entity::get_tag() const
+    {
+        if(is_null()) return StringView(u8"Null");
+        if(!is_valid()) return StringView(u8"Invalid");
+        return StringView(get<IdentityComponent>().tag);
+    }
+
+    const Mesh* Entity::get_mesh() const
+    {
+        if(!is_valid()) return nullptr;
+        if(has<SpriteComponent>()) return get<SpriteComponent>().quad;
+        // if(has<ModelComponent>()) return get<ModelComponent>().mesh; // future
+        return nullptr;
     }
 
     bool Entity::operator==(const Entity& other) const
@@ -37,67 +58,26 @@ namespace rke
 
     bool Entity::operator!=(const Entity& other) const { return !operator==(other); }
 
-    UUID Entity::get_uuid() const
-    {
-        if(!valid()) return UUID(0);
-        return get<IdentityComponent>().uuid;
-    }
-
-    StringView Entity::get_tag() const
-    {
-        if( empty()) return StringView(u8"Null");
-        if(!valid()) return StringView(u8"Invalid");
-        return StringView(get<IdentityComponent>().tag);
-    }
-
-    const Mesh* Entity::get_mesh() const
-    {
-        if(!valid()) return nullptr;
-        if(has<SpriteComponent>()) return get<SpriteComponent>().quad;
-        // if(has<ModelComponent>()) return get<ModelComponent>().mesh; // future
-        return nullptr;
-    }
-
-    Entity Entity::get_parent() const
-        { return owner_scene_->get_parent(*this); }
-
-    std::pair<const EntityHandle*, Size> Entity::get_children() const
-        { return owner_scene_->get_children(*this); }
-
-    Entity Entity::create_child()
-    {
-        if(!valid()) return {}; // don't create
-        return owner_scene_->create_entity(*this);
-    }
-
-    void Entity::detach_child(Entity child)
-        { owner_scene_->detach_child(*this, child); }
-
-    void Entity::detach_all_children()
-        { owner_scene_->detach_all_children(*this); }
-
     WorldTransform Entity::get_world_transform() const
     {
         WorldTransform world{};
-        if(!valid()) return world;
+        if(!is_valid()) return world;
 
-        auto& reg{ *owner_scene_->registry_ };
-        std::vector<EntityHandle> chain{ owner_scene_->get_parent_chain(*this) };
+        std::vector<EntityHandle> chain{ get_parent_chain() };
         for(auto it{ chain.rbegin() }; it != chain.rend(); ++it)
         {
-            EntityHandle handle{ *it };
-            CORE_ASSERT(owner_scene_->is_handle_valid(handle),
-                u8"Entity: Parent handle invalid!");
-            world.compose_with(reg.get
-                <TransformComponent>(static_cast<entt::entity>(handle)));
+            Entity entity{ owner_scene_->get_entity(*it) };
+            CORE_ASSERT(entity.is_valid(), u8"Entity: Parent handle invalid!");
+            world.compose_with(entity.get<TransformComponent>());
         }
         return world;
     }
 
     glm::vec3 Entity::to_local_delta(glm::vec3 world_delta) const
     {
+        if(!is_valid()) return world_delta;
         const Entity parent{ get_parent() };
-        if(!parent.valid()) return world_delta;
+        if(!parent.is_valid()) return world_delta;
 
         const WorldTransform parent_world{ parent.get_world_transform() };
         const glm::vec3 abs_scale{ glm::abs(parent_world.scale) };
@@ -140,7 +120,7 @@ namespace rke
     float Entity::compute_flat_rotation(const PlaneBasis& plane) const
         { return plane.angle_of(get_world_transform().rotation); }
 
-    void Entity::check_assert() const { CORE_ASSERT(valid(), u8"Entity: Invalid!"); }
+    void Entity::check_assert() const { CORE_ASSERT(is_valid(), u8"Entity: Invalid!"); }
 
     void Entity::check_sprite_com() const
         { CORE_ASSERT(has<SpriteComponent>(), u8"Entity: Doesn't has sprite!"); }
@@ -157,6 +137,147 @@ namespace rke
         if(has<AnimatorComponent>()) remove<AnimatorComponent>();
         if(has<Rigidbody2DComponent>()) remove<Rigidbody2DComponent>();
         if(has<BoxCollider2DComponent>()) remove<BoxCollider2DComponent>();
+    }
+
+    Entity Entity::create_child()
+    {
+        if(!is_valid()) return {};
+        return owner_scene_->create_entity(handle_);
+    }
+
+    void Entity::detach_child(Entity child)
+    {
+        if(!is_valid() || !child.is_valid()) return;
+        if(!child.belongs_to(owner_scene_))
+        {
+            CORE_WARN(u8"Entity: Child not in the same scene!");
+            return;
+        }
+        auto it{ owner_scene_->relations_.find(handle_) };
+        if(it == owner_scene_->relations_.end()) return;
+        
+        auto& children{ it->second.children };
+        if(std::ranges::contains(children, child.get_handle()))
+        {
+            owner_scene_->set_parent(child.get_handle(), it->second.parent);
+            // apply transform...
+            std::erase(children, child.get_handle());
+        }
+        else CORE_WARN(u8"Entity: Child '{}' not found!", child.get_tag());
+    }
+
+    void Entity::detach_all_children()
+    {
+        if(!is_valid()) return;
+        auto it{ owner_scene_->relations_.find(handle_) };
+        if(it == owner_scene_->relations_.end()) return;
+        
+        auto& orphans{ it->second.children };
+        for(EntityHandle child : orphans)
+        {
+            owner_scene_->set_parent(child, it->second.parent);
+            // apply transform...
+        }
+        orphans.clear();
+    }
+
+    Entity Entity::get_parent() const
+    {
+        if(!is_valid()) return {};
+        return owner_scene_->get_parent(handle_);
+    }
+
+    std::vector<EntityHandle> Entity::get_parent_chain() const
+    {
+        std::vector<EntityHandle> chain{};
+        if(!is_valid()) return chain;
+
+        for(Entity current{ *this }; current.is_valid();)
+        {
+            chain.push_back(current.get_handle());
+            current = current.get_parent();
+            if(current.is_null()) break;
+            if(std::find(chain.begin(), chain.end(), current.get_handle()) != chain.end())
+            {
+                CORE_ERROR(u8"Entity: Parent chain looped!");
+                chain.clear(); break;
+            }
+        }
+        return chain;
+    }
+
+    std::pair<const EntityHandle*, Size> Entity::get_children() const
+    {
+        if(!is_valid()) return { nullptr, 0 };
+        return owner_scene_->get_children(handle_);
+    }
+
+    void Entity::grip_move_by(glm::vec3 delta, double dt)
+    {
+        if(!is_valid()) return;
+        get_mut<TransformComponent>().translation += to_local_delta(delta);
+
+    // clear previously-accumulated(force/mass * dt) velocity
+        if(has<Rigidbody2DComponent>())
+        {
+            auto& rbc{ get_mut<Rigidbody2DComponent>() };
+            if(dt > 0.0) {
+                rbc.velocity = owner_scene_->physics_engine_->
+                    get_plane().to_uv(delta) / static_cast<float>(dt);
+                rbc.angular_velocity = 0.0f;
+            }
+        }
+    }
+
+    void Entity::force_apply_by(glm::vec2 force)
+    {
+        if(!is_valid() || !has<Rigidbody2DComponent>()) return;
+        if(!owner_scene_->in_runtime()) return;
+        owner_scene_->physics_engine_->apply_force(handle_, force);
+    }
+
+    void Entity::acc_apply_by(glm::vec2 acc)
+    {
+        if(!is_valid() || !has<Rigidbody2DComponent>()) return;
+        if(!owner_scene_->in_runtime()) return;
+        const auto& rbc{ get<Rigidbody2DComponent>() };
+        owner_scene_->physics_engine_->apply_force(handle_, acc * rbc.mass);
+    }
+
+    void Entity::anim_play()
+    {
+        if(!is_valid() || !has<AnimatorComponent>()) return;
+        owner_scene_->animator_system_->play(handle_);
+    }
+
+    void Entity::anim_stop()
+    {
+        if(!is_valid() || !has<AnimatorComponent>()) return;
+        owner_scene_->animator_system_->stop(handle_);
+    }
+
+    void Entity::anim_pause()
+    {
+        if(!is_valid() || !has<AnimatorComponent>()) return;
+        owner_scene_->animator_system_->pause(handle_);
+    }
+
+    void Entity::anim_resume()
+    {
+        if(!is_valid() || !has<AnimatorComponent>()) return;
+        owner_scene_->animator_system_->resume(handle_);
+    }
+
+    bool Entity::is_anim_playing()
+    {
+        if(!is_valid() || !has<AnimatorComponent>()) return false;
+        return owner_scene_->animator_system_->playing(handle_);
+    }
+
+    bool Entity::is_anim_paused()
+    {
+        if(!is_valid() || !has<AnimatorComponent>()) return false;
+        return owner_scene_->animator_system_->paused(handle_);
     }
 
     Scene::Scene(Project* owner, String name)
@@ -191,7 +312,7 @@ namespace rke
 
     Scope<Scene> Scene::duplicate(bool temp)
     {
-        Scope<Scene> new_scene{ create_scope<Scene>(owner_, name_) };
+        Scope<Scene> new_scene{ new Scene(owner_, name_) };
         new_scene->temporary_ = temp;
 
         new_scene->viewport_h_ = viewport_h_;
@@ -222,9 +343,9 @@ namespace rke
         });
         new_scene->relations_ = relations_; // keys are EntityHandles, reused verbatim above
 
-        // after IdentityComponents are copied
-        new_scene->for_each_entity([&new_scene](Entity entity)
-            { new_scene->entity_map_[entity.get_uuid()] = entity.handle_; });
+        // Set UUID map: after IdentityComponents are copied
+        new_scene->for_each_entity([&new_scene, this](Entity entity)
+            { new_scene->entity_map_[entity.get_uuid()] = entity.get_handle(); });
 
         new_scene->set_selected_entity(get_selected_entity().get_uuid());
         new_scene->set_master_camera(get_master_camera().get_uuid());
@@ -233,45 +354,47 @@ namespace rke
         return new_scene;
     }
 
-    Entity Scene::create_entity(Entity parent, const String& tag, UUID uuid)
+    Entity Scene::create_entity(EntityHandle parent, const String& tag, UUID uuid)
     {
-        if(!parent.empty() && !vertified(parent)) parent = {};
-        Entity entity{ static_cast<EntityHandle>(registry_->create()), this };
-        CORE_ASSERT(entity.handle_ != entity_handle_null,
-            u8"Scene: Failed to create entity!");
+        if(!is_handle_null(parent) && !vertified(parent))
+            parent = entity_handle_null;
+        
+        EntityHandle handle{ static_cast<EntityHandle>(registry_->create()) };
+        CORE_ASSERT(!is_handle_null(handle), u8"Scene: Failed to create entity!");
 
-        relations_.emplace(entity.handle_, Relation{});
-        set_parent(entity, parent);
+        relations_.emplace(handle, Relation{});
+        set_parent(handle, parent);
 
+        Entity entity{ get_entity(handle) };
         entity.emplace<IdentityComponent>(tag.c_str(), uuid);
-        if(!uuid.empty()) entity_map_[entity.get_uuid()] = entity.handle_;
+        if(!uuid.empty()) entity_map_[entity.get_uuid()] = handle;
         entity.emplace<TransformComponent>();
 
         mark_modified();
         return entity;
     }
 
-    Entity Scene::copy_entity(Entity entity)
+    Entity Scene::copy_entity(EntityHandle handle)
     {
-        if(!vertified(entity)) return {};
+        if(!vertified(handle)) return {};
 
     // Copies the whole subtree, not just the entity
         std::unordered_map<EntityHandle, EntityHandle> made{};
-        const EntityHandle root_handle{ get_parent(entity).get_handle() };
+        const EntityHandle root_handle{ get_entity(handle).get_parent().get_handle() };
         made.emplace(root_handle, root_handle);
-        std::vector<EntityHandle> todo{ entity.get_handle() };
+        std::vector<EntityHandle> todo{ handle };
         for(Size i{}; i < todo.size()/* fresh every turn */; i++)
         {
             const EntityHandle src_handle{ todo[i] };
 
             Entity src{ get_entity(src_handle) };
-            if(!src.valid()) continue;
+            if(!src.is_valid()) continue;
 
-            const EntityHandle src_parent{ get_parent(src).get_handle() };
-            const auto it{ made.find(src_parent) };
+            const auto it{ made.find(src.get_parent().get_handle()) };
             const UUID new_uuid{ temporary_ ? UUID(0) : UUID() };
-            Entity copy{ create_entity (
-                (it == made.end()) ? Entity{} : get_entity(it->second),
+            Entity copy{ create_entity
+            (
+                (it == made.end()) ? entity_handle_null : it->second,
                 src.get<IdentityComponent>().tag, new_uuid
             )};
             mark_modified();
@@ -287,46 +410,52 @@ namespace rke
             made.emplace(src_handle, copy.get_handle());
 
         // then this entity's own children
-            auto [data, count]{ get_children(src) };
+            auto [data, count]{ src.get_children() };
             for(Size i{}; i < count; i++) todo.push_back(data[i]);
         }
-        const auto it{ made.find(entity.get_handle()) };
+        const auto it{ made.find(handle) };
         return (it == made.end()) ? Entity{} : get_entity(it->second);
     }
 
-    void Scene::destroy_entity(Entity entity)
+    void Scene::destroy_entity(EntityHandle handle)
     {
-        if(!vertified(entity)) return;
+        Entity entity{ get_entity(handle) };
+        if(!entity.is_valid()) return;
 
-        if(entity == selected_entity_) set_selected_entity(Entity{});
-        if(entity == master_cam_) set_master_camera(Entity{});
-        if(entity == demo_cam_) set_demo_camera(Entity{});
+        if(handle == selected_entity_) set_selected_entity(entity_handle_null);
+        if(handle == master_cam_) set_master_camera(entity_handle_null);
+        if(handle == demo_cam_) set_demo_camera(entity_handle_null);
 
-        detach_all_children(entity); // requires entity.get_parent()
-        auto parent_it{ relations_.find(get_parent(entity).get_handle()) };
+        entity.detach_all_children(); // requires entity.get_parent()
+        auto parent_it{ relations_.find(entity.get_parent().get_handle()) };
         if(parent_it != relations_.end())
-            std::erase(parent_it->second.children, entity.get_handle());
+        {
+            auto& children{ parent_it->second.children };
+            std::erase(children, handle);
+        }
         
-        relations_.erase(entity.get_handle()); // may modify
-        to_destroy_.push_back(entity.get_handle());
+        relations_.erase(handle); // may modify
+        to_destroy_.push_back(handle);
         mark_modified();
     }
 
-    bool Scene::has_entity(UUID uuid) const
+    void Scene::destroy_entity(UUID uuid)
     {
-        if(uuid.empty()) return false;
-        return entity_map_.contains(uuid);
+        if(uuid.empty()) return;
+        destroy_entity(get_entity(uuid).get_handle());
     }
+
+    bool Scene::has_entity(UUID uuid) const
+        { return uuid.empty() ? false : entity_map_.contains(uuid); }
 
     bool Scene::is_handle_valid(EntityHandle handle) const
         { return registry_->valid(static_cast<entt::entity>(handle)); }
 
     Entity Scene::get_entity(EntityHandle handle)
     {
-        if(handle == entity_handle_null) return {};
+        if(is_handle_null (handle)) return {};
         if(is_handle_valid(handle)) return Entity(handle, this);
-        CORE_WARN(u8"Scene: Entity handle '{}' not valid!",
-            static_cast<uint32>(handle));
+        CORE_WARN(u8"Scene: Entity handle may be outdated!");
         return {};
     }
 
@@ -343,9 +472,9 @@ namespace rke
 
     const Entity Scene::get_entity(EntityHandle handle) const
     {
-        if(handle == entity_handle_null) return {};
+        if(is_handle_null (handle)) return {};
         if(is_handle_valid(handle)) return Entity(handle, const_cast<Scene*>(this));
-        CORE_WARN(u8"Scene: Entity handle not valid");
+        CORE_WARN(u8"Scene: Entity handle may be outdated!");
         return {};
     }
 
@@ -353,251 +482,130 @@ namespace rke
     {
         if(uuid.empty()) return {};
         auto it{ entity_map_.find(uuid) };
-        if(it == entity_map_.end())
-        {
+        if(it == entity_map_.end()) {
             CORE_WARN(u8"Scene: Entity UUID '{}' not found!", uuid.value());
             return {};
         }
         return Entity(it->second, const_cast<Scene*>(this));
     }
 
-    void Scene::set_selected_entity(Entity entity)
+    void Scene::set_selected_entity(EntityHandle handle)
     {
-        if(entity.empty()) { selected_entity_ = {}; return; }
-        if(!vertified(entity)) return;
-        selected_entity_ = entity;
-        if(entity.has<CameraComponent>()) set_demo_camera(entity);
+        if(!is_handle_null(handle) && !vertified(handle)) return;
+        selected_entity_ = handle;
+        if(!is_handle_null(handle) &&
+            get_selected_entity().has<CameraComponent>())
+            set_demo_camera(handle);
     }
 
-    void Scene::set_master_camera(Entity entity)
+    void Scene::set_selected_entity(UUID uuid)
     {
-        if(entity.empty()) { master_cam_ = {}; return; }
-        if(entity == master_cam_ || !vertified(entity)) return;
-        if(!entity.has<CameraComponent>()) {
-            CORE_WARN(u8"Scene: Entity '{}' isn't a camera!", entity.get_tag());
-            return;
+        if(uuid.empty()) return;
+        set_selected_entity(get_entity(uuid).get_handle());
+    }
+
+    void Scene::set_master_camera(EntityHandle handle)
+    {
+        if(!is_handle_null(handle) && !vertified(handle)) return;
+        if(master_cam_ == handle) return; master_cam_ = handle;
+        if(!is_handle_null(handle) && !get_master_camera().has<CameraComponent>())
+        {
+            CORE_WARN(u8"Scene: Entity '{}' isn't a camera!",
+                get_entity(handle).get_tag());
+            master_cam_ = entity_handle_null;
         }
-        master_cam_ = entity;
         mark_modified();
     }
 
-    void Scene::set_demo_camera(Entity entity)
+    void Scene::set_master_camera(UUID uuid)
     {
-        if(entity.empty()) { demo_cam_ = {}; return; }
-        if(entity == demo_cam_ || !vertified(entity)) return;
-        if(!entity.has<CameraComponent>()) {
-            CORE_WARN(u8"Scene: Entity '{}' isn't a camera!", entity.get_tag());
-            return;
-        }
-        demo_cam_ = entity;
+        if(uuid.empty()) return;
+        set_master_camera(get_entity(uuid).get_handle());
     }
 
-    bool Scene::set_parent(Entity child, Entity parent, Entity before)
+    void Scene::set_demo_camera(EntityHandle handle)
+    {
+        if(!is_handle_null(handle) && !vertified(handle)) return;
+        if(demo_cam_ == handle) return; demo_cam_ = handle;
+        if(!is_handle_null(handle) && !get_demo_camera().has<CameraComponent>())
+        {
+            CORE_WARN(u8"Scene: Entity '{}' isn't a camera!",
+                get_entity(handle).get_tag());
+            demo_cam_ = entity_handle_null;
+        }
+    }
+
+    void Scene::set_demo_camera(UUID uuid)
+    {
+        if(uuid.empty()) return;
+        set_demo_camera(get_entity(uuid).get_handle());
+    }
+
+    bool Scene::set_parent(EntityHandle child, EntityHandle parent, EntityHandle before)
     {
         if(!vertified(child)) return false;
-        if(!parent.empty() && !vertified(parent)) return false;
+        if(!is_handle_null(parent) && !vertified(parent)) return false;
         if(child == parent) {
             CORE_WARN(u8"Scene: Entity '{}' "
-                u8"can't be its own parent!", child.get_tag());
+                u8"can't be its own parent!", get_entity(child).get_tag());
             return false;
         }
 
-        const EntityHandle child_handle{ child.get_handle() };
-        const EntityHandle new_parent{ parent.get_handle() };
-
-        const auto child_it{ relations_.find(child_handle) };
+        const auto child_it{ relations_.find(child) };
         if(child_it == relations_.end()) return false;
 
         const EntityHandle old_parent{ child_it->second.parent };
-        if(old_parent != new_parent) // validation check
+        if(old_parent != parent) // validation check
         {
         // a loop would make get_parent_chain() unbounded and the world transform undefined
-            for(Entity ancestor{ parent }; ancestor.valid(); ancestor = get_parent(ancestor))
-                if(ancestor == child) {
-                    CORE_ERROR(u8"Scene: Can't parent entity '{}' "
-                        u8"to its own descendant!", child.get_tag());
-                    return false;
-                }
+            for(Entity ancestor{ get_entity(parent) };
+                ancestor.is_valid(); ancestor = ancestor.get_parent())
+            {
+                if(ancestor.get_handle() != child) continue;
+                CORE_ERROR(u8"Scene: Can't parent entity '{}' "
+                    u8"to its own descendant!", get_entity(child).get_tag());
+                return false;
+            }
         }
 
     // unbind old relations
         if(auto it{ relations_.find(old_parent) }; it != relations_.end())
-            std::erase(it->second.children, child_handle);
+            std::erase(it->second.children, child);
         
     // bind new relations, at the requested position
-        auto& list{ relations_[new_parent].children };
-        const auto pos{ before.empty() ? list.end()
-            : std::find(list.begin(), list.end(), before.get_handle()) };
-        list.insert(pos, child_handle);
+        auto& list{ relations_[parent].children };
+        const auto pos{ is_handle_null(before) ?
+            list.end() : std::find(list.begin(), list.end(), before) };
+        list.insert(pos, child);
 
-        relations_[child_handle].parent = new_parent;
+        relations_[child].parent = parent;
 
         mark_modified();
         return true;
     }
 
-    void Scene::detach_child(Entity entity, Entity child)
+    void Scene::order_entity(EntityHandle handle, EntityHandle before)
     {
-        if(!vertified(entity) || !vertified(child)) return;
-        auto it{ relations_.find(entity.get_handle()) };
-        if(it == relations_.end()) return;
-        
-        auto& children{ it->second.children };
-        const EntityHandle child_handle{ child.get_handle() };
-        if(std::ranges::contains(children, child_handle))
-        {
-            set_parent(child, get_entity(it->second.parent));
-            // apply transform...
-            std::erase(children, child_handle);
-        }
-        else CORE_WARN(u8"Entity: Child not found!");
+        if(!vertified(handle)) return;
+        if(before == handle) return; // dropped right onto itself
+        set_parent(handle, get_parent(handle).get_handle(), before);
     }
 
-    void Scene::detach_all_children(Entity entity)
+    Entity Scene::get_parent(EntityHandle handle) const
     {
-        if(!vertified(entity)) return;
-        auto it{ relations_.find(entity.get_handle()) };
-        if(it == relations_.end()) return;
-        
-        auto& orphans{ it->second.children };
-        for(EntityHandle child : orphans)
-        {
-            set_parent(child, it->second.parent);
-            // apply transform...
-        }
-        orphans.clear();
-    }
-
-    Entity Scene::get_parent(Entity entity) const
-    {
-        if(!vertified(entity)) return {};
-        auto it{ relations_.find(entity.get_handle()) };
+        if(!is_handle_null(handle) && !vertified(handle)) return {};
+        auto it{ relations_.find(handle) };
         if(it == relations_.end()) return {};
         return get_entity(it->second.parent);
     }
 
-    std::vector<EntityHandle> Scene::get_parent_chain(Entity entity) const
+    std::pair<const EntityHandle*, Size> Scene::get_children(EntityHandle handle) const
     {
-        std::vector<EntityHandle> chain{};
-        if(!entity.belongs_to(this) || !entity.valid()) return chain;
-
-        for(Entity current{ entity }; current.valid();)
-        {
-            chain.push_back(current.get_handle());
-            current = get_parent(current);
-            if(current.empty()) break;
-            if(std::find(chain.begin(), chain.end(), current.get_handle()) != chain.end())
-            {
-                CORE_ERROR(u8"Scene: Entity parent chain looped!");
-                chain.clear(); break;
-            }
-        }
-        return chain;
-    }
-
-    std::pair<const EntityHandle*, Size> Scene::get_children(Entity entity) const
-    {
-        if(!entity.empty() && !vertified(entity)) return { nullptr, 0 };
-        const auto it{ relations_.find(entity.get_handle()) };
+        if(!is_handle_null(handle) && !vertified(handle)) return {};
+        const auto it{ relations_.find(handle) };
         if(it == relations_.end()) return { nullptr, 0 };
-        
         const auto& children{ it->second.children };
         return { children.data(), children.size() };
-    }
-
-    std::pair<const EntityHandle*, Size> Scene::get_roots() const
-        { return get_children(Entity{}); }
-
-    void Scene::order_entity(Entity entity, Entity before)
-    {
-        if(!vertified(entity)) return;
-        if(before == entity) return; // dropped right onto itself
-        (void)set_parent(entity, get_parent(entity), before);
-    }
-
-    void Scene::set_physics_plane(glm::vec3 axis) { physics_engine_->set_plane(axis); }
-
-    void Scene::grip_move_entity(Entity entity, glm::vec3 delta, double dt)
-    {
-        if(!vertified(entity)) return;
-        entity.get_mut<TransformComponent>().translation += entity.to_local_delta(delta);
-
-    // clear previously-accumulated(force/mass * dt) velocity
-        if(entity.has<Rigidbody2DComponent>())
-        {
-            auto& rbc{ entity.get_mut<Rigidbody2DComponent>() };
-            if(dt > 0.0) {
-                rbc.velocity = physics_engine_->get_plane()
-                    .to_uv(delta) / static_cast<float>(dt);
-                rbc.angular_velocity = 0.0f;
-            }
-        }
-    }
-
-    void Scene::apply_force(Entity entity, glm::vec2 force)
-    {
-        if(!in_runtime() || !vertified(entity)) return;
-        physics_engine_->apply_force(entity, force);
-    }
-
-    void Scene::apply_acceleration(Entity entity, glm::vec2 acceleration)
-    {
-        if(!in_runtime() || !vertified(entity)) return;
-        if(!entity.has<Rigidbody2DComponent>()) return;
-        const auto& rbc{ entity.get<Rigidbody2DComponent>() };
-        physics_engine_->apply_force(entity, acceleration * rbc.mass);
-    }
-
-    void Scene::animator_play(Entity entity)
-    {
-        if(!vertified(entity)) return;
-        animator_system_->play(entity.get_handle());
-    }
-
-    void Scene::animator_stop(Entity entity)
-    {
-        if(!vertified(entity)) return;
-        animator_system_->stop(entity.get_handle());
-    }
-
-    void Scene::animator_pause(Entity entity)
-    {
-        if(!vertified(entity)) return;
-        animator_system_->pause(entity.get_handle());
-    }
-
-    void Scene::animator_resume(Entity entity)
-    {
-        if(!vertified(entity)) return;
-        animator_system_->resume(entity.get_handle());
-    }
-
-    bool Scene::animator_playing(Entity entity)
-    {
-        if(!vertified(entity)) return false;
-        return animator_system_->playing(entity.get_handle());
-    }
-
-    bool Scene::animator_paused(Entity entity)
-    {
-        if(!vertified(entity)) return false;
-        return animator_system_->paused(entity.get_handle());
-    }
-
-    void Scene::on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg)
-    {
-        if(in_runtime()) {
-            CORE_ERROR(u8"Scene: Can't reload during runtime!");
-            return;
-        }
-        auto view{ registry_->view<NativeScriptComponent>() };
-        for(entt::entity ent : view)
-        {
-            auto& nsc{ registry_->get<NativeScriptComponent>(ent) };
-            if(nsc.script_type == script_type_null) continue;
-            String name{ old_reg.get_script_name(nsc.script_type) };
-            nsc.script_type = new_reg.get_script_type(name);
-        }
     }
 
     void Scene::clear()
@@ -650,6 +658,9 @@ namespace rke
         physics_engine_->on_runtime_stop();
     }
 
+    void Scene::set_physics_plane(glm::vec3 axis)
+        { physics_engine_->set_plane(axis); }
+
     void Scene::set_viewport(uint32 width, uint32 height)
     {
         viewport_w_ = width;
@@ -670,10 +681,26 @@ namespace rke
             (e.get_x_offset(), e.get_y_offset());
     }
 
-    bool Scene::vertified(Entity entity) const
+    void Scene::on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg)
     {
-        if(entity.belongs_to(this) && is_handle_valid(entity.get_handle())) return true;
-        CORE_WARN(u8"Scene: Entity '{}' doesn't belong to this!", entity.get_tag());
+        if(in_runtime()) {
+            CORE_ERROR(u8"Scene: Can't reload during runtime!");
+            return;
+        }
+        auto view{ registry_->view<NativeScriptComponent>() };
+        for(entt::entity ent : view)
+        {
+            auto& nsc{ view.get<NativeScriptComponent>(ent) };
+            if(nsc.script_type == script_type_null) continue;
+            String name{ old_reg.get_script_name(nsc.script_type) };
+            nsc.script_type = new_reg.get_script_type(name);
+        }
+    }
+
+    bool Scene::vertified(EntityHandle handle) const
+    {
+        if(is_handle_valid(handle)) return true;
+        CORE_WARN(u8"Scene: Entity handle not valid!");
         return false;
     }
 
@@ -698,9 +725,9 @@ namespace rke
         }
     }
 
-    const AnimatorSystem::AnimPlayState* Scene::animator_state(Entity entity)
+    const AnimatorSystem::AnimPlayState* Scene::animator_state(EntityHandle handle)
     {
-        if(!entity.belongs_to(this)) return nullptr;
-        return animator_system_->get_state_from(entity.get_handle());
+        if(!vertified(handle)) return nullptr;
+        return animator_system_->get_state_from(handle);
     }
 }

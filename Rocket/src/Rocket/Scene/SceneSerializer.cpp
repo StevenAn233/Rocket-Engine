@@ -11,9 +11,9 @@ import Project;
 namespace {
     using namespace rke;
 
-    static void serialize_entity(const Scene& scene, ConfigWriter& writer, Entity entity)
+    static void serialize_entity(ConfigWriter& writer, Entity entity)
     {
-        CORE_ASSERT(entity.valid(), u8"SceneSerializer: Entity invalid!");
+        CORE_ASSERT(entity.is_valid(), u8"SceneSerializer: Entity invalid!");
         
         const auto& ic{ entity.get<IdentityComponent>() };
         if(ic.uuid.empty()) return;
@@ -22,8 +22,8 @@ namespace {
         writer.write(u8"Entity", ConfigValue(ic.uuid.value()));
         writer.write(u8"Tag", ConfigValue(String(ic.tag)));
 
-        const Entity parent{ scene.get_parent(entity) };
-        writer.write(u8"Parent", ConfigValue(parent.valid() ? parent.get_uuid().value() : 0));
+        const Entity parent{ entity.get_parent() };
+        writer.write(u8"Parent", ConfigValue(parent.is_valid() ? parent.get_uuid().value() : 0));
         
         if(entity.has<TransformComponent>())
         {
@@ -134,7 +134,7 @@ namespace {
             writer.begin_map(u8"Native-Script Component");
 
             const auto& nsc{ entity.get<NativeScriptComponent>() };
-            const auto& script_reg{ scene.get_owner()->get_script_registry() };
+            const auto& script_reg{ entity.get_owner()->get_owner()->get_script_registry() };
             String name{ script_reg.get_script_name(nsc.script_type) };
             writer.write(u8"Script Name", ConfigValue(name));
 
@@ -148,7 +148,7 @@ namespace {
     {
         UUID uuid{ reader.get_at(u8"Entity", 0ui64) };
         String name{ reader.get_at(u8"Tag", String{}) };
-        Entity entity{ scene.create_entity({}, name, uuid) };
+        Entity entity{ scene.create_entity(entity_handle_null, name, uuid) };
 
         Scope<ConfigReader> tc_reader{ reader.get_child(u8"Transform Component") };
         if(tc_reader) {
@@ -264,29 +264,24 @@ namespace rke
 
         writer->begin_array(u8"Entities");
         scene.for_each_entity([&](Entity entity)
-        {
-            if(!entity.valid()) return;
-            serialize_entity(scene, *(writer.get()), entity);
-        });
+            { if(entity.is_valid()) serialize_entity(*(writer.get()), entity); });
         writer->end_array();
 
         Entity selected{ scene.get_selected_entity() };
-        writer->write(u8"Selected Entity", selected.valid() ? selected.get_uuid().value() : 0);
+        writer->write(u8"Selected Entity", selected.is_valid() ? selected.get_uuid().value() : 0);
 
         Entity master_cam{ scene.get_master_camera() };
-        writer->write(u8"Master Camera", master_cam.valid() ? master_cam.get_uuid().value() : 0);
+        writer->write(u8"Master Camera", master_cam.is_valid() ? master_cam.get_uuid().value() : 0);
 
         Entity demo_cam{ scene.get_demo_camera() };
-        writer->write(u8"Demo Camera", demo_cam.valid() ? demo_cam.get_uuid().value() : 0);
+        writer->write(u8"Demo Camera", demo_cam.is_valid() ? demo_cam.get_uuid().value() : 0);
 
         if(serialize_hook_) serialize_hook_(scene, *(writer.get()));
 
         writer->end_map();
 
         file::check_to_create_dir(filepath);
-        if(writer->push_to_file(filepath))
-            { scene.modified_ = false; return true; }
-
+        if(writer->push_to_file(filepath)) { scene.modified_ = false; return true; }
         CORE_ERROR(u8"SceneSerializer: Failed to serialize scene '{}'!", filepath);
         return false;
     }
@@ -336,33 +331,34 @@ namespace rke
             const UUID parent_uuid{ config->get_at(u8"Parent", 0ui64) };
             if(!parent_uuid.empty() && parent_uuid != uuid)
                 links.emplace_back(uuid, parent_uuid);
-
             deserialize_entity(scene, *(config.get()));
         });
 
         for(const auto& [child_uuid, parent_uuid] : links)
         {
-            if(!scene.has_entity(child_uuid) || !scene.has_entity(parent_uuid)) continue;
-            scene.set_parent(scene.get_entity(child_uuid), scene.get_entity(parent_uuid));
+            Entity child{ scene.get_entity(child_uuid) };
+            Entity parent{ scene.get_entity(parent_uuid) };
+            if(!child.is_valid() || !parent.is_valid()) continue;
+            scene.set_parent(child.get_handle(), parent.get_handle());
         }
 
         if(reader->has_key(u8"Selected Entity")) {
             UUID uuid{ reader->get_at(u8"Selected Entity", 0ui64) };
             scene.set_selected_entity(uuid);
         }
-        else scene.set_selected_entity(Entity{});
+        else scene.set_selected_entity(entity_handle_null);
 
         if(reader->has_key(u8"Master Camera")) {
             UUID uuid{ reader->get_at(u8"Master Camera", 0ui64) };
             scene.set_master_camera(uuid);
         }
-        else scene.set_master_camera(Entity{});
+        else scene.set_master_camera(entity_handle_null);
 
         if(reader->has_key(u8"Demo Camera")) {
             UUID uuid{ reader->get_at(u8"Demo Camera", 0ui64) };
             scene.set_demo_camera(uuid);
         }
-        else scene.set_demo_camera(Entity{});
+        else scene.set_demo_camera(entity_handle_null);
 
         if(deserialize_hook_) deserialize_hook_(scene, *(reader.get()));
 

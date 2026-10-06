@@ -53,7 +53,7 @@ namespace
 
     static std::pair<Texture*, GTextureSettings> get_texture(AssetsManager& am, Entity entity)
     {
-        if(!entity.valid() || !entity.has<SpriteComponent>()) return { nullptr, {} };
+        if(!entity.is_valid() || !entity.has<SpriteComponent>()) return { nullptr, {} };
         auto& sc{ entity.get_mut<SpriteComponent>() };
         if(entity.has<TextureComponent>())
         {
@@ -127,7 +127,7 @@ namespace rke
 
     const GTexture2D* SceneRenderer::render(const Scene* scene, Entity camera)
     {
-        if(camera.valid() && camera.belongs_to(scene) && camera.has<CameraComponent>())
+        if(camera.is_valid() && camera.belongs_to(scene) && camera.has<CameraComponent>())
         {
             const auto& proj{ camera.get<CameraComponent>().camera.get_proj() };
             glm::mat4 view_proj{ proj * glm::inverse(camera.get_world_transform().matrix) };

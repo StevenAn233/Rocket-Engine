@@ -8,12 +8,11 @@ namespace rke { class Scene; }
 
 export module ScriptManager;
 
-import Script;
 import Types;
+import Script;
 import HeapManager;
 import EntityAccess;
 import ScriptAccess;
-import PhysicsEngine2D;
 import Components;
 
 export namespace rke
@@ -21,6 +20,8 @@ export namespace rke
     class ScriptManager
     {
     public:
+        friend class SceneHierarchyPanel; // may modify
+
         ScriptManager(Scene* owner);
         ~ScriptManager() = default;
 
@@ -48,15 +49,6 @@ export namespace rke
             Scope<Script> script{};
         };
 
-        Scope<Script> create_script(ScriptType type, EntityHandle owner);
-        void destroy_script(Scope<Script> script);
-
-        void align_cache(); // keep cache size == storage size
-        RuntimeCache* refresh_cache(EntityHandle handle,
-            NativeScriptComponent& nsc, Size index); // validate slot, (re)create script
-        void sync_all_to_cache();
-        void flush_scripts();
-
         enum class ContactType
         {
             SolidBegin,
@@ -64,11 +56,18 @@ export namespace rke
             SensorBegin,
             SensorEnd,
         };
-        void contact_callback (
-            EntityHandle owner_handle,
-            EntityHandle other_handle,
-            ContactType type
-        );
+
+        Scope<Script> create_script(ScriptType type, EntityHandle handle);
+        void destroy_script(Scope<Script> script);
+
+        void align_cache(); // keep cache size == storage size
+        // validate slot, (re)create script
+        RuntimeCache* refresh_cache(EntityHandle handle, ScriptType type, Size index); 
+        void sync_all_to_cache();
+        void flush_scripts();
+        void contact_callback(EntityHandle lhs, EntityHandle rhs, ContactType type);
+
+        Script* get_script(EntityHandle handle); // For SceneHierarchy
 
         static void on_script_com_destroy(entt::registry& reg, entt::entity ent);
     private:

@@ -9,13 +9,6 @@
 #include <entt/entt.hpp>
 #include "rke_macros.h"
 
-namespace rke
-{
-    class Project;
-    class ScriptRegistry;
-    class ScriptManager;
-}
-
 export module Scene;
 
 import Plane;
@@ -25,15 +18,13 @@ import Types;
 import String;
 import Path;
 import MouseEvent;
-import ApplicationEvent;
 import HeapManager;
-import PhysicsLayers;
-import Gravity;
-import PhysicsEngine2D;
-import Animation;
-import AnimatorSystem;
+import ScriptRegistry;
 import Components;
 import EntityAccess;
+import ScriptManager;
+import PhysicsEngine2D;
+import AnimatorSystem;
 
 export namespace rke
 {
@@ -59,35 +50,29 @@ export namespace rke
         RKE_API Entity(Entity&&) = default;
         RKE_API Entity& operator=(Entity&&) = default;
 
+        RKE_API bool is_valid() const;
         RKE_API UUID get_uuid() const;
         RKE_API StringView get_tag() const;
         RKE_API const Mesh* get_mesh() const;
 
-        RKE_API Entity get_parent() const;
-        RKE_API std::pair<const EntityHandle*, Size> get_children() const;
+        RKE_API bool operator==(const Entity& other) const;
+        RKE_API bool operator!=(const Entity& other) const;
 
-        RKE_API Entity create_child();
-        RKE_API void detach_child(Entity child);
-        RKE_API void detach_all_children();
+        inline bool is_null() const { return handle_ == entity_handle_null; }
+        inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
+        inline EntityHandle get_handle() const { return handle_; }
 
+        inline Scene* get_owner() { return owner_scene_; }
+        inline const Scene* get_owner() const { return owner_scene_; }
+        inline std::pair<EntityHandle, Scene*> split() { return { handle_, owner_scene_ }; }
+        inline std::pair<EntityHandle, const Scene*> split() const { return { handle_, owner_scene_ }; }
+        
         RKE_API WorldTransform get_world_transform() const;
         RKE_API glm::vec3 to_local_delta(glm::vec3 world_delta) const;
 
         RKE_API glm::vec3 compute_centre() const;
         RKE_API glm::vec2 compute_flat_size(const PlaneBasis& plane) const;
         RKE_API float compute_flat_rotation(const PlaneBasis& plane) const;
-
-        RKE_API bool valid() const;
-        RKE_API bool operator==(const Entity& other) const;
-        RKE_API bool operator!=(const Entity& other) const;
-
-        inline EntityHandle get_handle() const { return handle_; }
-        inline Scene* get_owner() { return owner_scene_; } // mutable
-
-        inline bool empty() const { return handle_ == entity_handle_null; }
-        inline bool belongs_to(const Scene* scene) const { return scene == owner_scene_; }
-        inline bool is_root() const { return get_parent().empty(); }
-        inline bool has_any_child() const { return get_children().second > 0; }
 
         template<typename Component>
         bool has() const;
@@ -106,6 +91,29 @@ export namespace rke
         Component& get_mut();
         template<typename Component>
         void remove();
+
+        RKE_API Entity create_child();
+        RKE_API void detach_child(Entity child);
+        RKE_API void detach_all_children();
+
+        RKE_API Entity get_parent() const;
+        inline bool is_root() const { return get_parent().is_null(); }
+        
+        RKE_API std::vector<EntityHandle> get_parent_chain() const;
+        RKE_API std::pair<const EntityHandle*, Size> get_children() const;
+        inline bool has_any_child() const { return get_children().second > 0; }
+
+        RKE_API void grip_move_by(glm::vec3 delta, double dt);
+        RKE_API void force_apply_by(glm::vec2 force);
+        RKE_API void acc_apply_by(glm::vec2 acc);
+
+        RKE_API void anim_play();
+        RKE_API void anim_stop();
+        RKE_API void anim_pause ();
+        RKE_API void anim_resume();
+
+        RKE_API bool is_anim_playing();
+        RKE_API bool is_anim_paused ();
     private:
         RKE_API Entity(EntityHandle handle, Scene* scene);
 
@@ -115,6 +123,7 @@ export namespace rke
         RKE_API void check_animator_com() const;
         RKE_API void remove_all_sprite_related();
     private:
+        uint32 padding_{}; // may modify
         EntityHandle handle_{ entity_handle_null }; // version(12bits) + index(20bits)
         Scene* owner_scene_{ nullptr };
     };
@@ -122,6 +131,7 @@ export namespace rke
     class RKE_API Scene
     {
     public:
+        friend class Project;
         friend class Entity;
         friend class SceneSerializer;
         friend class SceneRenderer;
@@ -137,11 +147,11 @@ export namespace rke
             AnimatorSystem* animator_system_{};
         };
 
-        Scene(Project* owner, String name = u8"Untitled");
         ~Scene();
-
         Scene(const Scene&) = delete;
+        Scene& operator=(const Scene&) = delete;
         Scene(Scene&&) = delete;
+        Scene& operator=(Scene&&) = delete;
         
         void set_name(String name);
         inline const String& get_name() const { return name_; }
@@ -151,47 +161,48 @@ export namespace rke
 
         Scope<Scene> duplicate(bool temp = true); // will copy entity uuid
 
-        Entity create_entity(Entity parent = {},
-            const String& tag = String(u8"New Entity"),
-            UUID uuid = {});
-        Entity copy_entity(Entity entity); // will not copy entity uuid
+        Entity create_entity(EntityHandle parent = {},
+            const String& tag = String(u8"New Entity"), UUID uuid = {});
+        Entity copy_entity(EntityHandle handle); // will not copy entity uuid
 
-        void destroy_entity(Entity entity);
-        inline void destroy_entity(EntityHandle handle)
-            { destroy_entity(get_entity(handle)); }
-        inline void destroy_entity(UUID uuid)
-            { destroy_entity(get_entity(uuid)); }
-        void destroy_selected_entity() { destroy_entity(selected_entity_); }
+        void destroy_entity(EntityHandle handle);
+        void destroy_entity(UUID uuid);
+        inline void destroy_selected_entity() { destroy_entity(selected_entity_); }
 
         bool has_entity(UUID uuid) const;
         bool is_handle_valid(EntityHandle handle) const;
+
+        static inline bool is_handle_null(EntityHandle handle)
+            { return handle == entity_handle_null; }
 
         Entity get_entity(EntityHandle handle);
         Entity get_entity(UUID uuid);
         const Entity get_entity(EntityHandle handle) const;
         const Entity get_entity(UUID uuid) const;
-        inline Entity get_selected_entity() const { return selected_entity_; }
-        inline Entity get_master_camera() const { return master_cam_; }
 
-        void set_selected_entity(Entity entity);
-        inline void set_selected_entity(EntityHandle handle)
-            { set_selected_entity(get_entity(handle)); }
-        inline void set_selected_entity(UUID uuid)
-            { set_selected_entity(get_entity(uuid)); }
+        void set_selected_entity(EntityHandle handle);
+        void set_selected_entity(UUID uuid);
         
-        void set_master_camera(Entity entity);
-        inline void set_master_camera(EntityHandle handle)
-            { set_master_camera(get_entity(handle)); }
-        inline void set_master_camera(UUID uuid)
-            { set_master_camera(get_entity(uuid)); }
+        void set_master_camera(EntityHandle handle);
+        void set_master_camera(UUID uuid);
+        
+        void set_demo_camera(EntityHandle handle);
+        void set_demo_camera(UUID uuid);
 
-        Entity get_demo_camera() const { return demo_cam_; }
-        void set_demo_camera(Entity entity);
-        inline void set_demo_camera(EntityHandle handle)
-            { set_demo_camera(get_entity(handle)); }
-        inline void set_demo_camera(UUID uuid)
-            { set_demo_camera(get_entity(uuid)); }
+        inline Entity get_selected_entity() const { return get_entity(selected_entity_); }
+        inline Entity get_master_camera() const { return get_entity(master_cam_); }
+        inline Entity get_demo_camera() const { return get_entity(demo_cam_); }
 
+        bool set_parent(EntityHandle child,
+            EntityHandle parent = entity_handle_null,
+            EntityHandle before = entity_handle_null);
+        void order_entity(EntityHandle handle, EntityHandle before = {});
+
+        Entity get_parent(EntityHandle handle) const;
+        std::pair<const EntityHandle*, Size> get_children(EntityHandle handle) const;
+        inline std::pair<const EntityHandle*, Size> get_roots() const
+            { return get_children(entity_handle_null); }
+        
         template<typename Func>
         requires std::invocable<Func, Entity>
         void for_each_entity(Func&& func) const // tree order
@@ -203,51 +214,17 @@ export namespace rke
             for(Size i{ root_count }; i > 0; --i) stack.push_back(roots[i - 1]);
             while(!stack.empty())
             {
-                const EntityHandle handle{ stack.back() };
+                const Entity entity{ get_entity(stack.back()) };
                 stack.pop_back();
 
-                Entity entity{ get_entity(handle) };
-                if(!entity.valid()) continue;
+                if(!entity.is_valid()) continue;
                 std::invoke(std::forward<Func>(func), entity);
-                if(!entity.valid()) continue; // the callback may have destroyed it
+                if(!entity.is_valid()) continue; // the callback may have destroyed it
 
-                const auto [children, child_count]{ get_children(entity) };
+                const auto [children, child_count]{ entity.get_children() };
                 for(Size i{ child_count }; i > 0; --i) stack.push_back(children[i - 1]);
             }
         }
-        void order_entity(Entity entity, Entity before = {});
-        bool set_parent(Entity child, Entity parent = {}, Entity before = {});
-        inline bool set_parent(EntityHandle child,
-            EntityHandle parent = entity_handle_null,
-            EntityHandle before = entity_handle_null
-        ) { return set_parent(get_entity(child), get_entity(parent), get_entity(before)); }
-
-        void detach_child(Entity entity, Entity child);
-        void detach_all_children(Entity entity);
-
-        Entity get_parent(Entity entity) const;
-        std::vector<EntityHandle> get_parent_chain(Entity entity) const;
-        std::pair<const EntityHandle*, Size> get_children(Entity entity) const;
-        inline bool has_any_child(Entity entity) const
-            { return get_children(entity).second > 0; }
-
-        inline bool is_root(Entity entity) const { return get_parent(entity).empty(); }
-        std::pair<const EntityHandle*, Size> get_roots() const;
-
-        void set_physics_plane(glm::vec3 axis); // 2D only; may modify
-        void grip_move_entity(Entity entity, glm::vec3 delta, double dt);
-        void apply_force(Entity entity, glm::vec2 force);
-        void apply_acceleration(Entity entity, glm::vec2 acceleration);
-
-        void animator_play(Entity entity);
-        void animator_stop(Entity entity);
-        void animator_pause (Entity entity);
-        void animator_resume(Entity entity);
-
-        bool animator_playing(Entity entity);
-        bool animator_paused (Entity entity);
-
-        void on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg);
 
         void clear();
         void on_update(double dt);
@@ -256,7 +233,9 @@ export namespace rke
         void on_runtime_stop ();
 
         void on_mouse_scrolled_runtime(MouseScrolledEvent& e);
+        void on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg);
 
+        void set_physics_plane(glm::vec3 axis); // 2D only; may modify
         void set_viewport(uint32 width, uint32 height);
         inline uint32 get_viewport_w() const { return viewport_w_; }
         inline uint32 get_viewport_h() const { return viewport_h_; }
@@ -268,10 +247,13 @@ export namespace rke
         inline void mark_modified() const { modified_ = true; }
         inline void mark_modified_if(bool condition) const { if(condition) modified_ = true; }
     private:
-        bool vertified(Entity entity) const;
+        Scene(Project* owner, String name = u8"Untitled");
+
+        bool vertified(EntityHandle handle) const;
         void reset_relations();
         void flush_destroy_queue();
-        const AnimatorSystem::AnimPlayState* animator_state(Entity entity); // for SceneHierarchyPanel
+    // for SceneHierarchyPanel
+        const AnimatorSystem::AnimPlayState* animator_state(EntityHandle handle);
     private:
         Project* owner_;
         String name_;
@@ -293,9 +275,9 @@ export namespace rke
         bool temporary_{ false }; // not gonna serialize
 
         std::unordered_map<UUID, EntityHandle> entity_map_{};
-        Entity master_cam_{};
-        Entity demo_cam_{};
-        Entity selected_entity_{}; // std::vector<Entity> selected_entities{};
+        EntityHandle master_cam_{ entity_handle_null };
+        EntityHandle demo_cam_  { entity_handle_null };
+        EntityHandle selected_entity_{ entity_handle_null };
 
         Scope<ScriptManager> script_manager_{};
         Scope<PhysicsEngine2D> physics_engine_{};
@@ -308,8 +290,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_
-            ->all_of<Component>(static_cast<entt::entity>(handle_));
+        return owner_scene_->registry_->all_of
+            <Component>(static_cast<entt::entity>(handle_));
     }
 
     template<typename ...Components>
@@ -318,8 +300,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_
-            ->all_of<Components...>(static_cast<entt::entity>(handle_));
+        return owner_scene_->registry_->all_of
+            <Components...>(static_cast<entt::entity>(handle_));
     }
 
     template<typename ...Components>
@@ -328,8 +310,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_
-            ->any_of<Components...>(static_cast<entt::entity>(handle_));
+        return owner_scene_->registry_->any_of
+            <Components...>(static_cast<entt::entity>(handle_));
     }
 
     template<typename Component, typename ...Args>
@@ -376,8 +358,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_
-            ->get<Component>(static_cast<entt::entity>(handle_));
+        return owner_scene_->registry_->get
+            <Component>(static_cast<entt::entity>(handle_));
     }
 
     template<typename Component>
@@ -386,8 +368,8 @@ export namespace rke
     #ifdef RKE_DEBUG
         check_assert();
     #endif
-        return owner_scene_->registry_
-            ->get<Component>(static_cast<entt::entity>(handle_));
+        return owner_scene_->registry_->get
+            <Component>(static_cast<entt::entity>(handle_));
     }
 
     template<typename Component>
@@ -398,8 +380,8 @@ export namespace rke
     #endif
         if constexpr(std::is_same_v<Component, SpriteComponent>)
             remove_all_sprite_related();
-        owner_scene_->registry_
-            ->remove<Component>(static_cast<entt::entity>(handle_));
+        owner_scene_->registry_->remove
+            <Component>(static_cast<entt::entity>(handle_));
         owner_scene_->mark_modified();
     }
 }

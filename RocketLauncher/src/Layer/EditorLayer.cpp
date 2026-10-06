@@ -7,15 +7,17 @@ import FXAAEffect;
 namespace
 {
     using namespace rke;
-    static void entity_right_click_popup_content(Scene* scene, Entity entity)
+    static void entity_right_click_popup_content(Entity entity)
     {
-        if(!scene) return;
+        if(!entity.is_valid()) return;
+        auto [handle, scene]{ entity.split() };
+        
         if(ImGui::MenuItem("Copy"))
-            scene->set_selected_entity(scene->copy_entity(entity));
+            scene->set_selected_entity(scene->copy_entity(handle).get_handle());
         if(ImGui::MenuItem("Create Child"))
-            scene->set_selected_entity(entity.create_child());
+            scene->set_selected_entity(entity.create_child().get_handle());
         ImGui::Separator();
-        if(ImGui::MenuItem("Delete")) scene->destroy_entity(entity);
+        if(ImGui::MenuItem("Delete")) scene->destroy_entity(handle);
     }
 }
 
@@ -68,7 +70,7 @@ namespace rke
             {
                 Entity selected{ current_scene() ?
                     current_scene()->get_selected_entity() : Entity{} };
-                EntityHandle selected_id{ selected.valid() ?
+                EntityHandle selected_id{ selected.is_valid() ?
                     selected.get_handle() : entity_handle_null };
                 return !gizmo::is_using()
                     && editor_setting_panel_->selected_enabled_editor()
@@ -161,7 +163,7 @@ namespace rke
                 }
                 if(in_entity_popup_)
                     entity_right_click_popup_content
-                        (scene_edit_, scene_edit_->get_selected_entity());
+                        (scene_edit_->get_selected_entity());
                 else { // may modify
                     if(ImGui::MenuItem("Reload Scene"))
                         reload_scene_edit();
@@ -288,7 +290,7 @@ namespace rke
         if(!scene_edit_ || testing()) return false;
 
         bool is_gizmo_over{ gizmo::is_over() &&
-            scene_edit_->get_selected_entity().valid() };
+            scene_edit_->get_selected_entity().is_valid() };
         if(is_gizmo_over || gizmo::is_using()) return false;
 
         if(e.get_mouse_button() == Mouse::Left)
@@ -296,7 +298,7 @@ namespace rke
             if(scene_edit_->is_handle_valid(hovering_id_))
                 scene_edit_->set_selected_entity(hovering_id_);
             else if(main_viewport_->is_focused())
-                scene_edit_->set_selected_entity(Entity{});
+                scene_edit_->set_selected_entity(entity_handle_null);
             return true;
         }
         return false;
@@ -378,7 +380,7 @@ namespace rke
 
             if(scene_edit_ && main_viewport_->is_hovered() &&
              ! in_main_viewport_dragging_ &&
-             !(gizmo::is_over() && scene_edit_->get_selected_entity().valid()))
+             !(gizmo::is_over() && scene_edit_->get_selected_entity().is_valid()))
             {
                 glm::vec2 vp_mouse{ main_viewport_->get_mouse_pos() };
                 hovering_id_ = std::bit_cast<EntityHandle>

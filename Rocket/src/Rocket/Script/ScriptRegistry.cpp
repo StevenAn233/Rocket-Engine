@@ -2,6 +2,7 @@
 module ScriptRegistry;
 
 import Log;
+import Script;
 
 namespace rke
 {

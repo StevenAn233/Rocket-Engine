@@ -1,4 +1,4 @@
-module;
+﻿module;
 
 #include <bit>
 #include <utility>
@@ -23,19 +23,21 @@ export namespace rke
     class RKE_API SceneHierarchyPanel : public Panel
     {
     public:
-        using EntityNodeCallback = std::function<void(Scene*, Entity)>;
+        using EntityNodeCallback = std::function<void(Entity)>;
 
         SceneHierarchyPanel(String name);
 
-        inline void set_context(Scene* context) { context_ = context; }
+        inline void set_context(Scene* scene) { context_ = scene; }
         inline void set_on_entity_node_render(EntityNodeCallback callback)
             { on_entity_node_render_ = std::move(callback); }
+    private:
+        void on_imgui_render() override;
 
         template<typename Component, StringLiteral Str, typename Callback>
         requires std::invocable<Callback, Entity>
         inline void check_then_draw(Entity entity, Callback&& callback)
         {
-            if(!entity.has<Component>()) return;
+            if(!entity.is_valid() || !entity.has<Component>()) return;
             constexpr auto type_id{ entt::type_hash<Component>::value() };
 
             bool to_delete{ false };
@@ -60,15 +62,18 @@ export namespace rke
             }, 0, std::bit_cast<void*>(static_cast<uint64>(type_id)));
             if(to_delete) entity.remove<Component>();
         }
-    private:
-        void on_imgui_render() override;
-
-        void draw_entity_node(Entity entity, bool is_selected, Size index);
+    
+        void draw_entity_node(EntityHandle handle);
+        void draw_entity_drop_target(EntityHandle handle);
+        void draw_scene_node_drop_target();
+        void draw_root_tail_drop_target();
+        void apply_pending_drop();
+        void clear_drop();
         void draw_entity_popup(bool& entity_created);
 
         void draw_scene_settings();
-        void draw_components(Entity selected);
-        void add_components_popup(Entity selected);
+        void draw_components(Entity entity);
+        void add_components_popup(Entity entity);
 
         void general_comp_popup_content(bool& to_delete);
         void camera_comp_popup_content(Entity entity, bool& to_delete);
@@ -78,13 +83,12 @@ export namespace rke
         void set_scene_node_selected();
         void set_entity_node_selected(Entity entity);
     private:
-        static constexpr Size drop_none_{ static_cast<Size>(-1) };
-
         Scene* context_{};
         bool is_scene_selected_{ false };
         EntityNodeCallback on_entity_node_render_{};
 
-        EntityHandle drag_entity_{ entity_handle_null }; // what a drag carries
-        Size drop_index_{ drop_none_ };
+        EntityHandle drop_child_ { entity_handle_null };
+        EntityHandle drop_parent_{ entity_handle_null }; // null = move back to the top level
+        EntityHandle drop_before_{ entity_handle_null }; // null = append at the end
     };
 }

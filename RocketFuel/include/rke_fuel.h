@@ -1,7 +1,6 @@
 ﻿#pragma once
 
-namespace rke::glue
-{
+namespace rke::glue {
     void push_script_entry(const char8_t* name, void* (*constructor)());
 }
 

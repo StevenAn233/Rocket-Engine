@@ -14,15 +14,8 @@ import Gravity;
 import EntityAccess;
 import HeapManager;
 
-
 export namespace rke
 {
-    struct Contact
-    {
-        EntityHandle entity_a{ entity_handle_null };
-        EntityHandle entity_b{ entity_handle_null };
-    };
-
     class PhysicsEngine2D
     {
     public:
@@ -34,7 +27,7 @@ export namespace rke
 
         virtual void on_update(double dt) = 0;
         virtual bool empty() const = 0;
-        virtual void apply_force(Entity entity, glm::vec2 force) = 0;
+        virtual void apply_force(EntityHandle entity, glm::vec2 force) = 0;
 
         inline void set_gravity(glm::vec3 val) { gravity_.ref() = val; }
         inline void set_plane(glm::vec3 axis)
@@ -62,6 +55,7 @@ export namespace rke
         static Scope<PhysicsEngine2D> create(Scene* owner);
     protected:
         inline Scene& get_owner() { return *owner_; }
+        inline const Scene& get_owner() const { return *owner_; }
         entt::registry& get_registry();
 
         inline bool plane_dirty() const { return plane_dirty_; }

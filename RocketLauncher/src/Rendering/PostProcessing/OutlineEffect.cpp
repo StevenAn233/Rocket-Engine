@@ -23,7 +23,7 @@ namespace rke
     {
         if(!source || !destination) return false;
         Entity target{ target_getter_() };
-        if(!target.valid()) return false;
+        if(!target.is_valid()) return false;
         outline_fbo_->clear_to_upload([this, target]()
         {
             if(target.has<SpriteComponent>())
