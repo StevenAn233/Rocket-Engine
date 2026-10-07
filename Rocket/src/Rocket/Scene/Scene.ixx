@@ -161,7 +161,7 @@ export namespace rke
 
         Scope<Scene> duplicate(bool temp = true); // will copy entity uuid
 
-        Entity create_entity(EntityHandle parent = {},
+        Entity create_entity(EntityHandle parent = entity_handle_null,
             const String& tag = String(u8"New Entity"), UUID uuid = {});
         Entity copy_entity(EntityHandle handle); // will not copy entity uuid
 
