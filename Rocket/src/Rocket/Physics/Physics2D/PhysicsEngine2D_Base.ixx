@@ -58,8 +58,8 @@ export namespace rke
         inline const Scene& get_owner() const { return *owner_; }
         entt::registry& get_registry();
 
-        inline bool plane_dirty() const { return plane_dirty_; }
-        inline void plane_cleaned() { plane_dirty_ = false; }
+        inline bool is_plane_dirty() const { return plane_dirty_; }
+        inline void plane_applied() { plane_dirty_ = false; }
     protected:
     // synced/refreshed in on_update
         std::vector<Contact> begin_contacts_solid_{};

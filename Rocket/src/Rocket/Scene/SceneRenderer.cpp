@@ -8,26 +8,30 @@ import Application;
 import RenderCommand;
 import Components;
 import Texture;
+import Plane;
 
 namespace
 {
+    using namespace rke;
+    using Frustum = std::array<PlaneBasis, 6>;
+
     static bool should_cull(glm::vec3 pos, const glm::mat3& axes,
-        glm::vec3 half_size, const std::array<glm::vec4, 6>& frustum_planes)
+        glm::vec3 half_size, const Frustum& frustum)
     {
-        for(const auto& plane : frustum_planes)
+        for(const auto& plane : frustum)
         {
-            const glm::vec3 normal{ glm::vec3(plane) };
+            const glm::vec3 normal{ plane.get_normal() };
             const float support {
                 half_size.x * std::abs(glm::dot(axes[0], normal))
               + half_size.y * std::abs(glm::dot(axes[1], normal))
               + half_size.z * std::abs(glm::dot(axes[2], normal))
             };
-            if(glm::dot(normal, pos) + plane.w + support < 0.0f) return true;
+            if(plane.signed_distance(pos) + support < 0.0f) return true;
         }
         return false;
     }
 
-    static std::array<glm::vec4, 6> get_planes_normal(const glm::mat4& vp)
+    static Frustum get_frustum(const glm::mat4& vp)
     {
         glm::vec4 left  { (vp[0][3] + vp[0][0]), (vp[1][3] + vp[1][0]),
                           (vp[2][3] + vp[2][0]), (vp[3][3] + vp[3][0]) };
@@ -42,18 +46,13 @@ namespace
         glm::vec4 far   { (vp[0][3] - vp[0][2]), (vp[1][3] - vp[1][2]),
                           (vp[2][3] - vp[2][2]), (vp[3][3] - vp[3][2]) };
 
-        return std::array<glm::vec4, 6>
-        {
-            left   / glm::length(glm::vec3(left  )),
-            right  / glm::length(glm::vec3(right )),
-            bottom / glm::length(glm::vec3(bottom)),
-            top    / glm::length(glm::vec3(top   )),
-            near   / glm::length(glm::vec3(near  )),
-            far    / glm::length(glm::vec3(far   )),
+        return Frustum {
+            PlaneBasis(left  ), PlaneBasis(right ),
+            PlaneBasis(bottom), PlaneBasis(top   ),
+            PlaneBasis(near  ), PlaneBasis(far   ),
         };
     }
 
-    using namespace rke;
     static std::pair<Texture*, GTextureSettings> get_texture(AssetsManager& am, Entity entity)
     {
         if(!entity.is_valid() || !entity.has<SpriteComponent>()) return { nullptr, {} };
@@ -192,8 +191,7 @@ namespace rke
 
     void SceneRenderer::render_scene(const Scene* scene, const glm::mat4& vp, glm::vec3 cam_pos)
     {
-    // frustum culling
-        auto planes{ get_planes_normal(vp) };
+        Frustum frustum{ get_frustum(vp) };
         AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager_mut() };
         
         transparent_queue_.clear();
@@ -210,7 +208,7 @@ namespace rke
             const glm::vec3 pos{ glm::vec3(world_mat * glm::vec4(sc.quad->get_centre(), 1.0f)) };
             const glm::mat3 axes{ glm::mat3(world_mat) };
             const glm::vec3 half_size{ 0.5f * sc.quad->get_size() };
-            if(should_cull(pos, axes, half_size, planes)) continue;
+            if(should_cull(pos, axes, half_size, frustum)) continue;
 
             switch(sc.blending_mode)
             {

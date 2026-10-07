@@ -47,7 +47,6 @@ namespace rke
             b2BodyId  body { b2_nullBodyId  };
             b2ShapeId shape{ b2_nullShapeId };
             glm::vec2 shape_size{ 0.0f }; // last resolved half extent(pixels)
-            float depth{ 0.0f };
             bool is_root{ true };
         };
 

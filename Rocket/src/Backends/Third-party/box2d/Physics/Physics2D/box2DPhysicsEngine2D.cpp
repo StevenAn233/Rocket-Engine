@@ -40,10 +40,11 @@ namespace {
         return b2_staticBody;
     }
 
-    static b2Vec2 to_b2_pos(Entity entity, const PlaneBasis& plane, float depth)
+    static b2Vec2 to_b2_pos(Entity entity, const PlaneBasis& plane)
     {
+        glm::vec3 centre{ entity.compute_centre() };
         return std::bit_cast<b2Vec2>(plane.to_uv
-            (entity.compute_centre() + (plane.get_normal() * depth)));
+            (centre + (plane.get_normal() * plane.signed_distance(centre))));
     }
 
 // for one-way callback
@@ -242,14 +243,13 @@ namespace rke
             return;
         }
 
-        state.depth = glm::dot(entity.compute_centre(), get_plane().get_normal());
         if(b2Body_IsValid(state.body)) return;
 
         const auto& rbc{ entity.get<Rigidbody2DComponent>() };
         b2BodyDef body_def{ b2DefaultBodyDef() };
         body_def.type = to_b2_body_type(rbc.type);
 
-        body_def.position = to_b2_pos(entity, get_plane(), state.depth);
+        body_def.position = to_b2_pos(entity, get_plane());
         body_def.rotation = b2MakeRot(glm::radians
             (entity.compute_flat_rotation(get_plane())));
         body_def.fixedRotation = rbc.rotation_fixed;
@@ -386,7 +386,7 @@ namespace rke
             }
             if(!state.is_root) continue;
 
-            if(!b2Body_IsValid(state.body) || plane_dirty())
+            if(is_plane_dirty() || !b2Body_IsValid(state.body))
                 ensure_body(entity.get_handle(), state);
             if(!b2Body_IsValid(state.body)) 
             {
@@ -412,7 +412,7 @@ namespace rke
             glm::vec2 last_pos{ std::bit_cast<glm::vec2>(b2Body_GetPosition(body)) };
             float last_rot{ b2Rot_GetAngle(b2Body_GetRotation(body)) }; // radian
 
-            glm::vec2 pos{ std::bit_cast<glm::vec2>(to_b2_pos(entity, get_plane(), state.depth)) };
+            glm::vec2 pos{ std::bit_cast<glm::vec2>(to_b2_pos(entity, get_plane())) };
             float rot{ glm::radians(entity.compute_flat_rotation(get_plane())) };
 
             if(last_pos != pos || std::abs(last_rot - rot) > 0.001f)
@@ -432,16 +432,20 @@ namespace rke
                 const auto& physics_layers{ project->get_config().physics_layers };
                 if(!b2Shape_IsValid(state.shape))
                     create_shape(entity.get_handle(), state, physics_layers);
-                else if(plane_dirty() || shape_spec_changed(entity.get_handle(), state, physics_layers))
+                else if(is_plane_dirty() || shape_spec_changed(entity.get_handle(), state, physics_layers))
                     rebuild_shape(entity.get_handle(), state, physics_layers);
             }
         }
-        plane_cleaned();
+        plane_applied();
     }
 
     void box2DPhysicsEngine2D::sync_all_from_body()
     {
         if(empty()) return;
+        if(is_plane_dirty()) {
+            CORE_ERROR(u8"box2DPhysicsEngine2D: Plane been modified while updating!");
+            return;
+        }
 
         auto view{ get_registry().view<Rigidbody2DComponent>() };
         for(entt::entity ent : view)
@@ -480,10 +484,12 @@ namespace rke
                 ));
             }
 
+            glm::vec3 centre{ entity.compute_centre() };
+            float depth{ get_plane().signed_distance(centre) };
             const glm::vec3 world_delta
             {
-                get_plane().to_world({ position.x, position.y }) -
-                (entity.compute_centre() - get_plane().get_normal() * state->depth)
+                get_plane().to_world({ position.x, position.y })
+                - (centre - get_plane().get_normal() * depth)
             };
             tc.translation += entity.to_local_delta(world_delta);
         }

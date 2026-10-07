@@ -18,6 +18,9 @@ export import FileUtils;
 export import MathUtils;
 export import ConfigProxy;
 
+export import AABB;
+export import Plane;
+
 export import Event;
 export import EventDispatcher;
 export import ApplicationEvent;

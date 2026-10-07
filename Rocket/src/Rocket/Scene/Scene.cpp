@@ -677,8 +677,7 @@ namespace rke
     void Scene::on_mouse_scrolled_runtime(MouseScrolledEvent& e)
     {
         if(!in_runtime()) return;
-        script_manager_->on_mouse_scrolled
-            (e.get_x_offset(), e.get_y_offset());
+        script_manager_->on_mouse_scrolled(e.get_x_offset(), e.get_y_offset());
     }
 
     void Scene::on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg)
