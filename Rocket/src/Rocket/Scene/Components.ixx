@@ -48,7 +48,6 @@ export namespace rke
         TransformComponent(const TransformComponent&) = default;
 
         glm::mat4 get_transform() const;
-        void premultiply_by(const TransformComponent& other);
     };
 
     struct RKE_API CameraComponent

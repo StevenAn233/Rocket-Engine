@@ -68,11 +68,15 @@ export namespace rke
         inline std::pair<EntityHandle, const Scene*> split() const { return { handle_, owner_scene_ }; }
         
         RKE_API WorldTransform get_world_transform() const;
+        RKE_API void set_world_transform(const WorldTransform& world);
         RKE_API glm::vec3 to_local_delta(glm::vec3 world_delta) const;
 
         RKE_API glm::vec3 compute_centre() const;
         RKE_API glm::vec2 compute_flat_size(const PlaneBasis& plane) const;
         RKE_API float compute_flat_rotation(const PlaneBasis& plane) const;
+
+        RKE_API glm::vec2 get_velocity() const;
+        RKE_API float get_angular_velocity() const;
 
         template<typename Component>
         bool has() const;

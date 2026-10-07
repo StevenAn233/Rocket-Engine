@@ -749,7 +749,7 @@ namespace rke
             layout::drag_float_control<u8"Mass">(rbc.mass, 0.0f, 0.0f, std::nullopt);
             
             glm::vec2 empty_vec{};
-            bool is_static{ rbc.type == BodyType::Static };
+            bool is_static{ rbc.type == BodyType::Static || !ent.is_root() }; // may modify
             layout::drag_float2_control<u8"Velocity">
             (
                 !is_static ? rbc.velocity : empty_vec, 0.1f, glm::vec2(0.0f),

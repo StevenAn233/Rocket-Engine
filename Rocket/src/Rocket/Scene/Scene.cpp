@@ -11,6 +11,35 @@ import AssetsManager;
 import Texture;
 import SceneHierarchyPanel;
 
+namespace {
+    using namespace rke;
+
+    static Entity moving_entity(Entity entity)
+    {
+        if(!entity.is_valid()) return {};
+        const std::vector<EntityHandle> chain{ entity.get_parent_chain() };
+        if(chain.empty()) return {};
+
+        Entity root{ entity.get_owner()->get_entity(chain.back()) };
+        if(!root.is_valid() || !root.has<Rigidbody2DComponent>()) return {};
+        return root;
+    }
+
+// An entity that stops being carried and becomes a root gets a body of its own next frame;
+// so it takes over the motion it was being carried with and carries on
+    static void take_over_motion(Entity entity)
+    {
+        if(!entity.is_valid() || !entity.has<Rigidbody2DComponent>()) return;
+
+        const glm::vec2 velocity{ entity.get_velocity() };
+        const float angular_velocity{ entity.get_angular_velocity() };
+
+        Rigidbody2DComponent& rbc{ entity.get_mut<Rigidbody2DComponent>() };
+        rbc.velocity = velocity;
+        rbc.angular_velocity = angular_velocity;
+    }
+}
+
 namespace rke
 {
     void WorldTransform::compose_with(const TransformComponent& local)
@@ -73,6 +102,28 @@ namespace rke
         return world;
     }
 
+    void Entity::set_world_transform(const WorldTransform& world)
+    {
+        if(!is_valid()) return;
+
+        const WorldTransform parent_world{ get_parent().get_world_transform() };
+        const glm::vec3 abs_scale{ glm::abs(parent_world.scale) };
+        if(abs_scale.x < 1e-6f || abs_scale.y < 1e-6f || abs_scale.z < 1e-6f)
+        {
+            CORE_WARN(u8"Entity: Parent is scaled to zero, can't set a world transform!");
+            return;
+        }
+
+        const glm::mat4 local{ glm::inverse(parent_world.matrix) * world.matrix };
+
+        TransformComponent& tc{ get_mut<TransformComponent>() };
+        tc.rotation = glm::degrees(glm::eulerAngles
+            (glm::inverse(parent_world.rotation) * world.rotation));
+        tc.scale = world.scale / parent_world.scale;
+    // whatever puts the anchor where the matrix says, so get_transform() reproduces local
+        tc.translation = glm::vec3(local * glm::vec4(tc.anchor, 1.0f));
+    }
+
     glm::vec3 Entity::to_local_delta(glm::vec3 world_delta) const
     {
         if(!is_valid()) return world_delta;
@@ -120,6 +171,27 @@ namespace rke
     float Entity::compute_flat_rotation(const PlaneBasis& plane) const
         { return plane.angle_of(get_world_transform().rotation); }
 
+    glm::vec2 Entity::get_velocity() const
+    {
+        const Entity mover{ moving_entity(*this) };
+        if(!mover.is_valid()) return glm::vec2(0.0f);
+
+        const PlaneBasis& plane{ owner_scene_->physics_engine_->get_plane() };
+        const Rigidbody2DComponent& rbc{ mover.get<Rigidbody2DComponent>() };
+
+    // measured from the root's mesh centre, which is where the body's position is set
+        const glm::vec2 r{ plane.to_uv(compute_centre()) - plane.to_uv(mover.compute_centre()) };
+    // w x r in the plane; a positive angular velocity turns counter-clockwise in uv
+        return rbc.velocity + rbc.angular_velocity * glm::vec2(-r.y, r.x);
+    }
+
+    float Entity::get_angular_velocity() const
+    {
+        const Entity mover{ moving_entity(*this) };
+        if(!mover.is_valid()) return 0.0f;
+        return mover.get<Rigidbody2DComponent>().angular_velocity;
+    }
+
     void Entity::check_assert() const { CORE_ASSERT(is_valid(), u8"Entity: Invalid!"); }
 
     void Entity::check_sprite_com() const
@@ -162,8 +234,7 @@ namespace rke
             return;
         }
         const EntityHandle new_parent{ it->second.parent };
-        if(owner_scene_->set_parent(child.get_handle(), new_parent))
-            child.get_mut<TransformComponent>().premultiply_by(get<TransformComponent>());
+        owner_scene_->set_parent(child.get_handle(), new_parent);
     }
 
     void Entity::detach_all_children()
@@ -175,12 +246,7 @@ namespace rke
         const std::vector<EntityHandle> orphans{ it->second.children }; // copy
         const EntityHandle new_parent{ it->second.parent };
         for(EntityHandle handle : orphans)
-        {
-            Entity child{ owner_scene_->get_entity(handle) };
-            if(!child.is_valid()) continue;
-            if(owner_scene_->set_parent(handle, new_parent))
-                child.get_mut<TransformComponent>().premultiply_by(get<TransformComponent>());
-        }
+            owner_scene_->set_parent(handle, new_parent);
     }
 
     Entity Entity::get_parent() const
@@ -545,11 +611,12 @@ namespace rke
 
     bool Scene::set_parent(EntityHandle child, EntityHandle parent, EntityHandle before)
     {
-        if(!vertified(child)) return false;
+        Entity child_ent{ get_entity(child) };
+        if(!child_ent.is_valid()) return false;
         if(!is_handle_null(parent) && !vertified(parent)) return false;
         if(child == parent) {
             CORE_WARN(u8"Scene: Entity '{}' "
-                u8"can't be its own parent!", get_entity(child).get_tag());
+                u8"can't be its own parent!", child_ent.get_tag());
             return false;
         }
 
@@ -565,10 +632,20 @@ namespace rke
             {
                 if(ancestor.get_handle() != child) continue;
                 CORE_ERROR(u8"Scene: Can't parent entity '{}' "
-                    u8"to its own descendant!", get_entity(child).get_tag());
+                    u8"to its own descendant!", child_ent.get_tag());
                 return false;
             }
         }
+
+    // The motion handoff reads the geometry as it stands, so it comes before the splice.
+        if(is_handle_null(parent) && !is_handle_null(old_parent))
+            take_over_motion(child_ent);
+
+        const bool moves_out {
+            (old_parent != parent && !is_handle_null(old_parent)) &&
+            (is_handle_null(parent) || get_parent(old_parent).get_handle() == parent)
+        };
+        const WorldTransform world_before{ child_ent.get_world_transform() };
 
     // unbind old relations
         if(auto it{ relations_.find(old_parent) }; it != relations_.end())
@@ -581,6 +658,9 @@ namespace rke
         list.insert(pos, child);
 
         relations_[child].parent = parent;
+
+    // basically resume the entity world transform to what it was before
+        if(moves_out) child_ent.set_world_transform(world_before);
 
         mark_modified();
         return true;
