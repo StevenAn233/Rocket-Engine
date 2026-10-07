@@ -280,7 +280,7 @@ namespace rke
             return;
         }
 
-        const auto& bcc { entity.get<BoxCollider2DComponent>() };
+        const auto& bcc{ entity.get<BoxCollider2DComponent>() };
         const glm::vec2 flat_size{ entity.compute_flat_size(get_plane()) * bcc.size_scale };
         if(flat_size.x < 0.001f || flat_size.y < 0.001f) return;
 
@@ -293,9 +293,9 @@ namespace rke
         )};
 
         b2ShapeDef shape_def{ b2DefaultShapeDef() };
-        shape_def.density = bcc.density;
         shape_def.material.friction = bcc.friction;
         shape_def.material.restitution = bcc.restitution;
+        shape_def.density = bcc.density;
         shape_def.filter = get_filter(layers, bcc.layer_index);
         
         switch(bcc.type)

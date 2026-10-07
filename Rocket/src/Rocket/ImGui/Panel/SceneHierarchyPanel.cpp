@@ -819,10 +819,10 @@ namespace rke
 
             context_->mark_modified_if (
                 layout::drag_float_control<u8"Density">
-                    (bcc.density, 0.10f, 1.0f, glm::vec2(0.0f, 100.0f)));
+                    (bcc.density, 0.01f, 1.0f, glm::vec2(0.01f, 1000.0f)));
             context_->mark_modified_if (
                 layout::drag_float_control<u8"Friction">
-                    (bcc.friction, 0.01f, 0.5f, glm::vec2(0.0f, 2.0f)));
+                    (bcc.friction, 0.01f, 0.5f, glm::vec2(0.0f, 1.0f)));
             context_->mark_modified_if (
                 layout::drag_float_control<u8"Restitution">
                     (bcc.restitution, 0.01f, 0.0f, glm::vec2(0.0f, 1.0f)));
