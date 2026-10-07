@@ -6,16 +6,23 @@ class MyScript : public rke::Script
 public:
     void on_create () override { RKE_INFO(u8"MyScript created."  ); }
     void on_destroy() override { RKE_INFO(u8"MyScript destroyed."); }
+    
     void on_update(double dt) override
     {
-        owner_scene().grip_move_entity(owner(),
-            { 0.5f * static_cast<float>(dt), 0.0f, 0.0f }, dt);
+        if(owner().has<rke::Rigidbody2DComponent>())
+            owner().grip_move_by({ 0.5f * static_cast<float>(dt), 0.0f, 0.0f }, dt);
     }
 
-    void on_contact_solid_begin(rke::Entity other) override
-        { RKE_INFO(u8"MyScript touched entity '{}'!", other.get<IdentityComponent>().tag); }
-    void on_contact_solid_end(rke::Entity other) override
-        { RKE_INFO(u8"MyScript stopped touching."); }
+    void on_contact_solid_begin(rke::EntityHandle other) override
+    {
+        RKE_TRACE(u8"'{}' touched entity '{}'.",
+            owner().get_tag(), owner_scene()->get_entity(other).get_tag());
+    }
+    void on_contact_solid_end(rke::EntityHandle other) override
+    {
+        RKE_TRACE(u8"'{}' stopped touching entity '{}'.",
+            owner().get_tag(), owner_scene()->get_entity(other).get_tag());
+    }
 };
 
 RKE_REGISTER_SCRIPT(MyScript);
