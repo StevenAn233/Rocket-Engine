@@ -45,6 +45,21 @@ namespace rke
              * glm::translate(glm::mat4(1.0f), -anchor);
     }
 
+    void TransformComponent::premultiply_by(const TransformComponent& other)
+    {
+    // T(ot)RoSoT(-oa) * T(t)RST(-a), using S*T(v) == T(S*v)*S and R*T(v) == T(R*v)*R:
+    //     = T(ot + Ro*So*(t - oa)) * (Ro*R) * (So*S) * T(-a)
+    // so this transform's own anchor survives, and `anchor` is never written.
+        const glm::quat rot_other{ glm::quat(glm::radians(other.rotation)) };
+        const glm::quat rot_self { glm::quat(glm::radians(rotation)) };
+
+    // every right-hand side is read before its own member is written, so other == *this is fine
+        translation = other.translation + rot_other * (other.scale * (translation - other.anchor));
+    // through eulerAngles and back, because that is how the component stores a rotation
+        rotation = glm::degrees(glm::eulerAngles(rot_other * rot_self));
+        scale = other.scale * scale;
+    }
+
     SpriteComponent::SpriteComponent() : quad(&s_quad) {}
 
     void AnimatorComponent::set_clip(StringView name)

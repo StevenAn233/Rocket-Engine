@@ -155,15 +155,15 @@ namespace rke
         }
         auto it{ owner_scene_->relations_.find(handle_) };
         if(it == owner_scene_->relations_.end()) return;
-        
-        auto& children{ it->second.children };
-        if(std::ranges::contains(children, child.get_handle()))
+
+        if(!std::ranges::contains(it->second.children, child.get_handle()))
         {
-            owner_scene_->set_parent(child.get_handle(), it->second.parent);
-            // apply transform...
-            std::erase(children, child.get_handle());
+            CORE_WARN(u8"Entity: Child '{}' not found!", child.get_tag());
+            return;
         }
-        else CORE_WARN(u8"Entity: Child '{}' not found!", child.get_tag());
+        const EntityHandle new_parent{ it->second.parent };
+        if(owner_scene_->set_parent(child.get_handle(), new_parent))
+            child.get_mut<TransformComponent>().premultiply_by(get<TransformComponent>());
     }
 
     void Entity::detach_all_children()
@@ -171,14 +171,16 @@ namespace rke
         if(!is_valid()) return;
         auto it{ owner_scene_->relations_.find(handle_) };
         if(it == owner_scene_->relations_.end()) return;
-        
-        auto& orphans{ it->second.children };
-        for(EntityHandle child : orphans)
+
+        const std::vector<EntityHandle> orphans{ it->second.children }; // copy
+        const EntityHandle new_parent{ it->second.parent };
+        for(EntityHandle handle : orphans)
         {
-            owner_scene_->set_parent(child, it->second.parent);
-            // apply transform...
+            Entity child{ owner_scene_->get_entity(handle) };
+            if(!child.is_valid()) continue;
+            if(owner_scene_->set_parent(handle, new_parent))
+                child.get_mut<TransformComponent>().premultiply_by(get<TransformComponent>());
         }
-        orphans.clear();
     }
 
     Entity Entity::get_parent() const
