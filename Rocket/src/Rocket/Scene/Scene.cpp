@@ -38,15 +38,26 @@ namespace {
         rbc.velocity = velocity;
         rbc.angular_velocity = angular_velocity;
     }
+
+    static bool invertible(const glm::mat3& axes)
+    {
+        if(glm::determinant(axes) == 0.0f) return false;
+        const glm::vec3 size
+        {
+            glm::length(axes[0]),
+            glm::length(axes[1]),
+            glm::length(axes[2])
+        };
+        return size.x >= 1e-6f && size.y >= 1e-6f && size.z >= 1e-6f;
+    }
 }
 
 namespace rke
 {
     void WorldTransform::compose_with(const TransformComponent& local)
     {
-        matrix   *= local.get_transform();
-        rotation *= glm::quat(glm::radians(local.rotation));
-        scale    *= local.scale;
+        matrix   *= local.get_mat();
+        rotation *= local.rotation;
     }
 
     Entity::Entity(EntityHandle handle, Scene* scene)
@@ -102,26 +113,19 @@ namespace rke
         return world;
     }
 
-    void Entity::set_world_transform(const WorldTransform& world)
+    void Entity::set_world_transform(const glm::mat4& world)
     {
         if(!is_valid()) return;
 
-        const WorldTransform parent_world{ get_parent().get_world_transform() };
-        const glm::vec3 abs_scale{ glm::abs(parent_world.scale) };
-        if(abs_scale.x < 1e-6f || abs_scale.y < 1e-6f || abs_scale.z < 1e-6f)
+        const glm::mat4 parent_world{ get_parent().get_world_transform().matrix };
+        if(!invertible(glm::mat3(parent_world)))
         {
             CORE_WARN(u8"Entity: Parent is scaled to zero, can't set a world transform!");
             return;
         }
 
-        const glm::mat4 local{ glm::inverse(parent_world.matrix) * world.matrix };
-
-        TransformComponent& tc{ get_mut<TransformComponent>() };
-        tc.rotation = glm::degrees(glm::eulerAngles
-            (glm::inverse(parent_world.rotation) * world.rotation));
-        tc.scale = world.scale / parent_world.scale;
-    // whatever puts the anchor where the matrix says, so get_transform() reproduces local
-        tc.translation = glm::vec3(local * glm::vec4(tc.anchor, 1.0f));
+        const glm::mat4 local{ glm::inverse(parent_world) * world };
+        get_mut<TransformComponent>().set_to(local);
     }
 
     glm::vec3 Entity::to_local_delta(glm::vec3 world_delta) const
@@ -130,15 +134,14 @@ namespace rke
         const Entity parent{ get_parent() };
         if(!parent.is_valid()) return world_delta;
 
-        const WorldTransform parent_world{ parent.get_world_transform() };
-        const glm::vec3 abs_scale{ glm::abs(parent_world.scale) };
-        if(glm::length(abs_scale) < 1e-6f)
+        const glm::mat4 parent_world{ parent.get_world_transform().matrix };
+        if(!invertible(glm::mat3(parent_world)))
         {
             CORE_ERROR(u8"Entity: Parent is scaled to zero, "
                 u8"can't convert a world-space delta!");
             return glm::vec3(0.0f);
         }
-        return glm::inverse(glm::mat3(parent_world.matrix)) * world_delta;
+        return glm::inverse(glm::mat3(parent_world)) * world_delta;
     }
 
     glm::vec3 Entity::compute_centre() const
@@ -154,22 +157,37 @@ namespace rke
         if(!mesh) return glm::vec2(0.0f);
 
         const WorldTransform world{ get_world_transform() };
-        const glm::vec3 raw_size{ mesh->get_size() * glm::abs(world.scale) };
+        const glm::mat3 axes{ glm::mat3(world.matrix) };
 
-        const float spin{ glm::radians(plane.angle_of(world.rotation)) };
-        const glm::quat untilted{ glm::angleAxis(-spin, plane.get_normal()) * world.rotation };
+    // the size and the axes come off the matrix:
+    // the accumulated scale and rotation only match them while nothing in the chain shears the frame
+        const glm::vec3 x_edge{ axes[0] * mesh->get_size().x };
+        const glm::vec3 y_edge{ axes[1] * mesh->get_size().y };
+
+    // a mirrored frame must not become a half turn here: a box is the same box either way,
+    // and physics reads the angle from this same value.
+    // The chain's rotation carries no mirror, so it says which way the axis was meant to point.
+        const glm::vec3 spin_axis{ glm::mat3_cast(world.rotation)[0] };
+        const float spin{ glm::radians(plane.project_angle
+            (glm::dot(x_edge, spin_axis) < 0.0f ? -x_edge : x_edge)) };
+        const glm::quat untilted{ glm::angleAxis(-spin, plane.get_normal()) };
         const glm::mat3 rotation{ glm::mat3_cast(untilted) };
 
-        const glm::vec2 x_axis{ plane.to_uv(rotation * glm::vec3(1.0f, 0.0f, 0.0f)) };
-        const glm::vec2 y_axis{ plane.to_uv(rotation * glm::vec3(0.0f, 1.0f, 0.0f)) };
+        const glm::vec2 flat_x{ plane.to_uv(rotation * x_edge) };
+        const glm::vec2 flat_y{ plane.to_uv(rotation * y_edge) };
         return glm::vec2 (
-            glm::abs(x_axis.x) * raw_size.x + glm::abs(y_axis.x) * raw_size.y,
-            glm::abs(x_axis.y) * raw_size.x + glm::abs(y_axis.y) * raw_size.y
+            glm::abs(flat_x.x) + glm::abs(flat_y.x),
+            glm::abs(flat_x.y) + glm::abs(flat_y.y)
         );
     }
 
     float Entity::compute_flat_rotation(const PlaneBasis& plane) const
-        { return plane.angle_of(get_world_transform().rotation); }
+    {
+        const WorldTransform world{ get_world_transform() };
+        const glm::vec3 x_edge{ glm::vec3(glm::mat3(world.matrix)[0]) };
+        const glm::vec3 spin_axis{ glm::mat3_cast(world.rotation)[0] };
+        return plane.project_angle(glm::dot(x_edge, spin_axis) < 0.0f ? -x_edge : x_edge);
+    }
 
     glm::vec2 Entity::get_velocity() const
     {
@@ -295,6 +313,15 @@ namespace rke
                 rbc.angular_velocity = 0.0f;
             }
         }
+    }
+
+    void Entity::rotate_by(const PlaneBasis& plane, float degree)
+    {
+        if(!is_valid()) return;
+        const glm::quat parent_rotation{ get_parent().get_world_transform().rotation };
+        TransformComponent& tc{ get_mut<TransformComponent>() };
+        tc.rotation = glm::angleAxis(glm::radians(degree),
+            glm::inverse(parent_rotation) * plane.get_normal()) * tc.rotation;
     }
 
     void Entity::force_apply_by(glm::vec2 force)
@@ -626,7 +653,6 @@ namespace rke
         const EntityHandle old_parent{ child_it->second.parent };
         if(old_parent != parent) // validation check
         {
-        // a loop would make get_parent_chain() unbounded and the world transform undefined
             for(Entity ancestor{ get_entity(parent) };
                 ancestor.is_valid(); ancestor = ancestor.get_parent())
             {
@@ -645,7 +671,8 @@ namespace rke
             (old_parent != parent && !is_handle_null(old_parent)) &&
             (is_handle_null(parent) || get_parent(old_parent).get_handle() == parent)
         };
-        const WorldTransform world_before{ child_ent.get_world_transform() };
+        const glm::mat4 world_before{ moves_out ?
+            child_ent.get_world_transform().matrix : glm::mat4(1.0f) };
 
     // unbind old relations
         if(auto it{ relations_.find(old_parent) }; it != relations_.end())

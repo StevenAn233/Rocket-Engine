@@ -30,11 +30,12 @@ namespace rke::layout
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, 0.0f });
 
-        float  line_height{ ImGui::GetFontSize() + GImGui->Style.FramePadding.y * 2.0f };
-        ImVec2 button_size{ line_height * 0.4f, line_height };
+        const float line_height{ ImGui::GetFontSize()
+            + GImGui->Style.FramePadding.y * 2.0f };
+        const ImVec2 button_size{ line_height * 0.4f, line_height };
 
-        float available_width{ ImGui::GetContentRegionAvail().x };
-        float item_width { available_width -
+        const float available_width{ ImGui::GetContentRegionAvail().x };
+        const float item_width { available_width -
             button_size.x -
             GImGui->Style.ItemSpacing.x * 2.0f
         };
@@ -76,14 +77,15 @@ namespace rke::layout
     {
         bool data_changed{ false };
 
-        float per_item_spacing_x{ GImGui->Style.ItemSpacing.x };
+        const float per_item_spacing_x{ GImGui->Style.ItemSpacing.x };
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, 0.0f });
 
-        float  line_height{ ImGui::GetFontSize() + GImGui->Style.FramePadding.y * 2.0f };
-        ImVec2 button_size{ line_height * 0.4f, line_height };
+        const float line_height{ ImGui::GetFontSize()
+            + GImGui->Style.FramePadding.y * 2.0f };
+        const ImVec2 button_size{ line_height * 0.4f, line_height };
 
-        float available_width{ ImGui::GetContentRegionAvail().x };
-        float item_width { available_width / 2.0f
+        const float available_width{ ImGui::GetContentRegionAvail().x };
+        const float item_width { available_width / 2.0f
             - button_size.x
             - GImGui->Style.ItemSpacing.x };
 
@@ -152,14 +154,15 @@ namespace rke::layout
     {
         bool data_changed{ false };
 
-        float per_item_spacing_x{ GImGui->Style.ItemSpacing.x };
+        const float per_item_spacing_x{ GImGui->Style.ItemSpacing.x };
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, 0.0f });
 
-        float  line_height{ ImGui::GetFontSize() + GImGui->Style.FramePadding.y * 2.0f };
-        ImVec2 button_size{ line_height * 0.6f, line_height };
+        const float line_height{ ImGui::GetFontSize()
+            + GImGui->Style.FramePadding.y * 2.0f };
+        const ImVec2 button_size{ line_height * 0.6f, line_height };
 
-        float available_width{ ImGui::GetContentRegionAvail().x };
-        float item_width { available_width / 3.0f
+        const float available_width{ ImGui::GetContentRegionAvail().x };
+        const float item_width { available_width / 3.0f
             - button_size.x
             - GImGui->Style.ItemSpacing.x * 2.0f
         };
@@ -238,6 +241,136 @@ namespace rke::layout
         } else {
             if(ImGui::DragFloat("##z", &values.z, pan_speed,
                 z_range->x, z_range->y, format.raw_unsafe()))
+                data_changed = true;
+        }
+
+        ImGui::PopStyleVar();
+
+        return data_changed;
+    }
+
+    bool drag_float4_control_impl(glm::vec4& values,
+        float pan_speed, glm::vec4 reset_value,
+        std::optional<glm::vec2> x_range,
+        std::optional<glm::vec2> y_range,
+        std::optional<glm::vec2> z_range,
+        std::optional<glm::vec2> w_range,
+        StringView format)
+    {
+        bool data_changed{ false };
+
+        const float per_item_spacing_x{ GImGui->Style.ItemSpacing.x };
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, 0.0f });
+
+        const float line_height{ ImGui::GetFontSize()
+            + GImGui->Style.FramePadding.y * 2.0f };
+        const ImVec2 button_size{ line_height * 0.15f, line_height };
+
+        const float available_width{ ImGui::GetContentRegionAvail().x };
+        const float item_width { available_width / 4.0f
+            - button_size.x
+            - GImGui->Style.ItemSpacing.x * 2.0f
+        };
+
+        ImGui::PushStyleColor(ImGuiCol_Button,        red  );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, reder);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  red  );
+        if(ImGui::Button("##X", button_size))
+        {
+            if(x_range.has_value())
+            {
+                values.x = reset_value.x;
+                data_changed = true;
+            }
+        }
+        ImGui::PopStyleColor(3);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(item_width);
+        if(!x_range) {
+            ImGui::BeginDisabled();
+            ImGui::DragFloat("##x", &values.x, 0.0f, 0.0f, 0.0f, format.raw_unsafe());
+            ImGui::EndDisabled();
+        } else {
+            if(ImGui::DragFloat("##x", &values.x, pan_speed,
+                x_range->x, x_range->y, format.raw_unsafe()))
+                data_changed = true;
+        }
+        ImGui::SameLine(0.0f, per_item_spacing_x);
+
+    // Y: Green Button Style
+        ImGui::PushStyleColor(ImGuiCol_Button,		  green  );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, greener);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  green  );
+        if(ImGui::Button("##Y", button_size))
+        {
+            if(y_range.has_value())
+            {
+                values.y = reset_value.y;
+                data_changed = true;
+            }
+        }
+        ImGui::PopStyleColor(3);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(item_width);
+        if(!y_range) {
+            ImGui::BeginDisabled();
+            ImGui::DragFloat("##y", &values.y, 0.0f, 0.0f, 0.0f, format.raw_unsafe());
+            ImGui::EndDisabled();
+        } else {
+            if(ImGui::DragFloat("##y", &values.y, pan_speed,
+                y_range->x, y_range->y, format.raw_unsafe()))
+                data_changed = true;
+        }
+        ImGui::SameLine(0.0f, per_item_spacing_x);
+
+    // Z: Blue Button Style
+        ImGui::PushStyleColor(ImGuiCol_Button,		  blue );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bluer);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  blue );
+        if(ImGui::Button("##Z", button_size))
+        {
+            if(z_range.has_value())
+            {
+                values.z = reset_value.z;
+                data_changed = true;
+            }
+        }
+        ImGui::PopStyleColor(3);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(item_width);
+        if(!z_range) {
+            ImGui::BeginDisabled();
+            ImGui::DragFloat("##z", &values.z, 0.0f, 0.0f, 0.0f, format.raw_unsafe());
+            ImGui::EndDisabled();
+        } else {
+            if(ImGui::DragFloat("##z", &values.z, pan_speed,
+                z_range->x, z_range->y, format.raw_unsafe()))
+                data_changed = true;
+        }
+        ImGui::SameLine(0.0f, per_item_spacing_x);
+
+    // W: Grey Button Style, there is no fourth axis colour to follow
+        ImGui::PushStyleColor(ImGuiCol_Button,		  grey  );
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, greyer);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  grey  );
+        if(ImGui::Button("##W", button_size))
+        {
+            if(w_range.has_value())
+            {
+                values.w = reset_value.w;
+                data_changed = true;
+            }
+        }
+        ImGui::PopStyleColor(3);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(item_width);
+        if(!w_range) {
+            ImGui::BeginDisabled();
+            ImGui::DragFloat("##w", &values.w, 0.0f, 0.0f, 0.0f, format.raw_unsafe());
+            ImGui::EndDisabled();
+        } else {
+            if(ImGui::DragFloat("##w", &values.w, pan_speed,
+                w_range->x, w_range->y, format.raw_unsafe()))
                 data_changed = true;
         }
 

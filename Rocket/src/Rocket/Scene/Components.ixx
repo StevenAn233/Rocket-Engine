@@ -5,6 +5,7 @@
 #include <concepts>
 #include <cstring>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "rke_macros.h"
 
 export module Components;
@@ -40,14 +41,16 @@ export namespace rke
     struct RKE_API TransformComponent // MUST OWNED
     {
         glm::vec3 translation{ 0.0f };
-        glm::vec3 rotation{ 0.0f };
-        glm::vec3 scale{ 1.0f };
+        glm::quat rotation{ 1.0f, 0.0f, 0.0f, 0.0f };
+        glm::vec3 shear { 0.0f };
+        glm::vec3 scale { 1.0f };
         glm::vec3 anchor{ 0.0f };
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
 
-        glm::mat4 get_transform() const;
+        glm::mat4 get_mat() const;
+        void set_to(const glm::mat4& mat);
     };
 
     struct RKE_API CameraComponent

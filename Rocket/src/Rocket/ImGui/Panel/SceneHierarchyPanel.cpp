@@ -354,25 +354,31 @@ namespace rke
             }
             context_->mark_modified_if(translated);
 
-            context_->mark_modified_if (
-                layout::drag_float3_control<u8"Rotation">
-                    (tc.rotation, 0.5f, glm::vec3(0.0f)));
-   
-            if(ent.has<CameraComponent>())
+            glm::vec4 rotation{ tc.rotation.x, tc.rotation.y, tc.rotation.z, tc.rotation.w };
+            if(layout::drag_float4_control<u8"Rotation">(rotation, 0.01f,
+                glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f },
+                glm::vec2{ -1.0f, 1.0f }, glm::vec2{ -1.0f, 1.0f },
+                glm::vec2{ -1.0f, 1.0f }, glm::vec2{ -1.0f, 1.0f },
+                u8"%.3f"))
             {
-                context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Scale">
-                    (
-                        tc.scale, 0.0f, glm::vec3(1.0f),
-                        std::nullopt, std::nullopt, std::nullopt
-                    )
-                );
-            } else {
-                context_->mark_modified_if (
-                    layout::drag_float3_control<u8"Scale">
-                        (tc.scale, 0.1f, glm::vec3(1.0f))
-                );
+                if(glm::dot(rotation, rotation) > 1e-8f)
+                {
+                    tc.rotation = glm::normalize
+                        (glm::quat{ rotation.w, glm::vec3{ rotation } });
+                    context_->mark_modified();
+                }
             }
+
+            context_->mark_modified_if (
+                layout::drag_float3_control<u8"Shear">
+                    (tc.shear, 0.01f, glm::vec3(0.0f))
+            );
+            
+            context_->mark_modified_if (
+                layout::drag_float3_control<u8"Scale">
+                    (tc.scale, 0.1f, glm::vec3(1.0f))
+            );
+            
             context_->mark_modified_if (
                 layout::drag_float3_control<u8"Anchor">
                     (tc.anchor, 0.01f, glm::vec3(0.0f))

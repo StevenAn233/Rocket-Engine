@@ -41,14 +41,11 @@ namespace rke::gizmo
         const glm::mat4& cam_proj{ cam.get_proj() };
         const glm::mat4& cam_view{ cam.get_view() };
 
-        auto& tc{ selected_entity.get_mut<TransformComponent>() };
-        glm::mat4 parent_mat{ selected_entity
-            .get_parent().get_world_transform().matrix };
-        glm::mat4 transform { parent_mat *
-            glm::translate(glm::mat4(1.0f), tc.translation) *
-            glm::mat4_cast(glm::quat(glm::radians(tc.rotation))) *
-            glm::scale(glm::mat4(1.0f), tc.scale)
-        }; // ignore anchor
+        const auto& tc{ selected_entity.get<TransformComponent>() };
+        glm::mat4 transform {
+            selected_entity.get_world_transform().matrix
+            * glm::translate(glm::mat4(1.0f), tc.anchor) // ignore anchor
+        }; 
 
         float snap_value{ 0.5f };
         if(gizmo_mode == ImGuizmo::OPERATION::ROTATE) snap_value = 45.0f;
@@ -58,22 +55,14 @@ namespace rke::gizmo
         (
             glm::value_ptr(cam_view),
             glm::value_ptr(cam_proj),
-            gizmo_mode, ImGuizmo::WORLD,
+            gizmo_mode, ImGuizmo::LOCAL,
             glm::value_ptr(transform), nullptr,
             snapping ? &snap_values[0] : nullptr
         ));
 
         if(ImGuizmo::IsUsing() && !mouse_blocked)
-        {
-            glm::mat4 local{ glm::inverse(parent_mat) * transform };
-            ImGuizmo::DecomposeMatrixToComponents
-            (
-                glm::value_ptr(local),
-                glm::value_ptr(tc.translation),
-                glm::value_ptr(tc.rotation),
-                glm::value_ptr(tc.scale)
-            );
-        }
+            selected_entity.set_world_transform(transform
+                * glm::translate(glm::mat4(1.0f), -tc.anchor));
     }
 
     bool is_over () { return ImGuizmo::IsOver (); }

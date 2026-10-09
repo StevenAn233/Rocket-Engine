@@ -471,18 +471,7 @@ namespace rke
 
             const float angle{ glm::degrees(b2Rot_GetAngle(rotation)) };
             const float delta{ angle - entity.compute_flat_rotation(get_plane()) };
-            if(std::abs(delta) > 0.001f)
-            {
-                const glm::quat parent_rotation
-                    { entity.get_parent().get_world_transform().rotation };
-                const glm::quat local{ glm::quat(glm::radians(tc.rotation)) };
-
-                tc.rotation = glm::degrees(glm::eulerAngles
-                (
-                    glm::inverse(parent_rotation)
-                    * get_plane().compose_spin(parent_rotation * local, delta)
-                ));
-            }
+            if(std::abs(delta) > 0.001f) entity.rotate_by(get_plane(), delta);
 
             glm::vec3 centre{ entity.compute_centre() };
             float depth{ get_plane().signed_distance(centre) };

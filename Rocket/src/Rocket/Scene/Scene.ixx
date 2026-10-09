@@ -32,7 +32,6 @@ export namespace rke
     {
         glm::mat4 matrix{ 1.0f };
         glm::quat rotation{ 1.0f, 0.0f, 0.0f, 0.0f };
-        glm::vec3 scale{ 1.0f };
 
         void compose_with(const TransformComponent& local);
     };
@@ -68,7 +67,7 @@ export namespace rke
         inline std::pair<EntityHandle, const Scene*> split() const { return { handle_, owner_scene_ }; }
         
         RKE_API WorldTransform get_world_transform() const;
-        RKE_API void set_world_transform(const WorldTransform& world);
+        RKE_API void set_world_transform(const glm::mat4& world);
         RKE_API glm::vec3 to_local_delta(glm::vec3 world_delta) const;
 
         RKE_API glm::vec3 compute_centre() const;
@@ -108,6 +107,7 @@ export namespace rke
         inline bool has_any_child() const { return get_children().second > 0; }
 
         RKE_API void grip_move_by(glm::vec3 delta, double dt);
+        RKE_API void rotate_by(const PlaneBasis& plane, float degree);
         RKE_API void force_apply_by(glm::vec2 force);
         RKE_API void acc_apply_by(glm::vec2 acc);
 

@@ -137,5 +137,31 @@ export namespace rke::layout
         return data_changed;
     }
 
+    RKE_API bool drag_float4_control_impl(glm::vec4& values,
+        float pan_speed, glm::vec4 reset_value,
+        std::optional<glm::vec2> x_range,
+        std::optional<glm::vec2> y_range,
+        std::optional<glm::vec2> z_range,
+        std::optional<glm::vec2> w_range,
+        StringView format);
+
+    template<StringLiteral Str>
+    inline bool drag_float4_control(glm::vec4& value,
+        float pan_speed = 0.1f, glm::vec4 reset_value = glm::vec4(0.0f),
+        std::optional<glm::vec2> x_range = glm::vec2(0.0f, 0.0f),
+        std::optional<glm::vec2> y_range = glm::vec2(0.0f, 0.0f),
+        std::optional<glm::vec2> z_range = glm::vec2(0.0f, 0.0f),
+        std::optional<glm::vec2> w_range = glm::vec2(0.0f, 0.0f),
+        StringView format = u8"%.2f")
+    {
+        bool data_changed{ false };
+        two_columns_table<Str>([&]()
+        {
+            data_changed = drag_float4_control_impl(value,
+                pan_speed, reset_value, x_range, y_range, z_range, w_range, format);
+        });
+        return data_changed;
+    }
+
     RKE_API void vertical_separator(float height);
 }

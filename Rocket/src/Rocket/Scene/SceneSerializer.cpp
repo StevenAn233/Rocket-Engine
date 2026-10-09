@@ -31,9 +31,11 @@ namespace {
 
             const auto& tc{ entity.get<TransformComponent>() };
             writer.write(u8"Translation", ConfigValue(tc.translation));
-            writer.write(u8"Rotation",    ConfigValue(tc.rotation   ));
-            writer.write(u8"Scale",       ConfigValue(tc.scale      ));
-            writer.write(u8"Anchor",      ConfigValue(tc.anchor     ));
+            writer.write(u8"Rotation", ConfigValue(glm::vec4
+                { tc.rotation.x, tc.rotation.y, tc.rotation.z, tc.rotation.w }));
+            writer.write(u8"Shear", ConfigValue(tc.shear ));
+            writer.write(u8"Scale", ConfigValue(tc.scale ));
+            writer.write(u8"Anchor",ConfigValue(tc.anchor));
 
             writer.end_map();
         }
@@ -154,9 +156,14 @@ namespace {
         if(tc_reader) {
             auto& tc{ entity.get_mut<TransformComponent>() };
             tc.translation = tc_reader->get_at(u8"Translation", tc.translation);
-            tc.rotation    = tc_reader->get_at(u8"Rotation"   , tc.rotation   );
-            tc.scale       = tc_reader->get_at(u8"Scale"      , tc.scale      );
-            tc.anchor      = tc_reader->get_at(u8"Anchor"     , tc.anchor     );
+            
+            const glm::vec4 q{ tc_reader->get_at(u8"Rotation",
+                glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f }) };
+            tc.rotation = glm::quat{ q.w, glm::vec3(q) };
+
+            tc.shear = tc_reader->get_at(u8"Shear" , tc.shear );
+            tc.scale = tc_reader->get_at(u8"Scale" , tc.scale );
+            tc.anchor= tc_reader->get_at(u8"Anchor", tc.anchor);
         }
 
         Scope<ConfigReader> cc_reader{ reader.get_child(u8"Camera Component") };
