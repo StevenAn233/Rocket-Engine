@@ -75,8 +75,11 @@ export namespace rke
         void save_scene(const String& name, SceneSerializer& scene_serializer);
         void remove_scene(const String& name);
 
-        static void init_templates(const Path& templates_path);
         static bool create_files(const Path& path);
+        static const String& get_cmake_lists_txt();
+        static const String& get_cmake_presets_json();
+        static const String& get_myscript_cpp();
+        static const String& get_editorconfig();
     private:
         Path project_dir_; // to project folder
         Path rkproj_path_; // to .rkproj file
@@ -88,10 +91,5 @@ export namespace rke
 
         Scope<ScriptDylibLoader> script_dylib_loader_{};
         Scope<ScriptRegistry> script_registry_{};
-
-        static String s_cmake_lists_txt;
-        static String s_cmake_presets_json;
-        static String s_myscript_cpp;
-        static String s_editorconfig;
     };
 }

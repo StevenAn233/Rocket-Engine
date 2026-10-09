@@ -9,11 +9,6 @@ import Application;
 
 namespace rke
 {
-    String Project::s_cmake_lists_txt{};
-    String Project::s_cmake_presets_json{};
-    String Project::s_myscript_cpp{};
-    String Project::s_editorconfig{};
-
     Project::Project(const Path& rkproj_path)
         : rkproj_path_(rkproj_path), project_dir_(rkproj_path.parent_path())
     {
@@ -196,18 +191,6 @@ namespace rke
     void Project::remove_scene(const String& name) { scene_map_.erase(name); }
     
 // static
-    void Project::init_templates(const Path& templates_path)
-    {
-        if(s_cmake_lists_txt.empty()) { s_cmake_lists_txt =
-            file::read_file_string(templates_path / u8"CMakeLists.txt.txt"); }
-        if(s_cmake_presets_json.empty()) { s_cmake_presets_json =
-            file::read_file_string(templates_path / u8"CMakePresets.json.txt"); }
-        if(s_myscript_cpp.empty()) { s_myscript_cpp =
-            file::read_file_string(templates_path / u8"MyScript.cpp.txt"); }
-        if(s_editorconfig.empty()) { s_editorconfig =
-            file::read_file_string(templates_path / u8".editorconfig.txt"); }
-    }
-
     bool Project::create_files(const Path& rkproj_path)
     {
         if(rkproj_path.extension() != u8".rkproj") {
@@ -231,13 +214,13 @@ namespace rke
         fs::create_directory(scenes_dir );
         fs::create_directory(src_dir    );
 
-        String cmake_content{ s_cmake_lists_txt };
+        String cmake_content{ get_cmake_lists_txt() };
         cmake_content.replace_search_by(u8"%{ProjectName}", project_name);
         file::write_file_string(project_dir / u8"CMakeLists.txt", cmake_content);
 
-        file::write_file_string(project_dir / u8"CMakePresets.json", s_cmake_presets_json);
-        file::write_file_string(project_dir / u8".editorconfig", s_editorconfig);
-        file::write_file_string(src_dir     / u8"MyScript.cpp" , s_myscript_cpp);
+        file::write_file_string(project_dir / u8"CMakePresets.json", get_cmake_presets_json());
+        file::write_file_string(project_dir / u8".editorconfig", get_editorconfig());
+        file::write_file_string(src_dir     / u8"MyScript.cpp" , get_myscript_cpp());
 
         Scope<ConfigWriter> writer{ ConfigWriter::create() };
         writer->begin_map();
@@ -264,5 +247,33 @@ namespace rke
         CORE_INFO(u8"Project: Created new project '{}.rkproj' at '{}'.",
             project_name, project_dir);
         return true;
+    }
+
+    const String& Project::get_cmake_lists_txt()
+    {
+        static const String s_cmake_lists_txt{ file::read_file_string
+            (file::assets_dir() / u8"proj-templates" / u8"CMakeLists.txt.txt") };
+        return s_cmake_lists_txt;
+    }
+
+    const String& Project::get_cmake_presets_json()
+    {
+        static const String s_cmake_presets_json{ file::read_file_string
+            (file::assets_dir() / u8"proj-templates" / u8"CMakePresets.json.txt") };
+        return s_cmake_presets_json;
+    }
+
+    const String& Project::get_myscript_cpp()
+    {
+        static const String s_myscript_cpp{ file::read_file_string
+            (file::assets_dir() / u8"proj-templates" / u8"MyScript.cpp.txt") };
+        return s_myscript_cpp;
+    }
+
+    const String& Project::get_editorconfig()
+    {
+        static const String s_editorconfig{ file::read_file_string
+            (file::assets_dir() / u8"proj-templates" / u8".editorconfig.txt") };
+        return s_editorconfig;
     }
 }

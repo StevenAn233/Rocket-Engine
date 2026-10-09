@@ -111,7 +111,6 @@ namespace rke
     {
         register_instance(instance.get()); // ownership still within function scope
 
-        Project::init_templates(file::assets_dir() / u8"proj-templates");
         instance->init();
         instance->run();
         instance->shutdown();
