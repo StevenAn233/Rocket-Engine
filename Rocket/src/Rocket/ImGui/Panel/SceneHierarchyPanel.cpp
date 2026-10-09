@@ -316,10 +316,13 @@ namespace rke
                         0.01f, Gravity::default_val()
                     )
                 );
-                glm::vec3 axis{ physics_engine->get_plane_axis() };
+                glm::vec3 axis{ physics_engine->get_plane().get_normal() };
                 if(layout::drag_float3_control<u8"Plane Axis">
                     (axis, 0.01f, glm::vec3(0.0f, 0.0f, 1.0f)))
-                { context_->mark_modified(); physics_engine->set_plane(axis); }
+                {
+                    physics_engine->set_plane(axis); // will be normalized
+                    context_->mark_modified();
+                }
             });
         }
     }

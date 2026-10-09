@@ -265,7 +265,7 @@ namespace rke
         {
             writer->begin_map(u8"Physics");
             writer->write(u8"Gravity", physics_engine->get_gravity().val());
-            writer->write(u8"Plane Axis", physics_engine->get_plane_axis());
+            writer->write(u8"Plane Axis", physics_engine->get_plane().get_normal());
             writer->end_map();
         }
 

@@ -18,11 +18,11 @@ namespace rke
         normal_ = axis / len;
         offset_ = plane.w / len;
 
-        const glm::vec3 ref{ std::abs(normal_.y) < 0.999f ?
-            glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f) };
+        const glm::vec3 flat_x{ glm::vec3(1.0f, 0.0f, 0.0f) - normal_ * normal_.x };
+        const glm::vec3 flat_y{ glm::vec3(0.0f, 1.0f, 0.0f) - normal_ * normal_.y };
 
-        u_ = glm::normalize(glm::cross(ref, normal_));
-        v_ = glm::cross(normal_, u_);      
+        u_ = glm::normalize(glm::dot(flat_x, flat_x) > 1e-6f ? flat_x : flat_y);
+        v_ = glm::cross(normal_, u_);
     }
 
     bool PlaneBasis::operator==(const PlaneBasis& other)

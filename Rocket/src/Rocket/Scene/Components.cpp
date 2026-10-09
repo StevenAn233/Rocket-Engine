@@ -1,4 +1,11 @@
 ﻿module;
+
+#include <cmath>
+#include <algorithm>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
+
 module Components;
 
 import Log;
@@ -40,8 +47,7 @@ namespace rke
 
     glm::mat4 TransformComponent::get_mat() const
     {
-        const glm::mat3 upper
-        {
+        const glm::mat3 upper {
             scale.x,           0.0f,              0.0f,
             scale.y * shear.x, scale.y,           0.0f,
             scale.z * shear.y, scale.z * shear.z, scale.z
@@ -53,46 +59,28 @@ namespace rke
 
     void TransformComponent::set_to(const glm::mat4& mat)
     {
-        glm::mat3 axis{ glm::mat3(mat) };
-        glm::vec3 axis_scale
-            { glm::length(axis[0]), glm::length(axis[1]), glm::length(axis[2]) };
-        if(axis_scale.x < 1e-6f || axis_scale.y < 1e-6f || axis_scale.z < 1e-6f)
+        const float size{ std::cbrt(std::abs(glm::determinant(glm::mat3(mat)))) };
+        if(size < 1e-30f)
         {
-            CORE_WARN(u8"Entity: World transform is scaled to zero, can't set it!");
+            CORE_WARN(u8"Entity: Transform is scaled to zero, can't set it!");
             return;
         }
 
-    // a non-uniform scale above a rotation shears the frame; that shear goes into tc.shear and
-    // the axes are orthonormalized, so local factors into T(translation) * R * K * S * T(-anchor)
-    // exactly, instead of coming back turned and stretched
-        axis[0] /= axis_scale.x;
+        glm::mat4 unit{ mat };
+        for(int i = 0; i < 3; ++i) unit[i] /= size;
 
-        float shear_xy{ glm::dot(axis[0], axis[1]) };
-        axis[1] -= axis[0] * shear_xy;
-        axis_scale.y = glm::length(axis[1]);
-        shear_xy /= axis_scale.y;
-        axis[1] /= axis_scale.y;
-
-    // each shear is the dot with the axis that is still un-orthogonalized
-        const float xz_dot{ glm::dot(axis[0], axis[2]) };
-        const float yz_dot{ glm::dot(axis[1], axis[2]) };
-        axis[2] -= axis[0] * xz_dot;
-        axis[2] -= axis[1] * yz_dot;
-        axis_scale.z = glm::length(axis[2]);
-        const float shear_xz{ xz_dot / axis_scale.z };
-        const float shear_yz{ yz_dot / axis_scale.z };
-        axis[2] /= axis_scale.z;
-
-    // a mirrored frame needs one negative scale, or quat_cast() can't return a rotation
-        if(glm::dot(glm::cross(axis[0], axis[1]), axis[2]) < 0.0f)
+        glm::vec3 new_scale{}, skew{}, unused_translation{};
+        glm::vec4 perspective{}; glm::quat new_rotation{};
+        if(!glm::decompose(unit, new_scale, new_rotation,
+            unused_translation, skew, perspective))
         {
-            axis = -axis;
-            axis_scale = -axis_scale;
+            CORE_WARN(u8"Entity: Transform can't be factorized, can't set it!");
+            return;
         }
 
-        rotation = glm::quat_cast(axis);
-        scale = axis_scale;
-        shear = glm::vec3{ shear_xy, shear_xz, shear_yz };
+        rotation = new_rotation;
+        scale = new_scale * size;
+        shear = glm::vec3{ skew.z, skew.y, skew.x };
         translation = glm::vec3(mat * glm::vec4(anchor, 1.0f));
     }
 

@@ -39,6 +39,13 @@ namespace {
         rbc.angular_velocity = angular_velocity;
     }
 
+    static glm::vec3 flat_x_axis(const WorldTransform& world)
+    {
+        const glm::vec3 axis{ glm::vec3(glm::mat3(world.matrix)[0]) };
+        const glm::vec3 spin_axis{ glm::mat3_cast(world.rotation)[0] };
+        return (glm::dot(axis, spin_axis) < 0.0f) ? -axis : axis;
+    }
+
     static bool invertible(const glm::mat3& axes)
     {
         if(glm::determinant(axes) == 0.0f) return false;
@@ -158,36 +165,27 @@ namespace rke
 
         const WorldTransform world{ get_world_transform() };
         const glm::mat3 axes{ glm::mat3(world.matrix) };
+        const glm::vec3 size{ mesh->get_size() };
 
-    // the size and the axes come off the matrix:
-    // the accumulated scale and rotation only match them while nothing in the chain shears the frame
-        const glm::vec3 x_edge{ axes[0] * mesh->get_size().x };
-        const glm::vec3 y_edge{ axes[1] * mesh->get_size().y };
+        const glm::vec3 x_edge{ flat_x_axis(world) * size.x };
+        const glm::vec3 y_edge{ axes[1] * size.y };
+        const glm::vec3 z_edge{ axes[2] * size.z };
 
-    // a mirrored frame must not become a half turn here: a box is the same box either way,
-    // and physics reads the angle from this same value.
-    // The chain's rotation carries no mirror, so it says which way the axis was meant to point.
-        const glm::vec3 spin_axis{ glm::mat3_cast(world.rotation)[0] };
-        const float spin{ glm::radians(plane.project_angle
-            (glm::dot(x_edge, spin_axis) < 0.0f ? -x_edge : x_edge)) };
+        const float spin{ glm::radians(plane.project_angle(x_edge)) };
         const glm::quat untilted{ glm::angleAxis(-spin, plane.get_normal()) };
         const glm::mat3 rotation{ glm::mat3_cast(untilted) };
 
         const glm::vec2 flat_x{ plane.to_uv(rotation * x_edge) };
         const glm::vec2 flat_y{ plane.to_uv(rotation * y_edge) };
+        const glm::vec2 flat_z{ plane.to_uv(rotation * z_edge) };
         return glm::vec2 (
-            glm::abs(flat_x.x) + glm::abs(flat_y.x),
-            glm::abs(flat_x.y) + glm::abs(flat_y.y)
+            glm::abs(flat_x.x) + glm::abs(flat_y.x) + glm::abs(flat_z.x),
+            glm::abs(flat_x.y) + glm::abs(flat_y.y) + glm::abs(flat_z.y)
         );
     }
 
     float Entity::compute_flat_rotation(const PlaneBasis& plane) const
-    {
-        const WorldTransform world{ get_world_transform() };
-        const glm::vec3 x_edge{ glm::vec3(glm::mat3(world.matrix)[0]) };
-        const glm::vec3 spin_axis{ glm::mat3_cast(world.rotation)[0] };
-        return plane.project_angle(glm::dot(x_edge, spin_axis) < 0.0f ? -x_edge : x_edge);
-    }
+        { return plane.project_angle(flat_x_axis(get_world_transform())); }
 
     glm::vec2 Entity::get_velocity() const
     {
@@ -415,7 +413,7 @@ namespace rke
 
         glm::vec3 gval{ physics_engine_->get_gravity().val() };
         new_scene->physics_engine_->set_gravity(gval);
-        glm::vec3 axis{ physics_engine_->get_plane_axis() };
+        glm::vec3 axis{ physics_engine_->get_plane().get_normal() };
         new_scene->physics_engine_->set_plane(axis);
 
         const auto& storage{ registry_->storage<entt::entity>() };
