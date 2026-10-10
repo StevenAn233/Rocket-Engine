@@ -80,7 +80,7 @@ namespace rke
 
         rotation = new_rotation;
         scale = new_scale * size;
-        shear = glm::vec3{ skew.z, skew.y, skew.x };
+        shear = glm::vec3(skew.z, skew.y, skew.x);
         translation = glm::vec3(mat * glm::vec4(anchor, 1.0f));
     }
 

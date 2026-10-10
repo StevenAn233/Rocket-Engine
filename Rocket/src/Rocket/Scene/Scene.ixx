@@ -201,7 +201,7 @@ export namespace rke
         bool set_parent(EntityHandle child,
             EntityHandle parent = entity_handle_null,
             EntityHandle before = entity_handle_null);
-        void order_entity(EntityHandle handle, EntityHandle before = {});
+        void order_entity(EntityHandle handle, EntityHandle before);
 
         Entity get_parent(EntityHandle handle) const;
         std::pair<const EntityHandle*, Size> get_children(EntityHandle handle) const;
