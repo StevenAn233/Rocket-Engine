@@ -41,7 +41,10 @@ namespace rke
 
     void Renderer::refresh_shader()
     {
-        CORE_ASSERT(s_shader, u8"Renderer: Shader null!");
+        if(!s_shader) {
+            CORE_ERROR(u8"Renderer: Scene shader is null!");
+            return;
+        }
         s_shader->clear_gshaders();
     }
 
@@ -76,23 +79,29 @@ namespace rke
 
     void Renderer::begin_scene()
     {
+        GShader* gshader{ s_shader ? s_shader->get_gshader() : nullptr };
+        if(!gshader) {
+            CORE_ERROR(u8"Renderer: Scene shader unavailable, skipping this batch!");
+            in_scene_ = false; return;
+        }
         in_scene_ = true;
-        s_shader->get_gshader()->bind();
+        gshader->bind();
         start_batch();
     }
 
     void Renderer::end_scene()
     {
+        if(!in_scene_) return;
         flush();
-        s_shader->get_gshader()->unbind();
+        if(GShader* gshader{ s_shader ? s_shader->get_gshader() : nullptr })
+            gshader->unbind();
         in_scene_ = false;
     }
 
     void Renderer::push(const Mesh* mesh, const GTexture* gtex, const RenderProps& props)
     {
         RKE_PROFILE_FUNCTION();
-        if(!mesh) return;
-        CORE_ASSERT(in_scene_, u8"Renderer: Can't push when not in scene!");
+        if(!mesh || !in_scene_) return;
 
     // capacity: instance buffer full or texture slots full
         if(instance_count_  >= max_instances
