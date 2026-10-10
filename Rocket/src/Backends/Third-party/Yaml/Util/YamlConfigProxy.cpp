@@ -121,14 +121,11 @@ namespace YAML
     struct convert<rke::String>
     {
         static Node encode(rke::String rhs)
-        {
-            Node node{};
-            node.push_back(rhs.raw());
-            return node;
-        }
+            { return Node{ std::string(rhs.raw()) }; }
 
         static bool decode(const Node& node, rke::String& rhs)
         {
+            if(!node.IsScalar()) return false;
             std::string origin{ node.as<std::string>() };
             rhs = rke::String(rke::str::to_char8(origin.data()), origin.size());
             return true;
@@ -348,10 +345,12 @@ namespace rke
     void YamlConfigDocument::set(Size index, const ConfigValue& value)
     {
         try {
-            if(index < node_.size())
-                std::visit([this, index]<typename T>(T&& arg)
-                    { node_[index] = arg; }, value);
-            CORE_ERROR(u8"YamlConfigDocument: Out of bound!");
+            if(index >= node_.size()) {
+                CORE_ERROR(u8"YamlConfigDocument: Out of bound!");
+                return;
+            }
+            std::visit([this, index]<typename T>(T&& arg)
+                { node_[index] = arg; }, value);
         } catch(const std::exception& e) {
             CORE_ASSERT(false, u8"YamlConfigDocument: {}!", e.what());
         }
