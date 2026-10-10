@@ -40,10 +40,11 @@ namespace rke
         layers_[layer].second = mask;
     }
 
-    void PhysicsLayers::set_showed_layer_count(uint8 layer)
+    void PhysicsLayers::set_showed_layer_count(uint8 count)
     {
-        CHECK_LAYER(layer);
-        showed_layers_count_ = layer;
+    // a malformed project file must not push this past layers_.size():
+    // the editor panel indexes the array with it
+        showed_layers_count_ = (count > max_layers) ? max_layers : count;
     }
 
     uint16 PhysicsLayers::get_category_bit(uint8 layer) const

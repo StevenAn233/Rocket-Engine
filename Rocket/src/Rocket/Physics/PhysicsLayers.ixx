@@ -16,13 +16,15 @@ export namespace rke
     public:
         friend class Project;
 
+        static constexpr uint8 max_layers{ 16ui8 };
+
         PhysicsLayers() = default;
         ~PhysicsLayers() = default;
 
         RKE_API void set_collision(uint8 layer_a, uint8 layer_b, bool should_collide);
         RKE_API void set_name(uint8 layer, String name);
         RKE_API void set_mask(uint8 layer, uint16 mask);
-        RKE_API void set_showed_layer_count(uint8 layer);
+        RKE_API void set_showed_layer_count(uint8 count);
 
         RKE_API uint16 get_category_bit(uint8 layer) const; // 0 to 15
         RKE_API std::optional<uint8> get_layer_index(const String& layer_name) const;
@@ -39,7 +41,6 @@ export namespace rke
     private:
         using Layer = std::pair<String, uint16>;
 
-        static constexpr uint8 max_layers{ 16ui8 };
         static constexpr const char8* default_name{ u8"Null" };
         static constexpr uint16 default_mask{ 0xFFFF };
 
