@@ -53,10 +53,6 @@ namespace rke
 
     Project::~Project()
     {
-    // Scenes own the Script instances, and those vtables live in the script
-    // dylib. Members are destroyed in reverse declaration order, i.e. the
-    // registry(and with it the dylib) would go first, so the scenes are
-    // dropped explicitly while everything is still loaded.
         scene_map_.clear();
         script_registry_->clear();
         script_dylib_loader_.reset();
