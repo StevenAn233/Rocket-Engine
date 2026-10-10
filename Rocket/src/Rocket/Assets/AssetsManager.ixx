@@ -62,7 +62,7 @@ export namespace rke
         void rescan(const Path& assets_dir);
 
         AssetHandle load_asset(AssetUUID uuid);
-        // forces a re-read of the asset file next time it is loaded
+        // Forces a re-read of the asset file next time it is loaded.
         void unload_asset(AssetUUID uuid);
         // returns whether null handle or valid handle
         std::pair<AssetHandle, bool> resolve(AssetResolve& resolved, AssetUUID uuid);

@@ -51,6 +51,9 @@ namespace rke
     void AssetsManager::clear()
     {
         asset_registry_.clear();
+        register_asset(AssetUUID(0), Path(u8"<Invalid Asset>"),
+            AssetType::None, AssetSettings{ .empty{} });
+        
         free_asset_index_stack_.clear();
         failed_.clear();
         for(Size i{}; i < runtime_assets_.size(); i++)
@@ -65,6 +68,7 @@ namespace rke
     void AssetsManager::rescan(const Path& assets_dir)
     {
         clear();
+        
     // 1. scan to extract asset/meta path
         std::vector<Path> all_files{};
         std::vector<Path> all_metas{};
@@ -84,9 +88,6 @@ namespace rke
         }
 
     // 2. register UUIDs according to meta paths
-        register_asset(AssetUUID(0), Path(u8"<Invalid Asset>"),
-            AssetType::None, AssetSettings{ .empty{} });
-        
         std::unordered_set<String> valid_meta_paths{};
         for(const Path& asset_path : all_files)
         {
@@ -256,6 +257,11 @@ namespace rke
     {
         auto it{ asset_registry_.find(uuid) };
         if(it == asset_registry_.end()) it = asset_registry_.find(UUID(0));
+        if(it == asset_registry_.end()) // no sentinel either: never dereference end()
+        {
+            static const Path s_invalid_path{ u8"<Invalid Asset>" };
+            return s_invalid_path;
+        }
         return it->second.asset_path;
     }
 
@@ -263,6 +269,11 @@ namespace rke
     {
         auto it{ asset_registry_.find(uuid) };
         if(it == asset_registry_.end()) it = asset_registry_.find(UUID(0));
+        if(it == asset_registry_.end())
+        {
+            static const AssetSettings s_invalid_settings{ .empty{} };
+            return s_invalid_settings;
+        }
         return it->second.settings;
     }
 
