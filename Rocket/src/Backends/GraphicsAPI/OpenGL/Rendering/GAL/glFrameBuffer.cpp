@@ -151,30 +151,30 @@ namespace rke
             case GTexture::Format::SRGB8_ALPHA8:
             {
                 const glm::vec4* val{ std::get_if<glm::vec4>(&attachment_specs[i].clear_value) };
-                CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
-                app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
-                color_attachment_index++; 
+                if(val) app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
+                else CORE_ERROR(u8"glFrameBuffer: Clear value type doesn't match with format!");
+                color_attachment_index++;
             } break;
             case GTexture::Format::RGB8:
             case GTexture::Format::SRGB8:
             {
                 const glm::vec3* val{ std::get_if<glm::vec3>(&attachment_specs[i].clear_value) };
-                CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
-                app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
+                if(val) app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
+                else CORE_ERROR(u8"glFrameBuffer: Clear value type doesn't match with format!");
                 color_attachment_index++;
             } break;
             case GTexture::Format::R32I:
             {
                 const int* val{ std::get_if<int>(&attachment_specs[i].clear_value) };
-                CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
-                app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
+                if(val) app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
+                else CORE_ERROR(u8"glFrameBuffer: Clear value type doesn't match with format!");
                 color_attachment_index++;
             } break;
             case GTexture::Format::R8:
             {
                 const float* val{ std::get_if<float>(&attachment_specs[i].clear_value) };
-                CORE_ASSERT(val, u8"glFrameBuffer: Clear value type doesn't match with format!");
-                app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
+                if(val) app().render_command().clear_color_buffer(fbo, color_attachment_index, *val);
+                else CORE_ERROR(u8"glFrameBuffer: Clear value type doesn't match with format!");
                 color_attachment_index++;
             } break;
             case GTexture::Format::DEPTH24_STENCIL8:
@@ -290,23 +290,34 @@ namespace rke
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gal_id_);
 
             Size color_attachment_count{};
-            bool has_depth{ false };
+            GLbitfield depth_stencil_bits{};
             for(const auto& spec : spec_.attachment_spec.texture_specs)
             {
-                if(is_depth_format(spec.format)) has_depth = true;
-                else color_attachment_count++;
+                if(!is_depth_format(spec.format)) { color_attachment_count++; continue; }
+
+                depth_stencil_bits |= GL_DEPTH_BUFFER_BIT;
+            // a combined depth-stencil attachment must be resolved in one go:
+            // blitting only GL_DEPTH_BUFFER_BIT is an invalid operation
+                if(spec.format == GTexture::Format::DEPTH24_STENCIL8)
+                    depth_stencil_bits |= GL_STENCIL_BUFFER_BIT;
             }
             for(Size i{}; i < color_attachment_count; i++)
             {
                 glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
                 glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
-                glBlitFramebuffer(0, 0, spec_.width, spec_.height, 0, 0, spec_.width, spec_.height,
-                                  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                glBlitFramebuffer (
+                    0, 0, spec_.width, spec_.height,
+                    0, 0, spec_.width, spec_.height,
+                    GL_COLOR_BUFFER_BIT, GL_NEAREST
+                );
             }
-            if(has_depth) // Blit depth buffer
+            if(depth_stencil_bits) // Blit depth buffer
             {
-                glBlitFramebuffer(0, 0, spec_.width, spec_.height, 0, 0, spec_.width, spec_.height,
-                                  GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+                glBlitFramebuffer (
+                    0, 0, spec_.width, spec_.height,
+                    0, 0, spec_.width, spec_.height,
+                    depth_stencil_bits, GL_NEAREST
+                );
             }
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
