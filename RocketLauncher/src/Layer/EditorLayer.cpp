@@ -224,6 +224,8 @@ namespace rke
         {
             dispatcher.dispatch<ProjectLoadedEvent>([this]
                 (ProjectLoadedEvent& e) { return on_project_loaded(e); });
+            dispatcher.dispatch<ProjectClearedEvent>([this]
+                (ProjectClearedEvent& e) { return on_project_cleared(e); });
             dispatcher.dispatch<ProjectSavedEvent>([this]
                 (ProjectSavedEvent& e) { return on_project_saved(e); });
             dispatcher.dispatch<ProjectSamplesSetEvent>([this]
