@@ -15,18 +15,17 @@ export namespace rke
     {
     public:
         CharTypedEvent(StringView name, uint32 code_point)
-            : Event(name), code_point_(static_cast<uint8>(code_point)) {}
+            : Event(name), code_point_(code_point) {}
+
+        uint32 get_code_point() const { return code_point_; }
 
         String to_string() const override
-        {
-            return String::format(u8"{}: {}", get_name(),
-                static_cast<char>(code_point_));
-        }
+            { return String::format(u8"{}: U+{:04X}", get_name(), code_point_); }
 
         EVENT_CLASS_TYPE(CharTyped);
         EVENT_CLASS_CATEGORY(EventCategoryKeyboard | EventCategoryInput);
     private:
-        uint8 code_point_;
+        uint32 code_point_;
     };
 
     class RKE_API KeyEvent : public Event
