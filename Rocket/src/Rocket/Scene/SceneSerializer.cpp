@@ -1,8 +1,8 @@
 ﻿module;
 module SceneSerializer;
 
-import Types;
 import Log;
+import Types;
 import Components;
 import FileUtils;
 import GTexture;
@@ -307,17 +307,6 @@ namespace rke
         }
 
         Scope<ConfigReader> reader{ ConfigReader::create(filepath) };
-        scene.set_name(reader->get_at(u8"Scene", String{}));
-
-        auto* physics_engine{ scene.physics_engine_.get() };
-        if(reader->has_key(u8"Physics") && physics_engine)
-        {
-            Scope<ConfigReader> physics{ reader->get_child(u8"Physics") };
-            glm::vec3 gval{ physics->get_at(u8"Gravity", Gravity::default_val()) };
-            physics_engine->set_gravity(gval);
-            glm::vec3 axis{ physics->get_at(u8"Plane", glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)) };
-            physics_engine->set_plane(axis);
-        }
         
         Scope<ConfigReader> entities{ reader->get_child(u8"Entities") };
         if(!entities) {
@@ -330,7 +319,18 @@ namespace rke
         }
         // When you traverse a Sequence, each time you get a Node.
         // When you traverse a Map, each time you get a pair<Node, Node>.
-        
+
+        scene.set_name(reader->get_at(u8"Scene", String{}));
+        auto* physics_engine{ scene.physics_engine_.get() };
+        if(reader->has_key(u8"Physics") && physics_engine)
+        {
+            Scope<ConfigReader> physics{ reader->get_child(u8"Physics") };
+            glm::vec3 gval{ physics->get_at(u8"Gravity", Gravity::default_val()) };
+            physics_engine->set_gravity(gval);
+            glm::vec3 axis{ physics->get_at(u8"Plane", glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)) };
+            physics_engine->set_plane(axis);
+        }
+
         std::vector<std::pair<UUID, UUID>> links{};
         entities->for_each([&scene, &links](Scope<ConfigReader> config)
         {
