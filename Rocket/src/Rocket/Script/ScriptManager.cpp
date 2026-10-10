@@ -29,8 +29,7 @@ namespace rke
     {
         if(!owner_->in_runtime()) return;
         sync_all_to_cache();
-        for(auto& cache : script_cache_)
-            if(cache.script) cache.script->on_update(dt);
+        for_each_script([dt](Script* script){ script->on_update(dt); });
         flush_scripts();
     }
 
@@ -38,8 +37,9 @@ namespace rke
     {
         if(!owner_->in_runtime()) return;
         sync_all_to_cache();
-        for(auto& cache : script_cache_)
-            if(cache.script) cache.script->on_mouse_scrolled(x_offset, y_offset);
+        for_each_script([x_offset, y_offset](Script* script)
+            { script->on_mouse_scrolled(x_offset, y_offset); });
+        flush_scripts();
     }
 
     void ScriptManager::dispatch_contacts (

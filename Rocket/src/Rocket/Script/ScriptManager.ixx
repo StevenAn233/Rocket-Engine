@@ -41,6 +41,11 @@ export namespace rke
             const std::vector<Contact>& begin_contacts_sensor,
             const std::vector<Contact>& end_contacts_sensor
         );
+
+        // Destroys every script that is currently waiting in the graveyard.
+        // Callers MUST do this before the dylib that created those scripts
+        // gets unloaded, otherwise their vtables dangle.
+        void flush_scripts();
     private:
         struct RuntimeCache
         {
@@ -57,6 +62,19 @@ export namespace rke
             SensorEnd,
         };
 
+        template<typename Func>
+        requires std::invocable<Func, Script*>
+        void for_each_script(Func&& func)
+        {
+            std::vector<Script*> dispatch_cache{};
+            dispatch_cache.reserve(script_cache_.size());
+            for(const RuntimeCache& cache : script_cache_)
+            if(cache.script) dispatch_cache.push_back(cache.script.get());
+
+            for(Script* script : dispatch_cache)
+                std::invoke(std::forward<Func>(func), script);
+        }
+
         Scope<Script> create_script(ScriptType type, EntityHandle handle);
         void destroy_script(Scope<Script> script);
 
@@ -64,7 +82,7 @@ export namespace rke
         // validate slot, (re)create script
         RuntimeCache* refresh_cache(EntityHandle handle, ScriptType type, Size index); 
         void sync_all_to_cache();
-        void flush_scripts();
+
         void contact_callback(EntityHandle lhs, EntityHandle rhs, ContactType type);
 
         Script* get_script(EntityHandle handle); // For SceneHierarchy
