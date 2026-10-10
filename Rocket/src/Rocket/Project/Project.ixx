@@ -76,6 +76,7 @@ export namespace rke
         void remove_scene(const String& name);
 
         static bool create_files(const Path& path);
+    private:
         static const String& get_cmake_lists_txt();
         static const String& get_cmake_presets_json();
         static const String& get_myscript_cpp();
