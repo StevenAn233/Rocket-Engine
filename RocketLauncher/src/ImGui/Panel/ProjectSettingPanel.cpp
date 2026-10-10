@@ -114,11 +114,12 @@ namespace rke
         ImGui::Spacing();
 
         constexpr float spacing{ 4.0f }; // both x and y
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f   ));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing , ImVec2(0.0f, spacing));
 
         uint8 count{ layers.get_showed_layer_count() };
         if(count == 0) return;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f   ));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing , ImVec2(0.0f, spacing));
 
         static float cell_size{ ImGui::GetFrameHeight() };
         // only depends on font_size and frame_padding, also the size of checkbox
