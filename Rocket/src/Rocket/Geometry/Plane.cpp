@@ -7,16 +7,16 @@ namespace rke
 {
     PlaneBasis::PlaneBasis(glm::vec3 axis) : PlaneBasis(glm::vec4(axis, 0.0f)) {}
 
-    PlaneBasis::PlaneBasis(glm::vec4 plane)
+    PlaneBasis::PlaneBasis(glm::vec4 def)
     {
-        const glm::vec3 axis{ glm::vec3(plane) };
+        const glm::vec3 axis{ glm::vec3(def) };
         const float len{ glm::length(axis) };
         if(len < 1e-6f) {
             CORE_WARN(u8"PlaneBasis: Axis length way too small!");
             return; // default value
         }
         normal_ = axis / len;
-        offset_ = plane.w / len;
+        offset_ = def.w / len;
 
         const glm::vec3 flat_x{ glm::vec3(1.0f, 0.0f, 0.0f) - normal_ * normal_.x };
         const glm::vec3 flat_y{ glm::vec3(0.0f, 1.0f, 0.0f) - normal_ * normal_.y };
@@ -24,7 +24,7 @@ namespace rke
         u_ = glm::normalize(glm::dot(flat_x, flat_x) > 1e-6f ? flat_x : flat_y);
         v_ = glm::cross(normal_, u_);
     }
-
+    
     bool PlaneBasis::operator==(const PlaneBasis& other)
         { return (std::memcmp(this, &other, sizeof(PlaneBasis)) == 0); }
 

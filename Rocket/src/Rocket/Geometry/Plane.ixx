@@ -14,8 +14,8 @@ export namespace rke
     {
     public:
         PlaneBasis() = default;
-        explicit PlaneBasis(glm::vec3 axis );
-        explicit PlaneBasis(glm::vec4 plane);
+        explicit PlaneBasis(glm::vec3 axis);
+        explicit PlaneBasis(glm::vec4 def);
 
         PlaneBasis(const PlaneBasis&) = default;
         PlaneBasis& operator=(const PlaneBasis&) = default;
