@@ -239,6 +239,7 @@ export namespace rke
 
         void on_mouse_scrolled_runtime(MouseScrolledEvent& e);
         void on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg);
+        void flush_pending_scripts();
 
         void set_physics_plane(glm::vec3 axis); // 2D only; may modify
         void set_gravity(glm::vec3 gravity);

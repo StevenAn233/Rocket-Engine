@@ -766,6 +766,11 @@ namespace rke
         in_runtime_ = false;
         script_manager_->on_runtime_stop();
         physics_engine_->on_runtime_stop();
+
+    // no dispatch loop can be running now, so the scripts that were retired
+    // during the runtime are destroyed here instead of lingering in the
+    // graveyard -- they must never outlive the dylib that created them
+        script_manager_->flush_scripts();
     }
 
     void Scene::set_physics_plane(glm::vec3 axis)
@@ -808,6 +813,9 @@ namespace rke
             nsc.script_type = new_reg.get_script_type(name);
         }
     }
+
+    void Scene::flush_pending_scripts()
+        { if(script_manager_) script_manager_->flush_scripts(); }
 
     bool Scene::vertified(EntityHandle handle) const
     {
