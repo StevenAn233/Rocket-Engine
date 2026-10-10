@@ -30,11 +30,10 @@ export namespace rke
         virtual void apply_force(EntityHandle entity, glm::vec2 force) = 0;
 
         inline void set_gravity(glm::vec3 val) { gravity_.ref() = val; }
-        inline void set_plane(glm::vec3 axis)
-        {
-            plane_ = PlaneBasis(axis);
-            plane_dirty_ = true;
-        }
+
+        inline void set_plane(glm::vec4 plane)
+            { plane_ = PlaneBasis(plane); plane_dirty_ = true; }
+        inline void set_plane(glm::vec3 axis) { set_plane(glm::vec4(axis, 0.0f)); }
 
         inline const PlaneBasis& get_plane() const { return plane_; }
         inline PlaneBasis& get_plane() { return plane_; }
