@@ -36,7 +36,7 @@ function(add_rocket_engine_to TARGET_NAME)
   # The whole module set is compiled by this one target, so several cl.exe
   # processes write the same vc145.pdb at the same time. Without /FS that
   # fails with C1041 as soon as they run in parallel.
-    target_compile_options(${TARGET_NAME} PRIVATE /FS)
+    target_compile_options(${TARGET_NAME} PRIVATE /Z7)
   endif()
 
   target_include_directories(${TARGET_NAME} PRIVATE ${ROCKET_INCLUDE_DIRS})
