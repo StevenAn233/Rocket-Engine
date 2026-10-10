@@ -32,8 +32,8 @@ export namespace rke
         inline glm::vec3 get_normal() const { return normal_; }
         inline float get_offset() const { return offset_; }
 
-        inline glm::vec4 get_vec4() const { return { normal_, offset_ }; }
-        inline glm::mat3 get_mat() const { return glm::mat3(u_, v_, normal_); }
+        inline glm::vec4 get_define() const { return { normal_, offset_ }; }
+        inline glm::mat3 get_basis() const { return glm::mat3(u_, v_, normal_); }
 
         inline glm::vec2 to_uv(glm::vec3 world) const
             { return { glm::dot(world, u_), glm::dot(world, v_) }; }

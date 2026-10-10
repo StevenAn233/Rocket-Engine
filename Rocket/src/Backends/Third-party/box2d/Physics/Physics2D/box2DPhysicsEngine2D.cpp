@@ -56,6 +56,17 @@ namespace {
 
     static b2Vec2 to_b2_gravity(const PlaneBasis& plane, glm::vec3 world_gravity)
         { return std::bit_cast<b2Vec2>(plane.to_uv(world_gravity)); }
+
+    static b2Rot to_b2_rot(float radian)
+    {
+        b2Rot rotation{};
+        rotation.c = std::cos(radian);
+        rotation.s = std::sin(radian);
+        return rotation;
+    }
+
+    static float to_radian(b2Rot rotation)
+        { return std::atan2(rotation.s, rotation.c); }
 }
 
 namespace rke
@@ -250,8 +261,8 @@ namespace rke
         body_def.type = to_b2_body_type(rbc.type);
 
         body_def.position = to_b2_pos(entity, get_plane());
-        body_def.rotation = b2MakeRot(glm::radians
-            (entity.compute_flat_rotation(get_plane())));
+        body_def.rotation = to_b2_rot(glm::radians
+            (entity.compute_rotation_in(get_plane())));
         body_def.fixedRotation = rbc.rotation_fixed;
 
         state.body = b2CreateBody(physics_world_, &body_def);
@@ -281,7 +292,7 @@ namespace rke
         }
 
         const auto& bcc{ entity.get<BoxCollider2DComponent>() };
-        const glm::vec2 flat_size{ entity.compute_flat_size(get_plane()) * bcc.size_scale };
+        const glm::vec2 flat_size{ entity.compute_size_in(get_plane()) * bcc.size_scale };
         if(flat_size.x < 0.001f || flat_size.y < 0.001f) return;
 
         const glm::vec2 offset{ bcc.offset * bcc.size_scale };
@@ -357,7 +368,7 @@ namespace rke
         if(b2Shape_GetFriction(shape) != bcc.friction) return true;
         if(b2Shape_GetRestitution(shape) != bcc.restitution) return true;
 
-        const glm::vec2 flat_size{ entity.compute_flat_size(get_plane()) };
+        const glm::vec2 flat_size{ entity.compute_size_in(get_plane()) };
         const glm::vec2 expected{ bcc.size_scale * flat_size };
         const glm::vec2 delta{ state.shape_size - expected };
         if(std::abs(delta.x) > 0.001f || std::abs(delta.y) > 0.001f) return true;
@@ -410,13 +421,13 @@ namespace rke
 
         // Transform -> b2Body
             glm::vec2 last_pos{ std::bit_cast<glm::vec2>(b2Body_GetPosition(body)) };
-            float last_rot{ b2Rot_GetAngle(b2Body_GetRotation(body)) }; // radian
+            float last_rot{ to_radian(b2Body_GetRotation(body)) }; // radian
 
             glm::vec2 pos{ std::bit_cast<glm::vec2>(to_b2_pos(entity, get_plane())) };
-            float rot{ glm::radians(entity.compute_flat_rotation(get_plane())) };
+            float rot{ glm::radians(entity.compute_rotation_in(get_plane())) };
 
             if(last_pos != pos || std::abs(last_rot - rot) > 0.001f)
-                b2Body_SetTransform(body, std::bit_cast<b2Vec2>(pos), b2MakeRot(rot));
+                b2Body_SetTransform(body, std::bit_cast<b2Vec2>(pos), to_b2_rot(rot));
 
         // Velocity -> b2Body
             b2Vec2 velocity{ rbc.velocity.x, rbc.velocity.y };
@@ -452,12 +463,12 @@ namespace rke
         {
             Entity entity{ get_owner().get_entity(static_cast<EntityHandle>(ent)) };
             if(!entity.is_valid()) continue;
+            auto& rbc{ view.get<Rigidbody2DComponent>(ent) };
+            if(rbc.type == BodyType::Static) continue;
 
             PhysicsState* state{ find_state(entity.get_handle()) };
             if(!state || !b2Body_IsValid(state->body)) continue;
             b2BodyId body{ state->body };
-
-            auto& rbc{ view.get<Rigidbody2DComponent>(ent) };
 
         // b2Velocity -> RigidBody
             b2Vec2 velocity{ b2Body_GetLinearVelocity(body) };
@@ -469,9 +480,9 @@ namespace rke
             b2Rot  rotation{ b2Body_GetRotation(body) };
             auto& tc{ entity.get_mut<TransformComponent>() };
 
-            const float angle{ glm::degrees(b2Rot_GetAngle(rotation)) };
-            const float delta{ angle - entity.compute_flat_rotation(get_plane()) };
-            if(std::abs(delta) > 0.001f) entity.rotate_by(get_plane(), delta);
+            const float angle{ glm::degrees(to_radian(rotation)) };
+            const float delta{ angle - entity.compute_rotation_in(get_plane()) };
+            if(std::abs(delta) > 0.001f) entity.rotate_in_by(get_plane(), delta);
 
             glm::vec3 centre{ entity.compute_centre() };
             float depth{ get_plane().signed_distance(centre) };
@@ -501,7 +512,7 @@ namespace rke
         b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
 
         float platform_half_height{ bcc.size_scale.y
-            * entity.compute_flat_size(get_plane()).y * 0.5f };
+            * entity.compute_size_in(get_plane()).y * 0.5f };
         return other_pos.y > platform_pos.y + platform_half_height;
     }
 

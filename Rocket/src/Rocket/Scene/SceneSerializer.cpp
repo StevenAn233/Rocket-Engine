@@ -265,7 +265,7 @@ namespace rke
         {
             writer->begin_map(u8"Physics");
             writer->write(u8"Gravity", physics_engine->get_gravity().val());
-            writer->write(u8"Plane Axis", physics_engine->get_plane().get_normal());
+            writer->write(u8"Plane", physics_engine->get_plane().get_define());
             writer->end_map();
         }
 
@@ -315,7 +315,7 @@ namespace rke
             Scope<ConfigReader> physics{ reader->get_child(u8"Physics") };
             glm::vec3 gval{ physics->get_at(u8"Gravity", Gravity::default_val()) };
             physics_engine->set_gravity(gval);
-            glm::vec3 axis{ physics->get_at(u8"Plane Axis", glm::vec3(0.0f, 0.0f, 1.0f)) };
+            glm::vec3 axis{ physics->get_at(u8"Plane", glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)) };
             physics_engine->set_plane(axis);
         }
         

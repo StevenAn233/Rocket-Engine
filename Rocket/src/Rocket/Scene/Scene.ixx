@@ -70,9 +70,10 @@ export namespace rke
         RKE_API void set_world_transform(const glm::mat4& world);
         RKE_API glm::vec3 to_local_delta(glm::vec3 world_delta) const;
 
+        RKE_API glm::mat3 compute_local_basis() const;
         RKE_API glm::vec3 compute_centre() const;
-        RKE_API glm::vec2 compute_flat_size(const PlaneBasis& plane) const;
-        RKE_API float compute_flat_rotation(const PlaneBasis& plane) const;
+        RKE_API glm::vec2 compute_size_in(const PlaneBasis& plane) const;
+        RKE_API float compute_rotation_in(const PlaneBasis& plane) const;
 
         RKE_API glm::vec2 get_velocity() const;
         RKE_API float get_angular_velocity() const;
@@ -107,7 +108,7 @@ export namespace rke
         inline bool has_any_child() const { return get_children().second > 0; }
 
         RKE_API void grip_move_by(glm::vec3 delta, double dt);
-        RKE_API void rotate_by(const PlaneBasis& plane, float degree);
+        RKE_API void rotate_in_by(const PlaneBasis& plane, float degree);
         RKE_API void force_apply_by(glm::vec2 force);
         RKE_API void acc_apply_by(glm::vec2 acc);
 
@@ -240,6 +241,8 @@ export namespace rke
         void on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg);
 
         void set_physics_plane(glm::vec3 axis); // 2D only; may modify
+        void set_gravity(glm::vec3 gravity);
+
         void set_viewport(uint32 width, uint32 height);
         inline uint32 get_viewport_w() const { return viewport_w_; }
         inline uint32 get_viewport_h() const { return viewport_h_; }

@@ -46,14 +46,14 @@ namespace {
         return (glm::dot(axis, spin_axis) < 0.0f) ? -axis : axis;
     }
 
-    static bool invertible(const glm::mat3& axes)
+    static bool invertible(const glm::mat3& basis)
     {
-        if(glm::determinant(axes) == 0.0f) return false;
+        if(glm::determinant(basis) == 0.0f) return false;
         const glm::vec3 size
         {
-            glm::length(axes[0]),
-            glm::length(axes[1]),
-            glm::length(axes[2])
+            glm::length(basis[0]),
+            glm::length(basis[1]),
+            glm::length(basis[2])
         };
         return size.x >= 1e-6f && size.y >= 1e-6f && size.z >= 1e-6f;
     }
@@ -141,15 +141,18 @@ namespace rke
         const Entity parent{ get_parent() };
         if(!parent.is_valid()) return world_delta;
 
-        const glm::mat4 parent_world{ parent.get_world_transform().matrix };
-        if(!invertible(glm::mat3(parent_world)))
+        const glm::mat3 parent_basis{ parent.compute_local_basis() };
+        if(!invertible(parent_basis))
         {
             CORE_ERROR(u8"Entity: Parent is scaled to zero, "
                 u8"can't convert a world-space delta!");
             return glm::vec3(0.0f);
         }
-        return glm::inverse(glm::mat3(parent_world)) * world_delta;
+        return glm::inverse(parent_basis) * world_delta;
     }
+
+    glm::mat3 Entity::compute_local_basis() const
+        { return glm::mat3(get_world_transform().matrix); }
 
     glm::vec3 Entity::compute_centre() const
     {
@@ -158,18 +161,18 @@ namespace rke
             glm::vec4(mesh ? mesh->get_centre() : glm::vec3(0.0f), 1.0f));
     }
 
-    glm::vec2 Entity::compute_flat_size(const PlaneBasis& plane) const
+    glm::vec2 Entity::compute_size_in(const PlaneBasis& plane) const
     {
         const Mesh* mesh{ get_mesh() };
         if(!mesh) return glm::vec2(0.0f);
 
         const WorldTransform world{ get_world_transform() };
-        const glm::mat3 axes{ glm::mat3(world.matrix) };
+        const glm::mat3 basis{ glm::mat3(world.matrix) };
         const glm::vec3 size{ mesh->get_size() };
 
         const glm::vec3 x_edge{ flat_x_axis(world) * size.x };
-        const glm::vec3 y_edge{ axes[1] * size.y };
-        const glm::vec3 z_edge{ axes[2] * size.z };
+        const glm::vec3 y_edge{ basis[1] * size.y };
+        const glm::vec3 z_edge{ basis[2] * size.z };
 
         const float spin{ glm::radians(plane.project_angle(x_edge)) };
         const glm::quat untilted{ glm::angleAxis(-spin, plane.get_normal()) };
@@ -184,7 +187,7 @@ namespace rke
         );
     }
 
-    float Entity::compute_flat_rotation(const PlaneBasis& plane) const
+    float Entity::compute_rotation_in(const PlaneBasis& plane) const
         { return plane.project_angle(flat_x_axis(get_world_transform())); }
 
     glm::vec2 Entity::get_velocity() const
@@ -313,7 +316,7 @@ namespace rke
         }
     }
 
-    void Entity::rotate_by(const PlaneBasis& plane, float degree)
+    void Entity::rotate_in_by(const PlaneBasis& plane, float degree)
     {
         if(!is_valid()) return;
         const glm::quat parent_rotation{ get_parent().get_world_transform().rotation };
@@ -767,6 +770,9 @@ namespace rke
 
     void Scene::set_physics_plane(glm::vec3 axis)
         { physics_engine_->set_plane(axis); }
+
+    void Scene::set_gravity(glm::vec3 gravity)
+        { physics_engine_->set_gravity(gravity); }
 
     void Scene::set_viewport(uint32 width, uint32 height)
     {

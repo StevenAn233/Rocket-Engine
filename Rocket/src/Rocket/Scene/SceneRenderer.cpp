@@ -15,16 +15,16 @@ namespace
     using namespace rke;
     using Frustum = std::array<PlaneBasis, 6>;
 
-    static bool should_cull(glm::vec3 pos, const glm::mat3& axes,
+    static bool should_cull(glm::vec3 pos, const glm::mat3& basis,
         glm::vec3 half_size, const Frustum& frustum)
     {
         for(const auto& plane : frustum)
         {
             const glm::vec3 normal{ plane.get_normal() };
             const float support {
-                half_size.x * std::abs(glm::dot(axes[0], normal))
-              + half_size.y * std::abs(glm::dot(axes[1], normal))
-              + half_size.z * std::abs(glm::dot(axes[2], normal))
+                half_size.x * std::abs(glm::dot(basis[0], normal))
+              + half_size.y * std::abs(glm::dot(basis[1], normal))
+              + half_size.z * std::abs(glm::dot(basis[2], normal))
             };
             if(plane.signed_distance(pos) + support < 0.0f) return true;
         }
@@ -206,9 +206,9 @@ namespace rke
             const Entity entity{ scene->get_entity(handle) };
             const glm::mat4 world_mat{ entity.get_world_transform().matrix };
             const glm::vec3 pos{ glm::vec3(world_mat * glm::vec4(sc.quad->get_centre(), 1.0f)) };
-            const glm::mat3 axes{ glm::mat3(world_mat) };
+            const glm::mat3 basis{ glm::mat3(world_mat) };
             const glm::vec3 half_size{ 0.5f * sc.quad->get_size() };
-            if(should_cull(pos, axes, half_size, frustum)) continue;
+            if(should_cull(pos, basis, half_size, frustum)) continue;
 
             switch(sc.blending_mode)
             {
