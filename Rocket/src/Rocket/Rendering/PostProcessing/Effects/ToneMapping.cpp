@@ -8,6 +8,7 @@ import Application;
 import RenderCommand;
 import FileUtils;
 import GShader;
+import Log;
 
 namespace rke
 {
@@ -21,14 +22,20 @@ namespace rke
     {
         if(!source || !destination) return false;
 
-        destination->clear_to_upload([this, source]()
+        GShader* gshader{ shader_ ? shader_->get_gshader() : nullptr };
+        if(!gshader) {
+            CORE_ERROR(u8"ToneMapping: Shader unavailable, the frame is left untouched!");
+            return false; // keep the source texture
+        }
+
+        destination->clear_to_upload([this, source, gshader]()
         {
             source->bind(BindingPoint::Sampler2D_0);
             ubo_->bind(BindingPoint::UBO_PostProcess);
 
-            shader_->get_gshader()->bind();
+            gshader->bind();
             app().render_command().draw_quad();
-            shader_->get_gshader()->unbind();
+            gshader->unbind();
         });
         return true;
     }

@@ -44,15 +44,21 @@ namespace rke
         auto* silhouette{ outline_fbo_->get_gtexture_attached() };
         if(!silhouette) return false;
 
-        destination->clear_to_upload([this, source, silhouette]()
+        auto* gshader{ shader_ ? shader_->get_gshader() : nullptr };
+        if(!gshader) {
+            CORE_ERROR(u8"OutlineEffect: Shader unavailable, the frame is left untouched!");
+            return false; // keep the source texture
+        }
+
+        destination->clear_to_upload([this, source, silhouette, gshader]()
         {
             ubo_->bind(BindingPoint::UBO_PostProcess);
             source->bind(BindingPoint::Sampler2D_0);
             silhouette->bind(BindingPoint::Sampler2D_1);
 
-            shader_->get_gshader()->bind();
+            gshader->bind();
             app().render_command().draw_quad();
-            shader_->get_gshader()->unbind();
+            gshader->unbind();
         });
         return true;
     }
