@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <iterator>
 #include <windows.h>
 #include <commdlg.h>
 #include <shlobj.h>
@@ -67,14 +68,14 @@ namespace rke::file::dialogs
 {
     String open_file(StringView filter, NativeWindow window)
     {
-        OPENFILENAMEW ofn{}; // A stands for ANSI
+        OPENFILENAMEW ofn{}; // W stands for wide(UTF-16)
         WCHAR sz_file[260]{};
         WCHAR current_dir[256]{};
-        ZeroMemory(&ofn, sizeof(OPENFILENAME));
-        ofn.lStructSize = sizeof(OPENFILENAME);
+        ZeroMemory(&ofn, sizeof(ofn));
+        ofn.lStructSize = sizeof(ofn);
         ofn.hwndOwner = glfwGetWin32Window(window.as<GLFWwindow>());
         ofn.lpstrFile = sz_file;
-        ofn.nMaxFile  = sizeof(sz_file);
+        ofn.nMaxFile  = static_cast<DWORD>(std::size(sz_file)); // in characters, not bytes
         if(GetCurrentDirectoryW(256, current_dir))
             ofn.lpstrInitialDir = current_dir;
         auto wide_filter{ utf8_to_wide(filter) };
@@ -94,12 +95,12 @@ namespace rke::file::dialogs
         OPENFILENAMEW ofn{};
         WCHAR sz_file[260]{};
     
-        ZeroMemory(&ofn, sizeof(OPENFILENAMEW));
-        ofn.lStructSize = sizeof(OPENFILENAMEW);
+        ZeroMemory(&ofn, sizeof(ofn));
+        ofn.lStructSize = sizeof(ofn);
         ofn.hwndOwner = glfwGetWin32Window(window.as<GLFWwindow>());
         
         ofn.lpstrFile = sz_file;
-        ofn.nMaxFile = sizeof(sz_file);
+        ofn.nMaxFile = static_cast<DWORD>(std::size(sz_file)); // in characters, not bytes
     
         std::wstring wide_filter{ utf8_to_wide(filter) };
         ofn.lpstrFilter = wide_filter.c_str();
