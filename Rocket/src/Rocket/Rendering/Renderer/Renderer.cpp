@@ -66,8 +66,6 @@ namespace rke
 
     void Renderer::begin_camera(const glm::mat4& view_projection)
     {
-        RKE_PROFILE_FUNCTION();
-
         camera_ubo_->bind(BindingPoint::UBO_Camera);
         CameraData cam_data{ view_projection };
         camera_ubo_->set_data(&cam_data, sizeof(CameraData));
@@ -77,31 +75,29 @@ namespace rke
     #endif
     }
 
-    void Renderer::begin_scene()
+    void Renderer::start()
     {
         GShader* gshader{ s_shader ? s_shader->get_gshader() : nullptr };
         if(!gshader) {
             CORE_ERROR(u8"Renderer: Scene shader unavailable, skipping this batch!");
-            in_scene_ = false; return;
+            in_render_ = false; return;
         }
-        in_scene_ = true;
+        in_render_ = true;
         gshader->bind();
         start_batch();
     }
 
-    void Renderer::end_scene()
+    void Renderer::stop()
     {
-        if(!in_scene_) return;
-        flush();
-        if(GShader* gshader{ s_shader ? s_shader->get_gshader() : nullptr })
-            gshader->unbind();
-        in_scene_ = false;
+        if(!in_render_) return;
+        flush(); // don't need to unbind(bind null)
+        in_render_ = false;
     }
 
     void Renderer::push(const Mesh* mesh, const GTexture* gtex, const RenderProps& props)
     {
         RKE_PROFILE_FUNCTION();
-        if(!mesh || !in_scene_) return;
+        if(!mesh || !in_render_) return;
 
     // capacity: instance buffer full or texture slots full
         if(instance_count_  >= max_instances

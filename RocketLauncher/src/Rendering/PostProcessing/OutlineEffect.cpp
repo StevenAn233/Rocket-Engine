@@ -28,7 +28,7 @@ namespace rke
         {
             if(target.has<SpriteComponent>())
             {
-                context_->renderer().begin_scene();
+                context_->renderer().start();
                 context_->renderer().push
                 (
                     target.get<SpriteComponent>().quad, nullptr,
@@ -37,7 +37,7 @@ namespace rke
                         .color{ glm::vec4(1.0f) }
                     }
                 );
-                context_->renderer().end_scene();
+                context_->renderer().stop();
             }
         });
 

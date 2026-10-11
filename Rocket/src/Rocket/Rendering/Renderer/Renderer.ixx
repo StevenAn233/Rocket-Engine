@@ -70,8 +70,8 @@ export namespace rke
         Renderer& operator=(Renderer&&) = delete;
 
         void begin_camera(const glm::mat4& view_projection);
-        void begin_scene();
-        void end_scene();
+        void start();
+        void stop();
 
         void push(const Mesh* mesh, const GTexture* gtex, const RenderProps& props);
 
@@ -116,7 +116,7 @@ export namespace rke
         Scope<GTexture2D> default_texture_{};
         std::array<const GTexture*, max_gtex_slots> gtex_slots_{};
         uint32 gtex_slot_index_{ 1 }; // 0 for default texture
-        bool in_scene_{ false };
+        bool in_render_{ false };
 
         Ref<UniformBuffer> camera_ubo_{}; // CameraData
         Ref<VertexBuffer> instance_vbo_{}; // InstanceDatas
