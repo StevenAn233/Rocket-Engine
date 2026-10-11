@@ -158,6 +158,7 @@ export namespace rke
         virtual uint32 get_count() const = 0;
 
         static Ref<IndexBuffer> create(const void* data, uint32 count);
+        static Ref<IndexBuffer> create(uint32 count);
     protected:
         IndexBuffer() = default;
         virtual ~IndexBuffer() = default;

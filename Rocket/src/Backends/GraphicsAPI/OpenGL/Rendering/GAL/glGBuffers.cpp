@@ -72,6 +72,12 @@ namespace rke
         glNamedBufferStorage(gal_id_,
             count * sizeof(uint32), data, GL_MAP_ALL_ACCESS);
     }
+    glIndexBuffer::glIndexBuffer(uint32 count) : count_(count)
+    {
+        glCreateBuffers(1, &gal_id_);
+        glNamedBufferStorage(gal_id_,
+            count * sizeof(uint32), nullptr, GL_MAP_ALL_ACCESS);
+    }
     glIndexBuffer::~glIndexBuffer() { glDeleteBuffers(1, &gal_id_); }
 
     void glIndexBuffer::set_data(const void* new_data, uint32 new_count)

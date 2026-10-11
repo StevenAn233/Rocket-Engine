@@ -44,6 +44,18 @@ namespace rke
         return nullptr;
     }
 
+    Ref<IndexBuffer> IndexBuffer::create(uint32 count)
+    {
+        switch(render_backend::get_graphics_api())
+        {
+        case GraphicsAPI::OpenGL:
+            return create_ref<glIndexBuffer>(count);
+        default:
+            CORE_ASSERT(false, u8"IndexBuffer: Other graphics api(s) not supported!");
+        }
+        return nullptr;
+    }
+
     Ref<UniformBuffer> UniformBuffer::create(uint32 size)
     {
         switch(render_backend::get_graphics_api())

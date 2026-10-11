@@ -30,6 +30,7 @@ namespace rke
     {
     public:
         glIndexBuffer(const void* data, uint32 count);
+        glIndexBuffer(uint32 count); // storage only, to be filled by mapping
         ~glIndexBuffer();
 
         void set_data(const void* new_data, uint32 new_count) override;
