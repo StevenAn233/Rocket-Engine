@@ -13,6 +13,7 @@ export module PhysicsEngine2D:box2D;
 import :Base;
 import Scene;
 import EntityAccess;
+import Plane;
 import PhysicsLayers;
 
 namespace std
@@ -62,13 +63,13 @@ namespace rke
         void unregister_shape_entity(b2ShapeId shape_id);
         EntityHandle get_entity_from_shape(b2ShapeId shape_id) const;
 
-        void ensure_body(EntityHandle handle, PhysicsState& state);
-        void create_shape(EntityHandle handle,
-            PhysicsState& state, const PhysicsLayers& layers);
-        void rebuild_shape(EntityHandle handle,
-            PhysicsState& state, const PhysicsLayers& layers);
-        bool shape_spec_changed(EntityHandle handle,
-            const PhysicsState& state, const PhysicsLayers& layers) const;
+        void ensure_body(EntityHandle handle, PhysicsState& state, const PlaneBox& box);
+        void create_shape(EntityHandle handle, PhysicsState& state,
+            const PhysicsLayers& layers, const PlaneBox& box);
+        void rebuild_shape(EntityHandle handle, PhysicsState& state,
+            const PhysicsLayers& layers, const PlaneBox& box);
+        bool shape_spec_changed(EntityHandle handle, const PhysicsState& state,
+            const PhysicsLayers& layers, const PlaneBox& box) const;
 
         void sync_all_to_body();
         void sync_all_from_body();

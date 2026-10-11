@@ -72,8 +72,7 @@ export namespace rke
 
         RKE_API glm::mat3 compute_local_basis() const;
         RKE_API glm::vec3 compute_centre() const;
-        RKE_API glm::vec2 compute_size_in(const PlaneBasis& plane) const;
-        RKE_API float compute_rotation_in(const PlaneBasis& plane) const;
+        RKE_API PlaneBox box_of(const Plane& plane) const;
 
         RKE_API glm::vec2 get_velocity() const;
         RKE_API float get_angular_velocity() const;
@@ -108,7 +107,7 @@ export namespace rke
         inline bool has_any_child() const { return get_children().second > 0; }
 
         RKE_API void grip_move_by(glm::vec3 delta, double dt);
-        RKE_API void rotate_in_by(const PlaneBasis& plane, float degree);
+        RKE_API void rotate_in_by(const Plane& plane, float degree);
         RKE_API void force_apply_by(glm::vec2 force);
         RKE_API void acc_apply_by(glm::vec2 acc);
 

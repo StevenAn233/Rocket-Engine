@@ -32,11 +32,11 @@ export namespace rke
         inline void set_gravity(glm::vec3 val) { gravity_.ref() = val; }
 
         inline void set_plane(glm::vec4 plane)
-            { plane_ = PlaneBasis(plane); plane_dirty_ = true; }
+            { plane_ = Plane(plane); plane_dirty_ = true; }
         inline void set_plane(glm::vec3 axis) { set_plane(glm::vec4(axis, 0.0f)); }
 
-        inline const PlaneBasis& get_plane() const { return plane_; }
-        inline PlaneBasis& get_plane() { return plane_; }
+        inline const Plane& get_plane() const { return plane_; }
+        inline Plane& get_plane() { return plane_; }
         inline const Gravity& get_gravity() const { return gravity_; }
         inline Gravity& get_gravity() { return gravity_; }
 
@@ -65,7 +65,7 @@ export namespace rke
         std::vector<Contact> end_contacts_sensor_{};
     private:
         Scene* owner_;
-        PlaneBasis plane_{ glm::vec3(0.0f, 0.0f, 1.0f) };
+        Plane plane_{ glm::vec3(0.0f, 0.0f, 1.0f) };
         bool plane_dirty_{ false };
         Gravity gravity_{};
     };

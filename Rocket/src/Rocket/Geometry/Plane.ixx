@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <array>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include "rke_macros.h"
@@ -10,19 +11,19 @@ import Types;
 
 export namespace rke
 {
-    class RKE_API PlaneBasis
+    class RKE_API Plane // inside world
     {
     public:
-        PlaneBasis() = default;
-        explicit PlaneBasis(glm::vec3 axis);
-        explicit PlaneBasis(glm::vec4 def);
+        Plane() = default;
+        explicit Plane(glm::vec3 axis);
+        explicit Plane(glm::vec4 def);
 
-        PlaneBasis(const PlaneBasis&) = default;
-        PlaneBasis& operator=(const PlaneBasis&) = default;
-        PlaneBasis(PlaneBasis&&) = default;
-        PlaneBasis& operator=(PlaneBasis&&) = default;
+        Plane(const Plane&) = default;
+        Plane& operator=(const Plane&) = default;
+        Plane(Plane&&) = default;
+        Plane& operator=(Plane&&) = default;
 
-        bool operator==(const PlaneBasis& other);
+        bool operator==(const Plane& other);
 
         inline void add_offset(float addon ) { offset_ += addon; }
         inline void set_offset(float offset) { offset_ = offset; }
@@ -51,5 +52,39 @@ export namespace rke
         glm::vec3 v_{ 0.0f, 1.0f, 0.0f }; // v axis itself, a vector in world
         glm::vec3 normal_{ 0.0f, 0.0f, 1.0f };
         float offset_{ 0.0f }; // distance between plane and world origin
+    };
+
+    class RKE_API PlaneBox // inside plane
+    {
+    public:
+        PlaneBox() = default;
+        PlaneBox(glm::vec2 centre, glm::vec2 size, float rotation = 0.0f);
+
+        inline glm::vec2 get_centre() const { return centre_; }
+        inline glm::vec2 get_size() const { return size_; }
+        inline float get_rotation() const { return rotation_; }
+
+        inline glm::vec2 get_half_size() const { return 0.5f * size_; }
+        inline bool empty() const { return size_.x <= 0.0f || size_.y <= 0.0f; }
+
+    // relative to its plane
+        glm::mat3 get_transform() const;
+        glm::mat2 get_basis() const;
+
+    // four corners(points in plane uv), counter-clockwise starting at (-u, -v)
+        std::array<glm::vec2, 4> get_corners() const;
+        float get_radius() const;
+
+    // axis-aligned 2D envelope of this rotated box, in plane space
+        glm::vec2 get_envelope_half_size() const;
+        inline glm::vec2 get_min() const { return centre_ - get_envelope_half_size(); }
+        inline glm::vec2 get_max() const { return centre_ + get_envelope_half_size(); }
+
+        bool contains(glm::vec2 point) const;
+        bool overlaps(const PlaneBox& other) const; // separating axis test
+    private:
+        glm::vec2 centre_{ 0.0f };
+        glm::vec2 size_  { 0.0f };
+        float rotation_  { 0.0f }; // degree
     };
 }

@@ -13,7 +13,7 @@ import Plane;
 namespace
 {
     using namespace rke;
-    using Frustum = std::array<PlaneBasis, 6>;
+    using Frustum = std::array<Plane, 6>;
 
     static bool should_cull(glm::vec3 pos, const glm::mat3& basis,
         glm::vec3 half_size, const Frustum& frustum)
@@ -47,9 +47,9 @@ namespace
                           (vp[2][3] - vp[2][2]), (vp[3][3] - vp[3][2]) };
 
         return Frustum {
-            PlaneBasis(left  ), PlaneBasis(right ),
-            PlaneBasis(bottom), PlaneBasis(top   ),
-            PlaneBasis(near  ), PlaneBasis(far   ),
+            Plane(left  ), Plane(right ),
+            Plane(bottom), Plane(top   ),
+            Plane(near  ), Plane(far   ),
         };
     }
 

@@ -161,41 +161,44 @@ namespace rke
             glm::vec4(mesh ? mesh->get_centre() : glm::vec3(0.0f), 1.0f));
     }
 
-    glm::vec2 Entity::compute_size_in(const PlaneBasis& plane) const
+    PlaneBox Entity::box_of(const Plane& plane) const
     {
-        const Mesh* mesh{ get_mesh() };
-        if(!mesh) return glm::vec2(0.0f);
-
         const WorldTransform world{ get_world_transform() };
+        const Mesh* mesh{ get_mesh() };
+
+        const float spin{ plane.project_angle(flat_x_axis(world)) };
+        const glm::vec2 centre{ plane.to_uv(glm::vec3(world.matrix *
+            glm::vec4(mesh ? mesh->get_centre() : glm::vec3(0.0f), 1.0f))) };
+
+        if(!mesh) return PlaneBox(centre, glm::vec2(0.0f), spin);
+
         const glm::mat3 basis{ glm::mat3(world.matrix) };
-        const glm::vec3 size{ mesh->get_size() };
+        const glm::vec3 mesh_size{ mesh->get_size() };
 
-        const glm::vec3 x_edge{ flat_x_axis(world) * size.x };
-        const glm::vec3 y_edge{ basis[1] * size.y };
-        const glm::vec3 z_edge{ basis[2] * size.z };
+        const glm::vec3 x_edge{ flat_x_axis(world) * mesh_size.x };
+        const glm::vec3 y_edge{ basis[1] * mesh_size.y };
+        const glm::vec3 z_edge{ basis[2] * mesh_size.z };
 
-        const float spin{ glm::radians(plane.project_angle(x_edge)) };
-        const glm::quat untilted{ glm::angleAxis(-spin, plane.get_normal()) };
-        const glm::mat3 rotation{ glm::mat3_cast(untilted) };
+        const glm::mat3 untilt{ glm::mat3_cast(glm::angleAxis
+            (-glm::radians(spin), plane.get_normal())) };
 
-        const glm::vec2 flat_x{ plane.to_uv(rotation * x_edge) };
-        const glm::vec2 flat_y{ plane.to_uv(rotation * y_edge) };
-        const glm::vec2 flat_z{ plane.to_uv(rotation * z_edge) };
-        return glm::vec2 (
+        const glm::vec2 flat_x{ plane.to_uv(untilt * x_edge) };
+        const glm::vec2 flat_y{ plane.to_uv(untilt * y_edge) };
+        const glm::vec2 flat_z{ plane.to_uv(untilt * z_edge) };
+        const glm::vec2 size
+        {
             glm::abs(flat_x.x) + glm::abs(flat_y.x) + glm::abs(flat_z.x),
             glm::abs(flat_x.y) + glm::abs(flat_y.y) + glm::abs(flat_z.y)
-        );
+        };
+        return PlaneBox(centre, size, spin);
     }
-
-    float Entity::compute_rotation_in(const PlaneBasis& plane) const
-        { return plane.project_angle(flat_x_axis(get_world_transform())); }
 
     glm::vec2 Entity::get_velocity() const
     {
         const Entity mover{ moving_entity(*this) };
         if(!mover.is_valid()) return glm::vec2(0.0f);
 
-        const PlaneBasis& plane{ owner_scene_->physics_engine_->get_plane() };
+        const Plane& plane{ owner_scene_->physics_engine_->get_plane() };
         const Rigidbody2DComponent& rbc{ mover.get<Rigidbody2DComponent>() };
 
     // measured from the root's mesh centre, which is where the body's position is set
@@ -316,7 +319,7 @@ namespace rke
         }
     }
 
-    void Entity::rotate_in_by(const PlaneBasis& plane, float degree)
+    void Entity::rotate_in_by(const Plane& plane, float degree)
     {
         if(!is_valid()) return;
         const glm::quat parent_rotation{ get_parent().get_world_transform().rotation };
@@ -766,10 +769,6 @@ namespace rke
         in_runtime_ = false;
         script_manager_->on_runtime_stop();
         physics_engine_->on_runtime_stop();
-
-    // no dispatch loop can be running now, so the scripts that were retired
-    // during the runtime are destroyed here instead of lingering in the
-    // graveyard -- they must never outlive the dylib that created them
         script_manager_->flush_scripts();
     }
 
