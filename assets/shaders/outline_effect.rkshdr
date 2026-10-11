@@ -1,0 +1,2 @@
+Vertex: "src/outline_effect.vert"
+Fragment: "src/outline_effect.frag"
