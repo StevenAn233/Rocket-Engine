@@ -25,24 +25,24 @@ export namespace rke
 
         bool operator==(const Plane& other);
 
-        inline void add_offset(float addon ) { offset_ += addon; }
-        inline void set_offset(float offset) { offset_ = offset; }
+        inline void add_offset(float addon ) { distance_ += addon; }
+        inline void set_offset(float offset) { distance_ = offset; }
 
         inline glm::vec3 get_u() const { return u_; }
         inline glm::vec3 get_v() const { return v_; }
         inline glm::vec3 get_normal() const { return normal_; }
-        inline float get_offset() const { return offset_; }
+        inline float get_distance() const { return distance_; }
 
-        inline glm::vec4 get_define() const { return { normal_, offset_ }; }
+        inline glm::vec4 get_define() const { return { normal_, distance_ }; }
         inline glm::mat3 get_basis() const { return glm::mat3(u_, v_, normal_); }
 
         inline glm::vec2 to_uv(glm::vec3 world) const
             { return { glm::dot(world, u_), glm::dot(world, v_) }; }
         inline glm::vec3 to_world(glm::vec2 uv) const
-            { return u_ * uv.x + v_ * uv.y; }
+            { return (u_ * uv.x + v_ * uv.y) - (normal_ * distance_); }
 
-        inline float signed_distance(glm::vec3 point) const
-            { return glm::dot(normal_, point) + offset_; }
+        inline float distance_to(glm::vec3 point) const
+            { return glm::dot(normal_, point) + distance_; }
 
         float project_angle(glm::vec3 dir) const;
         float angle_of(glm::quat orientation) const;
@@ -51,8 +51,10 @@ export namespace rke
         glm::vec3 u_{ 1.0f, 0.0f, 0.0f }; // u axis itself, a vector in world
         glm::vec3 v_{ 0.0f, 1.0f, 0.0f }; // v axis itself, a vector in world
         glm::vec3 normal_{ 0.0f, 0.0f, 1.0f };
-        float offset_{ 0.0f }; // distance between plane and world origin
+        float distance_{ 0.0f }; // distance between plane and world origin
     };
+
+    using Frustum = std::array<Plane, 6>;
 
     class RKE_API PlaneBox // inside plane
     {

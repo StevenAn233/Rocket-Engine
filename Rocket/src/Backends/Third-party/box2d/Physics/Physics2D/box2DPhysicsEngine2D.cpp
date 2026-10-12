@@ -481,12 +481,12 @@ namespace rke
             const float delta{ angle - entity.box_of(get_plane()).get_rotation() };
             if(std::abs(delta) > 0.001f) entity.rotate_in_by(get_plane(), delta);
 
-            glm::vec3 centre{ entity.compute_centre() };
-            float depth{ get_plane().signed_distance(centre) };
+            glm::vec3 centre_before{ entity.compute_centre() };
+            float depth{ get_plane().distance_to(centre_before) };
             const glm::vec3 world_delta
             {
                 get_plane().to_world({ position.x, position.y })
-                - (centre - get_plane().get_normal() * depth)
+                - (centre_before - (get_plane().get_normal() * depth))
             };
             tc.translation += entity.to_local_delta(world_delta);
         }

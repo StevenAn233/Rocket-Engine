@@ -16,7 +16,7 @@ namespace rke
             return; // default value
         }
         normal_ = axis / len;
-        offset_ = def.w / len;
+        distance_ = def.w / len;
 
         const glm::vec3 flat_x{ glm::vec3(1.0f, 0.0f, 0.0f) - normal_ * normal_.x };
         const glm::vec3 flat_y{ glm::vec3(0.0f, 1.0f, 0.0f) - normal_ * normal_.y };
