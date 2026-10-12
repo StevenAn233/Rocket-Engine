@@ -75,12 +75,12 @@ export namespace rke
         int rendering_layer{ 0 };
 
     /* -runtime cache(do not serialize): copiable- */
-        const Mesh* quad; // may modify
+        const Mesh* quad{ &mesh::quad() }; // may modify
 
         glm::vec2 uv_scale { 1.0f }; // Update: SceneRenderer
         glm::vec2 uv_offset{ 0.0f }; // Update: SceneRenderer
         
-        SpriteComponent();
+        SpriteComponent() = default;
         SpriteComponent(const SpriteComponent&) = default;
     };
 

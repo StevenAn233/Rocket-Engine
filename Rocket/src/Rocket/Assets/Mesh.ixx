@@ -1,5 +1,6 @@
 ﻿module;
 
+#include <vector>
 #include <memory>
 #include <glm/glm.hpp>
 #include "rke_macros.h"
@@ -14,6 +15,12 @@ export namespace rke
     class RKE_API Mesh
     {
     public:
+        struct Edge
+        {
+            uint32 a{}, b{}; // vertex(position) indices
+            uint32 face_valence{}; // count of triangle faces using this as an edge
+        };
+
         Mesh(uint32 vc, uint32 ic,
             Scope<glm::vec4[]> pos, Scope<uint32[]> indices,
             Scope<glm::vec3[]> nor = nullptr,
@@ -28,13 +35,14 @@ export namespace rke
         Mesh& operator=(Mesh&&) = default;
 
         inline uint32 get_vertex_count() const { return vertex_count_; }
-        inline uint32 get_index_count() const { return index_count_; }
+        inline uint32 get_index_count () const { return index_count_ ; }
+        inline const std::vector<Edge>& get_edges() const { return edges_; }
 
         inline glm::vec3 get_bounds_max() const { return bounds_max_; }
         inline glm::vec3 get_bounds_min() const { return bounds_min_; }
 
         inline glm::vec3 get_centre() const { return 0.5f * (bounds_max_ + bounds_min_); }
-        inline glm::vec3 get_size  () const { return bounds_max_ - bounds_min_; }
+        inline glm::vec3 get_size() const { return bounds_max_ - bounds_min_; }
 
         inline bool has_normals() const { return normals_.get() != nullptr; }
         inline bool has_colors() const { return colors_.get() != nullptr; }
@@ -57,6 +65,12 @@ export namespace rke
         Scope<glm::vec4[]> colors_;
         Scope<glm::vec2[]> uvs_;
         Scope<uint32[]> indices_;
+
+        std::vector<Edge> edges_{};
     };
 }
 
+export namespace rke::mesh
+{
+    RKE_API const Mesh& quad();
+}

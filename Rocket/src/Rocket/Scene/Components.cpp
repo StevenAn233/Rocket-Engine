@@ -12,26 +12,6 @@ import Log;
 
 namespace rke
 {
-    static const Mesh s_quad ( // may modify
-        4, 6,
-        Scope<glm::vec4[]>(new glm::vec4[4]
-        {
-            glm::vec4( 0.5f,  0.5f, 0.0f, 1.0f),
-            glm::vec4(-0.5f,  0.5f, 0.0f, 1.0f),
-            glm::vec4(-0.5f, -0.5f, 0.0f, 1.0f),
-            glm::vec4( 0.5f, -0.5f, 0.0f, 1.0f)
-        }),
-        Scope<uint32[]>(new uint32[6]{ 0, 1, 2, 2, 3, 0 }),
-        nullptr, nullptr,
-        Scope<glm::vec2[]>(new glm::vec2[4]
-        {
-            glm::vec2(1.0f, 1.0f),
-            glm::vec2(0.0f, 1.0f),
-            glm::vec2(0.0f, 0.0f),
-            glm::vec2(1.0f, 0.0f)
-        })
-    );
-
     IdentityComponent::IdentityComponent()
         : tag({}), uuid() { std::memcpy(&tag[0], u8"Null", 4); }
 
@@ -83,8 +63,6 @@ namespace rke
         shear = glm::vec3(skew.z, skew.y, skew.x);
         translation = glm::vec3(mat * glm::vec4(anchor, 1.0f));
     }
-
-    SpriteComponent::SpriteComponent() : quad(&s_quad) {}
 
     void AnimatorComponent::set_clip(StringView name)
     {
