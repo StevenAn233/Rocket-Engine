@@ -5,6 +5,7 @@
 
 export module SceneRenderer;
 
+import Plane;
 import Types;
 import Scene;
 import HeapManager;
@@ -43,7 +44,7 @@ export namespace rke
         void clean_up();
     private:
         void draw_entity(AssetsManager& manager, const Scene* scene, EntityHandle handle);
-        void render_scene(const Scene* scene, const glm::mat4& view_projection, glm::vec3 cam_postion);
+        void render_scene(const Scene* scene, const Frustum& frustum, glm::vec3 cam_postion);
     private:
         struct Renderable
         {

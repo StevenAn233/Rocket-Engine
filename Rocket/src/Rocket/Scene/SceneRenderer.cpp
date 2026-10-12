@@ -7,13 +7,10 @@ import Renderer;
 import Application;
 import RenderCommand;
 import Components;
-import Texture;
-import Plane;
 
 namespace
 {
     using namespace rke;
-    using Frustum = std::array<Plane, 6>;
 
     static bool should_cull(glm::vec3 pos, const glm::mat3& basis,
         glm::vec3 half_size, const Frustum& frustum)
@@ -26,7 +23,7 @@ namespace
               + half_size.y * std::abs(glm::dot(basis[1], normal))
               + half_size.z * std::abs(glm::dot(basis[2], normal))
             };
-            if(plane.signed_distance(pos) + support < 0.0f) return true;
+            if(plane.distance_to(pos) + support < 0.0f) return true;
         }
         return false;
     }
@@ -119,23 +116,19 @@ namespace rke
     const GTexture2D* SceneRenderer::render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
-        scene_fbo_->clear_to_upload([this, scene, &vp, pos]()
-        {
-            context_->renderer().begin_camera(vp);
-            render_scene(scene, vp, pos);
-        });
+        context_->renderer().begin_camera(vp);
+        const Frustum& frustum{ get_frustum(vp) };
+        scene_fbo_->clear_to_upload([this, scene, &frustum, pos]
+            (){ render_scene(scene, frustum, pos); });
         return post_processor_.process(scene_fbo_->get_gtexture_attached(0));
     }
 
     const GTexture2D* SceneRenderer::render(Entity camera)
     {
-        if(camera.is_valid() && camera.has<CameraComponent>())
-        {
-            const auto& proj{ camera.get<CameraComponent>().camera.get_proj() };
-            glm::mat4 view_proj{ proj * glm::inverse(camera.get_world_transform().matrix) };
-            return render(camera.get_owner(), view_proj, camera.compute_centre());
-        }
-        return nullptr;
+        return render (
+            camera.get_owner(), camera.get_view_proj(),
+            camera.compute_centre()
+        );
     }
 
     void SceneRenderer::on_viewport_resized(uint32 w, uint32 h)
@@ -189,13 +182,13 @@ namespace rke
         }
     }
 
-    void SceneRenderer::render_scene(const Scene* scene, const glm::mat4& vp, glm::vec3 cam_pos)
+    void SceneRenderer::render_scene(const Scene* scene,
+        const Frustum& frustum, glm::vec3 cam_pos)
     {
-        Frustum frustum{ get_frustum(vp) };
         AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager_mut() };
         
         transparent_queue_.clear();
-        context_->renderer().begin_scene();
+        context_->renderer().start();
         auto view{ scene->registry_->view<TransformComponent, SpriteComponent>() };
         for(entt::entity ent : view)
         {
@@ -222,18 +215,18 @@ namespace rke
             default: break;
             }
         }
-        context_->renderer().end_scene();
+        context_->renderer().stop();
         if(transparent_queue_.empty()) return;
 
         std::sort(transparent_queue_.begin(), transparent_queue_.end());
         
         app().render_command().set_depth_write(false);
-        context_->renderer().begin_scene();
+        context_->renderer().start();
 
         for(const auto& renderable : transparent_queue_)
             draw_entity(assets_manager, scene, renderable.handle);
 
-        context_->renderer().end_scene();
+        context_->renderer().stop();
         app().render_command().set_depth_write(true);
     }
 }
