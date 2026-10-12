@@ -70,6 +70,8 @@ export namespace rke
         RKE_API void set_world_transform(const glm::mat4& world);
         RKE_API glm::vec3 to_local_delta(glm::vec3 world_delta) const;
 
+        RKE_API glm::mat4 get_view_proj() const;
+
         RKE_API glm::mat3 compute_local_basis() const;
         RKE_API glm::vec3 compute_centre() const;
         RKE_API PlaneBox box_of(const Plane& plane) const;
@@ -230,6 +232,18 @@ export namespace rke
             }
         }
 
+        template<typename Component, typename Func>
+        requires std::invocable<Func, Entity>
+        void for_each_entity_with(Func&& func) const
+        {
+            auto view{ registry_->view<Component>() };
+            for(entt::entity ent : view)
+            {
+                std::invoke(std::forward<Func>(func),
+                    get_entity(static_cast<EntityHandle>(ent)));
+            }
+        }
+
         void clear();
         void on_update(double dt);
 
@@ -242,6 +256,8 @@ export namespace rke
 
         void set_physics_plane(glm::vec3 axis); // 2D only; may modify
         void set_gravity(glm::vec3 gravity);
+        inline const Plane& get_physics_plane() const
+            { return physics_engine_->get_plane(); }
 
         void set_viewport(uint32 width, uint32 height);
         inline uint32 get_viewport_w() const { return viewport_w_; }

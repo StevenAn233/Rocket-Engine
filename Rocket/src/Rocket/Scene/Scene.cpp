@@ -151,6 +151,13 @@ namespace rke
         return glm::inverse(parent_basis) * world_delta;
     }
 
+    glm::mat4 Entity::get_view_proj() const
+    {
+        if(!is_valid() && !has<CameraComponent>()) return glm::mat4(1.0f);
+        const auto& proj{ get<CameraComponent>().camera.get_proj() };
+        return proj * glm::inverse(get_world_transform().matrix);
+    }
+
     glm::mat3 Entity::compute_local_basis() const
         { return glm::mat3(get_world_transform().matrix); }
 
