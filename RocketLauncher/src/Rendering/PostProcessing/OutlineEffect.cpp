@@ -19,8 +19,7 @@ namespace rke
             / u8"shaders" / u8"copy.rkshdr");
         set_color(glm::vec4(1.0f));
 
-        if(!target_getter_) target_getter_ = []()
-            { return std::pair<std::vector<EntityHandle>, Scene*>({}, nullptr); };
+        if(!target_getter_) target_getter_ = []() { return std::vector<Target>{}; };
         if(!camera_getter_) camera_getter_ = []() { return glm::mat4(1.0f); };
     }
 
@@ -41,10 +40,10 @@ namespace rke
             static_cast<float>(spec.height)
         };
 
-        auto [handles, scene]{ target_getter_() };
-        if(handles.empty() || !scene) return false;
+        const auto targets{ target_getter_() };
+        if(targets.empty()) return false;
 
-        uint32 index_count{ build_outline(handles, *scene, camera_getter_(), viewport) };
+        uint32 index_count{ build_outline(targets, camera_getter_(), viewport) };
         if(index_count == 0 || !vao_) return false;
 
         destination->clear_to_upload
@@ -115,17 +114,16 @@ namespace rke
         vao_->set_ibo(ibo_);
     }
 
-    uint32 OutlineEffect::build_outline(const std::vector<EntityHandle>& handles,
-        Scene& scene, const glm::mat4& view_proj, glm::vec2 viewport_size)
+    uint32 OutlineEffect::build_outline(const std::vector<Target>& targets,
+        const glm::mat4& view_proj, glm::vec2 viewport_size)
     {
         if(viewport_size.x <= 0.0f || viewport_size.y <= 0.0f) return 0;
         if(thickness_ <= 0.0f) return 0; // zero width: nothing visible
 
         Size capacity{};
-        for(EntityHandle handle : handles)
+        for(const Target& target : targets)
         {
-            if(!scene.is_handle_valid(handle)) continue;
-            const Mesh* mesh{ scene.get_entity(handle).get_mesh() };
+            const Mesh* mesh{ target.first };
             if(mesh) capacity += mesh->get_edges().size();
         }
         if(capacity == 0) return 0;
@@ -146,16 +144,14 @@ namespace rke
             { return glm::vec4((ndc + offset) * clip.w, clip.z, clip.w); };
 
         uint32 vertex_count{}, index_count{};
-        for(EntityHandle handle : handles)
+        for(const Target& target : targets)
         {
-            if(!scene.is_handle_valid(handle)) continue;
-            const Entity entity{ scene.get_entity(handle) };
-            const Mesh* mesh{ entity.get_mesh() };
+            const Mesh* mesh{ target.first };
             if(!mesh) continue;
 
         // CPU side: every endpoint goes through model -> world -> clip here;
         // and the edges are turned into rectangles of constant screen thickness.
-            const glm::mat4 world{ entity.get_world_transform().matrix };
+            const glm::mat4 world{ target.second };
             const auto& edges{ mesh->get_edges() };
             for(const Mesh::Edge& edge : edges)
             {

@@ -8,7 +8,8 @@ export namespace rke
     class OutlineEffect : public PostProcessEffect
     {
     public:
-        using TargetGetter = std::function<std::pair<std::vector<EntityHandle>, Scene*>()>;
+        using Target = std::pair<const Mesh*, glm::mat4>;
+        using TargetGetter = std::function<std::vector<Target>()>;
         using CameraGetter = std::function<glm::mat4()>;
 
         struct Uniforms{ glm::vec4 outline_color{}; };
@@ -33,8 +34,8 @@ export namespace rke
         void refresh_shader() override;
 
         void ensure_buffers(Size edge_capacity);
-        uint32 build_outline(const std::vector<EntityHandle>& handles,
-            Scene& scene, const glm::mat4& view_proj, glm::vec2 viewport_size);
+        uint32 build_outline(const std::vector<Target>& targets,
+            const glm::mat4& view_proj, glm::vec2 viewport_size);
     private:
         Window* context_;
         TargetGetter target_getter_;
