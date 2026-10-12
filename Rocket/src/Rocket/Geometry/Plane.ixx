@@ -25,8 +25,8 @@ export namespace rke
 
         bool operator==(const Plane& other);
 
-        inline void add_offset(float addon ) { distance_ += addon; }
-        inline void set_offset(float offset) { distance_ = offset; }
+        inline void add_distance(float addon ) { distance_ += addon; }
+        inline void set_distance(float offset) { distance_ = offset; }
 
         inline glm::vec3 get_u() const { return u_; }
         inline glm::vec3 get_v() const { return v_; }

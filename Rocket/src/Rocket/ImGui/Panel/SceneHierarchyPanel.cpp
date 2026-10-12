@@ -316,11 +316,19 @@ namespace rke
                         0.01f, Gravity::default_val()
                     )
                 );
+                
+                float dist{ physics_engine->get_plane().get_distance() };
                 glm::vec3 axis{ physics_engine->get_plane().get_normal() };
                 if(layout::drag_float3_control<u8"Plane Axis">
                     (axis, 0.01f, glm::vec3(0.0f, 0.0f, 1.0f)))
                 {
                     physics_engine->set_plane(axis); // will be normalized
+                    physics_engine->get_plane().set_distance(dist);
+                    context_->mark_modified();
+                }
+                if(layout::drag_float_control<u8"Plane Dist">(dist, 0.01f, 0.0f))
+                {
+                    physics_engine->get_plane().set_distance(dist);
                     context_->mark_modified();
                 }
             });
