@@ -35,6 +35,9 @@ namespace rke
     void FXAAEffect::set_uniform(const Uniforms& uniforms)
         { ubo_->set_data(&uniforms, sizeof(Uniforms)); }
 
+    void FXAAEffect::refresh_shader()
+        { if(shader_) shader_->clear_gshaders(); }
+
     void FXAAEffect::on_viewport_resized(uint32 w, uint32 h)
         { set_uniform({ glm::vec2(1.0f / w, 1.0f / h) }); }
 }

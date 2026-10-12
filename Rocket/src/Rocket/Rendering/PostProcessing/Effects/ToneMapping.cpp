@@ -1,14 +1,13 @@
 ﻿module;
 module ToneMapping;
 
+import Log;
 import BindingPoint;
-import GBuffers;
 import AssetsManager;
 import Application;
 import RenderCommand;
 import FileUtils;
 import GShader;
-import Log;
 
 namespace rke
 {
@@ -42,4 +41,7 @@ namespace rke
 
     void ToneMapping::set_uniform(const Uniforms& uniforms)
         { ubo_->set_data(&uniforms, sizeof(Uniforms)); }
+
+    void ToneMapping::refresh_shader()
+        { if(shader_) shader_->clear_gshaders(); }
 }

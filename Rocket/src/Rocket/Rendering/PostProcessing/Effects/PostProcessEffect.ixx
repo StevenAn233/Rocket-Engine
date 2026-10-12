@@ -35,7 +35,6 @@ export namespace rke
 
         inline const String& get_name() const { return name_; }
         inline bool enabled() const { return enabled_situation_(); }
-        
 
         virtual bool apply(const GTexture2D* source, FrameBuffer* destination) = 0;
         // if returns true , use destination->get_gtexture_attached();
@@ -45,13 +44,10 @@ export namespace rke
         virtual void deserialize_from(const ConfigReader& reader) {}
         virtual Category get_category() const { return Category::Standard; }
     protected:
-        inline void refresh_shader() { shader_->clear_gshaders(); } // for post-processor
-        virtual void on_viewport_resized(uint32 w, uint32 h) {};
-    protected:
-        String name_;
-        Ref<UniformBuffer> ubo_{};
-        Scope<Shader> shader_{};
+        virtual void refresh_shader() {} // for post-processor
+        virtual void on_viewport_resized(uint32 w, uint32 h) {}; // for client framebuffer
     private:
+        String name_;
         std::function<bool()> enabled_situation_{};
     };
 }

@@ -16,6 +16,10 @@ export namespace rke
         Category get_category() const override { return Category::System; }
         void set_uniform(const Uniforms& uniforms);
     private:
+        void refresh_shader() override;
         void on_viewport_resized(uint32 w, uint32 h) override;
+    private:
+        Scope<Shader> shader_{};
+        Ref<UniformBuffer> ubo_{};
     };
 }
