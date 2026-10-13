@@ -27,7 +27,6 @@ namespace rke
 
         writer->begin_map(u8"Viewport");
         owner_->post_processor_.serialize_all_to(*(writer.get()));
-        writer->write(u8"Box Enabled", box_enabled_editor());
         writer->end_map();
 
         writer->begin_map(u8"Style");
@@ -58,10 +57,8 @@ namespace rke
         owner_->load_scene_edit(scene_edit_name);
 
         auto view_data{ reader->get_child(u8"Viewport") };
-        if(view_data) {
-            owner_->post_processor_.deserialize_all_from(*(view_data.get()));
-            box_enabled_editor_ = view_data->get_at(u8"Box Enabled", true);
-        }
+        if(view_data) owner_->post_processor_
+            .deserialize_all_from(*(view_data.get()));
         auto style_data{ reader->get_child(u8"Style") };
         if(style_data) {
             font_scale_ = style_data->get_at(u8"Font Scale", font_scale_);
@@ -105,13 +102,6 @@ namespace rke
                     gizmo_mode_ = gizmo::Mode::Scale;
                 ImGui::EndDisabled();
             });
-            
-            layout::tree_node_branch<u8"Plane Box">([&]()
-            {
-                ImGui::Checkbox("Enabled", &box_enabled_editor_);
-                ImGui::SameLine();
-            });
-
             ImGui::EndTabItem();
         }
         if(ImGui::BeginTabItem("Style"))

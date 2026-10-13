@@ -58,6 +58,20 @@ namespace rke
     glm::mat2 PlaneBox::get_basis() const
         { return glm::mat2(get_transform()); }
 
+    glm::mat4 PlaneBox::to_world(const Plane& plane) const
+    {
+        const glm::mat2 box_basis{ get_basis() };
+        const glm::mat3 plane_basis{ plane.get_basis() };
+
+        return glm::mat4
+        {
+            glm::vec4(plane_basis * glm::vec3(box_basis[0], 0.0f), 0.0f),
+            glm::vec4(plane_basis * glm::vec3(box_basis[1], 0.0f), 0.0f),
+            glm::vec4(plane.get_normal(), 0.0f),
+            glm::vec4(plane.to_world(centre_), 1.0f)
+        };
+    }
+
     std::array<glm::vec2, 4> PlaneBox::get_corners() const
     {
         const glm::mat2 basis{ get_basis() };

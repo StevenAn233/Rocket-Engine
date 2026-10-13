@@ -21,8 +21,6 @@ export namespace rke
 
         inline void set_gizmo_mode(gizmo::Mode mode) { gizmo_mode_ = mode; }
         inline gizmo::Mode get_gizmo_mode() const { return gizmo_mode_; }
-
-        inline bool box_enabled_editor() const { return box_enabled_editor_; }
     private:
         void on_imgui_render() override;
     private:
@@ -30,8 +28,6 @@ export namespace rke
         Path filepath_{};
 
         float font_scale_{ 1.0f };
-        bool box_enabled_editor_{ true }; // draws the selected entity's PlaneBox
-
         gizmo::Mode gizmo_mode_{ gizmo::Mode::Translate };
     };
 }

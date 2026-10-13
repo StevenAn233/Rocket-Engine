@@ -4,31 +4,8 @@ module EditorLayer;
 import Gizmo;
 import FXAAEffect;
 
-namespace
-{
+namespace {
     using namespace rke;
-
-    // box uv -> Plane::to_world() -> world -> world_to_screen() -> pixels
-    static void draw_plane_box(const PlaneBox& box, const Plane& plane,
-        const glm::mat4& view_proj, glm::vec2 origin, glm::vec2 size)
-    {
-        if(box.empty()) return; // no mesh: nothing to show
-
-        const std::array<glm::vec2, 4> corners{ box.get_corners() };
-        std::array<ImVec2, 4> screen{};
-        for(Size i{}; i < corners.size(); i++)
-        {
-            glm::vec3 corner{ plane.to_world(corners[i]) };
-            if(!math::is_in_front(view_proj, corner)) return;
-            const glm::vec2 pixel{ math::world_to_screen(view_proj, corner, size) };
-            screen[i] = ImVec2{ origin.x + pixel.x, origin.y + pixel.y };
-        }
-
-        ImGui::GetWindowDrawList()->AddPolyline(screen.data(),
-            static_cast<int>(screen.size()), IM_COL32(0, 220, 50, 200),
-            3.0f, ImDrawFlags_Closed);
-    }
-
     static void entity_right_click_popup_content(Entity entity)
     {
         if(!entity.is_valid()) return;
@@ -123,7 +100,41 @@ namespace rke
         )};
         hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
 
+        auto plane_boxes{ create_scope<OutlineEffect>
+        (
+            u8"Plane Box Outline", &get_owner(), nullptr,
+            [this]() -> std::vector<OutlineEffect::Target>
+            {
+                std::vector<OutlineEffect::Target> targets{};
+                Scene* scene{ current_scene() };
+                if(!scene) return targets;
+
+                const Plane& plane{ scene->get_physics_plane() };
+                scene->for_each_entity_with<BoxCollider2DComponent>
+                ([&targets, &plane](Entity entity)
+                {
+                    const auto& bcc{ entity.get<BoxCollider2DComponent>() };
+                    const PlaneBox box{ entity.box_of(plane) };
+                    if(box.empty()) return;
+
+                    const PlaneBox collider{ box.get_centre(),
+                        box.get_size() * bcc.size_scale, box.get_rotation() };
+                    targets.push_back({ &mesh::quad(), collider.to_world(plane) });
+                });
+                return targets;
+            },
+            [this]() -> glm::mat4
+            {
+                Scene* scene{ current_scene() };
+                return editing() ? editor_cam_.get_view_proj() :
+                    (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
+            }
+        )};
+        plane_boxes->set_color(glm::vec4(0.0f, 0.86f, 0.20f, 0.78f)); // the green it had
+        plane_boxes->set_thickness(3.0f);
+
     // SceneRenderer
+        post_processor_.push_effect(std::move(plane_boxes));
         post_processor_.push_effect(std::move(selected));
         post_processor_.push_effect(std::move(hovering));
         post_processor_.push_effect(create_scope<FXAAEffect>(u8"Fxaa"));
@@ -167,23 +178,6 @@ namespace rke
                 gizmo::on_render(*scene_edit_,
                     editor_setting_panel_->get_gizmo_mode(),
                     editor_cam_, mouse_blocked());
-            }
-
-        // Plane box of the selected entity(debug view)
-            if(editor_setting_panel_->box_enabled_editor())
-            if(Scene* scene{ current_scene() })
-            {
-                const glm::mat4 vp {
-                    editing() ? editor_cam_.get_view_proj() :
-                    scene->get_master_camera().get_view_proj()
-                };
-                const Plane& plane{ scene->get_physics_plane() };
-                scene->for_each_entity_with<Rigidbody2DComponent>
-                ([&plane, &self, &vp](Entity entity)
-                {
-                    draw_plane_box(entity.box_of(plane),
-                        plane, vp, self.get_abs_pos(), self.get_size());
-                });
             }
 
         // Drag Drop

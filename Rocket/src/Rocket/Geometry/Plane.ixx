@@ -72,6 +72,7 @@ export namespace rke
     // relative to its plane
         glm::mat3 get_transform() const;
         glm::mat2 get_basis() const;
+        glm::mat4 to_world(const Plane& plane) const;
 
     // four corners(points in plane uv), counter-clockwise starting at (-u, -v)
         std::array<glm::vec2, 4> get_corners() const;
