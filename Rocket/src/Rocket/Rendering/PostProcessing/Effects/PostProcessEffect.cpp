@@ -12,7 +12,7 @@ namespace rke
         { writer.write(u8"Enabled", enabled_inner_); }
 
     void PostProcessEffect::deserialize_from(const ConfigReader& reader)
-        { enabled_inner_ = reader.get_at(u8"Enabled", false); }
+        { enabled_inner_ = reader.get_at(u8"Enabled", true); }
 
     void PostProcessEffect::on_imgui_render()
     {

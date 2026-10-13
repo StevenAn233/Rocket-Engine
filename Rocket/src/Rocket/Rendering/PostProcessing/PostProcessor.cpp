@@ -30,17 +30,6 @@ namespace rke
         return effect;
     }
 
-    PostProcessEffect* PostProcessor::get_effect(const String& name)
-    {
-        for(const auto& effect : effects_stack_)
-        {
-            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
-            if(effect->get_name() == name) return effect.get();
-        }
-        CORE_WARN(u8"PostProcessor: Effect not found!");
-        return nullptr;
-    }
-
     const GTexture2D* PostProcessor::process(const GTexture2D* source)
     {
         if(!source) return nullptr;
@@ -104,7 +93,7 @@ namespace rke
             {
                 CORE_ERROR(u8"PostProcessor: "
                     u8"Effect '{}' not found!", effect->get_name());
-                return;
+                continue;
             }
             effect->deserialize_from(*config);
         }

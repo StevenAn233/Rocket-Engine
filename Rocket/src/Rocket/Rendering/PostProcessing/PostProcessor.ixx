@@ -29,7 +29,6 @@ export namespace rke
 
         PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
         Scope<PostProcessEffect> pop_effect();
-        PostProcessEffect* get_effect(const String& name); // expensive
         // swap/sort effect...
         
         const GTexture2D* process(const GTexture2D* source);
