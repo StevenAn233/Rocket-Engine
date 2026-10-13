@@ -50,46 +50,22 @@ namespace rke
             }
             if(ImGui::BeginTabItem("Physics"))
             {
-                draw_layer_collision_matrix(active->get_config_mut().physics_layers);
+                draw_layer_collision_matrix(active->get_physics_layers());
                 ImGui::EndTabItem();
             }
             if(ImGui::BeginTabItem("Render"))
             {
-                layout::tree_node_branch<u8"Anti-Aliasing">([&]()
+                layout::tree_node_branch<u8"Samples">([&]()
                 {
-                    constexpr const char* aa_opts[]
-                    {
-                        "Off",      // 0
-                        "2x MSAA",  // 1
-                        "4x MSAA",  // 2
-                        "8x MSAA",  // 3
-                        "16x MSAA", // 4
-                        "FXAA"      // 5
-                    };
-                    int aa_opt{};
-                    switch(active->get_config().anti_aliasing)
-                    {
-                    case AntiAliasing::Off:     aa_opt = 0; break;
-                    case AntiAliasing::MSAAx2:  aa_opt = 1; break;
-                    case AntiAliasing::MSAAx4:  aa_opt = 2; break;
-                    case AntiAliasing::MSAAx8:  aa_opt = 3; break;
-                    case AntiAliasing::MSAAx16: aa_opt = 4; break;
-                    case AntiAliasing::FXAA:    aa_opt = 5; break;
-                    }
-                    if(ImGui::Combo("##aa", &aa_opt, aa_opts, static_cast<int>(std::size(aa_opts))))
-                    {
-                        AntiAliasing aa{ AntiAliasing::Off };
-                        switch(aa_opt)
-                        {
-                        case 0: aa = AntiAliasing::Off;     break;
-                        case 1: aa = AntiAliasing::MSAAx2;  break;
-                        case 2: aa = AntiAliasing::MSAAx4;  break;
-                        case 3: aa = AntiAliasing::MSAAx8;  break;
-                        case 4: aa = AntiAliasing::MSAAx16; break;
-                        case 5: aa = AntiAliasing::FXAA;    break;
-                        }
-                        active->set_aa(aa);
-                    }
+                    constexpr const char* opts[]
+                        { "1x", "2x", "4x", "8x", "16x" };
+                    int shift{ 0 };
+
+                    uint32 samples{ active->get_config().samples };
+                    while(samples = samples >> 1) ++shift;
+
+                    if(ImGui::Combo("##aa", &shift, opts, static_cast<int>(std::size(opts))))
+                        { active->set_samples(static_cast<uint8>(shift)); }
                 });
                 ImGui::EndTabItem();
             }

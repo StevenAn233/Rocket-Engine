@@ -805,7 +805,7 @@ namespace rke
             {
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 uint8 index{ bcc.layer_index };
-                auto& physics_layers{ context_->get_owner()->get_config_mut().physics_layers };
+                const auto& physics_layers{ context_->get_owner()->get_config().physics_layers };
                 if(ImGui::BeginCombo("##physics_layer", physics_layers.get_name(index).raw()))
                 {
                     for(uint8 i{}; i < physics_layers.get_showed_layer_count(); i++)

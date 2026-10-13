@@ -21,16 +21,6 @@ import ScriptRegistry;
 
 export namespace rke
 {
-    enum class AntiAliasing : int
-    {
-        FXAA    = 0,
-        Off     = 1,
-        MSAAx2  = 2,
-        MSAAx4  = 4,
-        MSAAx8  = 8,
-        MSAAx16 = 16
-    };
-
     class RKE_API Project
     {
     public:
@@ -43,7 +33,7 @@ export namespace rke
         {
             String name{ u8"Untitled" };
             PhysicsLayers physics_layers{};
-            AntiAliasing anti_aliasing{};
+            uint32 samples{};
         };
 
         Project(const Project&) = delete; // Only one active project
@@ -52,23 +42,25 @@ export namespace rke
         bool save();
         void scripts_hot_reloading();
 
-        inline void set_name(String name) { project_config_.name = std::move(name); }
         inline const String& get_name() const { return project_config_.name; }
-
+        inline const Config& get_config() const { return project_config_; }
         inline const Path& get_project_dir() const { return project_dir_; }
         inline const Path& get_rkproj_path() const { return rkproj_path_; }
         inline Path get_assets_dir() const { return project_dir_ / u8"assets"; }
         inline Path get_scenes_dir() const { return project_dir_ / u8"assets" / u8"scenes"; }
 
-        inline const Config& get_config() const { return project_config_; }
-        inline Config& get_config_mut() { return project_config_; }
+        inline PhysicsLayers& get_physics_layers() { return project_config_.physics_layers; }
+        inline const PhysicsLayers& get_physics_layers() const { return project_config_.physics_layers; }
+
+        inline void set_name(String name) { project_config_.name = std::move(name); }
+        void set_samples(uint8 shift);
 
         inline const AssetsManager& get_assets_manager() const { return *assets_manager_; }
         inline const ScriptRegistry& get_script_registry() const { return *script_registry_; }
         inline AssetsManager& get_assets_manager_mut() { return *assets_manager_; }
         inline ScriptRegistry& get_script_registry_mut() { return *script_registry_; }
 
-        void set_aa(AntiAliasing aa_opt);
+        
         bool create_scene(const String& name);
         Scene* load_scene(const String& name, SceneSerializer& scene_serializer);
         void save_scene(const Scene& scene, SceneSerializer& scene_serializer);

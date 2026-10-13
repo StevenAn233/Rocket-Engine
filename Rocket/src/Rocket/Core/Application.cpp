@@ -47,11 +47,12 @@ namespace rke
             CORE_ERROR(u8"Application: Failed to load project '{}'!", path);
             return;
         }
-        ProjectLoadedEvent event{ u8"main", project_.get() };
-        send_event(event);
-
-        // for calling callback; may modify
-        project_->set_aa(project_->get_config().anti_aliasing);
+    // may modify
+        ProjectLoadedEvent le{ u8"main", project_.get() };
+        send_event(le);
+        ProjectSamplesSetEvent sse{ u8"main",
+            project_.get(), project_->get_config().samples };
+        send_event(sse);
     }
 
     void Application::clear_project()

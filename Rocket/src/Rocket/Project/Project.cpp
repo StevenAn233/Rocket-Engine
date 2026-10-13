@@ -38,8 +38,7 @@ namespace rke
             uint8 showed_layers{ static_cast<uint8>
                 (config_reader->get_at(u8"Showed Layers", 1ui32)) };
             config.physics_layers.set_showed_layer_count(showed_layers);
-            config.anti_aliasing = static_cast<AntiAliasing>(config_reader->
-                get_at(u8"Anti-Aliasing", static_cast<int>(AntiAliasing::MSAAx4)));
+            config.samples = config_reader->get_at(u8"Samples", 1u);
         }
 
         assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
@@ -88,7 +87,7 @@ namespace rke
         }
         writer->end_map(); // Physics Layers
         writer->write(u8"Showed Layers", static_cast<uint32>(layers.get_showed_layer_count()));
-        writer->write(u8"Anti-Aliasing", static_cast<int>(project_config_.anti_aliasing));
+        writer->write(u8"Samples", project_config_.samples);
         writer->end_map(); // Config
 
         writer->end_map();
@@ -111,20 +110,15 @@ namespace rke
         script_registry_.reset(new_reg.release());
     }
 
-    void Project::set_aa(AntiAliasing aa_opt)
+    void Project::set_samples(uint8 shift)
     {
-        project_config_.anti_aliasing = aa_opt;
-
-        uint32 samples{ 1 };
-        switch(aa_opt)
-        {
-        case AntiAliasing::MSAAx2:  samples = 2;  break;
-        case AntiAliasing::MSAAx4:  samples = 4;  break;
-        case AntiAliasing::MSAAx8:  samples = 8;  break;
-        case AntiAliasing::MSAAx16: samples = 16; break;
+        constexpr uint8 max_shift{ 5 }; // to modify
+        if(shift > max_shift) {
+            CORE_WARN(u8"Project: Samples too much!");
+            return;
         }
-        
-        ProjectSamplesSetEvent event{ u8"main", this, samples };
+        project_config_.samples = (1u << shift);
+        ProjectSamplesSetEvent event{ u8"main", this, project_config_.samples };
         app().send_event(event);
     }
 
@@ -243,7 +237,7 @@ namespace rke
         }
         writer->end_map(); // Physics Layers
         writer->write(u8"Showed Layers", 1);
-        writer->write(u8"Anti-Aliasing", static_cast<int>(AntiAliasing::MSAAx4));
+        writer->write(u8"Samples", 1);
         writer->end_map(); // Config
 
         writer->end_map();
