@@ -69,9 +69,9 @@ export namespace rke
 
         template<typename Func>
         requires std::invocable<Func>
-        void clear_to_upload(Func&& func)
+        void upload(Func&& func)
         {
-            if(zero_sized() || over_sized()) { clear(); return; }
+            if(zero_sized() || over_sized()) return;
             bind();
             std::invoke(std::forward<Func>(func));
             unbind();

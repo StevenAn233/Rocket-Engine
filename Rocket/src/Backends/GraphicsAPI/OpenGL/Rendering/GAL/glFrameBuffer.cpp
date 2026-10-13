@@ -126,19 +126,19 @@ namespace rke
         attachments_.clear();
         output_textures_.clear();
 
-        if(msaa_renderer_id_)
+        if(msaa_gal_id_)
         {
-            glDeleteFramebuffers(1, &msaa_renderer_id_);
+            glDeleteFramebuffers(1, &msaa_gal_id_);
             glDeleteTextures(msaa_attachments_.size(), msaa_attachments_.data());
 
-            msaa_renderer_id_ = 0;
+            msaa_gal_id_ = 0;
             msaa_attachments_.clear();
         }
     }
 
     void glFrameBuffer::clear()
     {
-        auto fbo{ spec_.samples > 1 ? msaa_renderer_id_ : gal_id_ };
+        auto fbo{ spec_.samples > 1 ? msaa_gal_id_ : gal_id_ };
         auto& attachment_specs{ spec_.attachment_spec.texture_specs };
         int color_attachment_index{};
         for(Size i{}; i < attachment_specs.size(); i++)
@@ -195,9 +195,7 @@ namespace rke
 
     void glFrameBuffer::resize(uint32 w, uint32 h)
     {
-        spec_.width  = w;
-        spec_.height = h;
-
+        spec_.width = w; spec_.height = h;
         invalidate();
     }
 
@@ -276,9 +274,8 @@ namespace rke
     void glFrameBuffer::bind()
     {
         glBindFramebuffer(GL_FRAMEBUFFER,
-            spec_.samples > 1 ? msaa_renderer_id_ : gal_id_);
+            spec_.samples > 1 ? msaa_gal_id_ : gal_id_);
         glViewport(0, 0, spec_.width, spec_.height);
-        clear();
     }
 
     void glFrameBuffer::unbind()
@@ -286,7 +283,7 @@ namespace rke
         // resolve the data of msaa_fbo into regular_fbo
         if(spec_.samples > 1)
         {
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, msaa_renderer_id_);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, msaa_gal_id_);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gal_id_);
 
             Size color_attachment_count{};
@@ -334,11 +331,11 @@ namespace rke
             attachments_.clear();
             output_textures_.clear();
         }
-        if(msaa_renderer_id_) {
-            glDeleteFramebuffers(1, &msaa_renderer_id_);
+        if(msaa_gal_id_) {
+            glDeleteFramebuffers(1, &msaa_gal_id_);
             glDeleteTextures(msaa_attachments_.size(), msaa_attachments_.data());
 
-            msaa_renderer_id_ = 0;
+            msaa_gal_id_ = 0;
             msaa_attachments_.clear();
         }
 
@@ -346,11 +343,11 @@ namespace rke
 
     // re-create
         glCreateFramebuffers(1, &gal_id_);
-        if(multi_sampled) glCreateFramebuffers(1, &msaa_renderer_id_);
+        if(multi_sampled) glCreateFramebuffers(1, &msaa_gal_id_);
 
         if(zero_sized() || over_sized()) {
             glNamedFramebufferDrawBuffer(gal_id_, GL_NONE);
-            if(multi_sampled) glNamedFramebufferDrawBuffer(msaa_renderer_id_, GL_NONE);
+            if(multi_sampled) glNamedFramebufferDrawBuffer(msaa_gal_id_, GL_NONE);
             return;
         }
 
@@ -373,7 +370,7 @@ namespace rke
                     attach_depth_texture(gal_id_, attachments_[i],
                         GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT,
                         spec_.width, spec_.height);
-                    if(multi_sampled) attach_msaa_depth_texture(msaa_renderer_id_,
+                    if(multi_sampled) attach_msaa_depth_texture(msaa_gal_id_,
                         msaa_attachments_[i], spec_.samples,
                         GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT,
                         spec_.width, spec_.height);
@@ -386,7 +383,7 @@ namespace rke
                 GLenum format{ tex_format_to_gl_enum(attachment_specs[i].format) };
                 attach_color_texture(gal_id_, color_attachment_index, attachments_[i], format,
                     filt_format_to_gl_enum(attachment_specs[i].filtering), spec_.width, spec_.height);
-                if(multi_sampled) attach_msaa_color_texture(msaa_renderer_id_,
+                if(multi_sampled) attach_msaa_color_texture(msaa_gal_id_,
                     color_attachment_index, msaa_attachments_[i],
                     spec_.samples, format, spec_.width, spec_.height);
                 color_attachment_index++;
@@ -400,10 +397,10 @@ namespace rke
                 buffers.push_back(GL_COLOR_ATTACHMENT0 + i);
             glNamedFramebufferDrawBuffers(gal_id_, buffers.size(), buffers.data());
             if(multi_sampled) glNamedFramebufferDrawBuffers
-                (msaa_renderer_id_, buffers.size(), buffers.data());
+                (msaa_gal_id_, buffers.size(), buffers.data());
         } else { // Depth-only framebuffer
             glNamedFramebufferDrawBuffer(gal_id_, GL_NONE);
-            if(multi_sampled) glNamedFramebufferDrawBuffer(msaa_renderer_id_, GL_NONE);
+            if(multi_sampled) glNamedFramebufferDrawBuffer(msaa_gal_id_, GL_NONE);
         }
 
         // check validation
@@ -412,7 +409,7 @@ namespace rke
             u8"glFrameBuffer: Frame buffer is not complete!");
         if(multi_sampled) {
             CORE_ASSERT(glCheckNamedFramebufferStatus
-                (msaa_renderer_id_, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
+                (msaa_gal_id_, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
                 u8"glFrameBuffer: Msaa Frame buffer is not complete!");
         }
 

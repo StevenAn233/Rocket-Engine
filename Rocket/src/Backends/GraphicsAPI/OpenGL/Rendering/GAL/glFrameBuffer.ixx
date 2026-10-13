@@ -40,7 +40,7 @@ namespace rke
         uint32 gal_id_{};
         std::vector<uint32> attachments_{};
 
-        uint32 msaa_renderer_id_{};
+        uint32 msaa_gal_id_{};
         std::vector<uint32> msaa_attachments_{};
 
         std::vector<Scope<GTexture2D>> output_textures_{}; // serve as view/wrapper here

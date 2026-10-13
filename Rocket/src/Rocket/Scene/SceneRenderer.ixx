@@ -31,10 +31,9 @@ export namespace rke
         SceneRenderer& operator=(SceneRenderer&&) = delete;
 
         inline void set_samples(uint32 samples) { scene_fbo_->set_samples(samples); }
-        
-        PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
-        Scope<PostProcessEffect> pop_effect();
-        void refresh_post_processor_shaders();
+        inline PostProcessor& get_post_processor() { return post_processor_; }
+        inline const PostProcessor& get_post_processor() const { return post_processor_; }
+
         const GTexture2D* render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
         const GTexture2D* render(Entity camera);
 

@@ -103,23 +103,15 @@ namespace rke
             }
         });
     }
-
-    PostProcessEffect* SceneRenderer::push_effect(Scope<PostProcessEffect> effect)
-        { return post_processor_.push_effect(std::move(effect)); }
-
-    Scope<PostProcessEffect> SceneRenderer::pop_effect()
-        { return post_processor_.pop_effect(); }
-
-    void SceneRenderer::refresh_post_processor_shaders()
-        { post_processor_.refresh_all_effect_shaders(); }
     
     const GTexture2D* SceneRenderer::render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
         context_->renderer().begin_camera(vp);
         const Frustum& frustum{ get_frustum(vp) };
-        scene_fbo_->clear_to_upload([this, scene, &frustum, pos]
-            (){ render_scene(scene, frustum, pos); });
+        scene_fbo_->clear();
+        scene_fbo_->upload([this, scene, &frustum, pos]()
+            { render_scene(scene, frustum, pos); });
         return post_processor_.process(scene_fbo_->get_gtexture_attached(0));
     }
 
