@@ -7,6 +7,28 @@ import FXAAEffect;
 namespace
 {
     using namespace rke;
+
+    // box uv -> Plane::to_world() -> world -> world_to_screen() -> pixels
+    static void draw_plane_box(const PlaneBox& box, const Plane& plane,
+        const glm::mat4& view_proj, glm::vec2 origin, glm::vec2 size)
+    {
+        if(box.empty()) return; // no mesh: nothing to show
+
+        const std::array<glm::vec2, 4> corners{ box.get_corners() };
+        std::array<ImVec2, 4> screen{};
+        for(Size i{}; i < corners.size(); i++)
+        {
+            glm::vec3 corner{ plane.to_world(corners[i]) };
+            if(!math::is_in_front(view_proj, corner)) return;
+            const glm::vec2 pixel{ math::world_to_screen(view_proj, corner, size) };
+            screen[i] = ImVec2{ origin.x + pixel.x, origin.y + pixel.y };
+        }
+
+        ImGui::GetWindowDrawList()->AddPolyline(screen.data(),
+            static_cast<int>(screen.size()), IM_COL32(0, 220, 50, 200),
+            3.0f, ImDrawFlags_Closed);
+    }
+
     static void entity_right_click_popup_content(Entity entity)
     {
         if(!entity.is_valid()) return;
@@ -44,65 +66,73 @@ namespace rke
     //      { editor_cam_.deserialize_from(reader); });
 
     // Effects
-        auto hovering{ create_scope<OutlineEffect>
-        (
-            u8"Hovering", &get_owner(),
-            [this]() -> bool
-            {
-                return !gizmo::is_using() && !mouse_blocked()
-                    && editor_setting_panel_->hovering_enabled_editor()
-                    && !in_main_viewport_dragging_ && editing()
-                    && main_viewport_->is_hovered();
-            },
-            [this]() -> Entity
-            {
-                if(editing() && scene_edit_->is_handle_valid(hovering_id_))
-                    return scene_edit_->get_entity(hovering_id_);
-                return Entity{};
-            }
-        )};
-        hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
-
         auto selected{ create_scope<OutlineEffect>
         (
-            u8"Selected", &get_owner(),
+            u8"Selected Outline", &get_owner(),
             [this]() -> bool
             {
                 Entity selected{ current_scene() ?
                     current_scene()->get_selected_entity() : Entity{} };
                 EntityHandle selected_id{ selected.is_valid() ?
                     selected.get_handle() : entity_handle_null };
-                return !gizmo::is_using()
-                    && editor_setting_panel_->selected_enabled_editor()
-                    && !in_main_viewport_dragging_
-                    && (selected_id != hovering_id_ || !hovering_outline_->enabled());
+                return !gizmo::is_using() && !in_main_viewport_dragging_
+                    && selected_id != hovering_id_;
             },
-            [this]() -> Entity
+            [this]() {
+                std::vector<OutlineEffect::Target> targets{};
+                if(!current_scene()) return targets;
+                Scene& scene{ *current_scene() };
+                Entity selected{ scene.get_selected_entity() };
+                if(!selected.is_valid()) return targets;
+                targets.push_back({ selected.get_mesh(), selected.get_world_transform().matrix });
+                return targets;
+            },
+            [this]() -> glm::mat4
             {
                 Scene* scene{ current_scene() };
-                return scene ? scene->get_selected_entity() : Entity{};
+                return editing() ? editor_cam_.get_view_proj() :
+                    (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
             }
         )};
         selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
 
-        auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa",
+        auto hovering{ create_scope<OutlineEffect>
+        (
+            u8"Hovering Outline", &get_owner(),
             [this]() -> bool
             {
-                if(!context_) return false;
-                return context_->get_config().anti_aliasing == AntiAliasing::FXAA;
+                return !gizmo::is_using() && !mouse_blocked()
+                    && !in_main_viewport_dragging_ && editing()
+                    && main_viewport_->is_hovered();
+            },
+            [this]() {
+                std::vector<OutlineEffect::Target> targets{};
+                if(!editing()) return targets;
+                Scene& scene{ *scene_edit_ };
+                const Entity hovered{ scene.get_entity(hovering_id_) };
+                if(!hovered.is_valid()) return targets;
+                targets.push_back({ hovered.get_mesh(), hovered.get_world_transform().matrix });
+                return targets;
+            },
+            [this]() -> glm::mat4
+            {
+                Scene* scene{ current_scene() };
+                return editing() ? editor_cam_.get_view_proj() :
+                    (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
             }
         )};
-
-        hovering_outline_ = hovering.get();
-        selected_outline_ = selected.get();
+        hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
 
     // SceneRenderer
-        main_renderer_.push_effect(std::move(hovering));
-        main_renderer_.push_effect(std::move(selected));
-        main_renderer_.push_effect(std::move(fxaa));
-        cam_renderer_.set_samples(1);
+        post_processor_.push_effect(std::move(selected));
+        post_processor_.push_effect(std::move(hovering));
+        post_processor_.push_effect(create_scope<FXAAEffect>(u8"Fxaa"));
+        post_processor_.push_effect(create_scope<ToneMapping>(u8"Tone Mapping"));
 
-    // EditorSetting
+        cam_renderer_.set_samples(1);
+        cam_post_processor_.push_effect(create_scope<ToneMapping>(u8"Tone Mapping"));
+
+    // EditorSetting(After all effects been pushed); may modify
         editor_setting_panel_->load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
 
     // SceneHierarchy
@@ -139,6 +169,23 @@ namespace rke
                     editor_cam_, mouse_blocked());
             }
 
+        // Plane box of the selected entity(debug view)
+            if(editor_setting_panel_->box_enabled_editor())
+            if(Scene* scene{ current_scene() })
+            {
+                const glm::mat4 vp {
+                    editing() ? editor_cam_.get_view_proj() :
+                    scene->get_master_camera().get_view_proj()
+                };
+                const Plane& plane{ scene->get_physics_plane() };
+                scene->for_each_entity_with<Rigidbody2DComponent>
+                ([&plane, &self, &vp](Entity entity)
+                {
+                    draw_plane_box(entity.box_of(plane),
+                        plane, vp, self.get_abs_pos(), self.get_size());
+                });
+            }
+
         // Drag Drop
             if(!testing() && ImGui::BeginDragDropTarget())
             {
@@ -171,7 +218,8 @@ namespace rke
                     if(ImGui::MenuItem("Refresh Shaders"))
                     {
                         Renderer::refresh_shader();
-                        main_renderer_.refresh_post_processor_shaders();
+                        post_processor_.refresh_all_shaders();
+                        cam_post_processor_.refresh_all_shaders();
                     }
                 }
                 ImGui::EndPopup();
@@ -222,14 +270,28 @@ namespace rke
         EventDispatcher dispatcher{ e };
         if(e.belongs_to(EventCategoryProject))
         {
-            dispatcher.dispatch<ProjectLoadedEvent>([this]
-                (ProjectLoadedEvent& e) { return on_project_loaded(e); });
-            dispatcher.dispatch<ProjectClearedEvent>([this]
-                (ProjectClearedEvent& e) { return on_project_cleared(e); });
-            dispatcher.dispatch<ProjectSavedEvent>([this]
-                (ProjectSavedEvent& e) { return on_project_saved(e); });
-            dispatcher.dispatch<ProjectSamplesSetEvent>([this]
-                (ProjectSamplesSetEvent& e) { return on_project_samples_set(e); });
+            dispatcher.dispatch<ProjectLoadedEvent>([this](ProjectLoadedEvent& e)
+            {
+                attach_context(reinterpret_cast<Project*>(e.get_project()));
+                return false; // do not block
+            });
+            dispatcher.dispatch<ProjectClearedEvent>([this](ProjectClearedEvent& e)
+            {
+                attach_context(nullptr);
+                return false;
+            });
+            dispatcher.dispatch<ProjectSavedEvent>([this](ProjectSavedEvent& e)
+            {
+                if((void*)context_ == e.get_project())
+                    on_context_project_saved();
+                return false;
+            });
+            dispatcher.dispatch<ProjectSamplesSetEvent>([this](ProjectSamplesSetEvent& e)
+            {
+                if((void*)context_ == e.get_project())
+                    on_context_project_samples_set(e.get_samples());
+                return false;
+            });
         }
         else if(e.belongs_to(EventCategoryInput))
         {
@@ -315,31 +377,11 @@ namespace rke
         animation_editor_panel_.on_project_loaded(context_);
     }
 
-    bool EditorLayer::on_project_loaded(ProjectLoadedEvent& e)
-    {
-        attach_context(app().get_project());
-        return false; // do not block
-    }
+    void EditorLayer::on_context_project_saved()
+        { save_scene_edit(); }
 
-    bool EditorLayer::on_project_cleared(ProjectClearedEvent& e)
-    {
-        attach_context(nullptr);
-        return false; // do not block
-    }
-
-    bool EditorLayer::on_project_saved(ProjectSavedEvent& e)
-    {
-        save_scene_edit();
-        return false; // do not block
-    }
-
-    bool EditorLayer::on_project_samples_set(ProjectSamplesSetEvent& e)
-    {
-        uint32 samples{ e.get_samples() };
-        main_renderer_.set_samples(samples);
-        editor_setting_panel_->set_outline_samples(samples);
-        return false; // do not block
-    }
+    void EditorLayer::on_context_project_samples_set(uint32 samples)
+        { main_renderer_.set_samples(samples); }
 
     void EditorLayer::on_update(double dt)
     {
@@ -356,28 +398,35 @@ namespace rke
     {
         if(main_viewport_->resized())
         {
-            auto w{ static_cast<uint32>(main_viewport_->get_size().x) };
-            auto h{ static_cast<uint32>(main_viewport_->get_size().y) };
+            glm::vec2 size{ main_viewport_->get_size() };
+            auto w{ static_cast<uint32>(size.x) };
+            auto h{ static_cast<uint32>(size.y) };
 
-            editor_cam_.set_viewport_size(main_viewport_->get_size());
+            editor_cam_.set_viewport_size(size);
             if(current_scene()) current_scene()->set_viewport(w, h);
-            main_renderer_.on_viewport_resized(w, h);
+
+            main_renderer_ .on_viewport_resized(w, h);
+            post_processor_.on_viewport_resized(w, h);
         }
         if(cam_viewport_->resized())
         {
-            auto w{ static_cast<uint32>(cam_viewport_->get_size().x) };
-            auto h{ static_cast<uint32>(cam_viewport_->get_size().y) };
+            glm::vec2 size{ cam_viewport_->get_size() };
+            auto w{ static_cast<uint32>(size.x) };
+            auto h{ static_cast<uint32>(size.y) };
 
             cam_renderer_.on_viewport_resized(w, h);
+            cam_post_processor_.on_viewport_resized(w, h);
         }
 
         if(editing())
         {
-            main_output_ = main_renderer_.render
+            main_output_ = post_processor_.process
             (
-                scene_edit_,
-                editor_cam_.get_view_proj(),
-                editor_cam_.calculate_pos()
+                main_renderer_.render (
+                    scene_edit_,
+                    editor_cam_.get_view_proj(),
+                    editor_cam_.calculate_pos()
+                )
             );
 
             if(scene_edit_ && main_viewport_->is_hovered() &&
@@ -391,7 +440,10 @@ namespace rke
             else hovering_id_ = entity_handle_null;
         }
         else if(testing())
-            main_output_ = main_renderer_.render(scene_test_->get_master_camera());
+        {
+            main_output_ = post_processor_.process
+                (main_renderer_.render(scene_test_->get_master_camera()));
+        }
         else { main_output_ = nullptr; }
 
         if(scene_edit_ && cam_viewport_->on() && current_scene()
@@ -400,7 +452,8 @@ namespace rke
             Scene& scene{ *current_scene() };
             auto cv_size{ cam_viewport_->get_size() };
             scene.set_viewport(static_cast<uint32>(cv_size.x), static_cast<uint32>(cv_size.y));
-            cam_output_ = cam_renderer_.render(scene.get_demo_camera());
+            cam_output_ = cam_post_processor_.process
+                (cam_renderer_.render(scene.get_demo_camera()));
             auto mv_size{ main_viewport_->get_size() };
             scene.set_viewport(static_cast<uint32>(mv_size.x), static_cast<uint32>(mv_size.y));
         }
@@ -443,6 +496,8 @@ namespace rke
         cam_output_  = nullptr;
         main_renderer_.clean_up();
         cam_renderer_ .clean_up();
+        post_processor_.clean_up();
+        cam_post_processor_.clean_up();
 
         if(!scene) return;
         

@@ -47,10 +47,8 @@ export namespace rke
         bool on_mouse_button_pressed(MouseButtonPressedEvent& e);
 
         void attach_context(Project* project);
-        bool on_project_loaded(ProjectLoadedEvent& e);
-        bool on_project_cleared(ProjectClearedEvent& e);
-        bool on_project_saved(ProjectSavedEvent& e);
-        bool on_project_samples_set(ProjectSamplesSetEvent& e);
+        void on_context_project_saved();
+        void on_context_project_samples_set(uint32 samples);
 
         bool editing() const { return scene_edit_ && !scene_test_; }
         bool testing() const { return scene_edit_ &&  scene_test_; }
@@ -59,12 +57,15 @@ export namespace rke
         EditorCamera editor_cam_{};
         Ticker ticker_{ 60 }; // hard-coded, may modify
 
+        static constexpr glm::vec4 clear_color{ 0.1f, 0.1f, 0.1f, 1.0f };
         SceneRenderer main_renderer_{ &get_owner(),
-            math::srgb_to_linear(glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
+            math::srgb_to_linear(clear_color) };
         SceneRenderer cam_renderer_ { &get_owner(),
-            math::srgb_to_linear(glm::vec4(0.1f, 0.1f, 0.1f, 1.0f)) };
-        OutlineEffect* hovering_outline_{};
-        OutlineEffect* selected_outline_{};
+            math::srgb_to_linear(clear_color) };
+        PostProcessor post_processor_{ u8"Post-Processor",
+            math::srgb_to_linear(clear_color) };
+        PostProcessor cam_post_processor_{ u8"Cam Post-Processor",
+            math::srgb_to_linear(clear_color) };
 
         EntityHandle hovering_id_{ entity_handle_null };
         Project* context_{};
