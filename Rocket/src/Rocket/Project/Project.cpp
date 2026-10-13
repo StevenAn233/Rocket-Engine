@@ -124,7 +124,7 @@ namespace rke
         case AntiAliasing::MSAAx16: samples = 16; break;
         }
         
-        ProjectSamplesSetEvent event{ u8"main", samples };
+        ProjectSamplesSetEvent event{ u8"main", this, samples };
         app().send_event(event);
     }
 

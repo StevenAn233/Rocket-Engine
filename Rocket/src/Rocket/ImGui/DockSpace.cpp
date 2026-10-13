@@ -240,8 +240,8 @@ namespace rke
         Project* project{ app().get_project() };
         if(project) {
             project->save();
-            ProjectSavedEvent e{ u8"main" };
-            app().send_event(e); 
+            ProjectSavedEvent e{ u8"main", project };
+            app().send_event(e);
         }
     }
 }

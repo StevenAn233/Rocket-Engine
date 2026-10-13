@@ -47,7 +47,7 @@ namespace rke
             CORE_ERROR(u8"Application: Failed to load project '{}'!", path);
             return;
         }
-        ProjectLoadedEvent event{ u8"main" };
+        ProjectLoadedEvent event{ u8"main", project_.get() };
         send_event(event);
 
         // for calling callback; may modify
