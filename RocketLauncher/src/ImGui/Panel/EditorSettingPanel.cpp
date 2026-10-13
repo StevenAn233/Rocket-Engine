@@ -26,10 +26,8 @@ namespace rke
         writer->write(u8"Scene Edit", scene_edit ? scene_edit->get_name() : String{});
 
         writer->begin_map(u8"Viewport");
-        selected_outline()->serialize_to(*(writer.get()));
-        hovering_outline()->serialize_to(*(writer.get()));
-        writer->write(u8"Selected Enabled", selected_enabled_editor());
-        writer->write(u8"Hovering Enabled", hovering_enabled_editor());
+        owner_->post_processor_.serialize_all_to(*(writer.get()));
+        writer->write(u8"Box Enabled", box_enabled_editor());
         writer->end_map();
 
         writer->begin_map(u8"Style");
@@ -61,10 +59,8 @@ namespace rke
 
         auto view_data{ reader->get_child(u8"Viewport") };
         if(view_data) {
-            selected_outline()->deserialize_from(*(view_data.get()));
-            hovering_outline()->deserialize_from(*(view_data.get()));
-            selected_enabled_editor_ = view_data->get_at(u8"Selected Enabled", true);
-            hovering_enabled_editor_ = view_data->get_at(u8"Hovering Enabled", true);
+            owner_->post_processor_.deserialize_all_from(*(view_data.get()));
+            box_enabled_editor_ = view_data->get_at(u8"Box Enabled", true);
         }
         auto style_data{ reader->get_child(u8"Style") };
         if(style_data) {
@@ -73,16 +69,8 @@ namespace rke
         }
     }
 
-    void EditorSettingPanel::set_outline_samples(uint32 samples)
-    {
-        selected_outline()->set_samples(samples);
-        hovering_outline()->set_samples(samples);
-    }
-
     void EditorSettingPanel::on_imgui_render()
     {
-        CORE_ASSERT(selected_outline(), u8"EditorSettingPanel: Selected outline handle not set!");
-        CORE_ASSERT(hovering_outline(), u8"EditorSettingPanel: Hovering outline handle not set!");
         ImGui::PushID(get_name().raw());
         ImGui::Begin (get_name().raw());
 
@@ -118,22 +106,10 @@ namespace rke
                 ImGui::EndDisabled();
             });
             
-            layout::tree_node_branch<u8"Selected Outline">([&]()
+            layout::tree_node_branch<u8"Plane Box">([&]()
             {
-                float outline_thickness{ selected_outline()->get_thickness() };
-                if(layout::drag_float_control<u8"Thickness">
-                    (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-                    { selected_outline()->set_thickness(outline_thickness); }
-                ImGui::Checkbox("Enabled", &selected_enabled_editor_);
-            });
-
-            layout::tree_node_branch<u8"Hovering Outline">([&]()
-            {
-                float outline_thickness{ hovering_outline()->get_thickness() };
-                if(layout::drag_float_control<u8"Thickness">
-                    (outline_thickness, 0.01f, 1.0f, glm::vec2(0.0f, 2.0f)))
-                    { hovering_outline()->set_thickness(outline_thickness); }
-                ImGui::Checkbox("Enabled", &hovering_enabled_editor_);
+                ImGui::Checkbox("Enabled", &box_enabled_editor_);
+                ImGui::SameLine();
             });
 
             ImGui::EndTabItem();
@@ -148,12 +124,14 @@ namespace rke
             });
             ImGui::EndTabItem();
         }
+        if(ImGui::BeginTabItem("Post-Process"))
+        {
+            owner_->post_processor_.on_imgui_render();
+            ImGui::EndTabItem();
+        }
         ImGui::EndTabBar();
     end:
         ImGui::End();
         ImGui::PopID();
     }
-
-    OutlineEffect* EditorSettingPanel::hovering_outline() { return owner_->hovering_outline_; }
-    OutlineEffect* EditorSettingPanel::selected_outline() { return owner_->selected_outline_; }
 }

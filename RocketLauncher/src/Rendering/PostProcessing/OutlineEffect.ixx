@@ -19,10 +19,7 @@ export namespace rke
             TargetGetter target_getter, CameraGetter camera_getter);
 
         Category get_category() const override { return Category::Helper; }
-        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
-        void serialize_to(ConfigWriter& writer) const override;
-        void deserialize_from(const ConfigReader& reader) override;
-
+        
         void set_color(glm::vec4 color);
         void set_thickness(float thickness);
         inline glm::vec4 get_color() const { return uniforms_.outline_color; }
@@ -31,7 +28,12 @@ export namespace rke
         inline void set_wireframe(bool on) { wireframe_ = on; }
         inline bool is_wireframe() const { return wireframe_; }
     private:
+        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
+
         void refresh_shader() override;
+        void serialize_to(ConfigWriter& writer) const override;
+        void deserialize_from(const ConfigReader& reader) override;
+        void on_imgui_render() override;
 
         void ensure_buffers(Size edge_capacity);
         uint32 build_outline(const std::vector<Target>& targets,

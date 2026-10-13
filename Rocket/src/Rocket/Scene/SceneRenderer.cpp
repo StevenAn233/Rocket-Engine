@@ -112,7 +112,7 @@ namespace rke
         scene_fbo_->clear();
         scene_fbo_->upload([this, scene, &frustum, pos]()
             { render_scene(scene, frustum, pos); });
-        return post_processor_.process(scene_fbo_->get_gtexture_attached(0));
+        return scene_fbo_->get_gtexture_attached(0);
     }
 
     const GTexture2D* SceneRenderer::render(Entity camera)
@@ -124,10 +124,7 @@ namespace rke
     }
 
     void SceneRenderer::on_viewport_resized(uint32 w, uint32 h)
-    {
-        scene_fbo_->resize(w, h);
-        post_processor_.on_viewport_resized(w, h);
-    }
+        { scene_fbo_->resize(w, h); }
 
     int SceneRenderer::get_hovering_id(int mouse_x, int mouse_y)
     {
@@ -143,7 +140,6 @@ namespace rke
     {
         scene_fbo_->clear_pbo();
         scene_fbo_->clear();
-        post_processor_.clean_up();
     }
     
 // private

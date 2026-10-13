@@ -69,6 +69,7 @@ export import RenderCommand;
 export import SceneRenderer;
 export import PostProcessor;
 export import PostProcessEffect;
+export import ToneMapping;
 
 export import EntityAccess;
 export import Scene;

@@ -46,14 +46,16 @@ namespace rke
         uint32 index_count{ build_outline(targets, camera_getter_(), viewport) };
         if(index_count == 0 || !vao_) return false;
 
-        destination->clear_to_upload
-        ([this, index_count, source, copy_gshader, outline_gshader]()
+        destination->clear();
+        destination->upload([this, source, copy_gshader]()
         {
             source->bind(BindingPoint::Sampler2D_0);
             copy_gshader->bind();
             app().render_command().draw_quad();
             copy_gshader->unbind();
-
+        });
+        destination->upload([this, index_count, outline_gshader]()
+        {
             ubo_->bind(BindingPoint::UBO_PostProcess);
             app().render_command().enable_blend();
             vao_->bind();
@@ -64,27 +66,6 @@ namespace rke
             app().render_command().disable_blend();
         });
         return true;
-    }
-
-    void OutlineEffect::serialize_to(ConfigWriter& writer) const
-    {
-        writer.begin_map(get_name());
-
-        writer.write(u8"Color", math::linear_to_srgb(uniforms_.outline_color));
-        writer.write(u8"Thickness", thickness_);
-        writer.write(u8"Wireframe", wireframe_);
-
-        writer.end_map();
-    }
-
-    void OutlineEffect::deserialize_from(const ConfigReader& reader)
-    {
-        auto config{ reader.get_child(get_name()) };
-        if(!config || !config->is_map())
-            { CORE_ERROR(u8"OutlineEffect: Wrong yaml format!"); return; }
-        set_color(config->get_at(u8"Color", glm::vec4{}));
-        set_thickness(config->get_at(u8"Thickness", 1.0f));
-        wireframe_ = config->get_at(u8"Wireframe", false);
     }
 
     void OutlineEffect::set_color(glm::vec4 color)
@@ -100,6 +81,30 @@ namespace rke
     {
         if(outline_shader_) outline_shader_->clear_gshaders();
         if(copy_shader_) copy_shader_->clear_gshaders();
+    }
+
+    void OutlineEffect::serialize_to(ConfigWriter& writer) const
+    {
+        PostProcessEffect::serialize_to(writer);
+        writer.write(u8"Color", math::linear_to_srgb(uniforms_.outline_color));
+        writer.write(u8"Thickness", thickness_);
+        writer.write(u8"Wireframe", wireframe_);
+    }
+
+    void OutlineEffect::deserialize_from(const ConfigReader& reader)
+    {
+        PostProcessEffect::deserialize_from(reader);
+        set_color(reader.get_at(u8"Color", glm::vec4{}));
+        set_thickness(reader.get_at(u8"Thickness", 1.0f));
+        wireframe_ = reader.get_at(u8"Wireframe", false);
+    }
+
+    void OutlineEffect::on_imgui_render()
+    {
+        PostProcessEffect::on_imgui_render();
+        layout::drag_float_control<u8"Thickness">
+            (thickness_, 0.1f, 1.0f, glm::vec2(0.0f, 20.0f));
+        ImGui::Checkbox("Wireframe", &wireframe_);
     }
 
     void OutlineEffect::ensure_buffers(Size edge_capacity)

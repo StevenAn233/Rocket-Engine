@@ -11,11 +11,10 @@ export namespace rke
         struct Uniforms { glm::vec2 inverse_viewport_size{}; };
 
         FXAAEffect(String name, std::function<bool()> func = nullptr);
-
-        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
+        
         Category get_category() const override { return Category::System; }
-        void set_uniform(const Uniforms& uniforms);
     private:
+        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
         void refresh_shader() override;
         void on_viewport_resized(uint32 w, uint32 h) override;
     private:

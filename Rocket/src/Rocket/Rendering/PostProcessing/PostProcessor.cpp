@@ -2,19 +2,19 @@
 module PostProcessor;
 
 import Log;
+import Layout;
 import RenderCommand;
 import Application;
 
 namespace rke
 {
-    PostProcessor::PostProcessor(glm::vec4 clear_color)
+    PostProcessor::PostProcessor(String name, glm::vec4 clear_color)
+        : name_(std::move(name))
     {
         FrameBuffer::Specification spec
             { .attachment_spec{{ GTexture::Format::RGBA16F, clear_color }}};
         fbos_[0] = FrameBuffer::create(spec);
         fbos_[1] = FrameBuffer::create(spec);
-
-        tone_mapping_.set_uniform({});
     }
 
     PostProcessEffect* PostProcessor::push_effect(Scope<PostProcessEffect> effect)
@@ -41,15 +41,6 @@ namespace rke
         return nullptr;
     }
 
-    void PostProcessor::refresh_all_effect_shaders()
-    {
-        for(const auto& effect : effects_stack_)
-        {
-            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
-            effect->refresh_shader();
-        }
-    }
-
     const GTexture2D* PostProcessor::process(const GTexture2D* source)
     {
         if(!source) return nullptr;
@@ -63,24 +54,74 @@ namespace rke
         for(auto& effect : effects_stack_)
         {
             CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
-            if(!effect->enabled()) continue;
+            if(!effect->is_enabled()) continue;
             if(effect->apply(ping_pong, fbos_[fbo_index].get()))
             {
                 ping_pong = fbos_[fbo_index]->get_gtexture_attached();
                 fbo_index ^= 1u;
             }
         }
-        if(!tone_mapping_.apply(ping_pong, fbos_[fbo_index].get()))
-        {
-            CORE_ERROR(u8"PostProcessor: Tone mapping failed!");
-            app().render_command().enable_depth_test();
-            app().render_command().enable_blend();
-            return ping_pong;
-        }
-        
         app().render_command().enable_depth_test();
         app().render_command().enable_blend();
-        return fbos_[fbo_index]->get_gtexture_attached();
+        return ping_pong;
+    }
+
+    void PostProcessor::refresh_all_shaders()
+    {
+        for(const auto& effect : effects_stack_)
+        {
+            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
+            effect->refresh_shader();
+        }
+    }
+
+    void PostProcessor::serialize_all_to(ConfigWriter& writer) const
+    {
+        writer.begin_map(name_);
+        for(const auto& effect : effects_stack_)
+        {
+            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
+            writer.begin_map(effect->get_name());
+            effect->serialize_to(writer);
+            writer.end_map();
+        }
+        writer.end_map();
+    }
+
+    void PostProcessor::deserialize_all_from(const ConfigReader& reader)
+    {
+        auto all_effects{ reader.get_child(name_) };
+        if(!all_effects || !all_effects->is_map())
+        {
+            CORE_ERROR(u8"PostProcessir: '{}' not found!", name_);
+            return;
+        }
+        for(const auto& effect : effects_stack_)
+        {
+            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
+            auto config{ all_effects->get_child(effect->get_name()) };
+            if(!config || !config->is_map())
+            {
+                CORE_ERROR(u8"PostProcessor: "
+                    u8"Effect '{}' not found!", effect->get_name());
+                return;
+            }
+            effect->deserialize_from(*config);
+        }
+    }
+
+    void PostProcessor::on_imgui_render(uint32 tree_flags)
+    {
+        for(auto& effect : effects_stack_)
+        {
+            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
+            if(layout::begin_tree_node_branch_impl
+                (effect->get_name(), tree_flags, effect.get()))
+            {
+                effect->on_imgui_render();
+                layout::end_tree_node_branch_impl();
+            }
+        }
     }
 
     void PostProcessor::on_viewport_resized(uint32 w, uint32 h)

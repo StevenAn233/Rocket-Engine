@@ -23,12 +23,11 @@ export namespace rke
         };
 
         ToneMapping(String name);
-
-        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
-        void set_uniform(const Uniforms& uniforms);
     private:
+        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
         void refresh_shader() override;
     private:
+        Uniforms uniforms_{};
         Scope<Shader> shader_{};
         Ref<UniformBuffer> ubo_{};
     };

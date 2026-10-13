@@ -20,7 +20,8 @@ namespace rke
             return false; // keep the source texture
         }
 
-        destination->clear_to_upload([this, source, gshader]()
+        destination->clear();
+        destination->upload([this, source, gshader]()
         {
             source->bind(BindingPoint::Sampler2D_0);
             ubo_->bind(BindingPoint::UBO_PostProcess);
@@ -32,12 +33,12 @@ namespace rke
         return true;
     }
 
-    void FXAAEffect::set_uniform(const Uniforms& uniforms)
-        { ubo_->set_data(&uniforms, sizeof(Uniforms)); }
-
     void FXAAEffect::refresh_shader()
         { if(shader_) shader_->clear_gshaders(); }
 
     void FXAAEffect::on_viewport_resized(uint32 w, uint32 h)
-        { set_uniform({ glm::vec2(1.0f / w, 1.0f / h) }); }
+    {
+        Uniforms uni{ glm::vec2(1.0f / w, 1.0f / h) };
+        ubo_->set_data(&uni, sizeof(Uniforms));
+    }
 }
