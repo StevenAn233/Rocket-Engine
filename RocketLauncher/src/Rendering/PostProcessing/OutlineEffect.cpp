@@ -5,9 +5,9 @@ namespace rke
 {
 // public
     OutlineEffect::OutlineEffect(String name, Window* context,
-        std::function<bool()> enabled_situation,
+        std::function<bool()> extra,
         TargetGetter target_getter, CameraGetter camera_getter)
-        : PostProcessEffect(std::move(name), std::move(enabled_situation))
+        : PostProcessEffect(std::move(name), std::move(extra))
         , context_(context), target_getter_(std::move(target_getter))
         , camera_getter_(std::move(camera_getter))
     {
@@ -21,6 +21,10 @@ namespace rke
 
         if(!target_getter_) target_getter_ = []() { return std::vector<Target>{}; };
         if(!camera_getter_) camera_getter_ = []() { return glm::mat4(1.0f); };
+
+        outline_fbo_ = FrameBuffer::create({ .attachment_spec
+            {{ GTexture::Format::RGBA16F, glm::vec4(0.0f) }}});
+        outline_fbo_->set_samples(samples_);
     }
 
     bool OutlineEffect::apply(const GTexture2D* source, FrameBuffer* destination)
@@ -46,15 +50,8 @@ namespace rke
         uint32 index_count{ build_outline(targets, camera_getter_(), viewport) };
         if(index_count == 0 || !vao_) return false;
 
-        destination->clear();
-        destination->upload([this, source, copy_gshader]()
-        {
-            source->bind(BindingPoint::Sampler2D_0);
-            copy_gshader->bind();
-            app().render_command().draw_quad();
-            copy_gshader->unbind();
-        });
-        destination->upload([this, index_count, outline_gshader]()
+        outline_fbo_->clear();
+        outline_fbo_->upload([this, index_count, outline_gshader]()
         {
             ubo_->bind(BindingPoint::UBO_PostProcess);
             app().render_command().enable_blend();
@@ -65,6 +62,17 @@ namespace rke
             vao_->unbind();
             app().render_command().disable_blend();
         });
+
+        destination->clear();
+        destination->upload([this, source, copy_gshader]()
+        {
+            source->bind(BindingPoint::Sampler2D_0);
+            outline_fbo_->get_gtexture_attached()->bind(BindingPoint::Sampler2D_1);
+            copy_gshader->bind();
+            app().render_command().draw_quad();
+            copy_gshader->unbind();
+        });
+
         return true;
     }
 
@@ -94,7 +102,7 @@ namespace rke
     void OutlineEffect::deserialize_from(const ConfigReader& reader)
     {
         PostProcessEffect::deserialize_from(reader);
-        set_color(reader.get_at(u8"Color", glm::vec4{}));
+        set_color(reader.get_at(u8"Color", glm::vec4(1.0f)));
         set_thickness(reader.get_at(u8"Thickness", 1.0f));
         wireframe_ = reader.get_at(u8"Wireframe", false);
     }
@@ -102,10 +110,25 @@ namespace rke
     void OutlineEffect::on_imgui_render()
     {
         PostProcessEffect::on_imgui_render();
+
+        layout::two_columns_table<u8"Color">([this]()
+        {
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+            constexpr ImGuiColorEditFlags flags
+            {	ImGuiColorEditFlags_Float
+              | ImGuiColorEditFlags_InputRGB
+              | ImGuiColorEditFlags_AlphaBar
+            };
+            glm::vec4 color{ math::linear_to_srgb(uniforms_.outline_color) };
+            if(ImGui::ColorEdit4("##color", glm::value_ptr(color), flags)) set_color(color);
+        });
         layout::drag_float_control<u8"Thickness">
             (thickness_, 0.1f, 1.0f, glm::vec2(0.0f, 20.0f));
         ImGui::Checkbox("Wireframe", &wireframe_);
     }
+
+    void OutlineEffect::on_viewport_resized(uint32 w, uint32 h)
+        { outline_fbo_->resize(w, h); }
 
     void OutlineEffect::ensure_buffers(Size edge_capacity)
     {

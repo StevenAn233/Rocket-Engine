@@ -456,8 +456,7 @@ namespace rke
 
             layout::two_columns_table<u8"Color">([&]()
             {
-                float available_width{ ImGui::GetContentRegionAvail().x };
-                ImGui::SetNextItemWidth(available_width);
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 constexpr ImGuiColorEditFlags flags
                 {	ImGuiColorEditFlags_Float
                   | ImGuiColorEditFlags_InputRGB

@@ -12,10 +12,10 @@ export namespace rke
         using TargetGetter = std::function<std::vector<Target>()>;
         using CameraGetter = std::function<glm::mat4()>;
 
-        struct Uniforms{ glm::vec4 outline_color{}; };
+        struct Uniforms{ glm::vec4 outline_color{}; }; // srgb
 
         OutlineEffect(String name, Window* context,
-            std::function<bool()> enabled_situation,
+            std::function<bool()> extra,
             TargetGetter target_getter, CameraGetter camera_getter);
 
         Category get_category() const override { return Category::Helper; }
@@ -34,6 +34,7 @@ export namespace rke
         void serialize_to(ConfigWriter& writer) const override;
         void deserialize_from(const ConfigReader& reader) override;
         void on_imgui_render() override;
+        void on_viewport_resized(uint32 w, uint32 h) override;
 
         void ensure_buffers(Size edge_capacity);
         uint32 build_outline(const std::vector<Target>& targets,
@@ -51,6 +52,9 @@ export namespace rke
 
         float thickness_{ 1.0f }; // pixels
         bool wireframe_{ false }; // draw every triangle edge if true
+
+        uint32 samples_{ 8 };
+        Scope<FrameBuffer> outline_fbo_{};
 
         Scope<VertexArray> vao_{};
         Ref<VertexBuffer > vbo_{};

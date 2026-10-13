@@ -112,11 +112,12 @@ namespace rke
 
     void PostProcessor::on_imgui_render(uint32 tree_flags)
     {
-        for(auto& effect : effects_stack_)
+        for(Size i{}; i < effects_stack_.size(); i++)
         {
+            Scope<PostProcessEffect>& effect{ effects_stack_[i] };
             CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
             if(layout::begin_tree_node_branch_impl
-                (effect->get_name(), tree_flags, effect.get()))
+                (effect->get_name(), tree_flags, std::bit_cast<void*>(i)))
             {
                 effect->on_imgui_render();
                 layout::end_tree_node_branch_impl();

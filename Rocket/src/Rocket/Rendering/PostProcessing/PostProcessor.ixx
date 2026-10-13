@@ -25,6 +25,8 @@ export namespace rke
         PostProcessor(const PostProcessor&) = delete;
         PostProcessor(PostProcessor&&) = delete;
 
+        inline const String& get_name() const { return name_; }
+
         PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
         Scope<PostProcessEffect> pop_effect();
         PostProcessEffect* get_effect(const String& name); // expensive

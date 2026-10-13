@@ -70,7 +70,7 @@ export namespace rke
 
     struct RKE_API SpriteComponent
     {
-        glm::vec4 color{ 1.0f }; // may modify
+        glm::vec4 color{ 1.0f }; // srgb
         BlendingMode blending_mode{ BlendingMode::Opaque };
         int rendering_layer{ 0 };
 
