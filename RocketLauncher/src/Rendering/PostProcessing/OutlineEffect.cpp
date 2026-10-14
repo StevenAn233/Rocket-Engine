@@ -46,6 +46,15 @@ namespace rke
         outline_fbo_->set_samples(samples_);
     }
 
+    void OutlineEffect::set_color(glm::vec4 color)
+    {
+        uniforms_.outline_color = math::srgb_to_linear(color);
+        ubo_->set_data(&uniforms_, sizeof(Uniforms));
+    }
+
+    void OutlineEffect::set_thickness(float thickness) { thickness_ = thickness; }
+
+// private
     bool OutlineEffect::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
@@ -59,7 +68,7 @@ namespace rke
 
         const FrameBuffer::Specification& spec{ destination->get_specification() };
         const glm::vec2 viewport {
-            static_cast<float>(spec.width),
+            static_cast<float>(spec.width ),
             static_cast<float>(spec.height)
         };
 
@@ -95,15 +104,6 @@ namespace rke
         return true;
     }
 
-    void OutlineEffect::set_color(glm::vec4 color)
-    {
-        uniforms_.outline_color = math::srgb_to_linear(color);
-        ubo_->set_data(&uniforms_, sizeof(Uniforms));
-    }
-
-    void OutlineEffect::set_thickness(float thickness) { thickness_ = thickness; }
-
-// private
     void OutlineEffect::refresh_shader()
     {
         if(outline_shader_) outline_shader_->clear_gshaders();
