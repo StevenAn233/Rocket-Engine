@@ -87,20 +87,25 @@ namespace rke
     }
 }
 
-namespace rke
+namespace
 {
-    static LogHistory s_log_history{}; // may modify
-    static Application* s_app_handle{};
-
-    static void register_instance(Application* handle)
+    static rke::Application* s_app_handle{};
+    
+    static void register_instance(rke::Application* handle)
     {
         if(s_app_handle) DEBUG_BREAK;
         s_app_handle = handle;
     }
-
     static void unregister_instance() { s_app_handle = nullptr; }
+}
 
-    LogHistory& log_history() { return s_log_history; }
+namespace rke
+{
+    LogHistory& log_history()
+    {
+        static LogHistory s_log_history{}; // may modify
+        return s_log_history;
+    }
 
     Application& app()
     {
