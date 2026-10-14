@@ -30,8 +30,8 @@ export namespace rke
         Shader(const Path& rkshdr_path);
         ~Shader() = default;
 
-        Shader(const Shader&) = delete;
-        Shader& operator=(const Shader&) = delete;
+        Shader(const Shader& other);
+        Shader& operator=(const Shader& other);
         Shader(Shader&&) = default;
         Shader& operator=(Shader&&) = default;
 

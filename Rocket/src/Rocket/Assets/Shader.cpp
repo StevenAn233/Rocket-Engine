@@ -39,6 +39,16 @@ namespace rke
                 base_dir / file::unify_path(reader->get_at(u8"TessEvaluation", String{}));
     }
 
+    // do not copy variants?
+    Shader::Shader(const Shader& other)
+        : name_(other.name_), shader_paths_(other.shader_paths_) {}
+
+    Shader& Shader::operator=(const Shader& other)
+    {
+        (*this) = Shader(other);
+        return *this;
+    }
+
     GShader* Shader::get_gshader(const ShaderSettings& settings)
     {
         if(name_.empty()) return nullptr;
