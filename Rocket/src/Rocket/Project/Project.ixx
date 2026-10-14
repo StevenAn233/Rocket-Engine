@@ -53,6 +53,7 @@ export namespace rke
         inline const PhysicsLayers& get_physics_layers() const { return project_config_.physics_layers; }
 
         inline void set_name(String name) { project_config_.name = std::move(name); }
+        uint8 get_samples_shift() const;
         void set_samples(uint8 shift);
 
         inline const AssetsManager& get_assets_manager() const { return *assets_manager_; }

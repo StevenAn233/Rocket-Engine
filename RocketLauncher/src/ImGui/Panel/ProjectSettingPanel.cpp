@@ -59,11 +59,7 @@ namespace rke
                 {
                     constexpr const char* opts[]
                         { "1x", "2x", "4x", "8x", "16x" };
-                    int shift{ 0 };
-
-                    uint32 samples{ active->get_config().samples };
-                    while(samples = samples >> 1) ++shift;
-
+                    int shift{ static_cast<int>(active->get_samples_shift()) };
                     if(ImGui::Combo("##aa", &shift, opts, static_cast<int>(std::size(opts))))
                         { active->set_samples(static_cast<uint8>(shift)); }
                 });

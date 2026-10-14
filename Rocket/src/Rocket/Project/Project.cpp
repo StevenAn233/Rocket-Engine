@@ -110,6 +110,14 @@ namespace rke
         script_registry_.reset(new_reg.release());
     }
 
+    uint8 Project::get_samples_shift() const
+    {
+        uint8 shift{};
+        uint32 samples{ get_config().samples }; // copy
+        while(samples = samples >> 1) ++shift;
+        return shift;
+    }
+
     void Project::set_samples(uint8 shift)
     {
         constexpr uint8 max_shift{ 5 }; // to modify
@@ -124,7 +132,7 @@ namespace rke
 
     bool Project::create_scene(const String& name)
     {
-        Path new_scene_path{ get_scenes_dir() / (name + u8".rkscene")};
+        Path new_scene_path{ get_scenes_dir() / (name + u8".rkscene") };
         if(new_scene_path.exists()) {
             CORE_WARN(u8"Project: Scene '{}' already exists! "
                 u8"Please choose an another name.", new_scene_path);
