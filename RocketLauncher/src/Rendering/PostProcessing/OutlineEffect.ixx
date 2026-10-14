@@ -27,6 +27,10 @@ export namespace rke
 
         inline void set_wireframe(bool on) { wireframe_ = on; }
         inline bool is_wireframe() const { return wireframe_; }
+
+        inline uint32 get_samples() const { return samples_; }
+        uint8 get_samples_shift() const;
+        void set_samples(uint8 shift);
     private:
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
 

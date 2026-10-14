@@ -27,6 +27,25 @@ namespace rke
         outline_fbo_->set_samples(samples_);
     }
 
+    uint8 OutlineEffect::get_samples_shift() const
+    {
+        uint8 shift{};
+        uint32 samples{ samples_ }; // copy
+        while(samples = samples >> 1) ++shift;
+        return shift;
+    }
+
+    void OutlineEffect::set_samples(uint8 shift)
+    {
+        constexpr uint8 max_shift{ 5 }; // to modify
+        if(shift > max_shift) {
+            CORE_WARN(u8"OutlineEffect: Samples too much!");
+            return;
+        }
+        samples_ = (1u << shift);
+        outline_fbo_->set_samples(samples_);
+    }
+
     bool OutlineEffect::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
@@ -96,6 +115,7 @@ namespace rke
         PostProcessEffect::serialize_to(writer);
         writer.write(u8"Color", math::linear_to_srgb(uniforms_.outline_color));
         writer.write(u8"Thickness", thickness_);
+        writer.write(u8"Samples"  , samples_  );
         writer.write(u8"Wireframe", wireframe_);
     }
 
@@ -104,6 +124,8 @@ namespace rke
         PostProcessEffect::deserialize_from(reader);
         set_color(reader.get_at(u8"Color", glm::vec4(1.0f)));
         set_thickness(reader.get_at(u8"Thickness", 1.0f));
+        samples_ = reader.get_at(u8"Samples", 1);
+        outline_fbo_->set_samples(samples_);
         wireframe_ = reader.get_at(u8"Wireframe", false);
     }
 
@@ -124,6 +146,15 @@ namespace rke
         });
         layout::drag_float_control<u8"Thickness">
             (thickness_, 0.1f, 1.0f, glm::vec2(0.0f, 20.0f));
+        layout::two_columns_table<u8"Samples">([this]()
+        {
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+            constexpr const char* opts[]
+                { "1x", "2x", "4x", "8x", "16x" };
+            int shift{ static_cast<int>(get_samples_shift()) };
+            if(ImGui::Combo("##aa", &shift, opts, static_cast<int>(std::size(opts))))
+                { set_samples(static_cast<uint8>(shift)); }
+        });
         ImGui::Checkbox("Wireframe", &wireframe_);
     }
 
