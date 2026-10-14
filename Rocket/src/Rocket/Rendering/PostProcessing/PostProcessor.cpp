@@ -57,11 +57,7 @@ namespace rke
 
     void PostProcessor::refresh_all_shaders()
     {
-        for(const auto& effect : effects_stack_)
-        {
-            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
-            effect->refresh_shader();
-        }
+        // to be impl... or remove
     }
 
     void PostProcessor::serialize_all_to(ConfigWriter& writer) const

@@ -3,18 +3,22 @@ module FXAAEffect;
 
 namespace rke
 {
-    FXAAEffect::FXAAEffect(String name, std::function<bool()> func)
-        : PostProcessEffect(std::move(name), std::move(func))
+    static PostProcessEffect::TypeIdentity s_rke_ppetid
     {
-        ubo_ = UniformBuffer::create(sizeof(Uniforms));
-        shader_ = create_scope<Shader>(file::assets_dir() / u8"shaders" / u8"fxaa.rkshdr");
-    }
+        .type{ u8"FxaaEffect" },
+        .shaders{{ u8"Fxaa", Shader(file::assets_dir() / u8"shaders" / u8"fxaa.rkshdr") }}
+    };
+
+    FXAAEffect::FXAAEffect(String name, std::function<bool()> func)
+        : PostProcessEffect(&s_rke_ppetid, std::move(name), std::move(func))
+        { ubo_ = UniformBuffer::create(sizeof(Uniforms)); }
 
     bool FXAAEffect::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
 
-        auto* gshader{ shader_ ? shader_->get_gshader() : nullptr };
+        auto* shader { get_shader(u8"Fxaa") };
+        auto* gshader{ shader ? shader->get_gshader() : nullptr };
         if(!gshader) {
             CORE_ERROR(u8"FXAAEffect: Shader unavailable, the frame is left untouched!");
             return false; // keep the source texture
@@ -32,9 +36,6 @@ namespace rke
         });
         return true;
     }
-
-    void FXAAEffect::refresh_shader()
-        { if(shader_) shader_->clear_gshaders(); }
 
     void FXAAEffect::on_viewport_resized(uint32 w, uint32 h)
     {

@@ -3,20 +3,24 @@ module OutlineEffect;
 
 namespace rke
 {
+    static PostProcessEffect::TypeIdentity s_rke_ppetid
+    {
+        .type{ u8"OutlineEffect" },
+        .shaders {
+            { u8"Outline", Shader(file::assets_dir() / u8"shaders" / u8"outline_effect.rkshdr") },
+            { u8"Copy", Shader(file::assets_dir() / u8"shaders" / u8"copy.rkshdr") }
+        }
+    };
+
 // public
-    OutlineEffect::OutlineEffect(String name, Window* context,
-        std::function<bool()> extra,
+    OutlineEffect::OutlineEffect(String name, Window* context, std::function<bool()> extra,
         TargetGetter target_getter, CameraGetter camera_getter)
-        : PostProcessEffect(std::move(name), std::move(extra))
+        : PostProcessEffect(&s_rke_ppetid, std::move(name), std::move(extra))
         , context_(context), target_getter_(std::move(target_getter))
         , camera_getter_(std::move(camera_getter))
     {
         CORE_ASSERT(context_, u8"OutlineEffect: Context window null!");
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
-        outline_shader_ = create_scope<Shader>(file::assets_dir()
-            / u8"shaders" / u8"outline_effect.rkshdr");
-        copy_shader_ = create_scope<Shader>(file::assets_dir()
-            / u8"shaders" / u8"copy.rkshdr");
         set_color(glm::vec4(1.0f));
 
         if(!target_getter_) target_getter_ = []() { return std::vector<Target>{}; };
@@ -59,8 +63,10 @@ namespace rke
     {
         if(!source || !destination) return false;
 
-        auto* outline_gshader{ outline_shader_ ? outline_shader_->get_gshader() : nullptr };
-        auto* copy_gshader{ copy_shader_ ? copy_shader_->get_gshader() : nullptr };
+        auto* outline_shader{ get_shader(u8"Outline") };
+        auto* copy_shader{ get_shader(u8"Copy") };
+        auto* outline_gshader{ outline_shader ? outline_shader->get_gshader() : nullptr };
+        auto* copy_gshader{ copy_shader ? copy_shader->get_gshader() : nullptr };
         if(!outline_gshader || !copy_gshader) {
             CORE_ERROR(u8"OutlineEffect: Shaders unavailable!");
             return false; // keep the source texture
@@ -81,14 +87,12 @@ namespace rke
         outline_fbo_->clear();
         outline_fbo_->upload([this, index_count, outline_gshader]()
         {
-            ubo_->bind(BindingPoint::UBO_PostProcess);
-            app().render_command().enable_blend();
             vao_->bind();
+            ubo_->bind(BindingPoint::UBO_PostProcess);
             outline_gshader->bind();
             app().render_command().draw_indexed(static_cast<int>(index_count));
             outline_gshader->unbind();
             vao_->unbind();
-            app().render_command().disable_blend();
         });
 
         destination->clear();
@@ -102,12 +106,6 @@ namespace rke
         });
 
         return true;
-    }
-
-    void OutlineEffect::refresh_shader()
-    {
-        if(outline_shader_) outline_shader_->clear_gshaders();
-        if(copy_shader_) copy_shader_->clear_gshaders();
     }
 
     void OutlineEffect::serialize_to(ConfigWriter& writer) const

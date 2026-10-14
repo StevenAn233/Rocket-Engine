@@ -3,6 +3,7 @@ module;
 #include <memory>
 #include <utility>
 #include <functional>
+#include <unordered_map>
 #include "rke_macros.h"
 
 export module PostProcessEffect;
@@ -23,6 +24,12 @@ export namespace rke
     public:
         friend class PostProcessor;
 
+        struct TypeIdentity
+        {
+            const char8* type; // string literal
+            std::unordered_map<String, Shader> shaders; // AssetHandle?
+        };
+
         enum class Category
         {
             Standard, // e.g. Bloom, ToneMapping, Vignette
@@ -30,11 +37,14 @@ export namespace rke
             System    // e.g. FXAA, SMAA
         };
 
-        PostProcessEffect(String name, std::function<bool()> extra = nullptr);
+        PostProcessEffect(TypeIdentity* tptr, String name,
+            std::function<bool()> extra = nullptr);
         virtual ~PostProcessEffect() = default;
 
         inline const String& get_name() const { return name_; }
         inline bool is_enabled() const { return enabled_inner_ && enabled_extra_(); }
+
+        Shader* get_shader(const String& name);
 
         virtual Category get_category() const { return Category::Standard; }
     protected:
@@ -42,12 +52,12 @@ export namespace rke
         // if returns false, use (original)source
         virtual bool apply(const GTexture2D* source, FrameBuffer* destination) = 0;
 
-        virtual void refresh_shader() {} // for post-processor
         virtual void serialize_to(ConfigWriter& writer) const;
         virtual void deserialize_from(const ConfigReader& reader);
         virtual void on_imgui_render();
         virtual void on_viewport_resized(uint32 w, uint32 h) {}; // for client framebuffer
     private:
+        TypeIdentity* tptr_;
         String name_;
         bool enabled_inner_{ true };
         std::function<bool()> enabled_extra_{};

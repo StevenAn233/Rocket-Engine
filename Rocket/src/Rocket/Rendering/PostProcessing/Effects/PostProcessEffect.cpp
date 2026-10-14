@@ -1,12 +1,27 @@
 module;
 module PostProcessEffect;
 
+import Log;
+
 namespace rke
 {
-    PostProcessEffect::PostProcessEffect(String name, std::function<bool()> extra)
-        : name_(name.empty() ? u8"Untitled" : std::move(name))
+    PostProcessEffect::PostProcessEffect(TypeIdentity* tptr,
+        String name, std::function<bool()> extra)
+        : tptr_(tptr), name_(name.empty() ? u8"Untitled" : std::move(name))
         , enabled_extra_(std::move(extra))
         { if(!enabled_extra_) enabled_extra_ = []() { return true; }; }
+
+    Shader* PostProcessEffect::get_shader(const String& name)
+    {
+        if(!tptr_) {
+            CORE_ERROR(u8"PostProcessEffect: Tptr null!");
+            return nullptr;
+        }
+        auto it{ tptr_->shaders.find(name) };
+        if(it != tptr_->shaders.end()) return &(it->second);
+        CORE_WARN(u8"PostProcessEffect: Shader '{}' not found!", name);
+        return nullptr;
+    }
 
     void PostProcessEffect::serialize_to(ConfigWriter& writer) const
         { writer.write(u8"Enabled", enabled_inner_); }

@@ -34,7 +34,6 @@ export namespace rke
     private:
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
 
-        void refresh_shader() override;
         void serialize_to(ConfigWriter& writer) const override;
         void deserialize_from(const ConfigReader& reader) override;
         void on_imgui_render() override;
@@ -50,9 +49,6 @@ export namespace rke
 
         Uniforms uniforms_{};
         Ref<UniformBuffer> ubo_{};
-
-        Scope<Shader> outline_shader_{};
-        Scope<Shader> copy_shader_{};
 
         float thickness_{ 1.0f }; // pixels
         bool wireframe_{ false }; // draw every triangle edge if true

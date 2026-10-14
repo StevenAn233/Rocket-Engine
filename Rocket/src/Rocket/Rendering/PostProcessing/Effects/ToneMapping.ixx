@@ -27,13 +27,11 @@ export namespace rke
         void set_gamma(float gamma);
     private:
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
-        void refresh_shader() override;
         void serialize_to(ConfigWriter& writer) const override;
         void deserialize_from(const ConfigReader& reader) override;
         void on_imgui_render() override;
     private:
         Uniforms uniforms_{};
-        Scope<Shader> shader_{};
         Ref<UniformBuffer> ubo_{};
     };
 }
