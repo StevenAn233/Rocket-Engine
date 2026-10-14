@@ -80,10 +80,8 @@ export namespace rke
         inline void reset_stats() { stats_ = {}; }
     #endif
 
-    // may modify
-        static void init(); // requires main window context current
+        static Shader& get_shader();
         static void refresh_shader();
-    // may modify
     private:
         struct MeshGeometry
         {
@@ -132,6 +130,5 @@ export namespace rke
     #ifdef RKE_ENABLE_STATISTICS
         Statistics stats_{};
     #endif
-        static Scope<Shader> s_shader;
     };
 }

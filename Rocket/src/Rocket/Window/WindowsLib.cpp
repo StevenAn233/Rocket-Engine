@@ -58,7 +58,6 @@ namespace rke
     {
         Scope<Window> window{ Window::create
             (u8"main", std::move(props), NativeWindow()) };
-        Renderer::init();
         main_window_ = window.get();
         return add(std::move(window));
     }

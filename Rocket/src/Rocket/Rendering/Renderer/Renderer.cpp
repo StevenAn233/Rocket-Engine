@@ -31,22 +31,13 @@ namespace {
 namespace rke
 {
 // static
-    Scope<Shader> Renderer::s_shader{};
-
-    void Renderer::init()
+    Shader& Renderer::get_shader()
     {
-        Path shader_path{ file::assets_dir() / u8"shaders" / u8"renderer.rkshdr" };
-        s_shader = create_scope<Shader>(shader_path);
+        static Shader s_shader{ file::assets_dir() / u8"shaders" / u8"renderer.rkshdr" };
+        return s_shader;
     }
 
-    void Renderer::refresh_shader()
-    {
-        if(!s_shader) {
-            CORE_ERROR(u8"Renderer: Scene shader is null!");
-            return;
-        }
-        s_shader->clear_gshaders();
-    }
+    void Renderer::refresh_shader() { get_shader().clear_gshaders(); }
 
 // non-static
     Renderer::Renderer(Window* context) : context_(context)
@@ -77,7 +68,7 @@ namespace rke
 
     void Renderer::start()
     {
-        GShader* gshader{ s_shader ? s_shader->get_gshader() : nullptr };
+        GShader* gshader{ get_shader().get_gshader() };
         if(!gshader) {
             CORE_ERROR(u8"Renderer: Scene shader unavailable, skipping this batch!");
             in_render_ = false; return;
