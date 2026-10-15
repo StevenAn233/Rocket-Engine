@@ -30,6 +30,8 @@ export namespace rke
         void serialize_to(ConfigWriter& writer) const override;
         void deserialize_from(const ConfigReader& reader) override;
         void on_imgui_render() override;
+
+        static Shader& get_shader();
     private:
         Uniforms uniforms_{};
         Ref<UniformBuffer> ubo_{};

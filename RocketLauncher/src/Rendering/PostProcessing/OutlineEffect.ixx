@@ -42,6 +42,9 @@ export namespace rke
         void ensure_buffers(Size edge_capacity);
         uint32 build_outline(const std::vector<Target>& targets,
             const glm::mat4& view_proj, glm::vec2 viewport_size);
+
+        static Shader& get_outline_shader();
+        static Shader& get_copy_shader();
     private:
         Window* context_;
         TargetGetter target_getter_;

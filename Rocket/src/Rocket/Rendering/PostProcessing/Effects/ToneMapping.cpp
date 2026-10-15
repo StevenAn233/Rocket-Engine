@@ -12,14 +12,8 @@ import GShader;
 
 namespace rke
 {
-    static PostProcessEffect::TypeIdentity s_rke_ppetid
-    {
-        .type{ u8"ToneMapping" },
-        .shaders{{ u8"Tone Mapping", Shader(file::assets_dir() / u8"shaders" / u8"tone_mapping.rkshdr") }}
-    };
-
     ToneMapping::ToneMapping(String name)
-        : PostProcessEffect(&s_rke_ppetid, std::move(name))
+        : PostProcessEffect(std::move(name))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         ubo_->set_data(&uniforms_, sizeof(Uniforms));
@@ -41,8 +35,7 @@ namespace rke
     {
         if(!source || !destination) return false;
 
-        auto* shader{ get_shader(u8"Tone Mapping") };
-        GShader* gshader{ shader ? shader->get_gshader() : nullptr };
+        GShader* gshader{ get_shader().get_gshader() };
         if(!gshader) {
             CORE_ERROR(u8"ToneMapping: Shader unavailable, the frame is left untouched!");
             return false; // keep the source texture
@@ -86,5 +79,13 @@ namespace rke
         if(layout::drag_float_control<u8"Gamma">(uniforms_.gamma, 0.01f, 2.2f))
             modified = true;
         if(modified) ubo_->set_data(&uniforms_, sizeof(Uniforms));
+    }
+
+// static
+    Shader& ToneMapping::get_shader()
+    {
+        static Shader s_shader{ file::assets_dir()
+            / u8"shaders" / u8"tone_mapping.rkshdr" };
+        return s_shader;
     }
 }

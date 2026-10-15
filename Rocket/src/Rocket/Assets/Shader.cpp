@@ -51,7 +51,12 @@ namespace rke
 
     GShader* Shader::get_gshader(const ShaderSettings& settings)
     {
-        if(name_.empty()) return nullptr;
+        if(name_.empty())
+        {
+            CORE_ERROR(u8"Shader: The object is empty, no shader to give! "
+                u8"(config never loaded, or it was released/moved from)");
+            return nullptr;
+        }
         auto it{ gpu_variants_.find(settings) };
         if(it != gpu_variants_.end()) return it->second.get();
 

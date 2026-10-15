@@ -3,22 +3,15 @@ module FXAAEffect;
 
 namespace rke
 {
-    static PostProcessEffect::TypeIdentity s_rke_ppetid
-    {
-        .type{ u8"FxaaEffect" },
-        .shaders{{ u8"Fxaa", Shader(file::assets_dir() / u8"shaders" / u8"fxaa.rkshdr") }}
-    };
-
-    FXAAEffect::FXAAEffect(String name, std::function<bool()> func)
-        : PostProcessEffect(&s_rke_ppetid, std::move(name), std::move(func))
+    FXAAEffect::FXAAEffect(String name, std::function<bool()> extra)
+        : PostProcessEffect(std::move(name), std::move(extra))
         { ubo_ = UniformBuffer::create(sizeof(Uniforms)); }
 
     bool FXAAEffect::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
 
-        auto* shader { get_shader(u8"Fxaa") };
-        auto* gshader{ shader ? shader->get_gshader() : nullptr };
+        auto* gshader{ get_shader().get_gshader() };
         if(!gshader) {
             CORE_ERROR(u8"FXAAEffect: Shader unavailable, the frame is left untouched!");
             return false; // keep the source texture
@@ -41,5 +34,13 @@ namespace rke
     {
         Uniforms uni{ glm::vec2(1.0f / w, 1.0f / h) };
         ubo_->set_data(&uni, sizeof(Uniforms));
+    }
+
+// static
+    Shader& FXAAEffect::get_shader()
+    {
+        static Shader s_shader{ file::assets_dir()
+            / u8"shaders" / u8"fxaa.rkshdr" };
+        return s_shader;
     }
 }

@@ -8,8 +8,8 @@ module;
 
 export module PostProcessEffect;
 
-import Shader;
 import HeapManager;
+import Path;
 import Types;
 import String;
 import GTexture;
@@ -24,12 +24,6 @@ export namespace rke
     public:
         friend class PostProcessor;
 
-        struct TypeIdentity
-        {
-            const char8* type; // string literal
-            std::unordered_map<String, Shader> shaders; // AssetHandle?
-        };
-
         enum class Category
         {
             Standard, // e.g. Bloom, ToneMapping, Vignette
@@ -37,14 +31,11 @@ export namespace rke
             System    // e.g. FXAA, SMAA
         };
 
-        PostProcessEffect(TypeIdentity* tptr, String name,
-            std::function<bool()> extra = nullptr);
+        PostProcessEffect(String name, std::function<bool()> extra = nullptr);
         virtual ~PostProcessEffect() = default;
 
         inline const String& get_name() const { return name_; }
         inline bool is_enabled() const { return enabled_inner_ && enabled_extra_(); }
-
-        Shader* get_shader(const String& name);
 
         virtual Category get_category() const { return Category::Standard; }
     protected:
@@ -57,7 +48,6 @@ export namespace rke
         virtual void on_imgui_render();
         virtual void on_viewport_resized(uint32 w, uint32 h) {}; // for client framebuffer
     private:
-        TypeIdentity* tptr_;
         String name_;
         bool enabled_inner_{ true };
         std::function<bool()> enabled_extra_{};

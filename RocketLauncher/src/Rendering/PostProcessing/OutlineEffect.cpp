@@ -3,19 +3,10 @@ module OutlineEffect;
 
 namespace rke
 {
-    static PostProcessEffect::TypeIdentity s_rke_ppetid
-    {
-        .type{ u8"OutlineEffect" },
-        .shaders {
-            { u8"Outline", Shader(file::assets_dir() / u8"shaders" / u8"outline_effect.rkshdr") },
-            { u8"Copy", Shader(file::assets_dir() / u8"shaders" / u8"copy.rkshdr") }
-        }
-    };
-
 // public
     OutlineEffect::OutlineEffect(String name, Window* context, std::function<bool()> extra,
         TargetGetter target_getter, CameraGetter camera_getter)
-        : PostProcessEffect(&s_rke_ppetid, std::move(name), std::move(extra))
+        : PostProcessEffect(std::move(name), std::move(extra))
         , context_(context), target_getter_(std::move(target_getter))
         , camera_getter_(std::move(camera_getter))
     {
@@ -63,10 +54,8 @@ namespace rke
     {
         if(!source || !destination) return false;
 
-        auto* outline_shader{ get_shader(u8"Outline") };
-        auto* copy_shader{ get_shader(u8"Copy") };
-        auto* outline_gshader{ outline_shader ? outline_shader->get_gshader() : nullptr };
-        auto* copy_gshader{ copy_shader ? copy_shader->get_gshader() : nullptr };
+        auto* outline_gshader{ get_outline_shader().get_gshader() };
+        auto* copy_gshader{ get_copy_shader().get_gshader() };
         if(!outline_gshader || !copy_gshader) {
             CORE_ERROR(u8"OutlineEffect: Shaders unavailable!");
             return false; // keep the source texture
@@ -253,5 +242,20 @@ namespace rke
         vbo_->unmap();
         ibo_->unmap();
         return index_count;
+    }
+
+// static
+    Shader& OutlineEffect::get_outline_shader()
+    {
+        static Shader s_outline_shader{ file::assets_dir()
+            / u8"shaders" / u8"outline_effect.rkshdr" };
+        return s_outline_shader;
+    }
+
+    Shader& OutlineEffect::get_copy_shader()
+    {
+        static Shader s_copy_shader{ file::assets_dir()
+            / u8"shaders" / u8"copy.rkshdr" };
+        return s_copy_shader;
     }
 }
