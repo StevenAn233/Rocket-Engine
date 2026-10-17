@@ -198,17 +198,24 @@ namespace rke
         // CPU side: every endpoint goes through model -> world -> clip here;
         // and the edges are turned into rectangles of constant screen thickness.
             const glm::mat4 world{ target.second };
+            Size mesh_vertex_count{ mesh->get_vertex_count() };
+
+            std::vector<glm::vec4> mesh_vertices{};
+            mesh_vertices.reserve(mesh_vertex_count);
+            for(Size i{}; i < mesh_vertex_count; i++)
+            {
+                const glm::vec4* pos{ mesh->get_position(i) };
+                CORE_ASSERT(pos, u8"OutlineEffect: Position invalid!");
+                mesh_vertices.push_back(view_proj * (world * (*pos)));
+            }
+
             const auto& edges{ mesh->get_edges() };
             for(const Mesh::Edge& edge : edges)
             {
                 if(!wireframe_ && (edge.face_valence != 1)) continue;
 
-                const glm::vec4* position_a{ mesh->get_position(edge.a) };
-                const glm::vec4* position_b{ mesh->get_position(edge.b) };
-                if(!position_a || !position_b) continue;
-
-                const glm::vec4 clip_a{ view_proj * (world * (*position_a)) };
-                const glm::vec4 clip_b{ view_proj * (world * (*position_b)) };
+                const glm::vec4 clip_a{ mesh_vertices[edge.a] };
+                const glm::vec4 clip_b{ mesh_vertices[edge.b] };
                 if(clip_a.w == 0.0f || clip_b.w == 0.0f) continue; // no projection
 
                 const glm::vec2 ndc_a{ glm::vec2(clip_a) / clip_a.w };
