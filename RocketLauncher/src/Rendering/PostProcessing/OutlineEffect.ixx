@@ -14,9 +14,8 @@ export namespace rke
 
         struct Uniforms{ glm::vec4 outline_color{}; }; // srgb
 
-        OutlineEffect(String name, Window* context,
-            std::function<bool()> extra,
-            TargetGetter target_getter, CameraGetter camera_getter);
+        OutlineEffect(String name, std::function<bool()> extra,
+            Window* context, TargetGetter target_getter, CameraGetter camera_getter);
 
         Category get_category() const override { return Category::Helper; }
         

@@ -45,7 +45,7 @@ namespace rke
     // Effects
         auto selected{ create_scope<OutlineEffect>
         (
-            u8"Selected Outline", &get_owner(),
+            u8"Selected Outline",
             [this]() -> bool
             {
                 Entity selected{ current_scene() ?
@@ -55,6 +55,7 @@ namespace rke
                 return !gizmo::is_using() && !in_main_viewport_dragging_
                     && selected_id != hovering_id_;
             },
+            &get_owner(),
             [this]() {
                 std::vector<OutlineEffect::Target> targets{};
                 if(!current_scene()) return targets;
@@ -75,13 +76,14 @@ namespace rke
 
         auto hovering{ create_scope<OutlineEffect>
         (
-            u8"Hovering Outline", &get_owner(),
+            u8"Hovering Outline",
             [this]() -> bool
             {
                 return !gizmo::is_using() && !mouse_blocked()
                     && !in_main_viewport_dragging_ && editing()
                     && main_viewport_->is_hovered();
             },
+            &get_owner(),
             [this]() {
                 std::vector<OutlineEffect::Target> targets{};
                 if(!editing()) return targets;
@@ -102,7 +104,7 @@ namespace rke
 
         auto plane_boxes{ create_scope<OutlineEffect>
         (
-            u8"Plane Box Outline", &get_owner(), nullptr,
+            u8"Plane Box Outline", nullptr, &get_owner(),
             [this]() -> std::vector<OutlineEffect::Target>
             {
                 std::vector<OutlineEffect::Target> targets{};

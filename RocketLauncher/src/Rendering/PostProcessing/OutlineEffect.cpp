@@ -4,8 +4,8 @@ module OutlineEffect;
 namespace rke
 {
 // public
-    OutlineEffect::OutlineEffect(String name, Window* context, std::function<bool()> extra,
-        TargetGetter target_getter, CameraGetter camera_getter)
+    OutlineEffect::OutlineEffect(String name, std::function<bool()> extra,
+        Window* context, TargetGetter target_getter, CameraGetter camera_getter)
         : PostProcessEffect(std::move(name), std::move(extra))
         , context_(context), target_getter_(std::move(target_getter))
         , camera_getter_(std::move(camera_getter))
