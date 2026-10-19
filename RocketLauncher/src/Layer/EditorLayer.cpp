@@ -54,8 +54,9 @@ namespace rke
                     selected.get_handle() : entity_handle_null };
                 return !gizmo::is_using() && !in_main_viewport_dragging_
                     && selected_id != hovering_id_;
-            },
-            &get_owner(),
+            }
+        )};
+        selected->set_context ({
             [this]() {
                 std::vector<OutlineEffect::Target> targets{};
                 if(!current_scene()) return targets;
@@ -71,7 +72,7 @@ namespace rke
                 return editing() ? editor_cam_.get_view_proj() :
                     (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
             }
-        )};
+        });
         selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
 
         auto hovering{ create_scope<OutlineEffect>
@@ -82,8 +83,9 @@ namespace rke
                 return !gizmo::is_using() && !mouse_blocked()
                     && !in_main_viewport_dragging_ && editing()
                     && main_viewport_->is_hovered();
-            },
-            &get_owner(),
+            }
+        )};
+        hovering->set_context ({
             [this]() {
                 std::vector<OutlineEffect::Target> targets{};
                 if(!editing()) return targets;
@@ -99,12 +101,11 @@ namespace rke
                 return editing() ? editor_cam_.get_view_proj() :
                     (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
             }
-        )};
+        });
         hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
 
-        auto plane_boxes{ create_scope<OutlineEffect>
-        (
-            u8"Plane Box Outline", nullptr, &get_owner(),
+        auto plane_boxes{ create_scope<OutlineEffect>(u8"Plane Box Outline") };
+        plane_boxes->set_context ({
             [this]() -> std::vector<OutlineEffect::Target>
             {
                 std::vector<OutlineEffect::Target> targets{};
@@ -131,7 +132,7 @@ namespace rke
                 return editing() ? editor_cam_.get_view_proj() :
                     (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
             }
-        )};
+        });
         plane_boxes->set_color(glm::vec4(0.0f, 0.86f, 0.20f, 0.78f)); // the green it had
         plane_boxes->set_thickness(3.0f);
 

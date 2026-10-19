@@ -4,18 +4,11 @@ module OutlineEffect;
 namespace rke
 {
 // public
-    OutlineEffect::OutlineEffect(String name, std::function<bool()> extra,
-        Window* context, TargetGetter target_getter, CameraGetter camera_getter)
+    OutlineEffect::OutlineEffect(String name, std::function<bool()> extra)
         : PostProcessEffect(std::move(name), std::move(extra))
-        , context_(context), target_getter_(std::move(target_getter))
-        , camera_getter_(std::move(camera_getter))
     {
-        CORE_ASSERT(context_, u8"OutlineEffect: Context window null!");
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         set_color(glm::vec4(1.0f));
-
-        if(!target_getter_) target_getter_ = []() { return std::vector<Target>{}; };
-        if(!camera_getter_) camera_getter_ = []() { return glm::mat4(1.0f); };
 
         outline_fbo_ = FrameBuffer::create({ .attachment_spec
             {{ GTexture::Format::RGBA16F, glm::vec4(0.0f) }}});
@@ -67,10 +60,14 @@ namespace rke
             static_cast<float>(spec.height)
         };
 
-        const auto targets{ target_getter_() };
+        if(!context_.target_getter) return false;
+        const auto targets{ context_.target_getter() };
         if(targets.empty()) return false;
 
-        uint32 index_count{ build_outline(targets, camera_getter_(), viewport) };
+        uint32 index_count{ build_outline(targets,
+            context_.camera_getter ? context_.camera_getter() : glm::mat4(1.0f),
+            viewport
+        )};
         if(index_count == 0 || !vao_) return false;
 
         outline_fbo_->clear();
@@ -209,8 +206,7 @@ namespace rke
                 mesh_vertices.push_back(view_proj * (world * (*pos)));
             }
 
-            const auto& edges{ mesh->get_edges() };
-            for(const Mesh::Edge& edge : edges)
+            for(const Mesh::Edge& edge : mesh->get_edges())
             {
                 if(!wireframe_ && (edge.face_valence != 1)) continue;
 

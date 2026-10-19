@@ -12,8 +12,8 @@ import GShader;
 
 namespace rke
 {
-    ToneMapping::ToneMapping(String name)
-        : PostProcessEffect(std::move(name))
+    ToneMapping::ToneMapping(String name, std::function<bool()> extra)
+        : PostProcessEffect(std::move(name), std::move(extra))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         ubo_->set_data(&uniforms_, sizeof(Uniforms));

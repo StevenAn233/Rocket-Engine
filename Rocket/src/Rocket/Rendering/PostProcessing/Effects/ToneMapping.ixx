@@ -22,7 +22,7 @@ export namespace rke
             float gamma	  { 2.2f };
         };
 
-        ToneMapping(String name);
+        ToneMapping(String name, std::function<bool()> extra = nullptr);
         void set_exposure(float exposure);
         void set_gamma(float gamma);
     private:

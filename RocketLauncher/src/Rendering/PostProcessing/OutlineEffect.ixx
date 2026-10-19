@@ -14,11 +14,43 @@ export namespace rke
 
         struct Uniforms{ glm::vec4 outline_color{}; }; // srgb
 
-        OutlineEffect(String name, std::function<bool()> extra,
-            Window* context, TargetGetter target_getter, CameraGetter camera_getter);
+        struct Context
+        {
+            TargetGetter target_getter{ nullptr };
+            CameraGetter camera_getter{ nullptr };
 
+            Context() = default;
+            Context(TargetGetter tgetter, CameraGetter cgetter)
+                : target_getter(std::move(tgetter))
+                , camera_getter(std::move(cgetter)) {}
+
+            Context(const Context& other)
+                : target_getter(other.target_getter)
+                , camera_getter(other.camera_getter) {}
+            
+            Context& operator=(const Context& other)
+            {
+                target_getter = other.target_getter;
+                camera_getter = other.camera_getter;
+                return *this;
+            }
+            
+            Context(Context&& other)
+                : target_getter(std::move(other.target_getter))
+                , camera_getter(std::move(other.camera_getter)) {}
+            
+            Context& operator=(Context&& other)
+            {
+                target_getter = std::move(other.target_getter);
+                camera_getter = std::move(other.camera_getter);
+                return *this;
+            }
+        };
+
+        OutlineEffect(String name, std::function<bool()> extra = nullptr);
         Category get_category() const override { return Category::Helper; }
-        
+
+        inline void set_context(Context context) { context_ = std::move(context); }
         void set_color(glm::vec4 color);
         void set_thickness(float thickness);
         inline glm::vec4 get_color() const { return uniforms_.outline_color; }
@@ -45,9 +77,7 @@ export namespace rke
         static Shader& get_outline_shader();
         static Shader& get_copy_shader();
     private:
-        Window* context_;
-        TargetGetter target_getter_;
-        CameraGetter camera_getter_;
+        Context context_{};
 
         Uniforms uniforms_{};
         Ref<UniformBuffer> ubo_{};
