@@ -55,11 +55,6 @@ namespace rke
         return ping_pong;
     }
 
-    void PostProcessor::refresh_all_shaders()
-    {
-        // to be impl... or remove
-    }
-
     void PostProcessor::serialize_all_to(ConfigWriter& writer) const
     {
         writer.begin_map(name_);

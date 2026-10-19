@@ -62,6 +62,12 @@ export namespace rke
         inline uint32 get_samples() const { return samples_; }
         uint8 get_samples_shift() const;
         void set_samples(uint8 shift);
+
+        static void refresh_shaders()
+        {
+            get_outline_shader().clear_gshaders();
+            get_copy_shader().clear_gshaders();
+        }
     private:
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
 

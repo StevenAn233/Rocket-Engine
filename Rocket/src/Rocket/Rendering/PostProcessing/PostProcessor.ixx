@@ -34,7 +34,6 @@ export namespace rke
         const GTexture2D* process(const GTexture2D* source);
         inline void clean_up() { fbos_[0]->clear(); fbos_[1]->clear(); }
 
-        void refresh_all_shaders();
         void serialize_all_to(ConfigWriter& writer) const;
         void deserialize_all_from(const ConfigReader& reader);
         void on_imgui_render(uint32 tree_flags = 0);

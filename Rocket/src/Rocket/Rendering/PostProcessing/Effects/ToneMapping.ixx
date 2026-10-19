@@ -25,6 +25,8 @@ export namespace rke
         ToneMapping(String name, std::function<bool()> extra = nullptr);
         void set_exposure(float exposure);
         void set_gamma(float gamma);
+
+        static void refresh_shader() { get_shader().clear_gshaders(); }
     private:
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
         void serialize_to(ConfigWriter& writer) const override;

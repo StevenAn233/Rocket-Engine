@@ -215,8 +215,9 @@ namespace rke
                     if(ImGui::MenuItem("Refresh Shaders"))
                     {
                         Renderer::refresh_shader();
-                        post_processor_.refresh_all_shaders();
-                        cam_post_processor_.refresh_all_shaders();
+                        FXAAEffect::refresh_shader();
+                        ToneMapping::refresh_shader();
+                        OutlineEffect::refresh_shaders();
                     }
                 }
                 ImGui::EndPopup();
