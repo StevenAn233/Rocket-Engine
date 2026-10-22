@@ -37,11 +37,8 @@ namespace rke
         WindowsRkDylibLoader& operator=(const WindowsRkDylibLoader&) = delete;
         WindowsRkDylibLoader(WindowsRkDylibLoader&&) = default;
         WindowsRkDylibLoader& operator=(WindowsRkDylibLoader&&) = default;
-
-        Scope<RkDylib> load_dylib() const override;
     private:
+        Scope<RkDylib> load_new() override;
         void delete_temp_files();
-    private:
-        mutable uint32 reload_count_{};
     };
 }

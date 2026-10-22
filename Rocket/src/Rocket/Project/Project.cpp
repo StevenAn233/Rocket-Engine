@@ -42,7 +42,7 @@ namespace rke
         }
 
         assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
-        script_registry_ = create_scope<ScriptRegistry>(nullptr);
+        script_registry_ = create_scope<ScriptRegistry>();
         dylib_loader_ = RkDylibLoader::create
             (project_dir_ / u8"bin" / RKE_CONFIG_NAME, project_config_.name);
 
@@ -50,12 +50,7 @@ namespace rke
         scripts_hot_reloading();
     }
 
-    Project::~Project()
-    {
-        scene_map_.clear();
-        script_registry_->clear();
-        dylib_loader_.reset();
-    }
+    Project::~Project() {}
 
     bool Project::save()
     {
@@ -98,16 +93,20 @@ namespace rke
 
     void Project::scripts_hot_reloading()
     {
-        Scope<ScriptRegistry> new_reg{ create_scope
-            <ScriptRegistry>(dylib_loader_->load_dylib()) };
-        CORE_ASSERT(new_reg, u8"Project: Failed to create script registry!");
-
-        for(auto& [_, scene] : scene_map_)
+        dylib_loader_->refresh([this](Scope<RkDylib> old_dylib, const RkDylib* new_dylib)
         {
-            scene->on_script_dylib_hot_reloading(*script_registry_, *new_reg);
-            scene->flush_pending_scripts();
-        }
-        script_registry_.reset(new_reg.release());
+            Scope<ScriptRegistry> new_reg{ create_scope<ScriptRegistry>() };
+            CORE_ASSERT(new_reg, u8"Project: Failed to create script registry!");
+            ScriptsRegistar registar{ new_dylib ? new_dylib->get_scripts_registar() : nullptr };
+            if(registar) registar(new_reg.get());
+
+            for(auto& [_, scene] : scene_map_)
+            {
+                scene->on_script_dylib_hot_reloading(*script_registry_, *new_reg);
+                scene->flush_pending_scripts();
+            }
+            script_registry_.reset(new_reg.release());
+        });
     }
 
     uint8 Project::get_samples_shift() const

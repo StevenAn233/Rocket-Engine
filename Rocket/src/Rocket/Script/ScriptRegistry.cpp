@@ -6,16 +6,6 @@ import Script;
 
 namespace rke
 {
-    ScriptRegistry::ScriptRegistry(Scope<RkDylib> dylib)
-        : dylib_(std::move(dylib))
-    {
-        if(!dylib_) return;
-        if(!dylib_->is_valid()) { dylib_.reset(); return; }
-        ScriptsRegistar registar{ dylib_->get_scripts_registar() };
-        CORE_ASSERT(registar, u8"ScriptRegistry: Registar null!");
-        registar(this);
-    }
-
     ScriptRegistry::~ScriptRegistry() { clear(); }
 
     void ScriptRegistry::register_script(ScriptType type, ScriptConstructor func)

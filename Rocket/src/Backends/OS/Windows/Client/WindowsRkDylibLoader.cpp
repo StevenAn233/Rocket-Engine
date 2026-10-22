@@ -35,7 +35,7 @@ namespace rke
 
     WindowsRkDylibLoader::~WindowsRkDylibLoader() { delete_temp_files(); }
 
-    Scope<RkDylib> WindowsRkDylibLoader::load_dylib() const
+    Scope<RkDylib> WindowsRkDylibLoader::load_new()
     {
     // Hot-reloading Support
         Path dylib_path{ dylib_dir_ / String::format(u8"{}.dll", dylib_name_) };
