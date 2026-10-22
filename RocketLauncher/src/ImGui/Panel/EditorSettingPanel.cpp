@@ -24,10 +24,7 @@ namespace rke
             project ? project->get_rkproj_path().string() : String{});
         auto* scene_edit{ owner_->scene_edit_ };
         writer->write(u8"Scene Edit", scene_edit ? scene_edit->get_name() : String{});
-
-        writer->begin_map(u8"Viewport");
         owner_->post_processor_.serialize_all_to(*(writer.get()));
-        writer->end_map();
 
         writer->begin_map(u8"Style");
         writer->write(u8"Font Scale", font_scale_);
@@ -55,10 +52,8 @@ namespace rke
 
         String scene_edit_name{ reader->get_at(u8"Scene Edit", String{}) };
         owner_->load_scene_edit(scene_edit_name);
+        owner_->post_processor_.deserialize_all_from(*(reader.get()));
 
-        auto view_data{ reader->get_child(u8"Viewport") };
-        if(view_data) owner_->post_processor_
-            .deserialize_all_from(*(view_data.get()));
         auto style_data{ reader->get_child(u8"Style") };
         if(style_data) {
             font_scale_ = style_data->get_at(u8"Font Scale", font_scale_);
