@@ -43,7 +43,7 @@ namespace rke
 
         assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
         script_registry_ = create_scope<ScriptRegistry>(nullptr);
-        script_dylib_loader_ = ScriptDylibLoader::create
+        dylib_loader_ = RkDylibLoader::create
             (project_dir_ / u8"bin" / RKE_CONFIG_NAME, project_config_.name);
 
         CORE_INFO(u8"Project: Project '{}' loaded.", rkproj_path_);
@@ -54,7 +54,7 @@ namespace rke
     {
         scene_map_.clear();
         script_registry_->clear();
-        script_dylib_loader_.reset();
+        dylib_loader_.reset();
     }
 
     bool Project::save()
@@ -99,7 +99,7 @@ namespace rke
     void Project::scripts_hot_reloading()
     {
         Scope<ScriptRegistry> new_reg{ create_scope
-            <ScriptRegistry>(script_dylib_loader_->load_dylib()) };
+            <ScriptRegistry>(dylib_loader_->load_dylib()) };
         CORE_ASSERT(new_reg, u8"Project: Failed to create script registry!");
 
         for(auto& [_, scene] : scene_map_)

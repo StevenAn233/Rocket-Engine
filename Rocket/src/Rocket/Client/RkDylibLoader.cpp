@@ -1,12 +1,12 @@
-module;
-module ScriptDylibLoader;
+﻿module;
+module RkDylibLoader;
 
 import :Base;
 import Log;
 
 namespace rke
 {
-    ScriptDylibLoader::ScriptDylibLoader(Path dir, String name)
+    RkDylibLoader::RkDylibLoader(Path dir, String name)
         : dylib_dir_(std::move(dir)), dylib_name_(std::move(name)) {}
 }
 
@@ -15,9 +15,9 @@ import :Windows;
 
 namespace rke
 {
-    Scope<ScriptDylibLoader> ScriptDylibLoader::create(Path dir, String name)
+    Scope<RkDylibLoader> RkDylibLoader::create(Path dir, String name)
     {
-        return create_scope<WindowsScriptDylibLoader>
+        return create_scope<WindowsRkDylibLoader>
             (std::move(dir), std::move(name));
     }
 }

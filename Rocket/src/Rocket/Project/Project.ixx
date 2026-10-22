@@ -16,7 +16,7 @@ import Path;
 import HeapManager;
 import PhysicsLayers;
 import AssetsManager;
-import ScriptDylibLoader;
+import RkDylibLoader;
 import ScriptRegistry;
 
 export namespace rke
@@ -83,7 +83,7 @@ export namespace rke
         // SceneManager scene_manager_;
         Scope<AssetsManager> assets_manager_{};
 
-        Scope<ScriptDylibLoader> script_dylib_loader_{};
+        Scope<RkDylibLoader> dylib_loader_{};
         Scope<ScriptRegistry> script_registry_{};
     };
 }
