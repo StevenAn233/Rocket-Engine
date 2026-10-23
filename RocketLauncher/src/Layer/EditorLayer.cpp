@@ -116,13 +116,11 @@ namespace rke
                 scene->for_each_entity_with<BoxCollider2DComponent>
                 ([&targets, &plane](Entity entity)
                 {
-                    const auto& bcc{ entity.get<BoxCollider2DComponent>() };
-                    const PlaneBox box{ entity.box_of(plane) };
+                    PlaneBox box{ entity.box_of(plane) };
                     if(box.empty()) return;
-
-                    const PlaneBox collider{ box.get_centre(),
-                        box.get_size() * bcc.size_scale, box.get_rotation() };
-                    targets.push_back({ &mesh::quad(), collider.to_world(plane) });
+                    const auto& bcc{ entity.get<BoxCollider2DComponent>() };
+                    box.scale_by(bcc.size_scale);
+                    targets.push_back({ &mesh::quad(), box.to_world(plane) });
                 });
                 return targets;
             },

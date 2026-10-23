@@ -66,6 +66,10 @@ export namespace rke
         inline glm::vec2 get_size() const { return size_; }
         inline float get_rotation() const { return rotation_; }
 
+        inline void translate_by(glm::vec2 trans) { centre_ += trans; }
+        inline void scale_by(glm::vec2 extent) { size_ *= extent; }
+        inline void rotate_by(float degree) { rotation_ += degree; }
+
         inline glm::vec2 get_half_size() const { return 0.5f * size_; }
         inline bool empty() const { return size_.x <= 0.0f || size_.y <= 0.0f; }
 
