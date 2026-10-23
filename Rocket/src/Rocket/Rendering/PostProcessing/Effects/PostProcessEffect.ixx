@@ -33,18 +33,18 @@ export namespace rke
 
         PostProcessEffect(String name, std::function<bool()> extra = nullptr);
         virtual ~PostProcessEffect() = default;
+        virtual Category get_category() const { return Category::Standard; }
 
         inline const String& get_name() const { return name_; }
         inline bool is_enabled() const { return enabled_inner_ && enabled_extra_(); }
 
-        virtual Category get_category() const { return Category::Standard; }
-    protected:
         // if returns true , use destination->get_gtexture_attached();
         // if returns false, use (original)source
         virtual bool apply(const GTexture2D* source, FrameBuffer* destination) = 0;
 
         virtual void serialize_to(ConfigWriter& writer) const;
         virtual void deserialize_from(const ConfigReader& reader);
+    protected:
         virtual void on_imgui_render();
         virtual void on_viewport_resized(uint32 w, uint32 h) {}; // for client framebuffer
     private:

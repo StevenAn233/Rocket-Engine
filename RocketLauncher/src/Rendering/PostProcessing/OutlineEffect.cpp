@@ -15,34 +15,6 @@ namespace rke
         outline_fbo_->set_samples(samples_);
     }
 
-    uint8 OutlineEffect::get_samples_shift() const
-    {
-        uint8 shift{};
-        uint32 samples{ samples_ }; // copy
-        while(samples = samples >> 1) ++shift;
-        return shift;
-    }
-
-    void OutlineEffect::set_samples(uint8 shift)
-    {
-        constexpr uint8 max_shift{ 5 }; // to modify
-        if(shift > max_shift) {
-            CORE_WARN(u8"OutlineEffect: Samples too much!");
-            return;
-        }
-        samples_ = (1u << shift);
-        outline_fbo_->set_samples(samples_);
-    }
-
-    void OutlineEffect::set_color(glm::vec4 color)
-    {
-        uniforms_.outline_color = math::srgb_to_linear(color);
-        ubo_->set_data(&uniforms_, sizeof(Uniforms));
-    }
-
-    void OutlineEffect::set_thickness(float thickness) { thickness_ = thickness; }
-
-// private
     bool OutlineEffect::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
@@ -113,6 +85,34 @@ namespace rke
         wireframe_ = reader.get_at(u8"Wireframe", false);
     }
 
+    uint8 OutlineEffect::get_samples_shift() const
+    {
+        uint8 shift{};
+        uint32 samples{ samples_ }; // copy
+        while(samples = samples >> 1) ++shift;
+        return shift;
+    }
+
+    void OutlineEffect::set_samples(uint8 shift)
+    {
+        constexpr uint8 max_shift{ 5 }; // to modify
+        if(shift > max_shift) {
+            CORE_WARN(u8"OutlineEffect: Samples too much!");
+            return;
+        }
+        samples_ = (1u << shift);
+        outline_fbo_->set_samples(samples_);
+    }
+
+    void OutlineEffect::set_color(glm::vec4 color)
+    {
+        uniforms_.outline_color = math::srgb_to_linear(color);
+        ubo_->set_data(&uniforms_, sizeof(Uniforms));
+    }
+
+    void OutlineEffect::set_thickness(float thickness) { thickness_ = thickness; }
+
+// private
     void OutlineEffect::on_imgui_render()
     {
         PostProcessEffect::on_imgui_render();

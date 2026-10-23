@@ -48,7 +48,12 @@ export namespace rke
         };
 
         OutlineEffect(String name, std::function<bool()> extra = nullptr);
+        ~OutlineEffect() override {}
         Category get_category() const override { return Category::Helper; }
+
+        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
+        void serialize_to(ConfigWriter& writer) const override;
+        void deserialize_from(const ConfigReader& reader) override;
 
         inline void set_context(Context context) { context_ = std::move(context); }
         void set_color(glm::vec4 color);
@@ -69,10 +74,6 @@ export namespace rke
             get_copy_shader().clear_gshaders();
         }
     private:
-        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
-
-        void serialize_to(ConfigWriter& writer) const override;
-        void deserialize_from(const ConfigReader& reader) override;
         void on_imgui_render() override;
         void on_viewport_resized(uint32 w, uint32 h) override;
 

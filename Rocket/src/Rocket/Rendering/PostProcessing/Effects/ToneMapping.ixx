@@ -23,16 +23,18 @@ export namespace rke
         };
 
         ToneMapping(String name, std::function<bool()> extra = nullptr);
+        ~ToneMapping() override {}
+
+        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
+        void serialize_to(ConfigWriter& writer) const override;
+        void deserialize_from(const ConfigReader& reader) override;
+
         void set_exposure(float exposure);
         void set_gamma(float gamma);
 
         static void refresh_shader() { get_shader().clear_gshaders(); }
     private:
-        bool apply(const GTexture2D* source, FrameBuffer* destination) override;
-        void serialize_to(ConfigWriter& writer) const override;
-        void deserialize_from(const ConfigReader& reader) override;
         void on_imgui_render() override;
-
         static Shader& get_shader();
     private:
         Uniforms uniforms_{};

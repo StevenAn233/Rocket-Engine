@@ -19,18 +19,6 @@ namespace rke
         ubo_->set_data(&uniforms_, sizeof(Uniforms));
     }
 
-    void ToneMapping::set_exposure(float exposure)
-    {
-        uniforms_.exposure = exposure;
-        ubo_->set_data(&uniforms_, sizeof(Uniforms));
-    }
-
-    void ToneMapping::set_gamma(float gamma)
-    {
-        uniforms_.gamma = gamma;
-        ubo_->set_data(&uniforms_, sizeof(Uniforms));
-    }
-
     bool ToneMapping::apply(const GTexture2D* source, FrameBuffer* destination)
     {
         if(!source || !destination) return false;
@@ -66,6 +54,18 @@ namespace rke
         PostProcessEffect::deserialize_from(reader);
         uniforms_.exposure = reader.get_at(u8"Exposure", 1.0f);
         uniforms_.gamma = reader.get_at(u8"Gamma", 2.2f);
+        ubo_->set_data(&uniforms_, sizeof(Uniforms));
+    }
+
+    void ToneMapping::set_exposure(float exposure)
+    {
+        uniforms_.exposure = exposure;
+        ubo_->set_data(&uniforms_, sizeof(Uniforms));
+    }
+
+    void ToneMapping::set_gamma(float gamma)
+    {
+        uniforms_.gamma = gamma;
         ubo_->set_data(&uniforms_, sizeof(Uniforms));
     }
 
