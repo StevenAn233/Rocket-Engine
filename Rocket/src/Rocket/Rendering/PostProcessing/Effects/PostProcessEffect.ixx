@@ -42,9 +42,12 @@ export namespace rke
         // if returns false, use (original)source
         virtual bool apply(const GTexture2D* source, FrameBuffer* destination) = 0;
 
-        virtual void serialize_to(ConfigWriter& writer) const;
-        virtual void deserialize_from(const ConfigReader& reader);
+        void serialize_to(ConfigWriter& writer) const;
+        void deserialize_from(const ConfigReader& reader);
     protected:
+        virtual void on_serialize(ConfigWriter& writer) const {}
+        virtual void on_deserialize(const ConfigReader& reader) {}
+
         virtual void on_imgui_render();
         virtual void on_viewport_resized(uint32 w, uint32 h) {}; // for client framebuffer
     private:

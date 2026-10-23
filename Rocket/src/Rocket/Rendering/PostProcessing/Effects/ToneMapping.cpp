@@ -41,21 +41,6 @@ namespace rke
         });
         return true;
     }
-    
-    void ToneMapping::serialize_to(ConfigWriter& writer) const
-    {
-        PostProcessEffect::serialize_to(writer);
-        writer.write(u8"Exposure", uniforms_.exposure);
-        writer.write(u8"Gamma", uniforms_.gamma);
-    }
-
-    void ToneMapping::deserialize_from(const ConfigReader& reader)
-    {
-        PostProcessEffect::deserialize_from(reader);
-        uniforms_.exposure = reader.get_at(u8"Exposure", 1.0f);
-        uniforms_.gamma = reader.get_at(u8"Gamma", 2.2f);
-        ubo_->set_data(&uniforms_, sizeof(Uniforms));
-    }
 
     void ToneMapping::set_exposure(float exposure)
     {
@@ -66,6 +51,20 @@ namespace rke
     void ToneMapping::set_gamma(float gamma)
     {
         uniforms_.gamma = gamma;
+        ubo_->set_data(&uniforms_, sizeof(Uniforms));
+    }
+
+// private
+    void ToneMapping::on_serialize(ConfigWriter& writer) const
+    {
+        writer.write(u8"Exposure", uniforms_.exposure);
+        writer.write(u8"Gamma", uniforms_.gamma);
+    }
+
+    void ToneMapping::on_deserialize(const ConfigReader& reader)
+    {
+        uniforms_.exposure = reader.get_at(u8"Exposure", 1.0f);
+        uniforms_.gamma = reader.get_at(u8"Gamma", 2.2f);
         ubo_->set_data(&uniforms_, sizeof(Uniforms));
     }
 

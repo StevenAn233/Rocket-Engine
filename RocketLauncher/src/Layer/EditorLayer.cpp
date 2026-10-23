@@ -73,7 +73,6 @@ namespace rke
                     (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
             }
         });
-        selected->set_color(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f));
 
         auto hovering{ create_scope<OutlineEffect>
         (
@@ -102,7 +101,6 @@ namespace rke
                     (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
             }
         });
-        hovering->set_color(glm::vec4(1.0f, 0.8f, 0.0f, 1.0f));
 
         auto plane_boxes{ create_scope<OutlineEffect>(u8"Plane Box Outline") };
         plane_boxes->set_context ({
@@ -131,26 +129,38 @@ namespace rke
                     (scene ? scene->get_master_camera().get_view_proj() : glm::mat4(1.0f));
             }
         });
-        plane_boxes->set_color(glm::vec4(0.0f, 0.86f, 0.20f, 0.78f)); // the green it had
-        plane_boxes->set_thickness(3.0f);
+        
+        auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa") };
+        auto tone_mapping{ create_scope<ToneMapping>(u8"Tone Mapping") };
 
-    // SceneRenderer
+        Path filepath{ file::editor_dir() / u8"settings" / u8"editor.yaml" };
+        file::check_to_create_dir(filepath);
+        auto reader{ ConfigReader::create(filepath) };
+        CORE_ASSERT(reader, u8"EditorLayer: Failed to create reader!");
+
+        auto effects_reader{ reader->get_child(u8"Post-Process") };
+        if(effects_reader)
+        {
+            selected->deserialize_from(*effects_reader);
+            hovering->deserialize_from(*effects_reader);
+            plane_boxes->deserialize_from(*effects_reader);
+            fxaa->deserialize_from(*effects_reader);
+            tone_mapping->deserialize_from(*effects_reader);
+        }
+
         post_processor_.push_effect(std::move(plane_boxes));
         post_processor_.push_effect(std::move(selected));
         post_processor_.push_effect(std::move(hovering));
-        post_processor_.push_effect(create_scope<FXAAEffect>(u8"Fxaa"));
-        post_processor_.push_effect(create_scope<ToneMapping>(u8"Tone Mapping"));
+        post_processor_.push_effect(std::move(fxaa));
+        post_processor_.push_effect(std::move(tone_mapping));
 
         cam_renderer_.set_samples(1);
         cam_post_processor_.push_effect(create_scope<ToneMapping>(u8"Tone Mapping"));
 
-    // EditorSetting(After all effects been pushed); may modify
-        editor_setting_panel_->load_from(file::editor_dir() / u8"settings" / u8"editor.yaml");
-
-    // SceneHierarchy
+    // Panels
+        editor_setting_panel_->load_from(*reader);
         scene_hierarchy_panel_.set_on_entity_node_render(entity_right_click_popup_content);
 
-    // ContentBrowser
         Path assets_dir{ file::assets_dir() };
         content_browser_panel_->set_folder_icon(assets_dir / u8"icons" / u8"folder.png");
         content_browser_panel_->set_image_icon (assets_dir / u8"icons" / u8"image.png" );
@@ -242,6 +252,24 @@ namespace rke
     {
         if(testing()) on_runtime_stop();
         
+        auto writer{ ConfigWriter::create() };
+        CORE_ASSERT(writer, u8"EditorLayer: Failed to create writer!");
+
+        writer->begin_map();
+        editor_setting_panel_->save_to(*writer);
+
+        writer->begin_map(u8"Post-Process");
+        while(!post_processor_.empty())
+        {
+            Scope<PostProcessEffect> effect{ post_processor_.pop_effect() };
+            CORE_ASSERT(effect, u8"EditorLayer: Effect Empty!");
+            effect->serialize_to(*writer);
+        }
+        writer->end_map();
+        
+        writer->end_map();
+        writer->push_to_file(file::editor_dir() / u8"settings" / u8"editor.yaml");
+
         app().unregister_panel(editor_setting_panel_.get());
         app().unregister_panel(content_browser_panel_.get());
         app().unregister_panel(main_viewport_.get());

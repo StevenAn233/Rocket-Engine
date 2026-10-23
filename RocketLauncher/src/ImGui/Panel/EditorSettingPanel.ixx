@@ -17,7 +17,8 @@ export namespace rke
         EditorSettingPanel(String name, EditorLayer* owner);
         ~EditorSettingPanel();
 
-        void load_from(Path filepath);
+        void save_to(ConfigWriter& writer);
+        void load_from(const ConfigReader& reader);
 
         inline void set_gizmo_mode(gizmo::Mode mode) { gizmo_mode_ = mode; }
         inline gizmo::Mode get_gizmo_mode() const { return gizmo_mode_; }

@@ -27,6 +27,7 @@ export namespace rke
 
         inline const String& get_name() const { return name_; }
 
+        inline bool empty() const { return effects_stack_.empty(); }
         PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
         Scope<PostProcessEffect> pop_effect();
         // swap/sort effect...
@@ -34,8 +35,9 @@ export namespace rke
         const GTexture2D* process(const GTexture2D* source);
         inline void clean_up() { fbos_[0]->clear(); fbos_[1]->clear(); }
 
-        void serialize_all_to(ConfigWriter& writer) const;
-        void deserialize_all_from(const ConfigReader& reader);
+        // void serialize_to(ConfigWriter& writer) const;
+        // void deserialize_from(const ConfigReader& reader);
+
         void on_imgui_render(uint32 tree_flags = 0);
         void on_viewport_resized(uint32 w, uint32 h);
     private:

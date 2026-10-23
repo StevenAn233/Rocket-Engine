@@ -66,25 +66,6 @@ namespace rke
         return true;
     }
 
-    void OutlineEffect::serialize_to(ConfigWriter& writer) const
-    {
-        PostProcessEffect::serialize_to(writer);
-        writer.write(u8"Color", math::linear_to_srgb(uniforms_.outline_color));
-        writer.write(u8"Thickness", thickness_);
-        writer.write(u8"Samples"  , samples_  );
-        writer.write(u8"Wireframe", wireframe_);
-    }
-
-    void OutlineEffect::deserialize_from(const ConfigReader& reader)
-    {
-        PostProcessEffect::deserialize_from(reader);
-        set_color(reader.get_at(u8"Color", glm::vec4(1.0f)));
-        set_thickness(reader.get_at(u8"Thickness", 1.0f));
-        samples_ = reader.get_at(u8"Samples", 1);
-        outline_fbo_->set_samples(samples_);
-        wireframe_ = reader.get_at(u8"Wireframe", false);
-    }
-
     uint8 OutlineEffect::get_samples_shift() const
     {
         uint8 shift{};
@@ -113,6 +94,23 @@ namespace rke
     void OutlineEffect::set_thickness(float thickness) { thickness_ = thickness; }
 
 // private
+    void OutlineEffect::on_serialize(ConfigWriter& writer) const
+    {
+        writer.write(u8"Color", math::linear_to_srgb(uniforms_.outline_color));
+        writer.write(u8"Thickness", thickness_);
+        writer.write(u8"Samples"  , samples_  );
+        writer.write(u8"Wireframe", wireframe_);
+    }
+
+    void OutlineEffect::on_deserialize(const ConfigReader& reader)
+    {
+        set_color(reader.get_at(u8"Color", glm::vec4(1.0f)));
+        set_thickness(reader.get_at(u8"Thickness", 1.0f));
+        samples_ = reader.get_at(u8"Samples", 1);
+        outline_fbo_->set_samples(samples_);
+        wireframe_ = reader.get_at(u8"Wireframe", false);
+    }
+
     void OutlineEffect::on_imgui_render()
     {
         PostProcessEffect::on_imgui_render();

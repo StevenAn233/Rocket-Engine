@@ -9,52 +9,35 @@ namespace rke
         : Panel(std::move(name)), owner_(owner)
         { CORE_ASSERT(owner_, u8"EditorSettingPanel: Owner null!"); }
 
-    EditorSettingPanel::~EditorSettingPanel()
+    EditorSettingPanel::~EditorSettingPanel() {}
+
+    void EditorSettingPanel::save_to(ConfigWriter& writer)
     {
-        if(filepath_.empty()) return;
-        file::check_to_create_dir(filepath_);
-
-        auto writer{ ConfigWriter::create() };
-        if(!writer) return;
-
-        writer->begin_map();
-
         Project* project{ owner_->context_ };
-        writer->write(u8"Last Project Path",
+        writer.write(u8"Last Project Path",
             project ? project->get_rkproj_path().string() : String{});
         auto* scene_edit{ owner_->scene_edit_ };
-        writer->write(u8"Scene Edit", scene_edit ? scene_edit->get_name() : String{});
-        owner_->post_processor_.serialize_all_to(*(writer.get()));
+        writer.write(u8"Scene Edit", scene_edit ? scene_edit->get_name() : String{});
 
-        writer->begin_map(u8"Style");
-        writer->write(u8"Font Scale", font_scale_);
-        writer->end_map();
-
-        writer->end_map();
-        writer->push_to_file(filepath_);
+        writer.begin_map(u8"Style");
+        writer.write(u8"Font Scale", font_scale_);
+        writer.end_map();
     }
 
-    void EditorSettingPanel::load_from(Path filepath)
+    void EditorSettingPanel::load_from(const ConfigReader& reader)
     {
-        filepath_ = std::move(filepath);
-        if(!filepath_.exists()) {
-            CORE_WARN(u8"EditorSettingPanel: File '{}' not found!", filepath_);
+        if(!reader.is_map())
+        {
+            CORE_ERROR(u8"EditorSettingPanel: Reader format incorrect!");
             return;
         }
-        auto reader{ ConfigReader::create(filepath_) };
-        if(!reader || !reader->is_map()) {
-            CORE_ERROR(u8"EditorSettingPanel: File format incorrect!");
-            return;
-        }
-
-        Path proj_dir{ reader->get_at(u8"Last Project Path", String{}) };
+        Path proj_dir{ reader.get_at(u8"Last Project Path", String{}) };
         app().load_project(proj_dir);
 
-        String scene_edit_name{ reader->get_at(u8"Scene Edit", String{}) };
+        String scene_edit_name{ reader.get_at(u8"Scene Edit", String{}) };
         owner_->load_scene_edit(scene_edit_name);
-        owner_->post_processor_.deserialize_all_from(*(reader.get()));
 
-        auto style_data{ reader->get_child(u8"Style") };
+        auto style_data{ reader.get_child(u8"Style") };
         if(style_data) {
             font_scale_ = style_data->get_at(u8"Font Scale", font_scale_);
             ImGui::GetIO().FontGlobalScale = font_scale_;

@@ -55,41 +55,6 @@ namespace rke
         return ping_pong;
     }
 
-    void PostProcessor::serialize_all_to(ConfigWriter& writer) const
-    {
-        writer.begin_map(name_);
-        for(const auto& effect : effects_stack_)
-        {
-            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
-            writer.begin_map(effect->get_name());
-            effect->serialize_to(writer);
-            writer.end_map();
-        }
-        writer.end_map();
-    }
-
-    void PostProcessor::deserialize_all_from(const ConfigReader& reader)
-    {
-        auto all_effects{ reader.get_child(name_) };
-        if(!all_effects || !all_effects->is_map())
-        {
-            CORE_ERROR(u8"PostProcessir: '{}' not found!", name_);
-            return;
-        }
-        for(const auto& effect : effects_stack_)
-        {
-            CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
-            auto config{ all_effects->get_child(effect->get_name()) };
-            if(!config || !config->is_map())
-            {
-                CORE_ERROR(u8"PostProcessor: "
-                    u8"Effect '{}' not found!", effect->get_name());
-                continue;
-            }
-            effect->deserialize_from(*config);
-        }
-    }
-
     void PostProcessor::on_imgui_render(uint32 tree_flags)
     {
         for(Size i{}; i < effects_stack_.size(); i++)
