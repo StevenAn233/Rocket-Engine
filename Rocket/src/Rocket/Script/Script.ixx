@@ -8,6 +8,7 @@ export module Script;
 
 import Types;
 import EntityAccess;
+import ConfigProxy;
 
 export namespace rke
 {
@@ -22,6 +23,9 @@ export namespace rke
 
         virtual void on_create () {}
         virtual void on_destroy() {}
+
+        virtual void on_serialize(ConfigWriter& writer) const {}
+        virtual void on_deserialize(const ConfigReader& reader) {}
 
         virtual void on_update(double dt) {}
         virtual void on_imgui_render() {}

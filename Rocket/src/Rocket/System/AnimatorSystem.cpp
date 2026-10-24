@@ -235,9 +235,7 @@ namespace rke
 
         auto& states { ctx.animator_system_->states_ };
         auto& storage{ reg.storage<AnimatorComponent>() };
-    // this callback fires *before* EnTT pops the element: mirror the upcoming
-    // swap-and-pop, but only while both arrays are actually in sync.
-    // otherwise leave it to the per-frame owner check, which heals itself.
+
         if(states.size() != storage.size()) return;
         if(!storage.contains(ent)) return;
 

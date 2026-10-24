@@ -28,6 +28,9 @@ export namespace rke
         void set_serialize_hook(SerializeHook hook);
         void set_deserialize_hook(DeserializeHook hook);
     private:
+        static void serialize_entity(ConfigWriter& writer, Entity entity);
+        static void deserialize_entity(Scene& scene, const ConfigReader& reader);
+    private:
         SerializeHook serialize_hook_{};
         DeserializeHook deserialize_hook_{};
     };

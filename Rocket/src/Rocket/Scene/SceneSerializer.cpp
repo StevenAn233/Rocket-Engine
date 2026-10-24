@@ -8,10 +8,136 @@ import FileUtils;
 import GTexture;
 import Project;
 
-namespace {
-    using namespace rke;
+namespace rke
+{
+    bool SceneSerializer::serialize(const Scene& scene, const Path& filepath)
+    {
+        CORE_ASSERT(!scene.temporary_, u8"SceneRenderer:"
+            u8" Can't serialize temporary scene!");
+        Scope<ConfigWriter> writer{ ConfigWriter::create() };
+        writer->begin_map();
 
-    static void serialize_entity(ConfigWriter& writer, Entity entity)
+        writer->write(u8"Scene", scene.get_name());
+        if(const auto* physics_engine{ scene.physics_engine_.get() })
+        {
+            writer->begin_map(u8"Physics");
+            writer->write(u8"Gravity", physics_engine->get_gravity().val());
+            writer->write(u8"Plane", physics_engine->get_plane().get_define());
+            writer->end_map();
+        }
+
+        writer->begin_array(u8"Entities");
+        scene.for_each_entity([&](Entity entity)
+            { if(entity.is_valid()) serialize_entity(*(writer.get()), entity); });
+        writer->end_array();
+
+        Entity selected{ scene.get_selected_entity() };
+        writer->write(u8"Selected Entity", selected.is_valid() ? selected.get_uuid().value() : 0);
+
+        Entity master_cam{ scene.get_master_camera() };
+        writer->write(u8"Master Camera", master_cam.is_valid() ? master_cam.get_uuid().value() : 0);
+
+        Entity demo_cam{ scene.get_demo_camera() };
+        writer->write(u8"Demo Camera", demo_cam.is_valid() ? demo_cam.get_uuid().value() : 0);
+
+        if(serialize_hook_) serialize_hook_(scene, *(writer.get()));
+
+        writer->end_map();
+
+        file::check_to_create_dir(filepath);
+        if(writer->push_to_file(filepath)) { scene.modified_ = false; return true; }
+        CORE_ERROR(u8"SceneSerializer: Failed to serialize scene '{}'!", filepath);
+        return false;
+    }
+
+    bool SceneSerializer::deserialize(Scene& scene, const Path& filepath)
+    {
+        CORE_ASSERT(!scene.temporary_, u8"SceneRenderer:"
+            u8" Can't deserialize to temporary scene!");
+        if(!filepath.exists()) {
+            CORE_ERROR(u8"SceneSerializer: File '{}' doesn't exist!", filepath);
+            return false;
+        }
+        if(!filepath.string().ends_with(u8".rkscene")) {
+            CORE_ERROR(u8"SceneSerializer: '{}' isn't a .rkscene file!", filepath);
+            return false;
+        }
+
+        Scope<ConfigReader> reader{ ConfigReader::create(filepath) };
+        
+        Scope<ConfigReader> entities{ reader->get_child(u8"Entities") };
+        if(!entities) {
+            CORE_WARN(u8"SceneSerializer: No entities found in file '{}'!", filepath);
+            return false;
+        }
+        if(!entities->is_array()) {
+            CORE_WARN(u8"SceneSerializer: File format incorrect!");
+            return false;
+        }
+        // When you traverse a Sequence, each time you get a Node.
+        // When you traverse a Map, each time you get a pair<Node, Node>.
+
+        scene.clear();
+        scene.set_name(reader->get_at(u8"Scene", String{}));
+        auto* physics_engine{ scene.physics_engine_.get() };
+        if(reader->has_key(u8"Physics") && physics_engine)
+        {
+            Scope<ConfigReader> physics{ reader->get_child(u8"Physics") };
+            glm::vec3 gval{ physics->get_at(u8"Gravity", Gravity::default_val()) };
+            physics_engine->set_gravity(gval);
+            glm::vec4 axis{ physics->get_at(u8"Plane", glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)) };
+            physics_engine->set_plane(axis);
+        }
+
+        std::vector<std::pair<UUID, UUID>> links{};
+        entities->for_each([&scene, &links](Scope<ConfigReader> config)
+        {
+            const UUID uuid{ config->get_at(u8"Entity", 0ui64) };
+            const UUID parent_uuid{ config->get_at(u8"Parent", 0ui64) };
+            if(!parent_uuid.empty() && parent_uuid != uuid)
+                links.emplace_back(uuid, parent_uuid);
+            deserialize_entity(scene, *(config.get()));
+        });
+
+        for(const auto& [child_uuid, parent_uuid] : links)
+        {
+            Entity child{ scene.get_entity(child_uuid) };
+            Entity parent{ scene.get_entity(parent_uuid) };
+            if(!child.is_valid() || !parent.is_valid()) continue;
+            scene.set_parent(child.get_handle(), parent.get_handle());
+        }
+
+        if(reader->has_key(u8"Selected Entity")) {
+            UUID uuid{ reader->get_at(u8"Selected Entity", 0ui64) };
+            scene.set_selected_entity(uuid);
+        }
+        else scene.set_selected_entity(entity_handle_null);
+
+        if(reader->has_key(u8"Master Camera")) {
+            UUID uuid{ reader->get_at(u8"Master Camera", 0ui64) };
+            scene.set_master_camera(uuid);
+        }
+        else scene.set_master_camera(entity_handle_null);
+
+        if(reader->has_key(u8"Demo Camera")) {
+            UUID uuid{ reader->get_at(u8"Demo Camera", 0ui64) };
+            scene.set_demo_camera(uuid);
+        }
+        else scene.set_demo_camera(entity_handle_null);
+
+        if(deserialize_hook_) deserialize_hook_(scene, *(reader.get()));
+
+        scene.get_master_camera();
+        scene.modified_ = false; // just loaded, nothing changed
+        return true;
+    }
+
+    void SceneSerializer::set_serialize_hook(SerializeHook hook)
+        { serialize_hook_ = std::move(hook); }
+    void SceneSerializer::set_deserialize_hook(DeserializeHook hook)
+        { deserialize_hook_ = std::move(hook); }
+
+    void SceneSerializer::serialize_entity(ConfigWriter& writer, Entity entity)
     {
         CORE_ASSERT(entity.is_valid(), u8"SceneSerializer: Entity invalid!");
         
@@ -133,12 +259,17 @@ namespace {
 
         if(entity.has<NativeScriptComponent>())
         {
+            auto [handle, scene]{ entity.split() };
             writer.begin_map(u8"Native-Script Component");
 
             const auto& nsc{ entity.get<NativeScriptComponent>() };
-            const auto& script_reg{ entity.get_owner()->get_owner()->get_script_registry() };
+            const auto& script_reg{ scene->get_owner()->get_script_registry() };
             String name{ script_reg.get_script_name(nsc.script_type) };
             writer.write(u8"Script Name", ConfigValue(name));
+
+        // may modify
+            Script* script{ scene->script_manager_->get_script(handle) };
+            if(script) script->on_serialize(writer);
 
             writer.end_map();
         }
@@ -146,7 +277,7 @@ namespace {
         writer.end_map();
     }
 
-    static void deserialize_entity(Scene& scene, const ConfigReader& reader)
+    void SceneSerializer::deserialize_entity(Scene& scene, const ConfigReader& reader)
     {
         UUID uuid{ reader.get_at(u8"Entity", 0ui64) };
         String name{ reader.get_at(u8"Tag", String{}) };
@@ -247,135 +378,17 @@ namespace {
             const auto& script_reg{ scene.get_owner()->get_script_registry() };
             String name{ nsc_reader->get_at(u8"Script Name", String{}) };
             nsc.script_type = script_reg.get_script_type(name);
+
+        // may modify
+            Scope<Script> script{ script_reg.construct_script(nsc.script_type) };
+            if(script) {
+                ScriptManager& script_manager{ *scene.script_manager_ };
+                script_manager.init_script(script.get(), entity.get_handle());
+                script->on_deserialize(*nsc_reader);
+                script_manager.script_cache_.emplace_back
+                    (nsc.script_type, std::move(script));
+            }
+            else CORE_WARN(u8"SceneSerializer: Failed to create script!");
         }
     }
-}
-
-namespace rke
-{
-    bool SceneSerializer::serialize(const Scene& scene, const Path& filepath)
-    {
-        CORE_ASSERT(!scene.temporary_, u8"SceneRenderer:"
-            u8" Can't serialize temporary scene!");
-        Scope<ConfigWriter> writer{ ConfigWriter::create() };
-        writer->begin_map();
-
-        writer->write(u8"Scene", scene.get_name());
-        if(const auto* physics_engine{ scene.physics_engine_.get() })
-        {
-            writer->begin_map(u8"Physics");
-            writer->write(u8"Gravity", physics_engine->get_gravity().val());
-            writer->write(u8"Plane", physics_engine->get_plane().get_define());
-            writer->end_map();
-        }
-
-        writer->begin_array(u8"Entities");
-        scene.for_each_entity([&](Entity entity)
-            { if(entity.is_valid()) serialize_entity(*(writer.get()), entity); });
-        writer->end_array();
-
-        Entity selected{ scene.get_selected_entity() };
-        writer->write(u8"Selected Entity", selected.is_valid() ? selected.get_uuid().value() : 0);
-
-        Entity master_cam{ scene.get_master_camera() };
-        writer->write(u8"Master Camera", master_cam.is_valid() ? master_cam.get_uuid().value() : 0);
-
-        Entity demo_cam{ scene.get_demo_camera() };
-        writer->write(u8"Demo Camera", demo_cam.is_valid() ? demo_cam.get_uuid().value() : 0);
-
-        if(serialize_hook_) serialize_hook_(scene, *(writer.get()));
-
-        writer->end_map();
-
-        file::check_to_create_dir(filepath);
-        if(writer->push_to_file(filepath)) { scene.modified_ = false; return true; }
-        CORE_ERROR(u8"SceneSerializer: Failed to serialize scene '{}'!", filepath);
-        return false;
-    }
-
-    bool SceneSerializer::deserialize(Scene& scene, const Path& filepath)
-    {
-        CORE_ASSERT(!scene.temporary_, u8"SceneRenderer:"
-            u8" Can't deserialize to temporary scene!");
-        if(!filepath.exists()) {
-            CORE_ERROR(u8"SceneSerializer: File '{}' doesn't exist!", filepath);
-            return false;
-        }
-        if(!filepath.string().ends_with(u8".rkscene")) {
-            CORE_ERROR(u8"SceneSerializer: '{}' isn't a .rkscene file!", filepath);
-            return false;
-        }
-
-        Scope<ConfigReader> reader{ ConfigReader::create(filepath) };
-        
-        Scope<ConfigReader> entities{ reader->get_child(u8"Entities") };
-        if(!entities) {
-            CORE_WARN(u8"SceneSerializer: No entities found in file '{}'!", filepath);
-            return false;
-        }
-        if(!entities->is_array()) {
-            CORE_WARN(u8"SceneSerializer: File format incorrect!");
-            return false;
-        }
-        // When you traverse a Sequence, each time you get a Node.
-        // When you traverse a Map, each time you get a pair<Node, Node>.
-
-        scene.set_name(reader->get_at(u8"Scene", String{}));
-        auto* physics_engine{ scene.physics_engine_.get() };
-        if(reader->has_key(u8"Physics") && physics_engine)
-        {
-            Scope<ConfigReader> physics{ reader->get_child(u8"Physics") };
-            glm::vec3 gval{ physics->get_at(u8"Gravity", Gravity::default_val()) };
-            physics_engine->set_gravity(gval);
-            glm::vec4 axis{ physics->get_at(u8"Plane", glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)) };
-            physics_engine->set_plane(axis);
-        }
-
-        std::vector<std::pair<UUID, UUID>> links{};
-        entities->for_each([&scene, &links](Scope<ConfigReader> config)
-        {
-            const UUID uuid{ config->get_at(u8"Entity", 0ui64) };
-            const UUID parent_uuid{ config->get_at(u8"Parent", 0ui64) };
-            if(!parent_uuid.empty() && parent_uuid != uuid)
-                links.emplace_back(uuid, parent_uuid);
-            deserialize_entity(scene, *(config.get()));
-        });
-
-        for(const auto& [child_uuid, parent_uuid] : links)
-        {
-            Entity child{ scene.get_entity(child_uuid) };
-            Entity parent{ scene.get_entity(parent_uuid) };
-            if(!child.is_valid() || !parent.is_valid()) continue;
-            scene.set_parent(child.get_handle(), parent.get_handle());
-        }
-
-        if(reader->has_key(u8"Selected Entity")) {
-            UUID uuid{ reader->get_at(u8"Selected Entity", 0ui64) };
-            scene.set_selected_entity(uuid);
-        }
-        else scene.set_selected_entity(entity_handle_null);
-
-        if(reader->has_key(u8"Master Camera")) {
-            UUID uuid{ reader->get_at(u8"Master Camera", 0ui64) };
-            scene.set_master_camera(uuid);
-        }
-        else scene.set_master_camera(entity_handle_null);
-
-        if(reader->has_key(u8"Demo Camera")) {
-            UUID uuid{ reader->get_at(u8"Demo Camera", 0ui64) };
-            scene.set_demo_camera(uuid);
-        }
-        else scene.set_demo_camera(entity_handle_null);
-
-        if(deserialize_hook_) deserialize_hook_(scene, *(reader.get()));
-
-        scene.get_master_camera();
-        scene.modified_ = false; // just loaded, nothing changed
-        return true;
-    }
-
-    void SceneSerializer::set_serialize_hook(SerializeHook hook)
-        { serialize_hook_ = std::move(hook); }
-    void SceneSerializer::set_deserialize_hook(DeserializeHook hook)
-        { deserialize_hook_ = std::move(hook); }
 }

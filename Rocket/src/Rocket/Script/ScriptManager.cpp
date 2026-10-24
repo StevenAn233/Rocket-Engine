@@ -17,7 +17,9 @@ namespace rke
         sync_all_to_cache();
     }
 
-    ScriptManager::~ScriptManager()
+    ScriptManager::~ScriptManager() { clear(); }
+
+    void ScriptManager::clear()
     {
         for(auto& cache : script_cache_)
             bury(std::move(cache.script));
@@ -68,6 +70,11 @@ namespace rke
     void ScriptManager::attach_script_to(Script* script, EntityHandle handle)
     {
         if(!script) return;
+        if(!owner_->is_handle_valid(handle))
+        {
+            CORE_WARN(u8"ScriptManager: Owner handle invalid!");
+            return;
+        }
         script->owner_handle_ = handle;
         script->owner_scene_  = owner_;
     }

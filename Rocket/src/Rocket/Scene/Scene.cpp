@@ -756,13 +756,22 @@ namespace rke
             CORE_ERROR(u8"Scene: Can't be cleared during runtime!");
             return;
         }
-        registry_ ->clear();
+        registry_->clear(); // script_cache should have been cleared here
         reset_relations();
         to_destroy_.clear();
         entity_map_.clear();
         demo_cam_ = {};
         master_cam_ = {};
         selected_entity_ = {};
+
+    #ifdef RKE_DEBUG
+        if(script_manager_->script_cache_.size() > 0)
+        {
+            CORE_ERROR(u8"Scene: Scripts has not been cleared normally: "
+                u8"{} left!", script_manager_->script_cache_.size());
+        }
+    #endif
+        script_manager_->clear(); // flush
     }
 
     void Scene::on_update(double dt)

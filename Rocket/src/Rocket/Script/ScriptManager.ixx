@@ -21,6 +21,7 @@ export namespace rke
     {
     public:
         friend class Scene;
+        friend class SceneSerializer;
 
         ScriptManager(Scene* owner);
         ~ScriptManager();
@@ -30,6 +31,7 @@ export namespace rke
         ScriptManager(ScriptManager&&) = delete;
         ScriptManager& operator=(ScriptManager&&) = delete;
 
+        void clear();
         void on_update(double dt);
         void on_mouse_scrolled(float x_offset, float y_offset);
 
