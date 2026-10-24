@@ -50,7 +50,11 @@ namespace rke
         scripts_hot_reloading();
     }
 
-    Project::~Project() {}
+    Project::~Project()
+    {
+        scene_map_.clear();
+        dylib_loader_.reset();
+    }
 
     bool Project::save()
     {
@@ -100,12 +104,10 @@ namespace rke
             ScriptsRegistar registar{ new_dylib ? new_dylib->get_scripts_registar() : nullptr };
             if(registar) registar(new_reg.get());
 
-            for(auto& [_, scene] : scene_map_)
-            {
-                scene->on_script_dylib_hot_reloading(*script_registry_, *new_reg);
-                scene->flush_pending_scripts();
-            }
+            Scope<ScriptRegistry> old_reg{ std::move(script_registry_) };
             script_registry_.reset(new_reg.release());
+            for(auto& [_, scene] : scene_map_)
+                scene->on_script_dylib_hot_reloading(*old_reg, *script_registry_);
         });
     }
 

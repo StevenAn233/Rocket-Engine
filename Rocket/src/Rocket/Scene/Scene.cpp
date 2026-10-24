@@ -457,6 +457,28 @@ namespace rke
         new_scene->set_master_camera(get_master_camera().get_uuid());
         new_scene->set_demo_camera(get_demo_camera().get_uuid());
 
+        // ScriptManager: after NativeScriptComponents are copied
+        const auto& new_script_storage{ new_scene->
+            registry_->storage<NativeScriptComponent>() };
+        const auto& script_reg{ owner_->get_script_registry() };
+        for(Size i{}; i < script_manager_->script_cache_.size(); i++)
+        {
+            const auto& this_cache{ script_manager_->script_cache_[i] };
+            if(i >= new_script_storage.size())
+            {
+                CORE_ERROR(u8"Scene: Script index out of bound!");
+                break;
+            }
+            
+            Scope<Script> copied_script{ script_reg
+                .deep_copy_script(this_cache.script_type, this_cache.script.get()) };
+            entt::entity new_handle{ new_script_storage[i] };
+            new_scene->script_manager_->init_script
+                (copied_script.get(), static_cast<EntityHandle>(new_handle));
+            new_scene->script_manager_->script_cache_.emplace_back
+                (this_cache.script_type, std::move(copied_script));
+        }
+
         return new_scene;
     }
 
@@ -745,11 +767,10 @@ namespace rke
 
     void Scene::on_update(double dt)
     {
+        script_manager_->on_update(dt);
         if(in_runtime())
         {
-            script_manager_->on_update(dt);
             physics_engine_->on_update(dt);
-            
             script_manager_->dispatch_contacts
             (
                 physics_engine_->get_begin_contacts_solid(),
@@ -766,7 +787,6 @@ namespace rke
     {
         CORE_ASSERT(!in_runtime(), u8"Scene: Already in runtime!");
         in_runtime_ = true;
-        script_manager_->on_runtime_start();
         physics_engine_->on_runtime_start();
     }
 
@@ -774,9 +794,7 @@ namespace rke
     {
         CORE_ASSERT(in_runtime(), u8"Scene: Not in runtime!");
         in_runtime_ = false;
-        script_manager_->on_runtime_stop();
         physics_engine_->on_runtime_stop();
-        script_manager_->flush_scripts();
     }
 
     void Scene::set_physics_plane(glm::vec3 axis)
@@ -806,10 +824,6 @@ namespace rke
 
     void Scene::on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg)
     {
-        if(in_runtime()) {
-            CORE_ERROR(u8"Scene: Can't reload during runtime!");
-            return;
-        }
         auto view{ registry_->view<NativeScriptComponent>() };
         for(entt::entity ent : view)
         {
@@ -818,10 +832,9 @@ namespace rke
             String name{ old_reg.get_script_name(nsc.script_type) };
             nsc.script_type = new_reg.get_script_type(name);
         }
+        script_manager_->sync_all_to_cache();
+        script_manager_->flush_scripts();
     }
-
-    void Scene::flush_pending_scripts()
-        { if(script_manager_) script_manager_->flush_scripts(); }
 
     bool Scene::vertified(EntityHandle handle) const
     {

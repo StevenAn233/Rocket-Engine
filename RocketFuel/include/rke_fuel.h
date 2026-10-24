@@ -1,7 +1,9 @@
 ﻿#pragma once
 
-namespace rke::glue {
-    void push_script_entry(const char8_t* name, void* (*constructor)());
+namespace rke::glue
+{
+    void push_script_entry(const char8_t* name,
+        void* (*constructor)(), void* (*deep_copier)(const void*));
 }
 
 template<typename RKEScript>
@@ -10,7 +12,14 @@ struct RKEScriptRegistrar
     RKEScriptRegistrar(const char8_t* name)
     {
         rke::glue::push_script_entry(name,
-        []() -> void* { return new RKEScript(); });
+            []() -> void* { return new RKEScript(); },
+            [](const void* other) -> void*
+            {
+                if(!other) return nullptr;
+                return new RKEScript
+                    (*reinterpret_cast<const RKEScript*>(other));
+            }
+        );
     }
 };
 

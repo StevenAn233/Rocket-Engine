@@ -17,11 +17,12 @@ export namespace rke
         friend class ScriptManager;
 
         RKE_API Script();
+        RKE_API Script(const Script& other);
         RKE_API virtual ~Script();
 
         virtual void on_create () {}
         virtual void on_destroy() {}
-    
+
         virtual void on_update(double dt) {}
         virtual void on_imgui_render() {}
 
@@ -31,7 +32,7 @@ export namespace rke
         virtual void on_contact_sensor_begin(EntityHandle other) {}
         virtual void on_contact_sensor_end  (EntityHandle other) {}
     protected:
-        inline Entity& owner() { return *(std::bit_cast<Entity*>(uintptr_t(&padding_))); }
+        inline Entity& owner() { return *(std::bit_cast<Entity*>(uintptr(&padding_))); }
         inline EntityHandle owner_handle() const { return owner_handle_; }
         inline Scene* owner_scene() { return owner_scene_; }
     private: // set by ScriptManager

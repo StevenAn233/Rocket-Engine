@@ -22,10 +22,11 @@ export namespace rke
         ~ScriptRegistry();
 
         // name will always be string literals(if not directly called)
-        RKE_API void register_script(ScriptType type, ScriptConstructor func);
+        RKE_API void register_script(ScriptType type, ScriptRecipe recipe);
         RKE_API void clear();
 
-        RKE_API Scope<Script> construct_script(ScriptType type);
+        RKE_API Scope<Script> construct_script(ScriptType type) const;
+        RKE_API Scope<Script> deep_copy_script(ScriptType type, const Script* other) const;
         RKE_API bool has_script_type(ScriptType type) const;
     
         RKE_API String get_script_name(ScriptType type) const;
@@ -35,6 +36,6 @@ export namespace rke
         inline const std::vector<ScriptType>& get_script_types() const { return script_types_; }
     private:
         std::vector<ScriptType> script_types_{};
-        std::unordered_map<uintptr, ScriptConstructor> script_constructors_{};
+        std::unordered_map<uintptr, ScriptRecipe> script_recipes_{};
     };
 }

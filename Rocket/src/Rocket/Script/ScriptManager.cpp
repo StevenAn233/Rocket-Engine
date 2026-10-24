@@ -14,31 +14,31 @@ namespace rke
         CORE_ASSERT(owner_, u8"ScriptManager: Owner scene empty!");
         owner_->registry_->on_destroy<NativeScriptComponent>()
             .connect<&on_script_com_destroy>();
+        sync_all_to_cache();
     }
 
-    void ScriptManager::on_runtime_start() { sync_all_to_cache(); }
-
-    void ScriptManager::on_runtime_stop()
+    ScriptManager::~ScriptManager()
     {
         for(auto& cache : script_cache_)
-            destroy_script(std::move(cache.script));
+            bury(std::move(cache.script));
         script_cache_.clear();
+        flush_scripts();
     }
 
     void ScriptManager::on_update(double dt)
     {
-        if(!owner_->in_runtime()) return;
         sync_all_to_cache();
-        for_each_script([dt](Script* script){ script->on_update(dt); });
+        if(owner_->in_runtime())
+            for_each_script([dt](Script* script){ script->on_update(dt); });
         flush_scripts();
     }
 
     void ScriptManager::on_mouse_scrolled(float x_offset, float y_offset)
     {
-        if(!owner_->in_runtime()) return;
         sync_all_to_cache();
-        for_each_script([x_offset, y_offset](Script* script)
-            { script->on_mouse_scrolled(x_offset, y_offset); });
+        if(owner_->in_runtime())
+            for_each_script([x_offset, y_offset](Script* script)
+                { script->on_mouse_scrolled(x_offset, y_offset); });
         flush_scripts();
     }
 
@@ -65,24 +65,21 @@ namespace rke
             contact_callback(contact.entity_a, contact.entity_b, ContactType::SensorEnd);
     }
 
-    Scope<Script> ScriptManager::create_script(ScriptType type, EntityHandle handle)
+    void ScriptManager::attach_script_to(Script* script, EntityHandle handle)
     {
-        if(type == script_type_null) return nullptr;
-
-        auto& script_reg{ owner_->get_owner()->get_script_registry_mut() };
-    // create script
-        Scope<Script> script{ script_reg.construct_script(type) };
-        if(!script) {
-            CORE_ERROR(u8"ScriptManager: Failed to create script!");
-            return nullptr;
-        }
+        if(!script) return;
         script->owner_handle_ = handle;
         script->owner_scene_  = owner_;
-        script->on_create();
-        return script;
     }
 
-    void ScriptManager::destroy_script(Scope<Script> script)
+    void ScriptManager::init_script(Script* script, EntityHandle handle)
+    {
+        if(!script) return;
+        attach_script_to(script, handle);
+        script->on_create();
+    }
+
+    void ScriptManager::bury(Scope<Script> script)
     {
         if(!script) return;
         script->on_destroy();
@@ -95,24 +92,30 @@ namespace rke
         while(script_cache_.size() < storage.size()) script_cache_.emplace_back();
         while(script_cache_.size() > storage.size())
         {
-            destroy_script(std::move(script_cache_.back().script));
+            bury(std::move(script_cache_.back().script));
             script_cache_.pop_back();
         }
     }
 
-    ScriptManager::RuntimeCache* ScriptManager::refresh_cache
-        (EntityHandle handle, ScriptType type, Size index)
+    ScriptManager::ScriptCache* ScriptManager::refresh_cache
+        (EntityHandle handle, Size index, ScriptType type)
     {
-        CORE_ASSERT(index < script_cache_.size(),
-            u8"ScriptManager: Index out of bound!");
-        RuntimeCache& cache{ script_cache_[index] };
-
-        if(cache.owner != handle || cache.script_type != type)
+        if(index >= script_cache_.size())
         {
-            destroy_script(std::move(cache.script));
-            cache.owner       = handle;
+            CORE_WARN(u8"ScriptManager: Index out of bound!");
+            return nullptr;
+        }
+        ScriptCache& cache{ script_cache_[index] };
+        if(cache.script_type != type)
+        {
+            bury(std::move(cache.script));
+
+            const auto& script_reg{ owner_->get_owner()->get_script_registry() };
+            Scope<Script> new_script{ script_reg.construct_script(type) };
+            init_script(new_script.get(), handle);
+
             cache.script_type = type;
-            cache.script      = create_script(type, handle);
+            cache.script = std::move(new_script);
         }
         return &cache;
     }
@@ -129,7 +132,7 @@ namespace rke
                 u8"ScriptManager: Indices are not matching: {}, {}!",
                 index, storage.index(ent));
         #endif
-            refresh_cache(static_cast<EntityHandle>(ent), nsc.script_type, index++);
+            refresh_cache(static_cast<EntityHandle>(ent), index++, nsc.script_type);
         }
     }
 
@@ -139,14 +142,14 @@ namespace rke
         (EntityHandle lhs, EntityHandle rhs, ContactType type)
     {
         if(!owner_->is_handle_valid(lhs) || !owner_->is_handle_valid(rhs)) return;
-        entt::entity ent{ static_cast<entt::entity>(lhs) };
-        if(!owner_->registry_->all_of<NativeScriptComponent>(ent)) return;
+        entt::entity lhs_ent{ static_cast<entt::entity>(lhs) };
+        if(!owner_->registry_->all_of<NativeScriptComponent>(lhs_ent)) return;
 
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        const Size index{ storage.index(ent) };
-        auto& nsc{ storage.get(ent) };
+        const Size index{ storage.index(lhs_ent) };
+        auto& nsc{ storage.get(lhs_ent) };
 
-        RuntimeCache* cache{ refresh_cache(lhs, nsc.script_type, index) };
+        ScriptCache* cache{ refresh_cache(lhs, index, nsc.script_type) };
         if(!cache || !cache->script) return;
         Script& script{ *(cache->script) }; // belongs to entity(lhs)
         switch(type)
@@ -161,15 +164,17 @@ namespace rke
 
     Script* ScriptManager::get_script(EntityHandle handle)
     {
-        if(!owner_->in_runtime()) return nullptr;
         Entity entity{ owner_->get_entity(handle) };
         if(!entity.is_valid() || !entity.has<NativeScriptComponent>()) return nullptr;
+
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        const auto* cache{ refresh_cache(handle,
-            entity.get<NativeScriptComponent>().script_type,
-            storage.index(static_cast<entt::entity>(handle))
-        )};
-        return cache ? cache->script.get() : nullptr;
+        const Size index{ storage.index(static_cast<entt::entity>(handle)) };
+        if(index >= script_cache_.size()) return nullptr;
+
+        const ScriptCache& cache{ script_cache_.at(index) }; // do not refresh here
+        ScriptType script_type{ entity.get<NativeScriptComponent>().script_type };
+        if(cache.script_type != script_type/* outdated or invalid */) return nullptr;
+        return cache.script.get();
     }
 
     void ScriptManager::on_script_com_destroy(entt::registry& reg, entt::entity ent)
@@ -185,7 +190,7 @@ namespace rke
 
     // swap and pop
         const Size index{ storage.index(ent) };
-        ctx.script_manager->destroy_script(std::move(script_cache[index].script));
+        ctx.script_manager->bury(std::move(script_cache[index].script));
         if(index + 1u != script_cache.size())
             script_cache[index] = std::move(script_cache.back());
         script_cache.pop_back();
