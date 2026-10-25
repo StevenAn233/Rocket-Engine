@@ -99,21 +99,34 @@ namespace rke
         while(script_cache_.size() < storage.size()) script_cache_.emplace_back();
         while(script_cache_.size() > storage.size())
         {
+            CORE_WARN(u8"ScriptManager: Script cache larger than storage"
+                u8", which should't happen nomally!");
             bury(std::move(script_cache_.back().script));
             script_cache_.pop_back();
         }
     }
 
     ScriptManager::ScriptCache* ScriptManager::refresh_cache
-        (EntityHandle handle, Size index, ScriptType type)
+        (EntityHandle handle, ScriptType type)
     {
+        Size index{ owner_->registry_->storage<NativeScriptComponent>()
+            .index(static_cast<entt::entity>(handle)) };
         if(index >= script_cache_.size())
         {
-            CORE_WARN(u8"ScriptManager: Index out of bound!");
+            CORE_ERROR(u8"ScriptManager: Index out of bound!");
             return nullptr;
         }
+
         ScriptCache& cache{ script_cache_[index] };
-        if(cache.script_type != type)
+        if(!cache.script || cache.script_type != type) goto rebuild;
+        if(cache.script->owner_handle_ != handle)
+        {
+            CORE_WARN(u8"ScriptManager: "
+                u8"Script doesn't belong to this entity!");
+            goto rebuild;
+        }
+        goto exit;
+    rebuild:
         {
             bury(std::move(cache.script));
 
@@ -124,23 +137,16 @@ namespace rke
             cache.script_type = type;
             cache.script = std::move(new_script);
         }
+    exit:
         return &cache;
     }
 
     void ScriptManager::sync_all_to_cache()
     {
         align_cache();
-        Size index{};
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
         for(auto&& [ent, nsc] : storage.reach())
-        {
-        #ifdef RKE_DEBUG
-            CORE_ASSERT(index == storage.index(ent),
-                u8"ScriptManager: Indices are not matching: {}, {}!",
-                index, storage.index(ent));
-        #endif
-            refresh_cache(static_cast<EntityHandle>(ent), index++, nsc.script_type);
-        }
+            refresh_cache(static_cast<EntityHandle>(ent), nsc.script_type);
     }
 
     void ScriptManager::flush_scripts() { graveyard_.clear(); }
@@ -149,22 +155,16 @@ namespace rke
         (EntityHandle lhs, EntityHandle rhs, ContactType type)
     {
         if(!owner_->is_handle_valid(lhs) || !owner_->is_handle_valid(rhs)) return;
-        entt::entity lhs_ent{ static_cast<entt::entity>(lhs) };
-        if(!owner_->registry_->all_of<NativeScriptComponent>(lhs_ent)) return;
+        if(!owner_->get_entity(lhs).has<NativeScriptComponent>()) return;
 
-        auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        const Size index{ storage.index(lhs_ent) };
-        auto& nsc{ storage.get(lhs_ent) };
-
-        ScriptCache* cache{ refresh_cache(lhs, index, nsc.script_type) };
-        if(!cache || !cache->script) return;
-        Script& script{ *(cache->script) }; // belongs to entity(lhs)
+        Script* script{ get_script(lhs) };
+        if(!script || script->owner_handle_ != lhs) return;
         switch(type)
         {
-        case ContactType::SolidBegin:  script.on_contact_solid_begin (rhs); break;
-        case ContactType::SolidEnd:    script.on_contact_solid_end   (rhs); break;
-        case ContactType::SensorBegin: script.on_contact_sensor_begin(rhs); break;
-        case ContactType::SensorEnd:   script.on_contact_sensor_end  (rhs); break;
+        case ContactType::SolidBegin:  script->on_contact_solid_begin (rhs); break;
+        case ContactType::SolidEnd:    script->on_contact_solid_end   (rhs); break;
+        case ContactType::SensorBegin: script->on_contact_sensor_begin(rhs); break;
+        case ContactType::SensorEnd:   script->on_contact_sensor_end  (rhs); break;
         default: break;
         }
     }
@@ -190,8 +190,14 @@ namespace rke
         CORE_ASSERT(ctx.script_manager, u8"ScriptManager: Null!");
 
         auto& script_cache{ ctx.script_manager->script_cache_ };
+        if(script_cache.empty()) return;
         auto& storage{ reg.storage<NativeScriptComponent>() };
-        if(script_cache.size() != storage.size()) return;
+        if(script_cache.size() != storage.size())
+        {
+            CORE_WARN(u8"ScriptManager: Sizes not matching: "
+                u8"cache {}, storage {}.", script_cache.size(), storage.size());
+            return; // let it heal itself
+        }
         CORE_ASSERT(storage.contains(ent),
             u8"ScriptManager: Entity doesn't has script component!");
 

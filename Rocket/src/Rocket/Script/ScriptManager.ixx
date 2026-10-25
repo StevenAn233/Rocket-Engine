@@ -80,7 +80,7 @@ export namespace rke
 
         void align_cache(); // keep cache size == storage size
         // validate slot, (re)create script
-        ScriptCache* refresh_cache(EntityHandle handle, Size index, ScriptType type); 
+        ScriptCache* refresh_cache(EntityHandle handle, ScriptType type); 
         void contact_callback(EntityHandle lhs, EntityHandle rhs, ContactType type);
 
         static void on_script_com_destroy(entt::registry& reg, entt::entity ent);

@@ -381,14 +381,16 @@ namespace rke
 
         // may modify
             Scope<Script> script{ script_reg.construct_script(nsc.script_type) };
-            if(script) {
-                ScriptManager& script_manager{ *scene.script_manager_ };
-                script_manager.init_script(script.get(), entity.get_handle());
-                script->on_deserialize(*nsc_reader);
-                script_manager.script_cache_.emplace_back
-                    (nsc.script_type, std::move(script));
+            if(script) script->on_deserialize(*nsc_reader);
+            else if(nsc.script_type != script_type_null)
+            {
+                CORE_WARN(u8"SceneSerializer: Failed to create script!");
+                nsc.script_type = script_type_null;
             }
-            else CORE_WARN(u8"SceneSerializer: Failed to create script!");
+
+            ScriptManager& script_manager{ *scene.script_manager_ };
+            script_manager.init_script(script.get(), entity.get_handle());
+            script_manager.script_cache_.emplace_back(nsc.script_type, std::move(script));
         }
     }
 }

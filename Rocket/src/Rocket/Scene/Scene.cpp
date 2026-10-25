@@ -506,6 +506,7 @@ namespace rke
     {
         if(!vertified(handle)) return {};
 
+        const auto& script_reg{ owner_->get_script_registry() };
     // Copies the whole subtree, not just the entity
         std::unordered_map<EntityHandle, EntityHandle> made{};
         const EntityHandle root_handle{ get_entity(handle).get_parent().get_handle() };
@@ -534,6 +535,14 @@ namespace rke
                     if(src.has<ComponentType>()) copy.emplace_or_replace
                         <ComponentType>(src.get<ComponentType>());
             });
+            if(src.has<NativeScriptComponent>())
+            {
+                const auto& nsc{ src.get<NativeScriptComponent>() };
+                Scope<Script> copied_script{ script_reg
+                    .deep_copy_script(nsc.script_type, script_manager_->get_script(src_handle)) };
+                script_manager_->init_script(copied_script.get(), copy.get_handle());
+                script_manager_->script_cache_.emplace_back(nsc.script_type, std::move(copied_script));
+            }
 
             made.emplace(src_handle, copy.get_handle());
 
@@ -752,26 +761,22 @@ namespace rke
 
     void Scene::clear()
     {
-        if(in_runtime()) {
+        if(in_runtime())
+        {
             CORE_ERROR(u8"Scene: Can't be cleared during runtime!");
             return;
         }
-        registry_->clear(); // script_cache should have been cleared here
+
+        script_manager_->clear(); // before registry clear
+
+        registry_->clear();
         reset_relations();
         to_destroy_.clear();
         entity_map_.clear();
+
         demo_cam_ = {};
         master_cam_ = {};
         selected_entity_ = {};
-
-    #ifdef RKE_DEBUG
-        if(script_manager_->script_cache_.size() > 0)
-        {
-            CORE_ERROR(u8"Scene: Scripts has not been cleared normally: "
-                u8"{} left!", script_manager_->script_cache_.size());
-        }
-    #endif
-        script_manager_->clear(); // flush
     }
 
     void Scene::on_update(double dt)
