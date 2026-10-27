@@ -38,9 +38,9 @@ namespace rke
         ([this](const Scene& scene, ConfigWriter& writer)
             { editor_cam_.serialize_to(writer); });
 
-    //  scene_serializer_.set_deserialize_hook
-    //  ([this](Scene& scene, const ConfigReader& reader)
-    //      { editor_cam_.deserialize_from(reader); });
+        scene_serializer_.set_deserialize_hook
+        ([this](Scene& scene, const ConfigReader& reader)
+            { editor_cam_.deserialize_from(reader); });
 
     // Effects
         auto selected{ create_scope<OutlineEffect>
@@ -395,7 +395,11 @@ namespace rke
     void EditorLayer::attach_context(Project* project)
     {
         CORE_ASSERT(!testing(), u8"EditorLayer: Can't load project while testing!");
-        clear_scene_edit();
+        
+        editor_cams_.clear();
+        scene_edit_ = nullptr;
+        attach_scene(nullptr);
+
         context_ = project;
         content_browser_panel_->on_project_loaded(context_);
         animation_editor_panel_.on_project_loaded(context_);
@@ -537,13 +541,15 @@ namespace rke
             clear_scene_edit();
             return false;
         }
+        clear_scene_edit();
         scene_edit_ = context_->load_scene(name, scene_serializer_);
-        if(scene_edit_) // may modify
+        if(scene_edit_)
         {
-            Scope<ConfigReader> reader{ ConfigReader::create
-                (scene_edit_->get_path()) };
-            editor_cam_.deserialize_from(*reader);
+            auto it{ editor_cams_.find(scene_edit_->get_name()) };
+            if(it != editor_cams_.end())
+                editor_cam_.set_view_props(it->second);
         }
+        else editor_cam_.reset();
 
         attach_scene(scene_edit_);
         return true;
@@ -557,6 +563,12 @@ namespace rke
 
     void EditorLayer::clear_scene_edit()
     {
+        if(scene_edit_)
+        {
+            const String& name{ scene_edit_->get_name() };
+            if(name.empty()) CORE_ERROR(u8"EditorLayer: Scene edit name empty!");
+            else editor_cams_[name] = editor_cam_.get_view_props();
+        }
         // not reloading the scene, only clear handle
         scene_edit_ = nullptr;
         attach_scene(nullptr);
@@ -564,7 +576,6 @@ namespace rke
 
     void EditorLayer::unload_scene_edit()
     {
-        if(!scene_edit_) return;
         if(editing()) {
             String name{ scene_edit_->get_name() };
             clear_scene_edit();

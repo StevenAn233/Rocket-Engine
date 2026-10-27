@@ -17,12 +17,12 @@ namespace rke
 
     void EditorCamera::update_view()
     {
-        // yaw_ = pitch_ = 0.0f; // Lock the camera's rotation
+        // view_props_.yaw = view_props_.pitch = 0.0f; // Lock the camera's rotation
         constexpr float twopi{ 2.0f * float(std::numbers::pi) };
-        while(pitch_ < 0) pitch_ += twopi;
-        while(yaw_   < 0) yaw_   += twopi;
-        while(pitch_ > twopi) pitch_ -= twopi;
-        while(yaw_   > twopi) yaw_   -= twopi;
+        while(view_props_.pitch < 0) view_props_.pitch += twopi;
+        while(view_props_.yaw   < 0) view_props_.yaw   += twopi;
+        while(view_props_.pitch > twopi) view_props_.pitch -= twopi;
+        while(view_props_.yaw   > twopi) view_props_.yaw   -= twopi;
         view_ = glm::inverse (
             glm::translate(glm::mat4(1.0f), calculate_pos()) *
             glm::mat4_cast(get_orientation())
@@ -40,8 +40,20 @@ namespace rke
             if(app().input().is_key_pressed(Key::LeftShift))
                 mouse_pan(delta);
             else mouse_rotate(delta);
+            update_view();
         }
-        update_view();
+    }
+
+    void EditorCamera::on_imgui_render()
+    {
+        bool modified{ false };
+        modified |= layout::drag_float3_control<u8"Focus">
+            (view_props_.focus, 0.1f, glm::vec3(0.0f));
+        modified |= layout::drag_float_control<u8"Distance">
+            (view_props_.distance, 0.5f, 1.0f, glm::vec2(1.0f, 100.0f));
+        modified |= layout::drag_float_control<u8"Pitch">(view_props_.pitch, 0.1f, 0.0f);
+        modified |= layout::drag_float_control<u8"Yaw"  >(view_props_.yaw  , 0.1f, 0.0f);
+        if(modified) update_view();
     }
 
     bool EditorCamera::on_mouse_scrolled(MouseScrolledEvent& e)
@@ -72,24 +84,24 @@ namespace rke
     void EditorCamera::mouse_pan(glm::vec2 delta)
     {
         auto [x_speed, y_speed] { pan_speed() };
-        focus_ += -get_right_dir() * delta.x * x_speed * distance_;
-        focus_ +=  get_up_dir   () * delta.y * y_speed * distance_;
+        view_props_.focus += -get_right_dir() * delta.x * x_speed * view_props_.distance;
+        view_props_.focus +=  get_up_dir   () * delta.y * y_speed * view_props_.distance;
     }
 
     void EditorCamera::mouse_rotate(glm::vec2 delta)
     {
         float yaw_sign{ get_up_dir().y < 0.0f ? -1.0f : 1.0f };
-        yaw_   += yaw_sign * delta.x * rotation_speed();
-        pitch_ += delta.y * rotation_speed();
+        view_props_.yaw   += yaw_sign * delta.x * rotation_speed();
+        view_props_.pitch += delta.y * rotation_speed();
     }
 
     void EditorCamera::mouse_zoom(float delta) // dolly
     {
-        distance_ -= delta * zoom_speed();
-        if(distance_ < 1.0f)
+        view_props_.distance -= delta * zoom_speed();
+        if(view_props_.distance < 1.0f)
         {
-        //  focus_ += get_forward_dir();
-            distance_ = 1.0f;
+        //  view_props_.focus += get_forward_dir();
+            view_props_.distance = 1.0f;
         }
     }
 
@@ -108,7 +120,7 @@ namespace rke
 
     float EditorCamera::zoom_speed() const
     {
-        float dis_factor{ distance_ * 0.2f };
+        float dis_factor{ view_props_.distance * 0.2f };
         dis_factor = std::max(dis_factor, 0.0f);
         float speed{ dis_factor * dis_factor };
         speed = std::min(speed, 100.0f); // max speed = 100
@@ -122,25 +134,17 @@ namespace rke
     glm::vec3 EditorCamera::get_forward_dir() const
         { return get_orientation() * glm::vec3(0.0f, 0.0f, -1.0f); }
     glm::quat EditorCamera::get_orientation() const
-        { return glm::quat(glm::vec3(-pitch_, -yaw_, 0.0f)); }
+        { return glm::quat(glm::vec3(-view_props_.pitch, -view_props_.yaw, 0.0f)); }
     glm::vec3 EditorCamera::calculate_pos() const
-        { return focus_ - get_forward_dir() * distance_; }
-
-    void EditorCamera::reset()
-    {
-        focus_ = {};
-        distance_ = 10.0f;
-        pitch_ = 0.0f; yaw_ = 0.0f;
-        update_view();
-    }
+        { return view_props_.focus - get_forward_dir() * view_props_.distance; }
 
     void EditorCamera::serialize_to(ConfigWriter& writer) const
     {
         writer.begin_map(u8"Editor Camera");
-        writer.write(u8"Focus", focus_);
-        writer.write(u8"Distance", distance_);
-        writer.write(u8"Pitch", pitch_);
-        writer.write(u8"Yaw", yaw_);
+        writer.write(u8"Focus", view_props_.focus);
+        writer.write(u8"Distance", view_props_.distance);
+        writer.write(u8"Pitch", view_props_.pitch);
+        writer.write(u8"Yaw", view_props_.yaw);
         writer.end_map();
     }
 
@@ -152,9 +156,10 @@ namespace rke
             CORE_ERROR(u8"EditorCamera: File format incorrect!");
             reset(); return;
         }
-        focus_ = cam_config->get_at(u8"Focus", focus_);
-        distance_ = cam_config->get_at(u8"Distance", distance_);
-        pitch_ = cam_config->get_at(u8"Pitch", pitch_);
-        yaw_ = cam_config->get_at(u8"Yaw", yaw_);
+        view_props_.focus = cam_config->get_at(u8"Focus", view_props_.focus);
+        view_props_.distance = cam_config->get_at(u8"Distance", view_props_.distance);
+        view_props_.pitch = cam_config->get_at(u8"Pitch", view_props_.pitch);
+        view_props_.yaw = cam_config->get_at(u8"Yaw", view_props_.yaw);
+        update_view();
     }
 }

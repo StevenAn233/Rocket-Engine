@@ -72,6 +72,7 @@ export namespace rke
         Scene* scene_edit_{};
         Scope<Scene> scene_test_{}; // A copy of scene_edit_; Temporary.
         SceneSerializer scene_serializer_{};
+        std::unordered_map<String, ViewProps> editor_cams_{};
 
         const GTexture2D* main_output_{};
         const GTexture2D* cam_output_ {};
