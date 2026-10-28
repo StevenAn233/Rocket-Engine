@@ -5,6 +5,7 @@ import Log;
 import Components;
 import Project;
 import PhysicsEngine2D;
+import Script;
 import ScriptRegistry;
 import ScriptManager;
 import AssetsManager;
@@ -443,8 +444,7 @@ namespace rke
             {
                 entt::entity src_entt{ *it };
                 const auto& src_com{ registry_->get<ComponentType>(src_entt) };
-                new_scene->registry_->
-                    emplace_or_replace<ComponentType>(src_entt, src_com);
+                new_scene->registry_->emplace_or_replace<ComponentType>(src_entt, src_com);
             }
         });
         new_scene->relations_ = relations_; // keys are EntityHandles, reused verbatim above
@@ -458,25 +458,28 @@ namespace rke
         new_scene->set_demo_camera(get_demo_camera().get_uuid());
 
         // ScriptManager: after NativeScriptComponents are copied
+        const auto& script_reg{ owner_->get_script_registry() };
         const auto& new_script_storage{ new_scene->
             registry_->storage<NativeScriptComponent>() };
-        const auto& script_reg{ owner_->get_script_registry() };
-        for(Size i{}; i < script_manager_->script_cache_.size(); i++)
+        
+        auto& new_script_cache{ new_scene->script_manager_->script_cache_ }; // empty now
+        new_script_cache.resize(new_script_storage.size());
+        for(auto&& [new_entity, nsc] : new_script_storage.each())
         {
-            const auto& this_cache{ script_manager_->script_cache_[i] };
-            if(i >= new_script_storage.size())
-            {
-                CORE_ERROR(u8"Scene: Script index out of bound!");
-                break;
-            }
-            
+            const EntityHandle handle{ static_cast<EntityHandle>(new_entity) };
+            const ScriptType type{ nsc.script_type };
+
             Scope<Script> copied_script{ script_reg
-                .deep_copy_script(this_cache.script_type, this_cache.script.get()) };
-            entt::entity new_handle{ new_script_storage[i] };
-            new_scene->script_manager_->init_script
-                (copied_script.get(), static_cast<EntityHandle>(new_handle));
-            new_scene->script_manager_->script_cache_.emplace_back
-                (this_cache.script_type, std::move(copied_script));
+                .deep_copy_script(type, script_manager_->get_script(handle)) };
+            new_scene->script_manager_->init_script(copied_script.get(), handle);
+
+            Size index{ new_script_storage.index(new_entity) };
+            CORE_ASSERT(index < new_script_cache.size(), u8"Scene: Index out of bound!");
+        #ifdef RKE_DEBUG
+            CORE_INFO(u8"Scene: Script of '{}' emplaced at '{}'.",
+                new_scene->get_entity(handle).get_tag(), index);
+        #endif
+            new_script_cache[index] = { type, std::move(copied_script) };
         }
 
         return new_scene;
@@ -535,7 +538,7 @@ namespace rke
                     if(src.has<ComponentType>()) copy.emplace_or_replace
                         <ComponentType>(src.get<ComponentType>());
             });
-            if(src.has<NativeScriptComponent>())
+            if(src.has<NativeScriptComponent>()) // may modify
             {
                 const auto& nsc{ src.get<NativeScriptComponent>() };
                 Scope<Script> copied_script{ script_reg

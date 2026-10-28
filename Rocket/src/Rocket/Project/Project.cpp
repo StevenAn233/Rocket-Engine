@@ -97,7 +97,7 @@ namespace rke
 
     void Project::scripts_hot_reloading()
     {
-        dylib_loader_->refresh([this](Scope<RkDylib> old_dylib, const RkDylib* new_dylib)
+        if(!dylib_loader_->refresh([this](Scope<RkDylib> old_dylib, const RkDylib* new_dylib)
         {
             Scope<ScriptRegistry> new_reg{ create_scope<ScriptRegistry>() };
             CORE_ASSERT(new_reg, u8"Project: Failed to create script registry!");
@@ -108,7 +108,7 @@ namespace rke
             script_registry_.reset(new_reg.release());
             for(auto& [_, scene] : scene_map_)
                 scene->on_script_dylib_hot_reloading(*old_reg, *script_registry_);
-        });
+        })) CORE_ERROR(u8"Project: Failed to reload dylib!");
     }
 
     uint8 Project::get_samples_shift() const

@@ -145,7 +145,7 @@ namespace rke
     {
         align_cache();
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        for(auto&& [ent, nsc] : storage.reach())
+        for(auto&& [ent, nsc] : storage.each())
             refresh_cache(static_cast<EntityHandle>(ent), nsc.script_type);
     }
 

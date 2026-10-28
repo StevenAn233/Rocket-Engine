@@ -10,6 +10,7 @@ export module RkDylibLoader:Base;
 
 import Path;
 import String;
+import Log;
 import HeapManager;
 
 export namespace rke
@@ -33,13 +34,18 @@ export namespace rke
         RkDylibLoader(Path dir, String name);
         virtual ~RkDylibLoader() = default;
 
+        // Returns whether the reload happened.
         template<typename Func>
         requires std::invocable<Func, Scope<RkDylib>, const RkDylib*>
-        inline void refresh(Func&& callback)
+        inline bool refresh(Func&& callback)
         {
             Scope<RkDylib> new_dylib{ load_new() };
-            std::invoke(std::forward<Func>(callback), std::move(current_dylib_), new_dylib.get());
+            if(!new_dylib || !new_dylib->is_valid()
+            || !new_dylib->get_scripts_registar()) return false;
+            std::invoke(std::forward<Func>(callback),
+                        std::move(current_dylib_), new_dylib.get());
             current_dylib_.reset(new_dylib.release());
+            return true;
         }
 
         inline const RkDylib* get_current() const { return current_dylib_.get(); }

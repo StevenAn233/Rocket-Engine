@@ -39,6 +39,7 @@ namespace rke
         WindowsRkDylibLoader& operator=(WindowsRkDylibLoader&&) = default;
     private:
         Scope<RkDylib> load_new() override;
+        void prune_temp_files();
         void delete_temp_files();
     };
 }
