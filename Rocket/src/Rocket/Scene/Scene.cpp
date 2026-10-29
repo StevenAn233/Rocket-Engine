@@ -881,9 +881,9 @@ namespace rke
         }
     }
 
-    const AnimatorSystem::AnimPlayState* Scene::animator_state(EntityHandle handle)
+    const AnimPlayState* Scene::animator_state(EntityHandle handle)
     {
         if(!vertified(handle)) return nullptr;
-        return animator_system_->get_state_from(handle);
+        return animator_system_->state_of(handle);
     }
 }

@@ -275,7 +275,7 @@ export namespace rke
         void reset_relations();
         void flush_destroy_queue();
     // for SceneHierarchyPanel
-        const AnimatorSystem::AnimPlayState* animator_state(EntityHandle handle);
+        const AnimPlayState* animator_state(EntityHandle handle);
     private:
         Project* owner_;
         String name_;
