@@ -24,15 +24,44 @@ export namespace rke
     {
         EntityHandle owner{ entity_handle_null }; // slot identity (self-healing)
         AssetResolve resolved_anim{};
-        bool playing{ false }, paused{ false };
+        bool playing{ false };
+        bool paused { false };
 
         String requested{}; // clip name
         String active   {}; // clip name
         Size frame_index{};
         double acc{};
 
-        void rewind_to_start();
-        bool at_start() const;
+        inline void rewind_to_start()
+        {
+            active = requested;
+            frame_index = 0; acc = 0.0;
+        }
+
+        inline bool at_start() const
+        {
+            return requested == active &&
+                frame_index == 0 && acc == 0.0;
+        }
+
+        inline void play()
+        {
+            if(!playing && !active.empty() && at_start())
+            {
+                playing = true;
+                paused = false;
+            }
+        }
+
+        inline void stop()
+        {
+            playing = paused = false;
+            rewind_to_start(); // may modify
+        }
+
+        inline void pause() { if(playing) paused = true; }
+        inline void resume() { paused = false; }
+
         bool advance(const Animation& anim, double dt);
     };
 
@@ -63,8 +92,6 @@ export namespace rke
         AnimPlayState* state_of(EntityHandle handle);
         AnimPlayState* refresh_state(EntityHandle handle, AnimatorComponent& ac);
 
-        static void update_animator_component(AnimatorComponent& ac,
-            Animation& anim, AnimPlayState& state);
         static void on_anim_com_destroy(entt::registry& reg, entt::entity ent);
     private:
         Scene* owner_;

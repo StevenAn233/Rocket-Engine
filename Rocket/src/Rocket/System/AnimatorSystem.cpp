@@ -9,20 +9,29 @@ import Components;
 import AssetsManager;
 import Animation;
 
+namespace {
+    using namespace rke;
+    
+    static void sync_to_ac(AnimatorComponent& ac,
+        const Animation& anim, const AnimPlayState& state)
+    {
+        if(state.active.empty()) return;
+
+        const AnimClip* clip{ anim.get_clip(state.active) };
+        if(!clip || clip->frames.empty())
+        {
+            ac.curr_cell_coords = { 0, 0 };
+            return;
+        }
+        ac.curr_cell_size = clip->cell_size;
+        CORE_ASSERT(state.frame_index < clip->frames.size(),
+            u8"AnimatorSystem: Frame index out of bound!");
+        ac.curr_cell_coords = clip->frames[state.frame_index];
+    }
+}
+
 namespace rke
 {
-    void AnimPlayState::rewind_to_start()
-    {
-        active = requested;
-        frame_index = 0; acc = 0.0;
-    }
-
-    bool AnimPlayState::at_start() const
-    {
-        return requested == active &&
-            frame_index == 0 && acc == 0.0;
-    }
-
     bool AnimPlayState::advance(const Animation& anim, double dt)
     {
         constexpr double max_dt{ 0.5 };
@@ -91,52 +100,46 @@ namespace rke
             {
                 state->requested = requested;
                 state->rewind_to_start();
-                if(anim) update_animator_component(ac, *anim, *state);
+                if(anim) sync_to_ac(ac, *anim, *state);
             }
             
             if(state->playing && !(state->paused) && anim)
                 if(state->advance(*anim, dt)) // <- active not empty
-                    update_animator_component(ac, *anim, *state);
+                    sync_to_ac(ac, *anim, *state);
         }
     }
 
     void AnimatorSystem::play(EntityHandle handle)
     {
         AnimPlayState* state{ state_of(handle) };
-        if(!state) return;
-        if(!state->playing && !state->active.empty() && state->at_start())
-        {
-            state->playing = true;
-            state->paused = false;
-        }
+        if(state) state->play();
     }
 
     void AnimatorSystem::stop(EntityHandle handle)
     {
         AnimPlayState* state{ state_of(handle) };
         if(!state) return;
-        state->playing = state->paused = false;
 
-        state->rewind_to_start();
+        state->stop();
         AssetsManager& am{ project_->get_assets_manager_mut() };
         if(Animation* anim{ am.get_asset<Animation>(state->resolved_anim.handle) })
         {
             AnimatorComponent& ac{ owner_->registry_->
                 get<AnimatorComponent>(static_cast<entt::entity>(handle)) };
-            update_animator_component(ac, *anim, *state);
+            sync_to_ac(ac, *anim, *state);
         }
     }
 
     void AnimatorSystem::pause(EntityHandle handle)
     {
         AnimPlayState* state{ state_of(handle) };
-        if(state && state->playing) state->paused = true;
+        if(state) state->pause();
     }
 
     void AnimatorSystem::resume(EntityHandle handle)
     {
         AnimPlayState* state{ state_of(handle) };
-        if(state) state->paused = false;
+        if(state) state->resume();
     }
 
     bool AnimatorSystem::playing(EntityHandle handle)
@@ -167,7 +170,7 @@ namespace rke
     AnimPlayState* AnimatorSystem::refresh_state
         (EntityHandle handle, AnimatorComponent& ac)
     {
-        Size index{ owner_->registry_->storage<AnimatorComponent>()
+        const Size index{ owner_->registry_->storage<AnimatorComponent>()
             .index(static_cast<entt::entity>(handle)) };
         AnimPlayState& state{ states_[index] };
         if(state.owner != handle) // slot reused / states_ desynced -> rebuild
@@ -186,8 +189,8 @@ namespace rke
             state.active.clear();
             state.playing = state.paused = false;
 
-            if(Animation* anim{ am.get_asset<Animation>(state.resolved_anim.handle) })
-                update_animator_component(ac, *anim, state);
+            const Animation* anim{ am.get_asset<Animation>(state.resolved_anim.handle) };
+            if(anim) sync_to_ac(ac, *anim, state);
         }
         return &state;
     }
@@ -197,23 +200,6 @@ namespace rke
         auto& storage{ owner_->registry_->storage<AnimatorComponent>() };
         if(states_.size() != storage.size())
             states_.resize(storage.size(), {});
-    }
-
-    void AnimatorSystem::update_animator_component
-        (AnimatorComponent& ac, Animation& anim, AnimPlayState& state)
-    {
-        if(state.active.empty()) return;
-
-        const AnimClip* clip{ anim.get_clip(state.active) };
-        if(!clip || clip->frames.empty())
-        {
-            ac.curr_cell_coords = { 0, 0 };
-            return;
-        }
-        ac.curr_cell_size = clip->cell_size;
-        CORE_ASSERT(state.frame_index < clip->frames.size(),
-            u8"AnimatorSystem: Frame index out of bound!");
-        ac.curr_cell_coords = clip->frames[state.frame_index];
     }
 
     void AnimatorSystem::on_anim_com_destroy(entt::registry& reg, entt::entity ent)
