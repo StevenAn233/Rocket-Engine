@@ -67,7 +67,6 @@ export namespace rke
 
     struct AnimPlayState
     {
-        AssetResolve resolved_anim{};
         bool playing{ false };
         bool paused { false };
 
@@ -93,7 +92,7 @@ export namespace rke
             requested = std::move(clip_name);
             rewind_to_start();
         }
-        
+
         inline void play()
         {
             if(!playing && !active.empty() && at_start())

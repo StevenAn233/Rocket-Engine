@@ -33,6 +33,8 @@ export namespace rke
         AnimatorSystem& operator=(const AnimatorSystem&) = delete;
         AnimatorSystem& operator=(AnimatorSystem&&) = delete;
 
+        void on_runtime_start();
+        void on_runtime_stop ();
         void on_update(double dt);
 
         void play(EntityHandle handle);

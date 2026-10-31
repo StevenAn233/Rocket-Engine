@@ -27,6 +27,20 @@ namespace rke
         flush_scripts();
     }
 
+    void ScriptManager::on_runtime_start()
+    {
+        sync_all_to_cache();
+        for_each_script([](Script* script){ script->on_runtime_start(); });
+        flush_scripts();
+    }
+
+    void ScriptManager::on_runtime_stop()
+    {
+        sync_all_to_cache();
+        for_each_script([](Script* script){ script->on_runtime_stop(); });
+        flush_scripts();
+    }
+
     void ScriptManager::on_update(double dt)
     {
         sync_all_to_cache();

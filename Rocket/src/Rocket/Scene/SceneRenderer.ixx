@@ -30,9 +30,11 @@ export namespace rke
         SceneRenderer(SceneRenderer&&) = delete;
         SceneRenderer& operator=(SceneRenderer&&) = delete;
 
-        inline void set_samples(uint32 samples) { scene_fbo_->set_samples(samples); }
+        inline void set_samples(uint32 samples)
+            { scene_fbo_->set_samples(samples); }
 
-        const GTexture2D* render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos);
+        const GTexture2D* render(const Scene* scene,
+            const glm::mat4& vp, glm::vec3 pos);
         const GTexture2D* render(Entity camera);
 
         void on_viewport_resized(uint32 w, uint32 h);
@@ -40,8 +42,12 @@ export namespace rke
         int get_hovering_id(int mouse_x, int mouse_y);
         void clean_up();
     private:
-        void draw_entity(AssetsManager& manager, const Scene* scene, EntityHandle handle);
-        void render_scene(const Scene* scene, const Frustum& frustum, glm::vec3 cam_postion);
+        static std::pair<Texture*, GTextureSettings> get_texture
+            (AssetsManager& am, Entity entity);
+        void draw_entity(AssetsManager& manager,
+            const Scene* scene, EntityHandle handle);
+        void render_scene(const Scene* scene,
+            const Frustum& frustum, glm::vec3 cam_postion);
     private:
         struct Renderable
         {

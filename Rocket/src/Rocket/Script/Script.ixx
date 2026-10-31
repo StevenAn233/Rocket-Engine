@@ -24,6 +24,9 @@ export namespace rke
         virtual void on_create () {}
         virtual void on_destroy() {}
 
+        virtual void on_runtime_start() {}
+        virtual void on_runtime_stop () {}
+
         virtual void on_serialize(ConfigWriter& writer) const {}
         virtual void on_deserialize(const ConfigReader& reader) {}
 

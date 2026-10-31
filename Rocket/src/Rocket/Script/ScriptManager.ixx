@@ -32,6 +32,8 @@ export namespace rke
         ScriptManager& operator=(ScriptManager&&) = delete;
 
         void clear();
+        void on_runtime_start();
+        void on_runtime_stop();
         void on_update(double dt);
         void on_mouse_scrolled(float x_offset, float y_offset);
 

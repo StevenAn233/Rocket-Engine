@@ -802,16 +802,30 @@ namespace rke
 
     void Scene::on_runtime_start()
     {
-        CORE_ASSERT(!in_runtime(), u8"Scene: Already in runtime!");
+        if(in_runtime())
+        {
+            CORE_ERROR(u8"Scene: Already in runtime!");
+            return;
+        }
+        
         in_runtime_ = true;
+        animator_system_->on_runtime_start();
         physics_engine_->on_runtime_start();
+        script_manager_->on_runtime_start();
     }
 
     void Scene::on_runtime_stop()
     {
-        CORE_ASSERT(in_runtime(), u8"Scene: Not in runtime!");
-        in_runtime_ = false;
+        if(!in_runtime())
+        {
+            CORE_ERROR(u8"Scene: Not yet in runtime!");
+            return;
+        }
+
+        script_manager_->on_runtime_stop();
         physics_engine_->on_runtime_stop();
+        animator_system_->on_runtime_stop();
+        in_runtime_ = false;
     }
 
     void Scene::set_physics_plane(glm::vec3 axis)

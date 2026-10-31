@@ -8,8 +8,7 @@ import Application;
 import RenderCommand;
 import Components;
 
-namespace
-{
+namespace {
     using namespace rke;
 
     static bool should_cull(glm::vec3 pos, const glm::mat3& basis,
@@ -49,43 +48,6 @@ namespace
             Plane(near  ), Plane(far   ),
         };
     }
-
-    static std::pair<Texture*, GTextureSettings> get_texture(AssetsManager& am, Entity entity)
-    {
-        if(!entity.is_valid() || !entity.has<SpriteComponent>()) return { nullptr, {} };
-        auto& sc{ entity.get_mut<SpriteComponent>() };
-        if(entity.has<TextureComponent>())
-        {
-            auto& txc{ entity.get_mut<TextureComponent>() };
-            if(txc.tex_uuid.empty()) return { nullptr, {} };
-
-            auto [handle, _]{ am.resolve(txc.resolved_tex, txc.tex_uuid) };
-            if(handle == asset_handle_null) return { nullptr, {} };
-
-            Texture* tex{ am.get_asset<Texture>(handle) };
-            CORE_ASSERT(tex, u8"SceneRenderer: Texture null!");
-
-            sc.uv_scale = sprite::compute_uv_scale
-                (txc.cell_size, tex->get_width(), tex->get_height());
-            sc.uv_offset = sprite::compute_uv_offset(txc.cell_coords, sc.uv_scale);
-            return { tex, txc.gtex_settings };
-        }
-        // else if: if have both(not gonna happen normally); use texture
-        else if(entity.has<AnimatorComponent>()) 
-        {
-            const auto& ac{ entity.get<AnimatorComponent>() };
-            if(!am.is_handle_valid(ac.curr_tex_handle)) return { nullptr, {} };
-
-            Texture* tex{ am.get_asset<Texture>(ac.curr_tex_handle) };
-            CORE_ASSERT(tex, u8"SceneRenderer: Texture null!");
-
-            sc.uv_scale = sprite::compute_uv_scale
-                (ac.curr_cell_size, tex->get_width(), tex->get_height());
-            sc.uv_offset = sprite::compute_uv_offset(ac.curr_cell_coords, sc.uv_scale);
-            return { tex, ac.gtex_settings };
-        }
-        return { nullptr, {} };
-    }
 }
 
 namespace rke
@@ -104,7 +66,8 @@ namespace rke
         });
     }
     
-    const GTexture2D* SceneRenderer::render(const Scene* scene, const glm::mat4& vp, glm::vec3 pos)
+    const GTexture2D* SceneRenderer::render(const Scene* scene,
+        const glm::mat4& vp, glm::vec3 pos)
     {
         if(!scene) { scene_fbo_->clear(); return nullptr; }
         context_->renderer().begin_camera(vp);
@@ -143,6 +106,52 @@ namespace rke
     }
     
 // private
+    std::pair<Texture*, GTextureSettings> SceneRenderer::get_texture
+        (AssetsManager& am, Entity entity)
+    {
+        if(!entity.is_valid() || !entity.has<SpriteComponent>())
+           return { nullptr, {} };
+        auto& sc{ entity.get_mut<SpriteComponent>() };
+        if(entity.has<TextureComponent>())
+        {
+            auto& txc{ entity.get_mut<TextureComponent>() };
+            if(txc.tex_uuid.empty()) return { nullptr, {} };
+
+            auto [handle, _]{ am.resolve(txc.resolved_tex, txc.tex_uuid) };
+            if(handle == asset_handle_null) return { nullptr, {} };
+
+            Texture* tex{ am.get_asset<Texture>(handle) };
+            CORE_ASSERT(tex, u8"SceneRenderer: Texture null!");
+
+            sc.uv_scale = sprite::compute_uv_scale
+                (txc.cell_size, tex->get_width(), tex->get_height());
+            sc.uv_offset = sprite::compute_uv_offset(txc.cell_coords, sc.uv_scale);
+            return { tex, txc.gtex_settings };
+        }
+        // else if: if have both(not gonna happen normally); use texture
+        else if(entity.has<AnimatorComponent>()) 
+        {
+            AssetHandle curr_tex_handle{ asset_handle_null };
+            const auto& ac{ entity.get<AnimatorComponent>() };
+            
+            Animation* anim{ am.get_asset<Animation>(ac.resolved_anim.handle) };
+            if(anim && !anim->get_tex_uuid().empty())
+                curr_tex_handle = anim->get_tex_handle(am).first;
+            else curr_tex_handle = asset_handle_null;
+            if(!am.is_handle_valid(curr_tex_handle)) return { nullptr, {} };
+
+            Texture* tex{ am.get_asset<Texture>(curr_tex_handle) };
+            CORE_ASSERT(tex, u8"SceneRenderer: Texture null!");
+
+            sc.uv_scale = sprite::compute_uv_scale
+                (ac.curr_cell_size, tex->get_width(), tex->get_height());
+            sc.uv_offset = sprite::compute_uv_offset
+                (ac.curr_cell_coords, sc.uv_scale);
+            return { tex, ac.gtex_settings };
+        }
+        return { nullptr, {} };
+    }
+
     void SceneRenderer::draw_entity(AssetsManager& manager,
         const Scene* scene, EntityHandle handle)
     {
@@ -173,11 +182,12 @@ namespace rke
     void SceneRenderer::render_scene(const Scene* scene,
         const Frustum& frustum, glm::vec3 cam_pos)
     {
-        AssetsManager& assets_manager{ scene->get_owner()->get_assets_manager_mut() };
+        AssetsManager& am{ scene->get_owner()->get_assets_manager_mut() };
         
         transparent_queue_.clear();
         context_->renderer().start();
-        auto view{ scene->registry_->view<TransformComponent, SpriteComponent>() };
+        auto view{ scene->registry_->view
+            <TransformComponent, SpriteComponent>() };
         for(entt::entity ent : view)
         {
             const auto& sc{ view.get<SpriteComponent>(ent) };
@@ -186,7 +196,8 @@ namespace rke
             const EntityHandle handle{ static_cast<EntityHandle>(ent) };
             const Entity entity{ scene->get_entity(handle) };
             const glm::mat4 world_mat{ entity.get_world_transform().matrix };
-            const glm::vec3 pos{ glm::vec3(world_mat * glm::vec4(sc.quad->get_centre(), 1.0f)) };
+            const glm::vec3 pos{ glm::vec3
+                (world_mat * glm::vec4(sc.quad->get_centre(), 1.0f)) };
             const glm::mat3 basis{ glm::mat3(world_mat) };
             const glm::vec3 half_size{ 0.5f * sc.quad->get_size() };
             if(should_cull(pos, basis, half_size, frustum)) continue;
@@ -194,11 +205,12 @@ namespace rke
             switch(sc.blending_mode)
             {
             case BlendingMode::Opaque:
-                draw_entity(assets_manager, scene, handle); break;
+                draw_entity(am, scene, handle); break;
             case BlendingMode::Transparent:
             {
                 float dist{ glm::length(pos - cam_pos) };
-                transparent_queue_.emplace_back(handle, sc.rendering_layer, dist);
+                transparent_queue_.emplace_back
+                    (handle, sc.rendering_layer, dist);
             } break;
             default: break;
             }
@@ -212,7 +224,7 @@ namespace rke
         context_->renderer().start();
 
         for(const auto& renderable : transparent_queue_)
-            draw_entity(assets_manager, scene, renderable.handle);
+            draw_entity(am, scene, renderable.handle);
 
         context_->renderer().stop();
         app().render_command().set_depth_write(true);

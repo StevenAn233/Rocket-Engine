@@ -130,7 +130,7 @@ export namespace rke
         GTextureSettings gtex_settings{};
 
     /* -runtime cache(do not serialize): copiable- */
-        AssetHandle curr_tex_handle{ asset_handle_null }; // Update: AnimatorSystem
+        AssetResolve resolved_anim{};
         std::pair<int, int> curr_cell_size  { 1, 1 };
         std::pair<int, int> curr_cell_coords{ 0, 0 };
 

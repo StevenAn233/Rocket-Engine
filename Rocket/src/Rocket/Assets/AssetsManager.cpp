@@ -124,10 +124,11 @@ namespace rke
             try {
                 fs::remove(meta_path.get());
             } catch(const std::exception& e) {
-                CORE_ERROR(u8"AssetsManager: Failed to delete orphan meta '{}': {}!",
-                    meta_path, e.what());
+                CORE_ERROR(u8"AssetsManager: Failed to delete "
+                    u8"orphan meta '{}': {}!", meta_path, e.what());
             }
-            CORE_WARN(u8"AssetsManager: Deleted orphan meta file '{}'.", meta_path);
+            CORE_WARN(u8"AssetsManager: "
+                u8"Deleted orphan meta file '{}'.", meta_path);
         }
     }
 
@@ -184,7 +185,8 @@ namespace rke
                 u8"Failed to load asset at '{}'", meta.asset_path);
             return asset_handle_null;
         }
-        CORE_INFO(u8"AssetsManager: Asset '{}' successfully loaded.", uuid.value());
+        CORE_INFO(u8"AssetsManager: Asset '{}' "
+            u8"successfully loaded.", uuid.value());
 
         AssetHandle handle{ allocate_handle() };
         RuntimeAsset& asset{ runtime_assets_[extract_index(handle)] };
@@ -220,10 +222,15 @@ namespace rke
         CORE_INFO(u8"AssetsManager: Asset '{}' unloaded.", uuid.value());
     }
 
-    std::pair<AssetHandle, bool> AssetsManager::resolve(AssetResolve& resolved, AssetUUID uuid)
+    std::pair<AssetHandle, bool> AssetsManager::resolve
+        (AssetResolve& resolved, AssetUUID uuid)
     {
-        if(resolved.uuid == uuid && is_handle_valid(resolved.handle))
-            return { resolved.handle, false };
+        if(resolved.uuid == uuid)
+        {
+            if((resolved.uuid.empty() && resolved.handle == asset_handle_null)
+            || is_handle_valid(resolved.handle))
+                return { resolved.handle, false };
+        }
 
         resolved.uuid = uuid;
         resolved.handle = load_asset(uuid); // <- uuid checked here
@@ -257,7 +264,7 @@ namespace rke
     {
         auto it{ asset_registry_.find(uuid) };
         if(it == asset_registry_.end()) it = asset_registry_.find(UUID(0));
-        if(it == asset_registry_.end()) // no sentinel either: never dereference end()
+        if(it == asset_registry_.end()) // no sentinel either
         {
             static const Path s_invalid_path{ u8"<Invalid Asset>" };
             return s_invalid_path;

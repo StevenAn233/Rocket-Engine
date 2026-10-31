@@ -12,12 +12,11 @@ import Animation;
 namespace {
     using namespace rke;
     
-    static void sync_to_ac(AnimatorComponent& ac,
-        const Animation& anim, const AnimPlayState& state)
+    static void update_sprite(AnimatorComponent& ac,
+        const Animation* anim, const AnimPlayState& state)
     {
-        if(state.active.empty()) return;
-
-        const AnimClip* clip{ anim.get_clip(state.active) };
+        const AnimClip* clip{ (anim && !state.active.empty())
+            ? anim->get_clip(state.active) : nullptr };
         if(!clip || clip->frames.empty())
         {
             ac.curr_cell_coords = { 0, 0 };
@@ -41,63 +40,61 @@ namespace rke
             .connect<&on_anim_com_destroy>();
     }
 
+    void AnimatorSystem::on_runtime_start()
+    {
+        align_states();
+        auto& storage{ owner_->registry_->storage<AnimatorComponent>() };
+        for(auto&& [ent, ac] : storage.each())
+            refresh_state(static_cast<EntityHandle>(ent), ac);
+    }
+    void AnimatorSystem::on_runtime_stop() {}
+
     void AnimatorSystem::on_update(double dt)
     {
+        align_states();
         auto& storage{ owner_->registry_->storage<AnimatorComponent>() };
         AssetsManager& am{ project_->get_assets_manager_mut() };
-        align_states();
-
         for(auto&& [ent, ac] : storage.each())
         {
             AnimPlayState* state{ refresh_state(static_cast<EntityHandle>(ent), ac) };
-            if(!state) { ac.curr_tex_handle = asset_handle_null; continue; }
-            
-            Animation* anim{ am.get_asset<Animation>(state->resolved_anim.handle) };
-            if(anim && !anim->get_tex_uuid().empty())
-                ac.curr_tex_handle = anim->get_tex_handle(am).first;
-            else ac.curr_tex_handle = asset_handle_null;
+            if(!state || !owner_->in_runtime()) continue;
 
-            String requested{ ac.has_clip() ? String(ac.get_clip()) : String{} };
-            if(requested != state->requested)
-            {
-                state->set_to(requested);
-                if(anim) sync_to_ac(ac, *anim, *state);
-            }
-            
-            if(anim && state->advance(*anim, dt))
-                sync_to_ac(ac, *anim, *state);
+            Animation* anim{ am.get_asset<Animation>(ac.resolved_anim.handle) };
+            if(anim && state->advance(*anim, dt)) update_sprite(ac, anim, *state);
         }
     }
 
     void AnimatorSystem::play(EntityHandle handle)
     {
+        if(!owner_->in_runtime()) return;
         AnimPlayState* state{ state_of(handle) };
         if(state) state->play();
     }
 
     void AnimatorSystem::stop(EntityHandle handle)
     {
+        if(!owner_->in_runtime()) return;
         AnimPlayState* state{ state_of(handle) };
         if(state) {
             state->stop();
             AssetsManager& am{ project_->get_assets_manager_mut() };
-            if(Animation* anim{ am.get_asset<Animation>(state->resolved_anim.handle) })
-            {
-                AnimatorComponent& ac{ owner_->registry_->
-                    get<AnimatorComponent>(static_cast<entt::entity>(handle)) };
-                sync_to_ac(ac, *anim, *state);
-            }
+            AnimatorComponent& ac{ owner_->registry_->
+                get<AnimatorComponent>(static_cast<entt::entity>(handle)) };
+            Animation* anim{ am.get_asset<Animation>(ac.resolved_anim.handle) };
+            update_sprite(ac, anim, *state);
         }
     }
 
     void AnimatorSystem::pause(EntityHandle handle)
     {
+        if(!owner_->in_runtime()) return;
         AnimPlayState* state{ state_of(handle) };
         if(state) state->pause();
     }
 
     void AnimatorSystem::resume(EntityHandle handle)
     {
+        if(!owner_->in_runtime()) return;
         AnimPlayState* state{ state_of(handle) };
         if(state) state->resume();
     }
@@ -116,15 +113,16 @@ namespace rke
         return false;
     }
 
-    AnimPlayState* AnimatorSystem::state_of(EntityHandle handle)
+    AnimPlayState* AnimatorSystem::state_of(EntityHandle handle) // silent
     {
-        entt::entity ent{ static_cast<entt::entity>(handle) };
-        auto& reg{ *(owner_->registry_) };
-        if(!reg.all_of<AnimatorComponent>(ent)) return nullptr;
+        const Size index{ owner_->registry_->storage<AnimatorComponent>()
+            .index(static_cast<entt::entity>(handle)) };
+        if(index >= states_.size()) return nullptr;
         
-        auto& ac{ reg.get<AnimatorComponent>(ent) };
-        align_states();
-        return refresh_state(handle, ac);
+        auto& [owner_handle, state]{ states_[index] };
+        if(owner_handle != handle) return nullptr;
+        
+        return &state;
     }
 
     AnimPlayState* AnimatorSystem::refresh_state
@@ -132,24 +130,40 @@ namespace rke
     {
         const Size index{ owner_->registry_->storage<AnimatorComponent>()
             .index(static_cast<entt::entity>(handle)) };
+        if(index >= states_.size())
+        {
+            CORE_ERROR(u8"AnimatorSystem: Index out of bound!");
+            return nullptr;
+        }
         auto& [owner_handle, state]{ states_[index] };
         if(owner_handle != handle) // slot reused / states_ desynced -> rebuild
         {
             state = {};
             owner_handle = handle;
         }
-        if(ac.anim_uuid.empty()) return nullptr;
 
+        bool to_update_sprite{ false };
         AssetsManager& am{ project_->get_assets_manager_mut() };
-        auto [_, refreshed]{ am.resolve(state.resolved_anim, ac.anim_uuid) };
+        auto [_, refreshed]{ am.resolve(ac.resolved_anim, ac.anim_uuid) };
         if(refreshed)
         {
             state.stop();
             state.requested.clear();
             state.active.clear();
 
-            const Animation* anim{ am.get_asset<Animation>(state.resolved_anim.handle) };
-            if(anim) sync_to_ac(ac, *anim, state);
+            to_update_sprite = true;
+        }
+        String requested{ ac.has_clip() ? String(ac.get_clip()) : String{} };
+        if(requested != state.requested)
+        {
+            state.set_to(requested);
+            to_update_sprite = true;
+        }
+
+        if(to_update_sprite)
+        {
+            Animation* anim{ am.get_asset<Animation>(ac.resolved_anim.handle) };
+            update_sprite(ac, anim, state);
         }
         return &state;
     }
