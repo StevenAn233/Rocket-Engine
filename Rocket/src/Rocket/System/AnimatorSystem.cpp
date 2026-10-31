@@ -118,15 +118,15 @@ namespace rke
     void AnimatorSystem::stop(EntityHandle handle)
     {
         AnimPlayState* state{ state_of(handle) };
-        if(!state) return;
-
-        state->stop();
-        AssetsManager& am{ project_->get_assets_manager_mut() };
-        if(Animation* anim{ am.get_asset<Animation>(state->resolved_anim.handle) })
-        {
-            AnimatorComponent& ac{ owner_->registry_->
-                get<AnimatorComponent>(static_cast<entt::entity>(handle)) };
-            sync_to_ac(ac, *anim, *state);
+        if(state) {
+            state->stop();
+            AssetsManager& am{ project_->get_assets_manager_mut() };
+            if(Animation* anim{ am.get_asset<Animation>(state->resolved_anim.handle) })
+            {
+                AnimatorComponent& ac{ owner_->registry_->
+                    get<AnimatorComponent>(static_cast<entt::entity>(handle)) };
+                sync_to_ac(ac, *anim, *state);
+            }
         }
     }
 
@@ -184,10 +184,9 @@ namespace rke
         auto [_, refreshed]{ am.resolve(state.resolved_anim, ac.anim_uuid) };
         if(refreshed)
         {
-            state.rewind_to_start();
+            state.stop();
             state.requested.clear();
             state.active.clear();
-            state.playing = state.paused = false;
 
             const Animation* anim{ am.get_asset<Animation>(state.resolved_anim.handle) };
             if(anim) sync_to_ac(ac, *anim, state);
@@ -215,7 +214,7 @@ namespace rke
 
         const Size index{ storage.index(ent) };
         if(index + 1u != states.size())
-            *(states.begin() + index) = std::move(states.back());
+            states[index] = std::move(states.back());
         states.pop_back();
     }
 }
