@@ -32,44 +32,6 @@ namespace {
 
 namespace rke
 {
-    bool AnimPlayState::advance(const Animation& anim, double dt)
-    {
-        constexpr double max_dt{ 0.5 };
-        constexpr uint32  fuse { 128 };
-        
-        acc += dt;
-        if(acc > max_dt) acc = max_dt;
-
-        bool advanced{ false };
-        for(uint32 guard{}; guard < fuse; ++guard)
-        {
-            if(active.empty()) break;
-            const AnimClip* clip{ anim.get_clip(active) };
-            if(!clip || clip->frames.empty()) break;
-
-            const double spf{ 1.0 / (clip->fps ? clip->fps : 1u) };
-            if(acc < spf) return advanced;
-
-            acc -= spf;
-            advanced = true;
-
-            if(frame_index < clip->frames.size() - 1)
-            {
-                ++frame_index;
-                continue;
-            }
-
-            frame_index = 0;
-            if(clip->loop) continue;
-
-            if(clip->next.empty()) break;
-            active = clip->next;
-        }
-        acc = 0.0;
-        playing = false;
-        return advanced;
-    }
-
     AnimatorSystem::AnimatorSystem(Scene* owner) : owner_(owner)
     {
         CORE_ASSERT(owner_, u8"AnimatorSystem: Owner scene null!");
@@ -98,14 +60,12 @@ namespace rke
             String requested{ ac.has_clip() ? String(ac.get_clip()) : String{} };
             if(requested != state->requested)
             {
-                state->requested = requested;
-                state->rewind_to_start();
+                state->set_to(requested);
                 if(anim) sync_to_ac(ac, *anim, *state);
             }
             
-            if(state->playing && !(state->paused) && anim)
-                if(state->advance(*anim, dt)) // <- active not empty
-                    sync_to_ac(ac, *anim, *state);
+            if(anim && state->advance(*anim, dt))
+                sync_to_ac(ac, *anim, *state);
         }
     }
 
@@ -172,11 +132,11 @@ namespace rke
     {
         const Size index{ owner_->registry_->storage<AnimatorComponent>()
             .index(static_cast<entt::entity>(handle)) };
-        AnimPlayState& state{ states_[index] };
-        if(state.owner != handle) // slot reused / states_ desynced -> rebuild
+        auto& [owner_handle, state]{ states_[index] };
+        if(owner_handle != handle) // slot reused / states_ desynced -> rebuild
         {
-            state = AnimPlayState{};
-            state.owner = handle;
+            state = {};
+            owner_handle = handle;
         }
         if(ac.anim_uuid.empty()) return nullptr;
 

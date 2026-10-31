@@ -16,10 +16,46 @@ import Application;
 import ImGuiSetup;
 import Components;
 import Layout;
+import AnimatorSystem;
+import Time;
 
 namespace {
     static void ImGui_ImplOpenGL3_DisableBindSampler(const ImDrawList*, const ImDrawCmd*)
         { rke::imgui::disable_bind_sampler(); }
+
+    struct SheetTexture
+    {
+        rke::GTexture* gtex{};
+        float width {};
+        float height{};
+    };
+
+    static bool resolve_sheet(rke::AssetsManager& am,
+        rke::Animation& anim, SheetTexture& sheet)
+    {
+        const rke::AssetHandle handle{ anim.get_tex_handle(am).first };
+        if(handle == rke::asset_handle_null) return false;
+
+        rke::Texture* texture{ am.get_asset<rke::Texture>(handle) };
+        if(!texture) return false;
+
+        const float width { static_cast<float>(texture->get_width ()) };
+        const float height{ static_cast<float>(texture->get_height()) };
+        if(width <= 0.0f || height <= 0.0f) return false;
+
+        sheet.gtex = texture->get_gtexture(rke::GTextureSettings
+        {
+            .filt = rke::GTexture::FiltFormat::Nearest,
+            .wrap = rke::GTexture::WrapFormat::Repeat,
+            .srgb = false
+        });
+        CORE_ASSERT(sheet.gtex, u8"AnimationEditorPanel: Texture format invalid!");
+        if(!sheet.gtex) return false;
+
+        sheet.width  = width;
+        sheet.height = height;
+        return true;
+    }
 }
 
 namespace rke
@@ -87,8 +123,19 @@ namespace rke
 
         ImGui::SameLine();
 
-        ImGui::BeginChild("##clip", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders);
+        const float style_spacing{ ImGui::GetStyle().ItemSpacing.x };
+        const float avail{ ImGui::GetContentRegionAvail().x };
+        const float preview_width{ std::min(avail * 0.2f, 200.0f) };
+        const float clip_width{ std::max(1.0f, avail - preview_width - style_spacing) };
+
+        ImGui::BeginChild("##clip", ImVec2(clip_width, 0.0f), ImGuiChildFlags_Borders);
         selected_clip_editing(am);
+        ImGui::EndChild();
+
+        ImGui::SameLine();
+
+        ImGui::BeginChild("##clip_preview", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders);
+        preview_panel(am);
         ImGui::EndChild();
 
         ImGui::End();
@@ -103,6 +150,7 @@ namespace rke
 
         selected_clip_.clear();
         selected_frame_ = 0;
+        preview_ = {};
     }
 
     void AnimationEditorPanel::open(AssetUUID uuid)
@@ -299,23 +347,13 @@ namespace rke
         ImGui::Separator();
 
     // frames editing
-        const AssetHandle tex_handle{ anim_.get_tex_handle(am).first };
-        if(tex_handle == asset_handle_null)
-            { ImGui::TextDisabled("no texture."); return; }
+        SheetTexture sheet{};
+        if(!resolve_sheet(am, anim_, sheet))
+            { ImGui::TextDisabled("No texture."); return; }
 
-        Texture* texture{ am.get_asset<Texture>(tex_handle) };
-        GTexture* gtex{ texture ?
-            texture->get_gtexture(GTextureSettings
-            {
-                .filt = GTexture::FiltFormat::Nearest,
-                .wrap = GTexture::WrapFormat::Repeat,
-                .srgb = false
-            })
-            : nullptr };
-        CORE_ASSERT(gtex, u8"AnimationEditorPanel: Texture format invalid!");
-
-        const float tex_w{ static_cast<float>(texture->get_width ()) };
-        const float tex_h{ static_cast<float>(texture->get_height()) };
+        GTexture* gtex{ sheet.gtex };
+        const float tex_w{ sheet.width  };
+        const float tex_h{ sheet.height };
 
         const float cell_w_px{ static_cast<float>
             (std::max(1, std::abs(clip.cell_size.first ))) };
@@ -676,6 +714,109 @@ namespace rke
             anim_.replace_clip(selected_clip_, clip);
             modified_ = true;
         }
+    }
+
+    void AnimationEditorPanel::preview_panel(AssetsManager& am)
+    {
+        preview_timer_.update();
+        const double dt{ std::min(preview_timer_.get_last_elapsed(), 0.1) };
+
+        if(selected_clip_ != preview_.requested)
+        {
+            preview_.stop();
+            preview_.set_to(selected_clip_);
+        }
+
+        if(selected_clip_.empty())
+            { ImGui::TextDisabled("No clip."); return; }
+
+    // playback controls
+        ImGui::TextDisabled("%s", preview_.active.raw());
+        ImGui::SameLine();
+
+        bool playing{ preview_.playing };
+        const char* first_text{ playing ? "=" : ">" };
+        if(playing) {
+            bool paused{ preview_.paused };
+            const char* second_text{ paused ? "@" : "#" };
+            float avail_width{ ImGui::GetContentRegionAvail().x };
+            float first_btn_width{ ImGui::CalcTextSize(first_text).x
+                + ImGui::GetStyle().FramePadding.x * 2.0f };
+            float second_btn_width{ ImGui::CalcTextSize(second_text).x
+                + ImGui::GetStyle().FramePadding.x * 2.0f };
+            float spacing{ ImGui::GetStyle().ItemSpacing.x };
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width
+                - first_btn_width - spacing - second_btn_width);
+
+            if(ImGui::SmallButton(first_text)) preview_.stop();
+            ImGui::SameLine();
+            if(ImGui::SmallButton(second_text))
+            {
+                if(paused) preview_.resume(); 
+                else preview_.pause();
+            }
+        } else {
+            float avail_width{ ImGui::GetContentRegionAvail().x };
+            float btn_width{ ImGui::CalcTextSize(first_text).x
+                + ImGui::GetStyle().FramePadding.x * 2.0f };
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width - btn_width);
+
+            if(ImGui::SmallButton(first_text)) preview_.play();
+        }
+        preview_.advance(anim_, dt); // the runtime's own sampling
+
+    // the clip may have changed by now: 'next' moved it, or it ran out
+        const AnimClip* clip{ anim_.get_clip(preview_.active) };
+        if(!clip || clip->frames.empty())
+        {
+            ImGui::TextDisabled("Frames empty.");
+            return;
+        }
+
+        const Size frame_index{ std::min
+            (preview_.frame_index, clip->frames.size() - 1) };
+        ImGui::TextDisabled("Frame %zu / %zu", frame_index + 1, clip->frames.size());
+
+        SheetTexture sheet{};
+        if(!resolve_sheet(am, anim_, sheet))
+        {
+            ImGui::TextDisabled("No texture.");
+            return;
+        }
+
+        const float cell_w_px{ static_cast<float>
+            (std::max(1, std::abs(clip->cell_size.first ))) };
+        const float cell_h_px{ static_cast<float>
+            (std::max(1, std::abs(clip->cell_size.second))) };
+
+        const ImVec2 avail{ ImGui::GetContentRegionAvail() };
+        float scale{ std::min(avail.x / cell_w_px, avail.y / cell_h_px) };
+        scale = scale >= 1.0f
+            ? std::min(std::floor(scale), 8.0f)
+            : std::max(scale, 0.01f);
+
+        const ImVec2 size{ cell_w_px * scale, cell_h_px * scale };
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX()
+            + std::max(0.0f, (avail.x - size.x) * 0.5f));
+
+        ImDrawList* draw{ ImGui::GetWindowDrawList() };
+        const ImVec2 origin{ ImGui::GetCursorScreenPos() };
+        draw->AddRectFilled(origin,
+            ImVec2(origin.x + size.x, origin.y + size.y), IM_COL32(0, 0, 0, 80));
+
+        const std::pair<int, int>& cell{ clip->frames[frame_index] };
+        const float u_scale{ static_cast<float>(clip->cell_size.first ) / sheet.width  };
+        const float v_scale{ static_cast<float>(clip->cell_size.second) / sheet.height };
+
+    // same uv flip as the frame thumbnails: imgui counts down from the top
+        draw->AddCallback(ImGui_ImplOpenGL3_DisableBindSampler, nullptr);
+        ImGui::Image(ImTextureRef(static_cast<ImTextureID>(sheet.gtex->get_gal_id())),
+            size,
+            ImVec2(static_cast<float>(cell.first) * u_scale,
+                   static_cast<float>(cell.second + 1) * v_scale),
+            ImVec2(static_cast<float>(cell.first + 1) * u_scale,
+                   static_cast<float>(cell.second) * v_scale));
+        draw->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
     }
 
     void AnimationEditorPanel::anim_popup(AssetsManager& am)

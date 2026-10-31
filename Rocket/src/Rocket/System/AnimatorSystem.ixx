@@ -20,51 +20,6 @@ import Components;
 
 export namespace rke
 {
-    struct AnimPlayState
-    {
-        EntityHandle owner{ entity_handle_null }; // slot identity (self-healing)
-        AssetResolve resolved_anim{};
-        bool playing{ false };
-        bool paused { false };
-
-        String requested{}; // clip name
-        String active   {}; // clip name
-        Size frame_index{};
-        double acc{};
-
-        inline void rewind_to_start()
-        {
-            active = requested;
-            frame_index = 0; acc = 0.0;
-        }
-
-        inline bool at_start() const
-        {
-            return requested == active &&
-                frame_index == 0 && acc == 0.0;
-        }
-
-        inline void play()
-        {
-            if(!playing && !active.empty() && at_start())
-            {
-                playing = true;
-                paused = false;
-            }
-        }
-
-        inline void stop()
-        {
-            playing = paused = false;
-            rewind_to_start(); // may modify
-        }
-
-        inline void pause() { if(playing) paused = true; }
-        inline void resume() { paused = false; }
-
-        bool advance(const Animation& anim, double dt);
-    };
-
     class AnimatorSystem
     {
     public:
@@ -96,6 +51,6 @@ export namespace rke
     private:
         Scene* owner_;
         Project* project_{};
-        std::vector<AnimPlayState> states_{};
+        std::vector<std::pair<EntityHandle, AnimPlayState>> states_{};
     };
 }

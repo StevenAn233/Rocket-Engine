@@ -11,6 +11,7 @@ import String;
 import Types;
 import AssetAccess;
 import AssetsManager;
+import Time;
 
 export namespace rke
 {
@@ -29,6 +30,7 @@ export namespace rke
 
         void clips_managing(AssetsManager& am);
         void selected_clip_editing(AssetsManager& am);
+        void preview_panel(AssetsManager& am);
 
         void anim_popup(AssetsManager& am);
         bool clip_popup(const String& name);
@@ -44,5 +46,11 @@ export namespace rke
         String selected_clip_{};
         Size selected_frame_{ 0 };
         float sheet_zoom_{ 1.0f }; // multiplier over "fit the width"
+
+    // the preview plays the selected clip through the very same state machine
+    // the runtime uses, but on a clock of its own: the panel is drawn once per
+    // editor frame, not at the scene's fixed step
+        AnimPlayState preview_{};
+        Timer preview_timer_{};
     };
 }

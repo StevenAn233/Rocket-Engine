@@ -582,33 +582,6 @@ namespace rke
 
         check_then_draw<AnimatorComponent, u8"Animation">(entity, [this](Entity ent)
         {
-            ImGui::SameLine();
-            bool playing{ ent.is_anim_playing() };
-            if(playing) {
-                bool paused{ ent.is_anim_paused() };
-                const char* second_text{ paused ? "Resume" : "Pause" };
-                float avail_width{ ImGui::GetContentRegionAvail().x };
-                float first_btn_width{ ImGui::CalcTextSize("Stop").x
-                    + ImGui::GetStyle().FramePadding.x * 2.0f };
-                float second_btn_width{ ImGui::CalcTextSize(second_text).x
-                    + ImGui::GetStyle().FramePadding.x * 2.0f };
-                float spacing{ ImGui::GetStyle().ItemSpacing.x };
-                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width
-                    - first_btn_width - spacing - second_btn_width);
-
-                if(ImGui::SmallButton("Stop")) ent.anim_stop();
-                ImGui::SameLine();
-                if(paused) { if(ImGui::SmallButton("Resume")) ent.anim_resume(); }
-                else { if(ImGui::SmallButton("Pause")) ent.anim_pause(); }
-            } else {
-                float avail_width{ ImGui::GetContentRegionAvail().x };
-                float btn_width{ ImGui::CalcTextSize("Play").x
-                    + ImGui::GetStyle().FramePadding.x * 2.0f };
-                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail_width - btn_width);
-
-                if(ImGui::SmallButton("Play")) ent.anim_play();
-            }
-
             auto& ac{ ent.get_mut<AnimatorComponent>() };
             auto& am{ context_->get_owner()->get_assets_manager_mut() };
 

@@ -162,4 +162,43 @@ namespace rke
         clips_.erase(name);
         std::erase_if(clip_names_, [name](const String& e){ return name == e; });
     }
+
+    bool AnimPlayState::advance(const Animation& anim, double dt)
+    {
+        constexpr double max_dt{ 0.5 };
+        constexpr uint32  fuse { 128 };
+        
+        if(!playing || paused) return false;
+
+        acc += dt;
+        if(acc > max_dt) acc = max_dt;
+
+        bool advanced{ false };
+        for(uint32 guard{}; guard < fuse; ++guard)
+        {
+            if(active.empty()) break;
+            const AnimClip* clip{ anim.get_clip(active) };
+            if(!clip || clip->frames.empty()) break;
+
+            const double spf{ 1.0 / (clip->fps ? clip->fps : 1u) };
+            if(acc < spf) return advanced;
+
+            acc -= spf;
+            advanced = true;
+
+            if(frame_index < clip->frames.size() - 1)
+            {
+                ++frame_index;
+                continue;
+            }
+
+            frame_index = 0;
+            if(clip->loop) continue;
+
+            if(clip->next.empty()) break;
+            active = clip->next;
+        }
+        stop();
+        return advanced;
+    }
 }

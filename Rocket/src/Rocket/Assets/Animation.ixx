@@ -64,4 +64,54 @@ export namespace rke
         std::map<String, AnimClip> clips_{};
         mutable std::unordered_set<String> failed_{};
     };
+
+    struct AnimPlayState
+    {
+        AssetResolve resolved_anim{};
+        bool playing{ false };
+        bool paused { false };
+
+        String requested{}; // clip name
+        String active   {}; // clip name
+        Size frame_index{};
+        double acc{};
+
+        inline void rewind_to_start()
+        {
+            active = requested;
+            frame_index = 0; acc = 0.0;
+        }
+
+        inline bool at_start() const
+        {
+            return requested == active &&
+                frame_index == 0 && acc == 0.0;
+        }
+
+        inline void set_to(String clip_name)
+        {
+            requested = std::move(clip_name);
+            rewind_to_start();
+        }
+        
+        inline void play()
+        {
+            if(!playing && !active.empty() && at_start())
+            {
+                playing = true;
+                paused = false;
+            }
+        }
+
+        inline void stop()
+        {
+            playing = paused = false;
+            rewind_to_start();
+        }
+
+        inline void pause() { if(playing) paused = true; }
+        inline void resume() { paused = false; }
+
+        bool advance(const Animation& anim, double dt);
+    };
 }

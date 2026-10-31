@@ -24,6 +24,7 @@ import Components;
 import EntityAccess;
 import ScriptManager;
 import PhysicsEngine2D;
+import Animation;
 import AnimatorSystem;
 
 export namespace rke
