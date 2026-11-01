@@ -48,8 +48,6 @@ export namespace rke
         void align_states(); // keep states size == storage size
         AnimPlayState* state_of(EntityHandle handle);
         AnimPlayState* refresh_state(EntityHandle handle, AnimatorComponent& ac);
-
-        static void on_anim_com_destroy(entt::registry& reg, entt::entity ent);
     private:
         Scene* owner_;
         Project* project_{};

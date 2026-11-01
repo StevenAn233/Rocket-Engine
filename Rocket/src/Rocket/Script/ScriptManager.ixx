@@ -85,6 +85,7 @@ export namespace rke
         ScriptCache* refresh_cache(EntityHandle handle, ScriptType type); 
         void contact_callback(EntityHandle lhs, EntityHandle rhs, ContactType type);
 
+        static void on_script_com_create (entt::registry& reg, entt::entity ent);
         static void on_script_com_destroy(entt::registry& reg, entt::entity ent);
     private:
         Scene* owner_;

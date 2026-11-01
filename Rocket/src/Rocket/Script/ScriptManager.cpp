@@ -12,6 +12,8 @@ namespace rke
     ScriptManager::ScriptManager(Scene* owner) : owner_(owner)
     {
         CORE_ASSERT(owner_, u8"ScriptManager: Owner scene empty!");
+        owner_->registry_->on_construct<NativeScriptComponent>()
+            .connect<&on_script_com_create>();
         owner_->registry_->on_destroy<NativeScriptComponent>()
             .connect<&on_script_com_destroy>();
         sync_all_to_cache();
@@ -110,11 +112,14 @@ namespace rke
     void ScriptManager::align_cache()
     {
         auto& storage{ owner_->registry_->storage<NativeScriptComponent>() };
-        while(script_cache_.size() < storage.size()) script_cache_.emplace_back();
+        if(script_cache_.size() == storage.size()) return;
+        
+        CORE_WARN(u8"ScriptManager: Script cache not aligned with storage"
+            u8", which should't happen nomally!");
+        while(script_cache_.size() < storage.size())
+            script_cache_.emplace_back();
         while(script_cache_.size() > storage.size())
         {
-            CORE_WARN(u8"ScriptManager: Script cache larger than storage"
-                u8", which should't happen nomally!");
             bury(std::move(script_cache_.back().script));
             script_cache_.pop_back();
         }
@@ -196,6 +201,21 @@ namespace rke
         ScriptType script_type{ entity.get<NativeScriptComponent>().script_type };
         if(cache.script_type != script_type/* outdated or invalid */) return nullptr;
         return cache.script.get();
+    }
+
+    void ScriptManager::on_script_com_create(entt::registry& reg, entt::entity ent)
+    {
+        auto& ctx{ reg.ctx().get<Scene::RegistryContext>() };
+        CORE_ASSERT(ctx.script_manager, u8"ScriptManager: Null!");
+
+        auto& script_cache{ ctx.script_manager->script_cache_ };
+    #ifdef RKE_DEBUG
+        const auto& storage{ reg.storage<NativeScriptComponent>() };
+        const Size index{ storage.index(ent) };
+        CORE_ASSERT(index == script_cache.size(),
+            u8"ScriptManager: New nsc not at the very end!")
+    #endif
+        script_cache.emplace_back();
     }
 
     void ScriptManager::on_script_com_destroy(entt::registry& reg, entt::entity ent)

@@ -462,8 +462,12 @@ namespace rke
         const auto& new_script_storage{ new_scene->
             registry_->storage<NativeScriptComponent>() };
         
-        auto& new_script_cache{ new_scene->script_manager_->script_cache_ }; // empty now
-        new_script_cache.resize(new_script_storage.size());
+        auto& new_script_cache{ new_scene->script_manager_->script_cache_ };
+        if(new_script_cache.size() < new_script_storage.size())
+        {
+            CORE_WARN(u8"Scene: Script cache smaller than storage!");
+            new_script_cache.resize(new_script_storage.size());
+        }
         for(auto&& [new_entity, nsc] : new_script_storage.each())
         {
             const EntityHandle handle{ static_cast<EntityHandle>(new_entity) };
@@ -538,13 +542,18 @@ namespace rke
                     if(src.has<ComponentType>()) copy.emplace_or_replace
                         <ComponentType>(src.get<ComponentType>());
             });
-            if(src.has<NativeScriptComponent>()) // may modify
+            if(copy.has<NativeScriptComponent>())
             {
-                const auto& nsc{ src.get<NativeScriptComponent>() };
-                Scope<Script> copied_script{ script_reg
-                    .deep_copy_script(nsc.script_type, script_manager_->get_script(src_handle)) };
+                const ScriptType type{ copy.get<NativeScriptComponent>().script_type };
+                Scope<Script> copied_script{ script_reg.deep_copy_script
+                    (type, script_manager_->get_script(src_handle)) };
                 script_manager_->init_script(copied_script.get(), copy.get_handle());
-                script_manager_->script_cache_.emplace_back(nsc.script_type, std::move(copied_script));
+                auto& script_cache{ script_manager_->script_cache_ };
+
+                const auto& storage{ registry_->storage<NativeScriptComponent>() };
+                const Size index{ storage.index(static_cast<entt::entity>(copy.get_handle())) };
+                CORE_ASSERT(index < script_cache.size(), u8"Scene: Index out of bound!");
+                script_cache[index] = { type, std::move(copied_script) };
             }
 
             made.emplace(src_handle, copy.get_handle());

@@ -377,12 +377,12 @@ namespace rke
             auto& nsc{ entity.emplace<NativeScriptComponent>() };
             const auto& script_reg{ scene.get_owner()->get_script_registry() };
             String name{ nsc_reader->get_at(u8"Script Name", String{}) };
-            nsc.script_type = script_reg.get_script_type(name);
+            const ScriptType type{ script_reg.get_script_type(name) };
+            nsc.script_type = type;
 
-        // may modify
-            Scope<Script> script{ script_reg.construct_script(nsc.script_type) };
+            Scope<Script> script{ script_reg.construct_script(type) };
             if(script) script->on_deserialize(*nsc_reader);
-            else if(nsc.script_type != script_type_null)
+            else if(type != script_type_null)
             {
                 CORE_WARN(u8"SceneSerializer: Failed to create script!");
                 nsc.script_type = script_type_null;
@@ -390,7 +390,12 @@ namespace rke
 
             ScriptManager& script_manager{ *scene.script_manager_ };
             script_manager.init_script(script.get(), entity.get_handle());
-            script_manager.script_cache_.emplace_back(nsc.script_type, std::move(script));
+            auto& script_cache{ script_manager.script_cache_ };
+
+            const auto& storage{ scene.registry_->storage<NativeScriptComponent>() };
+            const Size index{ storage.index(static_cast<entt::entity>(entity.get_handle())) };
+            CORE_ASSERT(index < script_cache.size(), u8"SceneSerializer: Index out of bound!");
+            script_cache[index] = { type, std::move(script) };
         }
     }
 }

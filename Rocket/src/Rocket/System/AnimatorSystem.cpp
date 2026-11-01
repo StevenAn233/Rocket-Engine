@@ -36,8 +36,6 @@ namespace rke
         CORE_ASSERT(owner_, u8"AnimatorSystem: Owner scene null!");
         project_ = owner_->get_owner();
         CORE_ASSERT(project_, u8"AnimatorSystem: Project null!");
-        owner_->registry_->on_destroy<AnimatorComponent>()
-            .connect<&on_anim_com_destroy>();
     }
 
     void AnimatorSystem::on_runtime_start()
@@ -173,22 +171,5 @@ namespace rke
         auto& storage{ owner_->registry_->storage<AnimatorComponent>() };
         if(states_.size() != storage.size())
             states_.resize(storage.size(), {});
-    }
-
-    void AnimatorSystem::on_anim_com_destroy(entt::registry& reg, entt::entity ent)
-    {
-        auto& ctx{ reg.ctx().get<Scene::RegistryContext>() };
-        CORE_ASSERT(ctx.animator_system_, u8"AnimatorSystem: Null!");
-
-        auto& states { ctx.animator_system_->states_ };
-        auto& storage{ reg.storage<AnimatorComponent>() };
-
-        if(states.size() != storage.size()) return;
-        if(!storage.contains(ent)) return;
-
-        const Size index{ storage.index(ent) };
-        if(index + 1u != states.size())
-            states[index] = std::move(states.back());
-        states.pop_back();
     }
 }
