@@ -19,9 +19,7 @@ namespace rke
         sync_all_to_cache();
     }
 
-    ScriptManager::~ScriptManager() { clear(); }
-
-    void ScriptManager::clear()
+    ScriptManager::~ScriptManager()
     {
         for(auto& cache : script_cache_)
             bury(std::move(cache.script));
@@ -212,8 +210,12 @@ namespace rke
     #ifdef RKE_DEBUG
         const auto& storage{ reg.storage<NativeScriptComponent>() };
         const Size index{ storage.index(ent) };
-        CORE_ASSERT(index == script_cache.size(),
-            u8"ScriptManager: New nsc not at the very end!")
+        if(index != script_cache.size())
+        {
+            CORE_ERROR(u8"ScriptManager: New nsc not at the very end!");
+            ctx.script_manager->align_cache();
+            return;
+        }
     #endif
         script_cache.emplace_back();
     }
@@ -237,6 +239,8 @@ namespace rke
 
     // swap and pop
         const Size index{ storage.index(ent) };
+        CORE_ASSERT(index < script_cache.size(),
+            u8"ScriptManager: Index out of bound!");
         ctx.script_manager->bury(std::move(script_cache[index].script));
         if(index + 1u != script_cache.size())
             script_cache[index] = std::move(script_cache.back());

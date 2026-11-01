@@ -80,6 +80,7 @@ namespace rke
 
     const GTexture2D* SceneRenderer::render(Entity camera)
     {
+        if(!camera.is_valid()) return nullptr;
         return render (
             camera.get_owner(), camera.get_view_proj(),
             camera.compute_centre()

@@ -31,7 +31,6 @@ export namespace rke
         ScriptManager(ScriptManager&&) = delete;
         ScriptManager& operator=(ScriptManager&&) = delete;
 
-        void clear();
         void on_runtime_start();
         void on_runtime_stop();
         void on_update(double dt);

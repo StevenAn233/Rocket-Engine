@@ -393,19 +393,17 @@ namespace rke
         registry_ = create_scope<entt::registry>();
         reset_relations();
 
-        script_manager_ = create_scope<ScriptManager>(this);
-        physics_engine_ = PhysicsEngine2D::create(this);
-        animator_system_ = create_scope<AnimatorSystem>(this);
-
-        registry_->ctx().emplace<RegistryContext>
-        (
-            script_manager_.get(),
-            physics_engine_.get(),
-            animator_system_.get()
-        );
+        registry_->ctx().emplace<RegistryContext>();
+        refresh_registry_context();
     }
 
-    Scene::~Scene() { if(in_runtime()) on_runtime_stop(); clear(); }
+    Scene::~Scene()
+    {
+        if(in_runtime()) on_runtime_stop();
+        script_manager_ .reset();
+        physics_engine_ .reset();
+        animator_system_.reset();
+    }
 
     void Scene::set_name(String name)
     {
@@ -779,7 +777,7 @@ namespace rke
             return;
         }
 
-        script_manager_->clear(); // before registry clear
+        refresh_registry_context(); // before registry clear
 
         registry_->clear();
         reset_relations();
@@ -874,6 +872,24 @@ namespace rke
         }
         script_manager_->sync_all_to_cache();
         script_manager_->flush_scripts();
+    }
+
+    void Scene::refresh_registry_context()
+    {
+        script_manager_ = create_scope<ScriptManager>(this);
+        physics_engine_ = PhysicsEngine2D::create(this);
+        animator_system_ = create_scope<AnimatorSystem>(this);
+
+        auto* handle{ registry_->ctx().find<RegistryContext>() };
+        if(handle) {
+            *handle = {
+                script_manager_ .get(),
+                physics_engine_ .get(),
+                animator_system_.get()
+            };
+            return;
+        }
+        CORE_ERROR(u8"Scene: Registry context handle null!");
     }
 
     bool Scene::vertified(EntityHandle handle) const

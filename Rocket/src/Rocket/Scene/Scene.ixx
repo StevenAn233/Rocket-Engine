@@ -272,6 +272,7 @@ export namespace rke
     private:
         Scene(Project* owner, String name = u8"Untitled");
 
+        void refresh_registry_context();
         bool vertified(EntityHandle handle) const;
         void reset_relations();
         void flush_destroy_queue();
@@ -302,9 +303,9 @@ export namespace rke
         EntityHandle demo_cam_  { entity_handle_null };
         EntityHandle selected_entity_{ entity_handle_null };
 
-        Scope<ScriptManager> script_manager_{};
-        Scope<PhysicsEngine2D> physics_engine_{};
-        Scope<AnimatorSystem> animator_system_{};
+        Scope<ScriptManager  > script_manager_ {};
+        Scope<PhysicsEngine2D> physics_engine_ {};
+        Scope<AnimatorSystem > animator_system_{};
     };
 
     template<typename Component>
