@@ -1,6 +1,8 @@
 ﻿#ifndef RKE_FUEL_H
 #define RKE_FUEL_H
 
+#include "rke_script_cast.h"
+
 namespace rke::fuel
 {
     void push_script_entry(const char8_t* type_name,
@@ -24,8 +26,13 @@ namespace rke::fuel
     };
 }
 
-// must be string literals, so pointers are fine here
 #define RKE_REGISTER_SCRIPT(RkeScript) \
-static rke::fuel::ScriptRegistrar<RkeScript> s_rke_reg_##RkeScript{ u8## #RkeScript }
+    template<> inline constexpr const char8_t* \
+        ::rke::script_name<RkeScript>() { return u8## #RkeScript; } \
+    static ::rke::fuel::ScriptRegistrar<RkeScript> \
+        s_rke_reg_##RkeScript{ ::rke::script_name<RkeScript>() }
+
+#define RKE_DECLARE_SCRIPT(RkeScript) \
+    template<> inline constexpr const char8_t* ::rke::script_name<RkeScript>()
 
 #endif

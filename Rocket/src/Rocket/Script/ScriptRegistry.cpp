@@ -29,20 +29,32 @@ namespace rke
         if(type == script_type_null) return nullptr;
         auto it{ script_recipes_.find(static_cast<uintptr>(type)) };
         if(it != script_recipes_.end())
-            return Scope<Script>(reinterpret_cast<Script*>
-                (std::invoke(it->second.constructor)));
+        {
+            Scope<Script> script{ reinterpret_cast<Script*>
+                (std::invoke(it->second.constructor)) };
+            if(script) script->script_type_ = type;
+            return script;
+        }
         return nullptr;
     }
 
-    Scope<Script> ScriptRegistry::deep_copy_script
-        (ScriptType type, const Script* other) const
+    Scope<Script> ScriptRegistry::deep_copy_script(const Script* other) const
     {
         if(!other) return nullptr;
-        if(type == script_type_null) return nullptr;
-        auto it{ script_recipes_.find(static_cast<uintptr>(type)) };
+        if(other->script_type_ == script_type_null)
+        {
+            CORE_WARN(u8"ScriptRegistry: Other script type invaild!");
+            return nullptr;
+        }
+
+        auto it{ script_recipes_.find
+            (static_cast<uintptr>(other->script_type_)) };
         if(it != script_recipes_.end())
-            return Scope<Script>(reinterpret_cast<Script*>
-                (std::invoke(it->second.deep_copier, other)));
+        {
+            Scope<Script> script{ reinterpret_cast<Script*>
+                (std::invoke(it->second.deep_copier, other)) };
+            return script;
+        }
         return nullptr;
     }
 

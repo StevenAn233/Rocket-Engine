@@ -26,7 +26,7 @@ export namespace rke
         RKE_API void clear();
 
         RKE_API Scope<Script> construct_script(ScriptType type) const;
-        RKE_API Scope<Script> deep_copy_script(ScriptType type, const Script* other) const;
+        RKE_API Scope<Script> deep_copy_script(const Script* other) const;
         RKE_API bool has_script_type(ScriptType type) const;
     
         RKE_API String get_script_name(ScriptType type) const;

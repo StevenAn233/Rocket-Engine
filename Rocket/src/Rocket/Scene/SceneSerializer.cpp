@@ -259,16 +259,14 @@ namespace rke
 
         if(entity.has<NativeScriptComponent>())
         {
-            auto [handle, scene]{ entity.split() };
             writer.begin_map(u8"Native-Script Component");
 
             const auto& nsc{ entity.get<NativeScriptComponent>() };
-            const auto& script_reg{ scene->get_owner()->get_script_registry() };
+            const auto& script_reg{ entity.get_owner()->get_owner()->get_script_registry() };
             String name{ script_reg.get_script_name(nsc.script_type) };
             writer.write(u8"Script Name", ConfigValue(name));
 
-        // may modify
-            Script* script{ scene->script_manager_->get_script(handle) };
+            Script* script{ entity.get_script() };
             if(script) script->on_serialize(writer);
 
             writer.end_map();
@@ -395,7 +393,7 @@ namespace rke
             const auto& storage{ scene.registry_->storage<NativeScriptComponent>() };
             const Size index{ storage.index(static_cast<entt::entity>(entity.get_handle())) };
             CORE_ASSERT(index < script_cache.size(), u8"SceneSerializer: Index out of bound!");
-            script_cache[index] = { type, std::move(script) };
+            script_cache[index] = std::move(script);
         }
     }
 }

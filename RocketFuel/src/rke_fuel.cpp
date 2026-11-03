@@ -31,6 +31,7 @@ namespace rke::fuel
     void push_script_entry(const char8_t* type_name,
         void* (*constructor)(), void* (*deep_copier)(const void*))
     {
+        if(!type_name) return;
         get_scripts_entires_cache().emplace_back
         (
             std::bit_cast<ScriptType>(type_name),

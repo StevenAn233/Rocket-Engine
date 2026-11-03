@@ -48,12 +48,6 @@ export namespace rke
 
         Script* get_script(EntityHandle handle);
     private:
-        struct ScriptCache
-        {
-            ScriptType script_type{ script_type_null };
-            Scope<Script> script{};
-        };
-
         enum class ContactType
         {
             SolidBegin,
@@ -68,8 +62,8 @@ export namespace rke
         {
             std::vector<Script*> dispatch_cache{};
             dispatch_cache.reserve(script_cache_.size());
-            for(const ScriptCache& cache : script_cache_)
-                if(cache.script) dispatch_cache.push_back(cache.script.get());
+            for(const Scope<Script>& script : script_cache_)
+                if(script) dispatch_cache.push_back(script.get());
 
             for(Script* script : dispatch_cache)
                 std::invoke(std::forward<Func>(func), script);
@@ -81,14 +75,14 @@ export namespace rke
 
         void align_cache(); // keep cache size == storage size
         // validate slot, (re)create script
-        ScriptCache* refresh_cache(EntityHandle handle, ScriptType type); 
+        Script* refresh_cache(EntityHandle handle, ScriptType type); 
         void contact_callback(EntityHandle lhs, EntityHandle rhs, ContactType type);
 
         static void on_script_com_create (entt::registry& reg, entt::entity ent);
         static void on_script_com_destroy(entt::registry& reg, entt::entity ent);
     private:
         Scene* owner_;
-        std::vector<ScriptCache> script_cache_{};
+        std::vector<Scope<Script>> script_cache_{};
         std::vector<Scope<Script>> graveyard_{};
     };
 }
