@@ -22,6 +22,7 @@ import HeapManager;
 import ScriptRegistry;
 import Components;
 import EntityAccess;
+import Script;
 import ScriptManager;
 import PhysicsEngine2D;
 import Animation;
@@ -79,6 +80,8 @@ export namespace rke
 
         RKE_API glm::vec2 get_velocity() const;
         RKE_API float get_angular_velocity() const;
+
+        RKE_API Script* get_script();
 
         template<typename Component>
         bool has() const;

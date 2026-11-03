@@ -5,9 +5,7 @@ import Log;
 import Components;
 import Project;
 import PhysicsEngine2D;
-import Script;
 import ScriptRegistry;
-import ScriptManager;
 import AssetsManager;
 import Texture;
 import SceneHierarchyPanel;
@@ -220,6 +218,13 @@ namespace rke
         const Entity mover{ moving_entity(*this) };
         if(!mover.is_valid()) return 0.0f;
         return mover.get<Rigidbody2DComponent>().angular_velocity;
+    }
+
+    Script* Entity::get_script()
+    {
+        if(!is_valid()) return nullptr;
+        if(!owner_scene_->script_manager_) return nullptr;
+        return owner_scene_->script_manager_->get_script(handle_);
     }
 
     void Entity::check_assert() const { CORE_ASSERT(is_valid(), u8"Entity: Invalid!"); }

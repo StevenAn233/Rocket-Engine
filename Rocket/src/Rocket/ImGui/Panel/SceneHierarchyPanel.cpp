@@ -861,7 +861,7 @@ namespace rke
                 }
             });
             
-            Script* script{ context_->script_manager_->get_script(ent.get_handle()) };
+            Script* script{ ent.get_script() };
             if(script) script->on_imgui_render();
         });
     }
