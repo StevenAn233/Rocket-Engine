@@ -37,6 +37,7 @@ export namespace rke
         virtual void write(const ConfigValue& value) = 0;
 
         virtual bool push_to_file(const Path& path) = 0;
+        virtual String dump() const = 0;
 
         static Scope<ConfigWriter> create();
     };
@@ -67,6 +68,7 @@ export namespace rke
         T as(T ref) const { return std::get<T>(read_this(ConfigValue(ref))); }
 
         static Scope<ConfigReader> create(const Path& path);
+        static Scope<ConfigReader> create_from_string(StringView text);
     protected:
         virtual ConfigValue read(StringView key, const ConfigValue& ref) const = 0;
         virtual ConfigValue read(Size index, const ConfigValue& ref) const = 0;

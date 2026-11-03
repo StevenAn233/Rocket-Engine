@@ -11,6 +11,8 @@ namespace rke
 
     Scope<ConfigReader> ConfigReader::create(const Path& path)
         { return create_scope<YamlConfigReader>(path); }
+    Scope<ConfigReader> ConfigReader::create_from_string(StringView text)
+        { return create_scope<YamlConfigReader>(text); }
 
     Scope<ConfigDocument> ConfigDocument::create(const Path& path)
         { return create_scope<YamlConfigDocument>(path); }

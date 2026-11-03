@@ -27,6 +27,7 @@ namespace rke
         void write(StringView key, const ConfigValue& value) override;
 
         bool push_to_file(const Path& path) override;
+        String dump() const override;
     private:
         YAML::Emitter out_{};
     };
@@ -35,6 +36,7 @@ namespace rke
     {
     public:
         YamlConfigReader(const Path& path);
+        YamlConfigReader(StringView text); // in memory, same format as a file
         YamlConfigReader(const YAML::Node& nd) : node_(nd) {}
 
         Size size() const override;

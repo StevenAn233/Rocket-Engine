@@ -6,6 +6,7 @@ import Components;
 import Project;
 import PhysicsEngine2D;
 import ScriptRegistry;
+import ConfigProxy;
 import AssetsManager;
 import Texture;
 import SceneHierarchyPanel;
@@ -865,16 +866,46 @@ namespace rke
 
     void Scene::on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg)
     {
+        struct Snapshot
+        {
+            EntityHandle handle{ entity_handle_null };
+            String text{};
+        };
+        std::vector<Snapshot> snapshots{};
+
         auto view{ registry_->view<NativeScriptComponent>() };
         for(entt::entity ent : view)
         {
             auto& nsc{ view.get<NativeScriptComponent>(ent) };
             if(nsc.script_type == script_type_null) continue;
-            String name{ old_reg.get_script_name(nsc.script_type) };
+
+            const EntityHandle handle{ static_cast<EntityHandle>(ent) };
+            if(Script* script{ script_manager_->get_script(handle) })
+            {
+                Scope<ConfigWriter> writer{ ConfigWriter::create() };
+                CORE_ASSERT(writer, u8"Scene: Failed to create config writer!");
+                writer->begin_map();
+                script->on_serialize(*writer);
+                writer->end_map();
+                snapshots.push_back({ handle, writer->dump() });
+            }
+
+            const String name{ old_reg.get_script_name(nsc.script_type) };
             nsc.script_type = new_reg.get_script_type(name);
         }
+
+    // old instances die here(on_destroy), the new ones are built(on_create)
         script_manager_->sync_all_to_cache();
         script_manager_->flush_scripts();
+
+        for(const Snapshot& snapshot : snapshots)
+        {
+            Script* script{ script_manager_->get_script(snapshot.handle) };
+            if(!script) continue;
+
+            Scope<ConfigReader> reader{ ConfigReader::create_from_string(snapshot.text) };
+            if(reader) script->on_deserialize(*reader);
+        }
     }
 
     void Scene::refresh_registry_context()

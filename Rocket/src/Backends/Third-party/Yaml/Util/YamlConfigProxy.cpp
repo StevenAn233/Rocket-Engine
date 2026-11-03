@@ -202,6 +202,9 @@ namespace rke
     bool YamlConfigWriter::push_to_file(const Path& path)
         { return file::write_file_string(path, out_.c_str()); }
 
+    String YamlConfigWriter::dump() const
+        { return String(reinterpret_cast<const char8*>(out_.c_str())); }
+
 // YamlConfigReader
     YamlConfigReader::YamlConfigReader(const Path& path)
     {
@@ -211,6 +214,15 @@ namespace rke
             return;
         }
         node_ = YAML::Load(fin);
+    }
+
+    YamlConfigReader::YamlConfigReader(StringView text)
+    {
+        try {
+            node_ = YAML::Load(std::string(text.raw_unsafe(), text.size()));
+        } catch(const std::exception& e) {
+            CORE_ERROR(u8"YamlConfigReader: Failed to parse text: {}!", e.what());
+        }
     }
 
     Size YamlConfigReader::size() const { return node_.size(); }
