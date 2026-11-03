@@ -27,10 +27,10 @@ namespace rke
     ScriptsRegistar WindowsRkDylib::get_scripts_registar() const
     {
         if(!is_valid()) return nullptr;
-        void* proc_addr{ GetProcAddress(handle_, "register_scripts") };
-        if(!proc_addr) CORE_ERROR(u8"WindowsRkDylib: "
-            u8"Function 'register_scripts' not found!");
-        return std::bit_cast<ScriptsRegistar>(proc_addr);
+        void* registar{ GetProcAddress(handle_, "rke_fuel_register_scripts") };
+        if(!registar) CORE_ERROR(u8"WindowsRkDylib: "
+            u8"Function 'rke_fuel_register_scripts' not found!");
+        return std::bit_cast<ScriptsRegistar>(registar);
     }
 
     WindowsRkDylibLoader::~WindowsRkDylibLoader() { delete_temp_files(); }
