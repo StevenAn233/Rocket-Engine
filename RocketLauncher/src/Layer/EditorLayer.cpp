@@ -118,6 +118,17 @@ namespace rke
                     if(box.empty()) return;
                     const auto& bcc{ entity.get<BoxCollider2DComponent>() };
                     box.scale_by(bcc.size_scale);
+
+                // offset is in body-local space, matching box2DPhysicsEngine2D
+                    const glm::vec2 offset{ bcc.offset * bcc.size_scale };
+                    const float rad{ glm::radians(box.get_rotation()) };
+                    const float c{ std::cos(rad) }, s{ std::sin(rad) };
+                    box.translate_by(glm::vec2
+                    {
+                        c * offset.x - s * offset.y,
+                        s * offset.x + c * offset.y
+                    });
+
                     targets.push_back({ &mesh::quad(), box.to_world(plane) });
                 });
                 return targets;

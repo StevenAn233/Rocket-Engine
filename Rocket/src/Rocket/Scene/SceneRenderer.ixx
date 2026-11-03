@@ -13,8 +13,6 @@ import Texture;
 import GTexture;
 import FrameBuffer;
 import Window;
-import PostProcessor;
-import PostProcessEffect;
 import MathUtils;
 import EntityAccess;
 import AssetsManager;

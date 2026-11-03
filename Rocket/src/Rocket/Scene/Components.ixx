@@ -14,7 +14,6 @@ import Types;
 import String;
 import SceneCamera;
 import PhysicsLayers;
-import AssetsManager;
 import AssetAccess;
 import ScriptAccess;
 import Mesh;

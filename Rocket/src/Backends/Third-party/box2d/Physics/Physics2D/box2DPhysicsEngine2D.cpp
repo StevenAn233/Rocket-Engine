@@ -186,6 +186,7 @@ namespace rke
         }
         state.shape = b2_nullShapeId;
         state.shape_size = glm::vec2(0.0f);
+        state.shape_offset = glm::vec2(0.0f);
     }
 
     void box2DPhysicsEngine2D::destroy_body(PhysicsState& state)
@@ -321,6 +322,7 @@ namespace rke
         CORE_ASSERT(B2_IS_NON_NULL(state.shape), u8"box2dPhysicsEngine: Shape id null!");
 
         state.shape_size = flat_size;
+        state.shape_offset = offset;
         entity.get_mut<Rigidbody2DComponent>().mass = b2Body_GetMass(state.body);
 
     // register: null id will NEVER be registered
@@ -365,6 +367,11 @@ namespace rke
         const glm::vec2 expected{ bcc.size_scale * box.get_size() };
         const glm::vec2 delta{ state.shape_size - expected };
         if(std::abs(delta.x) > 0.001f || std::abs(delta.y) > 0.001f) return true;
+
+        const glm::vec2 expected_offset{ bcc.offset * bcc.size_scale };
+        const glm::vec2 offset_delta{ state.shape_offset - expected_offset };
+        if(std::abs(offset_delta.x) > 0.001f
+        || std::abs(offset_delta.y) > 0.001f) return true;
 
         return false;
     }
@@ -505,12 +512,28 @@ namespace rke
         }
         const auto& bcc{ entity.get<BoxCollider2DComponent>() };
 
-        b2Vec2 platform_pos{ b2Body_GetPosition(b2Shape_GetBody(platform_shape)) };
+        b2BodyId platform_body{ b2Shape_GetBody(platform_shape) };
+        b2Vec2 platform_pos{ b2Body_GetPosition(platform_body) };
         b2Vec2 other_pos{ b2Body_GetPosition(b2Shape_GetBody(other_shape)) };
+        b2Rot platform_rot{ b2Body_GetRotation(platform_body) };
 
-        float platform_half_height{ bcc.size_scale.y
-            * entity.box_of(get_plane()).get_half_size().y };
-        return other_pos.y > platform_pos.y + platform_half_height;
+    // shape offset is body-local: rotate it into plane space before adding
+        const glm::vec2 offset{ bcc.offset * bcc.size_scale };
+        const glm::vec2 shape_centre
+        {
+            platform_pos.x + platform_rot.c * offset.x - platform_rot.s * offset.y,
+            platform_pos.y + platform_rot.s * offset.x + platform_rot.c * offset.y
+        };
+
+    // vertical envelope of the rotated, scaled box
+        const glm::vec2 half_size{ 0.5f * bcc.size_scale
+            * entity.box_of(get_plane()).get_size() };
+        const float platform_half_height
+        {
+            std::abs(platform_rot.s) * half_size.x
+          + std::abs(platform_rot.c) * half_size.y
+        };
+        return other_pos.y > shape_centre.y + platform_half_height;
     }
 
     bool box2DPhysicsEngine2D::allow_one_way_contact(b2ShapeId shape_a, b2ShapeId shape_b)
