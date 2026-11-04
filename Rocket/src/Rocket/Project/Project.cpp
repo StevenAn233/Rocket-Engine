@@ -42,7 +42,7 @@ namespace rke
         }
 
         assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
-        dylib_loader_ = RkDylibLoader::create
+        dylib_loader_ = create_scope<RkDylibLoader>
             (project_dir_ / u8"bin" / RKE_CONFIG_NAME, project_config_.name);
 
         CORE_INFO(u8"Project: Project '{}' loaded.", rkproj_path_);

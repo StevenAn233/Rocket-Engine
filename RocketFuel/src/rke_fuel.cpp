@@ -39,6 +39,7 @@ extern "C"
 {
     RKE_GLUE_API void rke_fuel_all_scripts(rke::ScriptsView* out)
     {
+        if(!out) return;
         const auto& cache{ get_scripts_entires_cache() };
         out->data = cache.data();
         out->size = cache.size();

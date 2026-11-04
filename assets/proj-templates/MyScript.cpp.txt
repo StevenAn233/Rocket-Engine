@@ -23,6 +23,8 @@ public:
         RKE_TRACE(u8"'{}' stopped touching entity '{}'.",
             owner().get_tag(), owner_scene()->get_entity(other).get_tag());
     }
+
+    RKE_SCRIPT_TYPE_INTERFACE;
 };
 
 RKE_REGISTER_SCRIPT(MyScript);

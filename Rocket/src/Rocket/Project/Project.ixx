@@ -16,6 +16,7 @@ import Path;
 import HeapManager;
 import PhysicsLayers;
 import AssetsManager;
+import RkDylib;
 import RkDylibLoader;
 
 export namespace rke
@@ -57,7 +58,7 @@ export namespace rke
 
         inline const AssetsManager& get_assets_manager() const { return *assets_manager_; }
         inline AssetsManager& get_assets_manager_mut() { return *assets_manager_; }
-        inline const RkDylib* get_dylib() { return fresh_dylib_.get(); }
+        inline const RkDylib* get_dylib() const { return fresh_dylib_.get(); }
 
         bool create_scene(const String& name);
         Scene* load_scene(const String& name, SceneSerializer& scene_serializer);

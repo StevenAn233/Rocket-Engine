@@ -26,7 +26,7 @@ import ScriptManager;
 import PhysicsEngine2D;
 import Animation;
 import AnimatorSystem;
-import RkDylibLoader;
+import RkDylib;
 
 export namespace rke
 {

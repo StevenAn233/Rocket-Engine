@@ -18,7 +18,6 @@ export namespace rke
     {
     public:
         friend class ScriptManager;
-        friend class ScriptRegistry;
 
         RKE_API Script();
         RKE_API Script(const Script& other);

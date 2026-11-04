@@ -1,78 +1,56 @@
 ﻿module;
 module RkDylibLoader;
 
-import :Base;
 import Log;
 
 namespace rke
 {
+    const char8* RkDylibLoader::s_temp_rep_{ u8".loaded-" };
+
     RkDylibLoader::RkDylibLoader(Path dir, String name)
         : dylib_dir_(std::move(dir)), dylib_name_(std::move(name)) {}
+    
+    RkDylibLoader::~RkDylibLoader() { delete_temp_files(); }
 
-    Scope<Script> RkDylib::construct_script(ScriptType type) const
+    String RkDylibLoader::temp_name_of(uint32 index)
     {
-        // only do address compare, not string compare
-        if(type == script_type_null) return nullptr;
-        const auto it{ script_recipes_.find(static_cast<uintptr>(type)) };
-        if(it != script_recipes_.end())
+        return String::format(u8"{}{}{}",
+            dylib_name_, StringView(s_temp_rep_), index);
+    }
+
+    void RkDylibLoader::prune_temp_files()
+    {
+        if(!fs::exists(dylib_dir_)) return;
+
+        // reload_count_ - 1 is the copy handed out by the last successful load
+        const String keep_stem{ (reload_count_ == 0) ?
+            String{} : temp_name_of(reload_count_ - 1) };
+
+        for(const auto& entry : fs::directory_iterator(dylib_dir_))
         {
-            Scope<Script> script{ reinterpret_cast<Script*>
-                (std::invoke(it->second.constructor)) };
-            return script;
+            const String filename{ Path(entry.path().filename()).string() };
+            if(filename.find(StringView(s_temp_rep_)) == String::npos) continue;
+            // matches both the .dll and its .pdb
+            if(Path(filename).get().stem().u8string() == keep_stem.get()) continue;
+
+            std::error_code ec{};
+            fs::remove(entry.path(), ec);
+            if(!ec) CORE_INFO(u8"RkDylibLoader: Deleted stale '{}'.", filename);
         }
-        return nullptr;
     }
 
-    Scope<Script> RkDylib::deep_copy_script(const Script* other) const
+    void RkDylibLoader::delete_temp_files()
     {
-        if(!other) return nullptr;
-        const ScriptType script_type{ other->get_script_type() };
-        if(script_type == script_type_null)
+        if(!fs::exists(dylib_dir_)) return;
+        for(const auto& entry : fs::directory_iterator(dylib_dir_))
         {
-            CORE_WARN(u8"RkDylib: Other script type invaild!");
-            return nullptr;
+            String filename{ Path(entry.path().filename()).string() };
+            if(filename.find(StringView(s_temp_rep_)) != String::npos)
+            {
+                std::error_code ec{};
+                fs::remove(entry.path(), ec);
+                if(!ec) CORE_INFO(u8"RkDylibLoader: Deleted temporary '{}'.", filename);
+            }
         }
-
-        const auto it{ script_recipes_.find
-            (static_cast<uintptr>(script_type)) };
-        if(it != script_recipes_.end())
-        {
-            Scope<Script> script{ reinterpret_cast<Script*>
-                (std::invoke(it->second.deep_copier, other)) };
-            return script;
-        }
-        return nullptr;
-    }
-
-    bool RkDylib::has_script_type(ScriptType type) const
-        { return script_recipes_.contains(static_cast<uintptr>(type)); }
-
-    String RkDylib::get_script_name(ScriptType type) const
-    {
-        if(!has_script_type(type)) return {};
-        return String(std::bit_cast<const char8*>(type));
-    }
-
-    ScriptType RkDylib::get_script_type(const String& name) const
-    {
-        for(ScriptType type : script_types_) // string compare
-            if(String(std::bit_cast<const char8*>(type)) == name) return type;
-        return script_type_null;
-    }
-
-    bool RkDylib::has_script(const String& name) const
-        { return static_cast<bool>(get_script_type(name)); }
-}
-
-#ifdef RKE_PLATFORM_WINDOWS
-import :Windows;
-
-namespace rke
-{
-    Scope<RkDylibLoader> RkDylibLoader::create(Path dir, String name)
-    {
-        return create_scope<WindowsRkDylibLoader>
-            (std::move(dir), std::move(name));
     }
 }
-#endif

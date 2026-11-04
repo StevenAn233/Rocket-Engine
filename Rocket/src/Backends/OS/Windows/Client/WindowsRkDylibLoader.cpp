@@ -3,16 +3,24 @@
 #include <windows.h>
 
 module RkDylibLoader;
-import :Windows;
 
 import Log;
-import Types;
-import Script;
 import FileUtils;
 
 namespace rke
 {
 // WindowsRkDylib
+    struct WindowsRkDylib : public RkDylib
+    {
+    public:
+        friend class RkDylibLoader;
+
+        WindowsRkDylib(const Path& path);
+        ~WindowsRkDylib() override;
+    private:
+        HMODULE handle_{};
+    };
+
     WindowsRkDylib::WindowsRkDylib(const Path& path) : RkDylib()
     {
         using ScriptsGetter = void (*)(ScriptsView*);
@@ -25,8 +33,12 @@ namespace rke
         }
     // emplace all script types & recipes
         void* scripts_getter{ GetProcAddress(handle_, "rke_fuel_all_scripts") };
-        if(!scripts_getter) CORE_ERROR(u8"WindowsRkDylib: "
-            u8"Function 'rke_fuel_all_scripts' not found!");
+        if(!scripts_getter) {
+            CORE_ERROR(u8"WindowsRkDylib: "
+                u8"Function 'rke_fuel_all_scripts' not found!");
+            FreeLibrary(handle_); handle_ = {};
+            return;
+        }
         ScriptsView view{};
         std::invoke(std::bit_cast<ScriptsGetter>(scripts_getter), &view);
         for(uint64 i{}; i < view.size; i++)
@@ -44,22 +56,19 @@ namespace rke
         if(handle_) FreeLibrary(handle_);
     }
 
-// WindowsRkDylibLoader
-    WindowsRkDylibLoader::~WindowsRkDylibLoader() { delete_temp_files(); }
-
-    Scope<RkDylib> WindowsRkDylibLoader::load_fresh()
+// RkDylibLoader
+    Scope<RkDylib> RkDylibLoader::load_fresh()
     {
     // Hot-reloading Support
-        Path dylib_path{ dylib_dir_ / String::format(u8"{}.dll", dylib_name_) };
+        Path dylib_path{ dylib_dir_ / (dylib_name_ + u8".dll") };
         if(!dylib_path.exists())
         {
-            CORE_ERROR(u8"WindowsRkDylibLoader: "
+            CORE_ERROR(u8"RkDylibLoader: "
                 u8"Dylib path '{}' doesn't exist!", dylib_path);
             return nullptr;
         }
         
-        Path copy_dylib_path{ dylib_dir_ / String::format
-            (u8"{}.loaded-{}.dll", dylib_name_, reload_count_) };
+        Path copy_dylib_path{ dylib_dir_ / (temp_name_of(reload_count_) + u8".dll") };
         try {
             // copy DLL
             fs::copy_file(dylib_path, copy_dylib_path,
@@ -73,8 +82,8 @@ namespace rke
                     fs::copy_options::overwrite_existing); // Important
             }
         } catch(const fs::filesystem_error& e) {
-            CORE_ERROR(u8"WindowsRkDylibLoader: "
-                u8"Failed to copy DLL for hot-reloading!\n -- {}", e.what());
+            CORE_ERROR(u8"RkDylibLoader: "
+                u8"Failed to copy DLL for hot-reloading!\n - {}", e.what());
             return nullptr;
         }
 
@@ -85,43 +94,7 @@ namespace rke
             ++reload_count_;
             return dylib;
         }
-        CORE_ERROR(u8"WindowsRkDylibLoader: Failed to load dylib!");
+        CORE_ERROR(u8"RkDylibLoader: Failed to load dylib!");
         return nullptr;
-    }
-
-    void WindowsRkDylibLoader::prune_temp_files()
-    {
-        if(!fs::exists(dylib_dir_)) return;
-
-        // reload_count_ - 1 is the copy handed out by the last successful load
-        const String keep_stem{ reload_count_ == 0 ? std::u8string{}
-            : String::format(u8"{}.loaded-{}", dylib_name_, reload_count_ - 1).get() };
-
-        for(const auto& entry : fs::directory_iterator(dylib_dir_))
-        {
-            const String filename{ Path(entry.path().filename()).string() };
-            if(filename.find(u8".loaded-") == String::npos) continue;
-            // matches both the .dll and its .pdb
-            if(Path(filename).get().stem().u8string() == keep_stem.get()) continue;
-
-            std::error_code ec{};
-            fs::remove(entry.path(), ec);
-            if(!ec) CORE_INFO(u8"WindowsRkDylibLoader: Deleted stale '{}'.", filename);
-        }
-    }
-
-    void WindowsRkDylibLoader::delete_temp_files()
-    {
-        if(!fs::exists(dylib_dir_)) return;
-        for(const auto& entry : fs::directory_iterator(dylib_dir_))
-        {
-            String filename{ Path(entry.path().filename()).string() };
-            if(filename.find(u8".loaded-") != String::npos)
-            {
-                std::error_code ec{};
-                fs::remove(entry.path(), ec);
-                if(!ec) CORE_INFO(u8"Project: Deleted temporary '{}'.", filename);
-            }
-        }
     }
 }

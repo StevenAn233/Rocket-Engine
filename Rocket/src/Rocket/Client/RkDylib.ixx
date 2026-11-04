@@ -2,17 +2,10 @@
 
 #include <vector>
 #include <unordered_map>
-#include <memory>
-#include <utility>
-#include <concepts>
-#include <functional>
 #include "rke_macros.h"
-namespace rke { class ScriptRegistry; }
 
-export module RkDylibLoader:Base;
+export module RkDylib;
 
-import Log;
-import Path;
 import String;
 import HeapManager;
 import Types;
@@ -40,22 +33,5 @@ export namespace rke
     protected:
         std::vector<ScriptType> script_types_{};
         std::unordered_map<uintptr, ScriptRecipe> script_recipes_{};
-    };
-
-    class RkDylibLoader
-    {
-    public:
-        RkDylibLoader(Path dir, String name);
-        virtual ~RkDylibLoader() = default;
-
-        virtual Scope<RkDylib> load_fresh() = 0;
-
-        static Scope<RkDylibLoader> create(Path dir, String name);
-    protected:
-        Path dylib_dir_{};
-        String dylib_name_{};
-
-        Scope<RkDylib> current_dylib_{};
-        uint32 reload_count_{};
     };
 }

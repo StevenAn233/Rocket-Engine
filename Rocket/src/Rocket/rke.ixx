@@ -79,4 +79,5 @@ export import Script;
 export import ScriptAccess;
 export import ScriptManager;
 
+export import RkDylib;
 export import Project;
