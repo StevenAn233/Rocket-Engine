@@ -10,7 +10,6 @@
 #include <vector>
 #include <memory>
 #include <utility>
-#include "rke_fuel.h"
 
 import ScriptAccess;
 import ScriptRegistry;
