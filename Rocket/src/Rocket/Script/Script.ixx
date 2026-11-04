@@ -2,7 +2,6 @@
 
 #include <bit>
 #include <type_traits>
-#include "rke_script_cast.h"
 #include "rke_macros.h"
 namespace rke { class Entity; class Scene; }
 
@@ -43,15 +42,14 @@ export namespace rke
         virtual void on_contact_sensor_begin(EntityHandle other) {}
         virtual void on_contact_sensor_end  (EntityHandle other) {}
 
-        inline ScriptType get_script_type() const { return script_type_; }
+        virtual const char8_t* get_object_type_name() const = 0;
+        inline ScriptType get_script_type() const
+            { return std::bit_cast<ScriptType>(get_object_type_name()); }
     protected:
         inline Entity& owner() { return *(std::bit_cast<Entity*>(uintptr(&padding_))); }
         inline EntityHandle owner_handle() const { return owner_handle_; }
         inline Scene* owner_scene() { return owner_scene_; }
-    private:
-    // set by ScriptRegistry
-        ScriptType script_type_{ script_type_null };
-    // set by ScriptManager
+    private: // set by ScriptManager
         uint32 padding_{};
         EntityHandle owner_handle_{ entity_handle_null };
         Scene* owner_scene_{};
@@ -60,9 +58,8 @@ export namespace rke
     template<typename T>
     inline ScriptType script_type_of()
     {
-        const char8_t* name{ rke::script_name<T>() };
-        if(!name) return script_type_null;
-        return std::bit_cast<ScriptType>(name); // same value the registry holds
+        const char8_t* name{ T::get_static_type_name() };
+        return std::bit_cast<ScriptType>(name);
     }
 
     template<typename T>

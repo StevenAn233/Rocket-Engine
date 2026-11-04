@@ -32,7 +32,6 @@ namespace rke
         {
             Scope<Script> script{ reinterpret_cast<Script*>
                 (std::invoke(it->second.constructor)) };
-            if(script) script->script_type_ = type;
             return script;
         }
         return nullptr;
@@ -41,14 +40,14 @@ namespace rke
     Scope<Script> ScriptRegistry::deep_copy_script(const Script* other) const
     {
         if(!other) return nullptr;
-        if(other->script_type_ == script_type_null)
+        ScriptType script_type{ other->get_script_type() };
+        if(script_type == script_type_null)
         {
             CORE_WARN(u8"ScriptRegistry: Other script type invaild!");
             return nullptr;
         }
 
-        auto it{ script_recipes_.find
-            (static_cast<uintptr>(other->script_type_)) };
+        auto it{ script_recipes_.find(static_cast<uintptr>(script_type)) };
         if(it != script_recipes_.end())
         {
             Scope<Script> script{ reinterpret_cast<Script*>

@@ -133,7 +133,7 @@ namespace rke
         }
 
         Scope<Script>& script{ script_cache_[index] };
-        if(!script || script->script_type_ != type) goto rebuild;
+        if(!script || script->get_script_type() != type) goto rebuild;
         if(script->owner_handle_ != handle)
         {
             CORE_WARN(u8"ScriptManager: "
@@ -195,8 +195,8 @@ namespace rke
         Script* script{ script_cache_.at(index).get() }; // do not refresh here
         if(!script) return nullptr;
         ScriptType script_type{ entity.get<NativeScriptComponent>().script_type };
-        if(script->owner_handle_ != handle ||
-            script->script_type_ != script_type) return nullptr; // invalid or outdated
+        if(script->get_script_type() != script_type ||
+           script->owner_handle_ != handle) return nullptr; // invalid or outdated
         return script;
     }
 

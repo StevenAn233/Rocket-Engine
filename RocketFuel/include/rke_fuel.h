@@ -1,8 +1,6 @@
 ﻿#ifndef RKE_FUEL_H
 #define RKE_FUEL_H
 
-#include "rke_script_cast.h"
-
 namespace rke::fuel
 {
     void push_script_entry(const char8_t* type_name,
@@ -26,13 +24,18 @@ namespace rke::fuel
     };
 }
 
+// put this into class public area
+#define RKE_SCRIPT_TYPE_INTERFACE \
+    static const char8_t* get_static_type_name(); \
+    const char8_t* get_object_type_name() const override
+
+// put this into cpp file
 #define RKE_REGISTER_SCRIPT(RkeScript) \
-    template<> inline constexpr const char8_t* \
-        ::rke::script_name<RkeScript>() { return u8## #RkeScript; } \
+    const char8_t* RkeScript##::get_static_type_name() \
+        { return u8## #RkeScript; } \
+    const char8_t* RkeScript##::get_object_type_name() const \
+        { return get_static_type_name(); } \
     static ::rke::fuel::ScriptRegistrar<RkeScript> \
-        s_rke_reg_##RkeScript{ ::rke::script_name<RkeScript>() }
+        s_rke_reg_##RkeScript{ RkeScript##::get_static_type_name() }
 
-#define RKE_DECLARE_SCRIPT(RkeScript) \
-    template<> inline constexpr const char8_t* ::rke::script_name<RkeScript>()
-
-#endif
+#endif // RKE_FUEL_H
