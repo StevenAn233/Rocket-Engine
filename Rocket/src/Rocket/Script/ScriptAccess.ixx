@@ -18,4 +18,10 @@ export namespace rke
         ScriptType type;
         ScriptRecipe recipe;
     };
+
+    struct ScriptsView
+    {
+        const rke::ScriptEntry* data{};
+        uint64 size{};
+    };
 }

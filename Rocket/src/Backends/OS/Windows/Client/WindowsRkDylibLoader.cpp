@@ -1,7 +1,6 @@
 ﻿module;
 
 #include <windows.h>
-#include "rke_scripting.h"
 
 module RkDylibLoader;
 import :Windows;
@@ -28,7 +27,7 @@ namespace rke
         void* scripts_getter{ GetProcAddress(handle_, "rke_fuel_all_scripts") };
         if(!scripts_getter) CORE_ERROR(u8"WindowsRkDylib: "
             u8"Function 'rke_fuel_all_scripts' not found!");
-        ScriptsView view{ nullptr, 0 };
+        ScriptsView view{};
         std::invoke(std::bit_cast<ScriptsGetter>(scripts_getter), &view);
         for(uint64 i{}; i < view.size; i++)
         {

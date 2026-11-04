@@ -10,7 +10,6 @@
 #include <vector>
 #include <memory>
 #include <utility>
-#include "rke_scripting.h"
 
 import ScriptAccess;
 
@@ -38,7 +37,7 @@ namespace rke::fuel
 
 extern "C"
 {
-    RKE_GLUE_API void rke_fuel_all_scripts(ScriptsView* out)
+    RKE_GLUE_API void rke_fuel_all_scripts(rke::ScriptsView* out)
     {
         const auto& cache{ get_scripts_entires_cache() };
         out->data = cache.data();
