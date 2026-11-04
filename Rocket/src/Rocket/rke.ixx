@@ -79,7 +79,6 @@ export import Components;
 
 export import Script;
 export import ScriptAccess;
-export import ScriptRegistry;
 export import ScriptManager;
 
 export import Project;

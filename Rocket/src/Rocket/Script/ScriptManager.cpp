@@ -5,7 +5,6 @@ import Log;
 import Scene;
 import Script;
 import Project;
-import ScriptRegistry;
 
 namespace rke
 {
@@ -144,12 +143,12 @@ namespace rke
     rebuild:
         {
             bury(std::move(script));
-
-            const auto& script_reg{ owner_->get_owner()->get_script_registry() };
-            Scope<Script> new_script{ script_reg.construct_script(type) };
-            init_script(new_script.get(), handle);
-
-            script = std::move(new_script);
+            const auto* dylib{ owner_->get_owner()->get_dylib() };
+            if(dylib) {
+                Scope<Script> new_script{ dylib->construct_script(type) };
+                init_script(new_script.get(), handle);
+                script = std::move(new_script);
+            }
         }
     exit:
         return script.get();

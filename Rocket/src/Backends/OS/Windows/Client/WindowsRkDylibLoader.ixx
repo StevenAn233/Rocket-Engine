@@ -17,11 +17,10 @@ namespace rke
     struct WindowsRkDylib : public RkDylib
     {
     public:
+        friend class WindowsRkDylibLoader;
+
         WindowsRkDylib(const Path& path);
         ~WindowsRkDylib() override;
-
-        bool is_valid() const override;
-        ScriptsRegistar get_scripts_registar() const override;
     private:
         HMODULE handle_{};
     };
@@ -37,8 +36,9 @@ namespace rke
         WindowsRkDylibLoader& operator=(const WindowsRkDylibLoader&) = delete;
         WindowsRkDylibLoader(WindowsRkDylibLoader&&) = default;
         WindowsRkDylibLoader& operator=(WindowsRkDylibLoader&&) = default;
+
+        Scope<RkDylib> load_fresh() override;
     private:
-        Scope<RkDylib> load_new() override;
         void prune_temp_files();
         void delete_temp_files();
     };

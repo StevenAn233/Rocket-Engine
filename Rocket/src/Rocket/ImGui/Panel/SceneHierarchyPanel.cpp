@@ -820,46 +820,48 @@ namespace rke
         check_then_draw<NativeScriptComponent, u8"Native Script">(entity, [this](Entity ent)
         {
             auto& nsc{ ent.get_mut<NativeScriptComponent>() };
-            const ScriptRegistry& script_reg
-                { context_->get_owner()->get_script_registry() };
 
-            layout::two_columns_table<u8"Type">([&]()
-            {
-                String curr_script_name{ u8"No Script" };
-                bool no_script{ nsc.script_type == script_type_null };
-                if(!no_script) {
-                    if(script_reg.has_script_type(nsc.script_type))
-                        curr_script_name = script_reg.get_script_name(nsc.script_type);
-                    else curr_script_name = String(u8"<Missing Script>");
-                }
-                // script_name  empty : No Script
-                // script_name !empty && name  found : <Script Name>
-                // script_name !empty && name !found : <Missing Script>
-
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                if(ImGui::BeginCombo("##script", curr_script_name.raw()))
+            const auto* dylib{ context_->get_owner()->get_dylib() };
+            if(dylib) {
+                layout::two_columns_table<u8"Type">([&]()
                 {
-                    if(ImGui::Selectable("No Script", no_script))
-                    {
-                        nsc.script_type = script_type_null;
-                        context_->mark_modified();
+                    String curr_script_name{ u8"No Script" };
+                    bool no_script{ nsc.script_type == script_type_null };
+                    if(!no_script) {
+                        if(dylib->has_script_type(nsc.script_type))
+                            curr_script_name = dylib->get_script_name(nsc.script_type);
+                        else curr_script_name = String(u8"<Missing Script>");
                     }
-                    if(no_script) ImGui::SetItemDefaultFocus();
+                    // script_name  empty : No Script
+                    // script_name !empty && name  found : <Script Name>
+                    // script_name !empty && name !found : <Missing Script>
 
-                    for(ScriptType type : script_reg.get_script_types())
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                    if(ImGui::BeginCombo("##script", curr_script_name.raw()))
                     {
-                        bool is_selected{ nsc.script_type == type };
-                        if(ImGui::Selectable(std::bit_cast<const char*>(type), is_selected))
+                        if(ImGui::Selectable("No Script", no_script))
                         {
-                            nsc.script_type = type;
+                            nsc.script_type = script_type_null;
                             context_->mark_modified();
                         }
-                        if(is_selected) ImGui::SetItemDefaultFocus();
-                    }
+                        if(no_script) ImGui::SetItemDefaultFocus();
 
-                    ImGui::EndCombo();
-                }
-            });
+                        for(ScriptType type : dylib->get_script_types())
+                        {
+                            bool is_selected{ nsc.script_type == type };
+                            if(ImGui::Selectable(std::bit_cast<const char*>(type), is_selected))
+                            {
+                                nsc.script_type = type;
+                                context_->mark_modified();
+                            }
+                            if(is_selected) ImGui::SetItemDefaultFocus();
+                        }
+
+                        ImGui::EndCombo();
+                    }
+                });
+            }
+            else ImGui::TextDisabled("- RkDylib invalid!");
             
             Script* script{ ent.get_script() };
             if(script) script->on_imgui_render();

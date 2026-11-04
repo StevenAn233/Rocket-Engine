@@ -1,31 +1,45 @@
 ﻿module;
 
+#include <vector>
+#include <unordered_map>
 #include <memory>
 #include <utility>
 #include <concepts>
 #include <functional>
+#include "rke_macros.h"
 namespace rke { class ScriptRegistry; }
 
 export module RkDylibLoader:Base;
 
+import Log;
 import Path;
 import String;
-import Log;
 import HeapManager;
+import Types;
+import Script;
+import ScriptAccess;
 
 export namespace rke
 {
-    using ScriptsRegistar = void(*)(ScriptRegistry*);
-
     class RkDylib
     {
     public:
         virtual ~RkDylib() = default;
-        
-        virtual bool is_valid() const = 0;
-        virtual ScriptsRegistar get_scripts_registar() const = 0;
+
+        RKE_API Scope<Script> construct_script(ScriptType type) const;
+        RKE_API Scope<Script> deep_copy_script(const Script* other) const;
+        RKE_API bool has_script_type(ScriptType type) const;
+    
+        RKE_API String get_script_name(ScriptType type) const;
+        RKE_API ScriptType get_script_type(const String& name) const; // expensive
+        RKE_API bool has_script(const String& name) const; // expensive
+
+        inline const std::vector<ScriptType>& get_script_types() const { return script_types_; }
     protected:
         RkDylib() {};
+    protected:
+        std::vector<ScriptType> script_types_{};
+        std::unordered_map<uintptr, ScriptRecipe> script_recipes_{};
     };
 
     class RkDylibLoader
@@ -34,24 +48,9 @@ export namespace rke
         RkDylibLoader(Path dir, String name);
         virtual ~RkDylibLoader() = default;
 
-        // Returns whether the reload happened.
-        template<typename Func>
-        requires std::invocable<Func, Scope<RkDylib>, const RkDylib*>
-        inline bool refresh(Func&& callback)
-        {
-            Scope<RkDylib> new_dylib{ load_new() };
-            if(!new_dylib || !new_dylib->is_valid()
-            || !new_dylib->get_scripts_registar()) return false;
-            std::invoke(std::forward<Func>(callback),
-                        std::move(current_dylib_), new_dylib.get());
-            current_dylib_.reset(new_dylib.release());
-            return true;
-        }
+        virtual Scope<RkDylib> load_fresh() = 0;
 
-        inline const RkDylib* get_current() const { return current_dylib_.get(); }
         static Scope<RkDylibLoader> create(Path dir, String name);
-    protected:
-        virtual Scope<RkDylib> load_new() = 0;
     protected:
         Path dylib_dir_{};
         String dylib_name_{};

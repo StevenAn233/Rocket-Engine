@@ -19,7 +19,6 @@ import String;
 import Path;
 import MouseEvent;
 import HeapManager;
-import ScriptRegistry;
 import Components;
 import EntityAccess;
 import Script;
@@ -27,6 +26,7 @@ import ScriptManager;
 import PhysicsEngine2D;
 import Animation;
 import AnimatorSystem;
+import RkDylibLoader;
 
 export namespace rke
 {
@@ -255,7 +255,7 @@ export namespace rke
         void on_runtime_stop ();
 
         void on_mouse_scrolled_runtime(MouseScrolledEvent& e);
-        void on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg);
+        void on_script_dylib_hot_reloading(RkDylib& old_dylib, RkDylib& new_dylib);
 
         void set_physics_plane(glm::vec3 axis); // 2D only; may modify
         void set_gravity(glm::vec3 gravity);

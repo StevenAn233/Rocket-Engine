@@ -2,14 +2,10 @@
 module Scene;
 
 import Log;
-import Components;
 import Project;
-import PhysicsEngine2D;
-import ScriptRegistry;
+import Components;
 import ConfigProxy;
 import AssetsManager;
-import Texture;
-import SceneHierarchyPanel;
 
 namespace {
     using namespace rke;
@@ -462,7 +458,6 @@ namespace rke
         new_scene->set_demo_camera(get_demo_camera().get_uuid());
 
         // ScriptManager: after NativeScriptComponents are copied
-        const auto& script_reg{ owner_->get_script_registry() };
         const auto& new_script_storage{ new_scene->
             registry_->storage<NativeScriptComponent>() };
         
@@ -472,12 +467,16 @@ namespace rke
             CORE_WARN(u8"Scene: Script cache smaller than storage!");
             new_script_cache.resize(new_script_storage.size());
         }
+
+        const auto* dylib{ owner_->get_dylib() };
+        if(!dylib) return new_scene;
+
         for(auto&& [new_entity, nsc] : new_script_storage.each())
         {
             const EntityHandle handle{ static_cast<EntityHandle>(new_entity) };
 
-            Scope<Script> copied_script{ script_reg
-                .deep_copy_script(script_manager_->get_script(handle)) }; // old entity
+            Scope<Script> copied_script{ dylib->
+                deep_copy_script(script_manager_->get_script(handle)) }; // old entity
             new_scene->script_manager_->init_script(copied_script.get(), handle);
 
             Size index{ new_script_storage.index(new_entity) };
@@ -516,7 +515,6 @@ namespace rke
     {
         if(!vertified(handle)) return {};
 
-        const auto& script_reg{ owner_->get_script_registry() };
     // Copies the whole subtree, not just the entity
         std::unordered_map<EntityHandle, EntityHandle> made{};
         const EntityHandle root_handle{ get_entity(handle).get_parent().get_handle() };
@@ -545,9 +543,10 @@ namespace rke
                     if(src.has<ComponentType>()) copy.emplace_or_replace
                         <ComponentType>(src.get<ComponentType>());
             });
-            if(copy.has<NativeScriptComponent>())
+            const auto* dylib{ owner_->get_dylib() };
+            if(dylib && copy.has<NativeScriptComponent>())
             {
-                Scope<Script> copied_script{ script_reg.deep_copy_script
+                Scope<Script> copied_script{ dylib->deep_copy_script
                     (script_manager_->get_script(src_handle)) };
                 script_manager_->init_script(copied_script.get(), copy.get_handle());
                 auto& script_cache{ script_manager_->script_cache_ };
@@ -864,7 +863,7 @@ namespace rke
         script_manager_->on_mouse_scrolled(e.get_x_offset(), e.get_y_offset());
     }
 
-    void Scene::on_script_dylib_hot_reloading(ScriptRegistry& old_reg, ScriptRegistry& new_reg)
+    void Scene::on_script_dylib_hot_reloading(RkDylib& old_dylib, RkDylib& new_dylib)
     {
         struct Snapshot
         {
@@ -890,8 +889,8 @@ namespace rke
                 snapshots.push_back({ handle, writer->dump() });
             }
 
-            const String name{ old_reg.get_script_name(nsc.script_type) };
-            nsc.script_type = new_reg.get_script_type(name);
+            const String name{ old_dylib.get_script_name(nsc.script_type) };
+            nsc.script_type = new_dylib.get_script_type(name);
         }
 
     // old instances die here(on_destroy), the new ones are built(on_create)

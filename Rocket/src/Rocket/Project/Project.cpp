@@ -42,7 +42,6 @@ namespace rke
         }
 
         assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
-        script_registry_ = create_scope<ScriptRegistry>();
         dylib_loader_ = RkDylibLoader::create
             (project_dir_ / u8"bin" / RKE_CONFIG_NAME, project_config_.name);
 
@@ -53,6 +52,7 @@ namespace rke
     Project::~Project()
     {
         scene_map_.clear();
+        fresh_dylib_.reset();
         dylib_loader_.reset();
     }
 
@@ -97,18 +97,17 @@ namespace rke
 
     void Project::scripts_hot_reloading()
     {
-        if(!dylib_loader_->refresh([this](Scope<RkDylib> old_dylib, const RkDylib* new_dylib)
-        {
-            Scope<ScriptRegistry> new_reg{ create_scope<ScriptRegistry>() };
-            CORE_ASSERT(new_reg, u8"Project: Failed to create script registry!");
-            ScriptsRegistar registar{ new_dylib ? new_dylib->get_scripts_registar() : nullptr };
-            if(registar) registar(new_reg.get());
-
-            Scope<ScriptRegistry> old_reg{ std::move(script_registry_) };
-            script_registry_.reset(new_reg.release());
+        Scope<RkDylib> dylib{ dylib_loader_->load_fresh() };
+        if(!dylib) {
+            CORE_ERROR(u8"Project: Failed to load dylib!");
+            return;
+        }
+        Scope<RkDylib> old_dylib{ std::move(fresh_dylib_) };
+        fresh_dylib_ = std::move(dylib);
+        if(old_dylib) {
             for(auto& [_, scene] : scene_map_)
-                scene->on_script_dylib_hot_reloading(*old_reg, *script_registry_);
-        })) CORE_ERROR(u8"Project: Failed to reload dylib!");
+                scene->on_script_dylib_hot_reloading(*old_dylib, *fresh_dylib_);
+        }
     }
 
     uint8 Project::get_samples_shift() const

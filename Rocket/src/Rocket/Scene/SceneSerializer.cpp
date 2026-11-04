@@ -7,6 +7,7 @@ import Components;
 import FileUtils;
 import GTexture;
 import Project;
+import RkDylibLoader;
 
 namespace rke
 {
@@ -262,8 +263,9 @@ namespace rke
             writer.begin_map(u8"Native-Script Component");
 
             const auto& nsc{ entity.get<NativeScriptComponent>() };
-            const auto& script_reg{ entity.get_owner()->get_owner()->get_script_registry() };
-            String name{ script_reg.get_script_name(nsc.script_type) };
+            const auto* dylib{ entity.get_owner()->get_owner()->get_dylib() };
+            String name{ dylib ?
+                dylib->get_script_name(nsc.script_type) : String{} };
             writer.write(u8"Script Name", ConfigValue(name));
 
             Script* script{ entity.get_script() };
@@ -373,27 +375,29 @@ namespace rke
         Scope<ConfigReader> nsc_reader{ reader.get_child(u8"Native-Script Component") };
         if(nsc_reader) {
             auto& nsc{ entity.emplace<NativeScriptComponent>() };
-            const auto& script_reg{ scene.get_owner()->get_script_registry() };
-            String name{ nsc_reader->get_at(u8"Script Name", String{}) };
-            const ScriptType type{ script_reg.get_script_type(name) };
-            nsc.script_type = type;
+            const auto* dylib{ scene.get_owner()->get_dylib() };
+            if(dylib) {
+                String name{ nsc_reader->get_at(u8"Script Name", String{}) };
+                const ScriptType type{ dylib->get_script_type(name) };
+                nsc.script_type = type;
 
-            Scope<Script> script{ script_reg.construct_script(type) };
-            if(script) script->on_deserialize(*nsc_reader);
-            else if(type != script_type_null)
-            {
-                CORE_WARN(u8"SceneSerializer: Failed to create script!");
-                nsc.script_type = script_type_null;
+                Scope<Script> script{ dylib->construct_script(type) };
+                if(script) script->on_deserialize(*nsc_reader);
+                else if(type != script_type_null)
+                {
+                    CORE_WARN(u8"SceneSerializer: Failed to create script!");
+                    nsc.script_type = script_type_null;
+                }
+
+                ScriptManager& script_manager{ *scene.script_manager_ };
+                script_manager.init_script(script.get(), entity.get_handle());
+                auto& script_cache{ script_manager.script_cache_ };
+
+                const auto& storage{ scene.registry_->storage<NativeScriptComponent>() };
+                const Size index{ storage.index(static_cast<entt::entity>(entity.get_handle())) };
+                CORE_ASSERT(index < script_cache.size(), u8"SceneSerializer: Index out of bound!");
+                script_cache[index] = std::move(script);
             }
-
-            ScriptManager& script_manager{ *scene.script_manager_ };
-            script_manager.init_script(script.get(), entity.get_handle());
-            auto& script_cache{ script_manager.script_cache_ };
-
-            const auto& storage{ scene.registry_->storage<NativeScriptComponent>() };
-            const Size index{ storage.index(static_cast<entt::entity>(entity.get_handle())) };
-            CORE_ASSERT(index < script_cache.size(), u8"SceneSerializer: Index out of bound!");
-            script_cache[index] = std::move(script);
         }
     }
 }

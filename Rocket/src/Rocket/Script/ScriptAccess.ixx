@@ -12,4 +12,10 @@ export namespace rke
         void* (*constructor)();
         void* (*deep_copier)(const void*);
     };
+
+    struct ScriptEntry
+    {
+        ScriptType type;
+        ScriptRecipe recipe;
+    };
 }

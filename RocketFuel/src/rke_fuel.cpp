@@ -10,17 +10,14 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include "rke_scripting.h"
 
 import ScriptAccess;
-import ScriptRegistry;
 
 namespace {
-    using namespace rke;
-    using ScriptEntry = std::pair<ScriptType, ScriptRecipe>;
-
-    static std::vector<ScriptEntry>& get_scripts_entires_cache()
+    static std::vector<rke::ScriptEntry>& get_scripts_entires_cache()
     {
-        static std::vector<ScriptEntry> s_script_entries_cache{};
+        static std::vector<rke::ScriptEntry> s_script_entries_cache{};
         return s_script_entries_cache;
     }
 }
@@ -41,10 +38,10 @@ namespace rke::fuel
 
 extern "C"
 {
-    RKE_GLUE_API void rke_fuel_register_scripts(rke::ScriptRegistry* reg)
+    RKE_GLUE_API void rke_fuel_all_scripts(ScriptsView* out)
     {
-        if(!reg) return;
-        for(const auto& [type, recipe] : get_scripts_entires_cache())
-            reg->register_script(type, recipe);
+        const auto& cache{ get_scripts_entires_cache() };
+        out->data = cache.data();
+        out->size = cache.size();
     }
 }

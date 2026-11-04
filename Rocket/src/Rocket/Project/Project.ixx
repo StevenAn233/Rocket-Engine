@@ -17,7 +17,6 @@ import HeapManager;
 import PhysicsLayers;
 import AssetsManager;
 import RkDylibLoader;
-import ScriptRegistry;
 
 export namespace rke
 {
@@ -57,9 +56,8 @@ export namespace rke
         void set_samples(uint8 shift);
 
         inline const AssetsManager& get_assets_manager() const { return *assets_manager_; }
-        inline const ScriptRegistry& get_script_registry() const { return *script_registry_; }
         inline AssetsManager& get_assets_manager_mut() { return *assets_manager_; }
-        inline ScriptRegistry& get_script_registry_mut() { return *script_registry_; }
+        inline const RkDylib* get_dylib() { return fresh_dylib_.get(); }
 
         bool create_scene(const String& name);
         Scene* load_scene(const String& name, SceneSerializer& scene_serializer);
@@ -83,6 +81,6 @@ export namespace rke
         Scope<AssetsManager> assets_manager_{};
 
         Scope<RkDylibLoader> dylib_loader_{};
-        Scope<ScriptRegistry> script_registry_{};
+        Scope<RkDylib> fresh_dylib_{};
     };
 }

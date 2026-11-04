@@ -1,6 +1,7 @@
 ﻿module;
 
 #include <windows.h>
+#include "rke_scripting.h"
 
 module RkDylibLoader;
 import :Windows;
@@ -8,34 +9,46 @@ import :Windows;
 import Log;
 import Types;
 import Script;
-import ScriptRegistry;
 import FileUtils;
 
 namespace rke
 {
+// WindowsRkDylib
     WindowsRkDylib::WindowsRkDylib(const Path& path) : RkDylib()
     {
+        using ScriptsGetter = void (*)(ScriptsView*);
+
         handle_ = LoadLibraryW(path.get().c_str());
-        if(!handle_) CORE_ERROR(u8"WindowsRkDylib: "
-            u8"Failed to load .dll file '{}'! May be occupied.", path);
+        if(!handle_) {
+            CORE_ERROR(u8"WindowsRkDylib: "
+                u8"Failed to load .dll file '{}'! May be occupied.", path);
+            return;
+        }
+    // emplace all script types & recipes
+        void* scripts_getter{ GetProcAddress(handle_, "rke_fuel_all_scripts") };
+        if(!scripts_getter) CORE_ERROR(u8"WindowsRkDylib: "
+            u8"Function 'rke_fuel_all_scripts' not found!");
+        ScriptsView view{ nullptr, 0 };
+        std::invoke(std::bit_cast<ScriptsGetter>(scripts_getter), &view);
+        for(uint64 i{}; i < view.size; i++)
+        {
+            const ScriptEntry& entry{ *(view.data + i) };
+            script_types_.push_back(entry.type);
+            script_recipes_.emplace(static_cast<uintptr>(entry.type), entry.recipe);
+        }
     }
 
-    WindowsRkDylib::~WindowsRkDylib() { if(handle_) FreeLibrary(handle_); }
-
-    bool WindowsRkDylib::is_valid() const { return (handle_ != nullptr); }
-
-    ScriptsRegistar WindowsRkDylib::get_scripts_registar() const
+    WindowsRkDylib::~WindowsRkDylib()
     {
-        if(!is_valid()) return nullptr;
-        void* registar{ GetProcAddress(handle_, "rke_fuel_register_scripts") };
-        if(!registar) CORE_ERROR(u8"WindowsRkDylib: "
-            u8"Function 'rke_fuel_register_scripts' not found!");
-        return std::bit_cast<ScriptsRegistar>(registar);
+        script_types_.clear();
+        script_recipes_.clear();
+        if(handle_) FreeLibrary(handle_);
     }
 
+// WindowsRkDylibLoader
     WindowsRkDylibLoader::~WindowsRkDylibLoader() { delete_temp_files(); }
 
-    Scope<RkDylib> WindowsRkDylibLoader::load_new()
+    Scope<RkDylib> WindowsRkDylibLoader::load_fresh()
     {
     // Hot-reloading Support
         Path dylib_path{ dylib_dir_ / String::format(u8"{}.dll", dylib_name_) };
@@ -45,7 +58,7 @@ namespace rke
                 u8"Dylib path '{}' doesn't exist!", dylib_path);
             return nullptr;
         }
-        prune_temp_files();
+        
         Path copy_dylib_path{ dylib_dir_ / String::format
             (u8"{}.loaded-{}.dll", dylib_name_, reload_count_) };
         try {
@@ -66,9 +79,15 @@ namespace rke
             return nullptr;
         }
 
-        Scope<RkDylib> dylib{ create_scope<WindowsRkDylib>(copy_dylib_path) };
-        if(dylib->is_valid()) ++reload_count_;
-        return dylib;
+        auto dylib{ create_scope<WindowsRkDylib>(copy_dylib_path) };
+        if(dylib && dylib->handle_)
+        {
+            prune_temp_files();
+            ++reload_count_;
+            return dylib;
+        }
+        CORE_ERROR(u8"WindowsRkDylibLoader: Failed to load dylib!");
+        return nullptr;
     }
 
     void WindowsRkDylibLoader::prune_temp_files()
