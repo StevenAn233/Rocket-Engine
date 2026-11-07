@@ -43,9 +43,8 @@ namespace rke
             { editor_cam_.deserialize_from(reader); });
 
     // Effects
-        auto selected{ create_scope<OutlineEffect>
-        (
-            u8"Selected Outline",
+        auto selected{ create_scope<OutlineEffect>(u8"Selected Outline") };
+        selected->set_enabled_extra (
             [this]() -> bool
             {
                 Entity selected{ current_scene() ?
@@ -55,7 +54,7 @@ namespace rke
                 return !gizmo::is_using() && !in_main_viewport_dragging_
                     && selected_id != hovering_id_;
             }
-        )};
+        );
         selected->set_context ({
             [this]() {
                 std::vector<OutlineEffect::Target> targets{};
@@ -74,16 +73,15 @@ namespace rke
             }
         });
 
-        auto hovering{ create_scope<OutlineEffect>
-        (
-            u8"Hovering Outline",
+        auto hovering{ create_scope<OutlineEffect>(u8"Hovering Outline") };
+        hovering->set_enabled_extra (
             [this]() -> bool
             {
                 return !gizmo::is_using() && !mouse_blocked()
                     && !in_main_viewport_dragging_ && editing()
                     && main_viewport_->is_hovered();
             }
-        )};
+        );
         hovering->set_context ({
             [this]() {
                 std::vector<OutlineEffect::Target> targets{};

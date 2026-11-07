@@ -31,16 +31,16 @@ export namespace rke
             System    // e.g. FXAA, SMAA
         };
 
-        PostProcessEffect(String name, std::function<bool()> extra = nullptr);
+        PostProcessEffect(String name);
         virtual ~PostProcessEffect() = default;
         virtual Category get_category() const { return Category::Standard; }
 
         inline const String& get_name() const { return name_; }
-        inline bool is_enabled() const { return enabled_inner_ && enabled_extra_(); }
 
         // if returns true , use destination->get_gtexture_attached();
         // if returns false, use (original)source
         virtual bool apply(const GTexture2D* source, FrameBuffer* destination) = 0;
+        virtual bool is_enabled() const;
 
         void serialize_to(ConfigWriter& writer) const;
         void deserialize_from(const ConfigReader& reader);
@@ -52,7 +52,6 @@ export namespace rke
         virtual void on_viewport_resized(uint32 w, uint32 h) {}; // for client framebuffer
     private:
         String name_;
-        bool enabled_inner_{ true };
-        std::function<bool()> enabled_extra_{};
+        bool enabled_{ true };
     };
 }

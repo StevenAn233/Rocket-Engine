@@ -5,15 +5,15 @@ import Log;
 
 namespace rke
 {
-    PostProcessEffect::PostProcessEffect(String name, std::function<bool()> extra)
-        : name_(name.empty() ? u8"Untitled" : std::move(name))
-        , enabled_extra_(std::move(extra))
-        { if(!enabled_extra_) enabled_extra_ = []() { return true; }; }
+    PostProcessEffect::PostProcessEffect(String name)
+        : name_(name.empty() ? u8"Untitled" : std::move(name)) {}
+    
+    bool PostProcessEffect::is_enabled() const { return enabled_; }
 
     void PostProcessEffect::serialize_to(ConfigWriter& writer) const
     {
         writer.begin_map(get_name());
-        writer.write(u8"Enabled", enabled_inner_);
+        writer.write(u8"Enabled", enabled_);
         on_serialize(writer);
         writer.end_map();
     }
@@ -26,7 +26,7 @@ namespace rke
             CORE_ERROR(u8"PostProcessEffect: Child reader invalid!");
             return;
         }
-        enabled_inner_ = child_reader->get_at(u8"Enabled", true);
+        enabled_ = child_reader->get_at(u8"Enabled", true);
         on_deserialize(*child_reader);
     }
 
@@ -36,6 +36,6 @@ namespace rke
         ImGui::SetCursorPosX(ImGui::GetCursorPosX()
             + ImGui::GetContentRegionAvail().x
             - ImGui::GetFrameHeight()); // size of checkbox
-        ImGui::Checkbox("##enabled", &enabled_inner_);
+        ImGui::Checkbox("##enabled", &enabled_);
     }
 }

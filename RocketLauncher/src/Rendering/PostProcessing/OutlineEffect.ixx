@@ -47,13 +47,17 @@ export namespace rke
             }
         };
 
-        OutlineEffect(String name, std::function<bool()> extra = nullptr);
+        OutlineEffect(String name);
         ~OutlineEffect() override {}
         Category get_category() const override { return Category::Helper; }
 
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
+        bool is_enabled() const override;
 
         inline void set_context(Context context) { context_ = std::move(context); }
+        inline void set_enabled_extra(std::function<bool()> extra)
+            { enabled_extra_ = std::move(extra); }
+
         void set_color(glm::vec4 color);
         void set_thickness(float thickness);
         inline glm::vec4 get_color() const { return uniforms_.outline_color; }
@@ -86,6 +90,7 @@ export namespace rke
         static Shader& get_copy_shader();
     private:
         Context context_{};
+        std::function<bool()> enabled_extra_{};
 
         Uniforms uniforms_{};
         Ref<UniformBuffer> ubo_{};

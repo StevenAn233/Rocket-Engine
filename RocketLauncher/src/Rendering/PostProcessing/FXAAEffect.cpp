@@ -3,8 +3,7 @@ module FXAAEffect;
 
 namespace rke
 {
-    FXAAEffect::FXAAEffect(String name, std::function<bool()> extra)
-        : PostProcessEffect(std::move(name), std::move(extra))
+    FXAAEffect::FXAAEffect(String name) : PostProcessEffect(std::move(name))
         { ubo_ = UniformBuffer::create(sizeof(Uniforms)); }
 
     bool FXAAEffect::apply(const GTexture2D* source, FrameBuffer* destination)

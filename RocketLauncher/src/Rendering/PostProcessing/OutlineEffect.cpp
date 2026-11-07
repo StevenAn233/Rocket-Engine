@@ -4,8 +4,8 @@ module OutlineEffect;
 namespace rke
 {
 // public
-    OutlineEffect::OutlineEffect(String name, std::function<bool()> extra)
-        : PostProcessEffect(std::move(name), std::move(extra))
+    OutlineEffect::OutlineEffect(String name)
+        : PostProcessEffect(std::move(name))
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         set_color(glm::vec4(1.0f));
@@ -64,6 +64,12 @@ namespace rke
         });
 
         return true;
+    }
+
+    bool OutlineEffect::is_enabled() const
+    {
+        return PostProcessEffect::is_enabled() &&
+            (enabled_extra_ ? enabled_extra_() : true);
     }
 
     uint8 OutlineEffect::get_samples_shift() const
