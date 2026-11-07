@@ -21,11 +21,11 @@ export namespace rke
 
         Scope<RkDylib> load_fresh();
     private:
-        String temp_name_of(uint32 index);
+        StringView dylib_postfix();
+
+        Path copy_dylib_file();
         void prune_temp_files();
         void delete_temp_files();
-    private:
-        static const char8* s_temp_rep_;
     private:
         Path dylib_dir_{};
         String dylib_name_{};

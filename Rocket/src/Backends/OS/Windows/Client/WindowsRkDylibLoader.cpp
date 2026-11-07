@@ -25,10 +25,14 @@ namespace rke
     {
         using ScriptsGetter = void (*)(ScriptsView*);
 
+        if(path.empty()) {
+            CORE_ERROR(u8"WindowsRkDylib: Dylib path empty!");
+            return;
+        }
         handle_ = LoadLibraryW(path.get().c_str());
         if(!handle_) {
             CORE_ERROR(u8"WindowsRkDylib: "
-                u8"Failed to load .dll file '{}'! May be occupied.", path);
+                u8"Failed to load file '{}'! May be occupied.", path);
             return;
         }
     // emplace all script types & recipes
@@ -57,41 +61,15 @@ namespace rke
     }
 
 // RkDylibLoader
+    StringView RkDylibLoader::dylib_postfix() { return u8".dll"; }
+
     Scope<RkDylib> RkDylibLoader::load_fresh()
     {
-    // Hot-reloading Support
-        Path dylib_path{ dylib_dir_ / (dylib_name_ + u8".dll") };
-        if(!dylib_path.exists())
-        {
-            CORE_ERROR(u8"RkDylibLoader: "
-                u8"Dylib path '{}' doesn't exist!", dylib_path);
-            return nullptr;
-        }
-        
-        Path copy_dylib_path{ dylib_dir_ / (temp_name_of(reload_count_) + u8".dll") };
-        try {
-            // copy DLL
-            fs::copy_file(dylib_path, copy_dylib_path,
-                fs::copy_options::overwrite_existing); // Important
-
-            // copy PDB
-            Path pdb_path{ Path(dylib_path).replace_extension(u8"pdb") };
-            if(pdb_path.exists()) {
-                Path copy_pdb_path{ Path(copy_dylib_path).replace_extension(u8"pdb") };
-                fs::copy_file(pdb_path, copy_pdb_path,
-                    fs::copy_options::overwrite_existing); // Important
-            }
-        } catch(const fs::filesystem_error& e) {
-            CORE_ERROR(u8"RkDylibLoader: "
-                u8"Failed to copy DLL for hot-reloading!\n - {}", e.what());
-            return nullptr;
-        }
-
-        auto dylib{ create_scope<WindowsRkDylib>(copy_dylib_path) };
+        auto dylib{ create_scope<WindowsRkDylib>(copy_dylib_file()) };
         if(dylib && dylib->handle_)
         {
             prune_temp_files();
-            ++reload_count_;
+            reload_count_++;
             return dylib;
         }
         CORE_ERROR(u8"RkDylibLoader: Failed to load dylib!");
