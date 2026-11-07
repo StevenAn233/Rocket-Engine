@@ -19,8 +19,6 @@ export namespace rke
     class RKE_API PostProcessor
     {
     public:
-        friend class SceneRenderer;
-
         PostProcessor(String name, glm::vec4 clear_color);
         PostProcessor(const PostProcessor&) = delete;
         PostProcessor(PostProcessor&&) = delete;
