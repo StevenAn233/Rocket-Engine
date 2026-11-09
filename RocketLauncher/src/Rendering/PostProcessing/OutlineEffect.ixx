@@ -75,6 +75,9 @@ export namespace rke
             get_outline_shader().clear_gshaders();
             get_copy_shader().clear_gshaders();
         }
+
+        static const char8_t* get_static_type_name();
+        const char8_t* get_type_name() const override;
     private:
         void on_serialize(ConfigWriter& writer) const override;
         void on_deserialize(const ConfigReader& reader) override;

@@ -99,6 +99,9 @@ namespace rke
 
     void OutlineEffect::set_thickness(float thickness) { thickness_ = thickness; }
 
+    const char8_t* OutlineEffect::get_static_type_name() { return u8"OutlineEffect"; }
+    const char8_t* OutlineEffect::get_type_name() const { return get_static_type_name(); }
+
 // private
     void OutlineEffect::on_serialize(ConfigWriter& writer) const
     {

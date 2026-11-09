@@ -54,6 +54,9 @@ namespace rke
         ubo_->set_data(&uniforms_, sizeof(Uniforms));
     }
 
+    const char8_t* ToneMapping::get_static_type_name() { return u8"ToneMapping"; }
+    const char8_t* ToneMapping::get_type_name() const { return get_static_type_name(); }
+
 // private
     void ToneMapping::on_serialize(ConfigWriter& writer) const
     {

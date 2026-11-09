@@ -21,7 +21,7 @@ export namespace rke
 
     struct ScriptsView
     {
-        const rke::ScriptEntry* data{};
+        const ScriptEntry* data{};
         uint64 size{};
     };
 }

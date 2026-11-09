@@ -11,6 +11,8 @@ import HeapManager;
 import Types;
 import Script;
 import ScriptAccess;
+import PostProcessEffect;
+import EffectAccess;
 
 export namespace rke
 {
@@ -27,11 +29,20 @@ export namespace rke
         RKE_API ScriptType get_script_type(const String& name) const; // expensive
         RKE_API bool has_script(const String& name) const; // expensive
 
+        RKE_API Scope<PostProcessEffect> construct_effect(EffectType type) const;
+        RKE_API bool has_effect_type(EffectType type) const;
+    
+        RKE_API String get_effect_name(EffectType type) const;
+        RKE_API EffectType get_effect_type(const String& name) const; // expensive
+        RKE_API bool has_effect(const String& name) const; // expensive
+
         inline const std::vector<ScriptType>& get_script_types() const { return script_types_; }
     protected:
         RkDylib() {};
     protected:
         std::vector<ScriptType> script_types_{};
         std::unordered_map<uintptr, ScriptRecipe> script_recipes_{};
+        std::vector<EffectType> effect_types_{};
+        std::unordered_map<uintptr, void* (*)()> effect_recipes_{};
     };
 }

@@ -35,6 +35,9 @@ namespace rke
         ubo_->set_data(&uni, sizeof(Uniforms));
     }
 
+    const char8_t* FXAAEffect::get_static_type_name() { return u8"FXAAEffect"; }
+    const char8_t* FXAAEffect::get_type_name() const { return get_static_type_name(); }
+
 // static
     Shader& FXAAEffect::get_shader()
     {

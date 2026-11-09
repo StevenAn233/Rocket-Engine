@@ -41,9 +41,9 @@ export namespace rke
         virtual void on_contact_sensor_begin(EntityHandle other) {}
         virtual void on_contact_sensor_end  (EntityHandle other) {}
 
-        virtual const char8_t* get_object_type_name() const = 0;
+        virtual const char8_t* get_type_name() const = 0;
         inline ScriptType get_script_type() const
-            { return std::bit_cast<ScriptType>(get_object_type_name()); }
+            { return std::bit_cast<ScriptType>(get_type_name()); }
     protected:
         inline Entity& owner() { return *(std::bit_cast<Entity*>(uintptr(&padding_))); }
         inline EntityHandle owner_handle() const { return owner_handle_; }

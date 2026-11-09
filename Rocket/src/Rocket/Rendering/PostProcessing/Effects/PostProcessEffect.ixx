@@ -1,21 +1,16 @@
 ﻿module;
 
-#include <memory>
-#include <utility>
-#include <functional>
-#include <unordered_map>
+#include <bit>
 #include "rke_macros.h"
 
 export module PostProcessEffect;
 
-import HeapManager;
-import Path;
 import Types;
 import String;
 import GTexture;
-import GBuffers;
 import FrameBuffer;
 import ConfigProxy;
+import EffectAccess;
 
 export namespace rke
 {
@@ -44,6 +39,10 @@ export namespace rke
 
         void serialize_to(ConfigWriter& writer) const;
         void deserialize_from(const ConfigReader& reader);
+
+        virtual const char8_t* get_type_name() const = 0;
+        inline EffectType get_effect_type() const
+            { return std::bit_cast<EffectType>(get_type_name()); }
     protected:
         virtual void on_serialize(ConfigWriter& writer) const {}
         virtual void on_deserialize(const ConfigReader& reader) {}
@@ -54,4 +53,33 @@ export namespace rke
         String name_;
         bool enabled_{ true };
     };
+
+    template<typename T>
+    inline EffectType effect_type_of()
+    {
+        const char8_t* name{ T::get_static_type_name() };
+        return std::bit_cast<EffectType>(name);
+    }
+
+    template<typename T>
+    requires std::is_base_of_v<PostProcessEffect, T>
+    inline T* effect_cast(PostProcessEffect* effect)
+    {
+        if(!effect) return nullptr;
+        const EffectType expected{ effect_type_of<T>() };
+        if(expected == effect_type_null) return nullptr;
+        if(effect->get_effect_type() != expected) return nullptr;
+        return static_cast<T*>(effect); // the type matched, so this is exact
+    }
+
+    template<typename T>
+    requires std::is_base_of_v<PostProcessEffect, T>
+    inline const T* script_cast(const PostProcessEffect* effect)
+    {
+        if(!effect) return nullptr;
+        const EffectType expected{ effect_type_of<T>() };
+        if(expected == effect_type_null) return nullptr;
+        if(effect->get_effect_type() != expected) return nullptr;
+        return static_cast<const T*>(effect);
+    }
 }

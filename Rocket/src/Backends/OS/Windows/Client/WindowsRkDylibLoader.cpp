@@ -6,6 +6,8 @@ module RkDylibLoader;
 
 import Log;
 import FileUtils;
+import ScriptAccess;
+import EffectAccess;
 
 namespace rke
 {
@@ -24,6 +26,7 @@ namespace rke
     WindowsRkDylib::WindowsRkDylib(const Path& path) : RkDylib()
     {
         using ScriptsGetter = void (*)(ScriptsView*);
+        using EffectsGetter = void (*)(EffectsView*);
 
         if(path.empty()) {
             CORE_ERROR(u8"WindowsRkDylib: Dylib path empty!");
@@ -35,7 +38,7 @@ namespace rke
                 u8"Failed to load file '{}'! May be occupied.", path);
             return;
         }
-    // emplace all script types & recipes
+
         void* scripts_getter{ GetProcAddress(handle_, "rke_fuel_all_scripts") };
         if(!scripts_getter) {
             CORE_ERROR(u8"WindowsRkDylib: "
@@ -43,13 +46,31 @@ namespace rke
             FreeLibrary(handle_); handle_ = {};
             return;
         }
-        ScriptsView view{};
-        std::invoke(std::bit_cast<ScriptsGetter>(scripts_getter), &view);
-        for(uint64 i{}; i < view.size; i++)
+        void* effects_getter{ GetProcAddress(handle_, "rke_fuel_all_effects") };
+        if(!effects_getter) {
+            CORE_ERROR(u8"WindowsRkDylib: "
+                u8"Function 'rke_fuel_all_effects' not found!");
+            FreeLibrary(handle_); handle_ = {};
+            return;
+        }
+
+    // emplace all script types & recipes
+        ScriptsView scripts_view{};
+        std::invoke(std::bit_cast<ScriptsGetter>(scripts_getter), &scripts_view);
+        for(uint64 i{}; i < scripts_view.size; i++)
         {
-            const ScriptEntry& entry{ *(view.data + i) };
+            const ScriptEntry& entry{ *(scripts_view.data + i) };
             script_types_.push_back(entry.type);
             script_recipes_.emplace(static_cast<uintptr>(entry.type), entry.recipe);
+        }
+    // emplace all effect types & recipes
+        EffectsView effects_view{};
+        std::invoke(std::bit_cast<EffectsGetter>(effects_getter), &effects_view);
+        for(uint64 i{}; i < effects_view.size; i++)
+        {
+            const EffectEntry& entry{ *(effects_view.data + i) };
+            effect_types_.push_back(entry.type);
+            effect_recipes_.emplace(static_cast<uintptr>(entry.type), entry.constructor);
         }
     }
 
@@ -57,6 +78,8 @@ namespace rke
     {
         script_types_.clear();
         script_recipes_.clear();
+        effect_types_.clear();
+        effect_recipes_.clear();
         if(handle_) FreeLibrary(handle_);
     }
 

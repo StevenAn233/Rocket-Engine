@@ -58,4 +58,37 @@ namespace rke
 
     bool RkDylib::has_script(const String& name) const
         { return static_cast<bool>(get_script_type(name)); }
+
+    Scope<PostProcessEffect> RkDylib::construct_effect(EffectType type) const
+    {
+        // only do address compare, not string compare
+        if(type == effect_type_null) return nullptr;
+        const auto it{ effect_recipes_.find(static_cast<uintptr>(type)) };
+        if(it != effect_recipes_.end())
+        {
+            Scope<PostProcessEffect> effect{ reinterpret_cast
+                <PostProcessEffect*>(std::invoke(it->second)) };
+            return effect;
+        }
+        return nullptr;
+    }
+
+    bool RkDylib::has_effect_type(EffectType type) const
+        { return effect_recipes_.contains(static_cast<uintptr>(type)); }
+
+    String RkDylib::get_effect_name(EffectType type) const
+    {
+        if(!has_effect_type(type)) return {};
+        return String(std::bit_cast<const char8*>(type));
+    }
+
+    EffectType RkDylib::get_effect_type(const String& name) const
+    {
+        for(EffectType type : effect_types_) // string compare
+            if(String(std::bit_cast<const char8*>(type)) == name) return type;
+        return effect_type_null;
+    }
+
+    bool RkDylib::has_effect(const String& name) const
+        { return static_cast<bool>(get_effect_type(name)); }
 }

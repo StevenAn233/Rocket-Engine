@@ -1,9 +1,9 @@
 ﻿export module RkDylibLoader;
 
 import Path;
+import Types;
 import String;
 import HeapManager;
-import Types;
 import RkDylib;
 
 export namespace rke
