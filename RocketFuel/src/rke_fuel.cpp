@@ -11,7 +11,9 @@
 #include <memory>
 #include <utility>
 #include "rke_fuel.h"
+#include "rke_macros.h"
 
+import Log;
 import ScriptAccess;
 import EffectAccess;
 
@@ -42,7 +44,8 @@ namespace rke::fuel
         );
     }
 
-    void push_effect_entry(const char8_t* type_name, void* (*constructor)())
+    void push_effect_entry(const char8_t* type_name,
+        void* (*constructor)(const String&))
     {
         if(!type_name) return;
         get_effect_entires_cache().emplace_back
@@ -57,7 +60,10 @@ extern "C"
 {
     RKE_GLUE_API void rke_fuel_all_scripts(rke::ScriptsView* out)
     {
-        if(!out) return;
+        if(!out) {
+            CORE_WARN(u8"Rocket: ScriptsView null!");
+            return;
+        }
         const auto& cache{ get_script_entires_cache() };
         out->data = cache.data();
         out->size = cache.size();
@@ -65,7 +71,10 @@ extern "C"
 
     RKE_GLUE_API void rke_fuel_all_effects(rke::EffectsView* out)
     {
-        if(!out) return;
+        if(!out) {
+            CORE_WARN(u8"Rocket: EffectsView null!");
+            return;
+        }
         const auto& cache{ get_effect_entires_cache() };
         out->data = cache.data();
         out->size = cache.size();

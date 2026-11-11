@@ -1,6 +1,7 @@
 ﻿export module EffectAccess;
 
 import Types;
+import String;
 
 export namespace rke
 {
@@ -10,7 +11,7 @@ export namespace rke
     struct EffectEntry
     {
         EffectType type;
-        void* (*constructor)();
+        void* (*constructor)(const String& name);
     };
 
     struct EffectsView

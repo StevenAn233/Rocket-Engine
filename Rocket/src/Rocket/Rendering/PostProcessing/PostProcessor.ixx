@@ -20,9 +20,13 @@ export namespace rke
     class RKE_API PostProcessor
     {
     public:
-        PostProcessor(glm::vec4 clear_color);
+        PostProcessor();
+        ~PostProcessor() = default;
+        
         PostProcessor(const PostProcessor&) = delete;
+        PostProcessor& operator=(const PostProcessor&) = delete;
         PostProcessor(PostProcessor&&) = delete;
+        PostProcessor& operator=(PostProcessor&&) = delete;
 
         inline bool empty() const { return effects_stack_.empty(); }
         PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
@@ -30,7 +34,6 @@ export namespace rke
         // swap/sort effect...
         
         const GTexture2D* process(const GTexture2D* source);
-        inline void clean_up() { fbos_[0]->clear(); fbos_[1]->clear(); }
 
         void serialize_to(ConfigWriter& writer, const RkDylib& dylib) const;
         void deserialize_from(const ConfigReader& reader, const RkDylib& dylib);

@@ -1,12 +1,10 @@
 ﻿module;
 
-// required
 #include <string>
 #include <string_view>
 #include <format>
 #include <algorithm>
 #include <functional>
-#include "rke_macros.h"
 
 export module String;
 
@@ -22,7 +20,7 @@ export namespace rke
             { std::copy_n(str, N, data); }
     };
 
-    class RKE_API StringView final
+    class StringView
     {
     public:
         template<Size N>
@@ -97,7 +95,7 @@ export namespace rke
         }
     };
 
-    class RKE_API String final
+    class String
     {
     public:
         friend struct std::hash<String>;

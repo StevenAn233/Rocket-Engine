@@ -26,15 +26,15 @@ export namespace rke
         RKE_API bool has_script_type(ScriptType type) const;
     
         RKE_API String get_script_name(ScriptType type) const;
-        RKE_API ScriptType get_script_type(const String& name) const; // expensive
-        RKE_API bool has_script(const String& name) const; // expensive
+        RKE_API ScriptType get_script_type(const String& type_name) const; // expensive
+        RKE_API bool has_script(const String& type_name) const; // expensive
 
-        RKE_API Scope<PostProcessEffect> construct_effect(EffectType type) const;
+        RKE_API Scope<PostProcessEffect> construct_effect(EffectType type, const String& name) const;
         RKE_API bool has_effect_type(EffectType type) const;
     
         RKE_API String get_effect_name(EffectType type) const;
-        RKE_API EffectType get_effect_type(const String& name) const; // expensive
-        RKE_API bool has_effect(const String& name) const; // expensive
+        RKE_API EffectType get_effect_type(const String& type_name) const; // expensive
+        RKE_API bool has_effect(const String& type_name) const; // expensive
 
         inline const std::vector<ScriptType>& get_script_types() const { return script_types_; }
     protected:
@@ -43,6 +43,6 @@ export namespace rke
         std::vector<ScriptType> script_types_{};
         std::unordered_map<uintptr, ScriptRecipe> script_recipes_{};
         std::vector<EffectType> effect_types_{};
-        std::unordered_map<uintptr, void* (*)()> effect_recipes_{};
+        std::unordered_map<uintptr, void* (*)(const String&)> effect_recipes_{};
     };
 }

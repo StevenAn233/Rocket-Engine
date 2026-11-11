@@ -21,7 +21,6 @@ import AssetsManager;
 import RkDylib;
 import RkDylibLoader;
 import PostProcessor;
-import MathUtils;
 import ConfigProxy;
 
 export namespace rke
@@ -90,7 +89,6 @@ export namespace rke
         Scope<RkDylibLoader> dylib_loader_{};
         Scope<RkDylib> fresh_dylib_{};
 
-        static constexpr glm::vec4 clear_color{ 0.1f, 0.1f, 0.1f, 1.0f }; // to modify
-        PostProcessor post_processor_{ math::srgb_to_linear(clear_color) };
+        PostProcessor post_processor_{};
     };
 }

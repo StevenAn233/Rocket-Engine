@@ -49,17 +49,17 @@ namespace rke
         return String(std::bit_cast<const char8*>(type));
     }
 
-    ScriptType RkDylib::get_script_type(const String& name) const
+    ScriptType RkDylib::get_script_type(const String& type_name) const
     {
         for(ScriptType type : script_types_) // string compare
-            if(String(std::bit_cast<const char8*>(type)) == name) return type;
+            if(String(std::bit_cast<const char8*>(type)) == type_name) return type;
         return script_type_null;
     }
 
-    bool RkDylib::has_script(const String& name) const
-        { return static_cast<bool>(get_script_type(name)); }
+    bool RkDylib::has_script(const String& type_name) const
+        { return static_cast<bool>(get_script_type(type_name)); }
 
-    Scope<PostProcessEffect> RkDylib::construct_effect(EffectType type) const
+    Scope<PostProcessEffect> RkDylib::construct_effect(EffectType type, const String& name) const
     {
         // only do address compare, not string compare
         if(type == effect_type_null) return nullptr;
@@ -67,7 +67,7 @@ namespace rke
         if(it != effect_recipes_.end())
         {
             Scope<PostProcessEffect> effect{ reinterpret_cast
-                <PostProcessEffect*>(std::invoke(it->second)) };
+                <PostProcessEffect*>(std::invoke(it->second, name)) };
             return effect;
         }
         return nullptr;
@@ -82,13 +82,13 @@ namespace rke
         return String(std::bit_cast<const char8*>(type));
     }
 
-    EffectType RkDylib::get_effect_type(const String& name) const
+    EffectType RkDylib::get_effect_type(const String& type_name) const
     {
         for(EffectType type : effect_types_) // string compare
-            if(String(std::bit_cast<const char8*>(type)) == name) return type;
+            if(String(std::bit_cast<const char8*>(type)) == type_name) return type;
         return effect_type_null;
     }
 
-    bool RkDylib::has_effect(const String& name) const
-        { return static_cast<bool>(get_effect_type(name)); }
+    bool RkDylib::has_effect(const String& type_name) const
+        { return static_cast<bool>(get_effect_type(type_name)); }
 }

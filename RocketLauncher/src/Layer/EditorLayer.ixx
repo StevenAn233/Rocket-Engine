@@ -60,8 +60,8 @@ export namespace rke
         static constexpr glm::vec4 clear_color{ 0.1f, 0.1f, 0.1f, 1.0f };
         SceneRenderer main_renderer_{ &get_owner(), math::srgb_to_linear(clear_color) };
         SceneRenderer cam_renderer_ { &get_owner(), math::srgb_to_linear(clear_color) };
-        PostProcessor post_processor_{ math::srgb_to_linear(clear_color) };
-        PostProcessor cam_post_processor_{ math::srgb_to_linear(clear_color) };
+        PostProcessor post_processor_{};
+        PostProcessor cam_post_processor_{};
 
         EntityHandle hovering_id_{ entity_handle_null };
         Project* context_{};
@@ -70,8 +70,8 @@ export namespace rke
         SceneSerializer scene_serializer_{};
         std::unordered_map<String, ViewProps> editor_cams_{};
 
-        const GTexture2D* main_output_{};
-        const GTexture2D* cam_output_ {};
+        const GTexture2D* main_output_{}; // may modify
+        const GTexture2D* cam_output_ {}; // may modify
 
     // Panels
         Scope<EditorSettingPanel> editor_setting_panel_{};

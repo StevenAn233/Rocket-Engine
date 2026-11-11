@@ -1,12 +1,15 @@
 ﻿#ifndef RKE_FUEL_H
 #define RKE_FUEL_H
 
+import String;
+
 namespace rke::fuel
 {
     void push_script_entry(const char8_t* type_name,
         void* (*constructor)(), void* (*deep_copier)(const void*));
 
-    void push_effect_entry(const char8_t* type_name, void* (*constructor)());
+    void push_effect_entry(const char8_t* type_name,
+        void* (*constructor)(const String&));
 
     template<typename RkeScript>
     struct ScriptRegistrar
@@ -30,8 +33,8 @@ namespace rke::fuel
     {
         EffectRegistrar(const char8_t* type_name)
         {
-            push_effect_entry(type_name,
-                []() -> void* { return new RkeEffect(); });
+            push_effect_entry(type_name, [](const String& name)
+                -> void* { return new RkeEffect(name); });
         }
     };
 }

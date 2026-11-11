@@ -533,8 +533,6 @@ namespace rke
         cam_output_  = nullptr;
         main_renderer_.clean_up();
         cam_renderer_ .clean_up();
-        post_processor_.clean_up();
-        cam_post_processor_.clean_up();
 
         if(!scene) return;
         
