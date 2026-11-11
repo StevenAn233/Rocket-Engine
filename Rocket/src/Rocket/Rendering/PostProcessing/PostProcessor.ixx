@@ -13,17 +13,16 @@ import GTexture;
 import FrameBuffer;
 import PostProcessEffect;
 import ConfigProxy;
+import RkDylib;
 
 export namespace rke
 {
     class RKE_API PostProcessor
     {
     public:
-        PostProcessor(String name, glm::vec4 clear_color);
+        PostProcessor(glm::vec4 clear_color);
         PostProcessor(const PostProcessor&) = delete;
         PostProcessor(PostProcessor&&) = delete;
-
-        inline const String& get_name() const { return name_; }
 
         inline bool empty() const { return effects_stack_.empty(); }
         PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
@@ -33,13 +32,12 @@ export namespace rke
         const GTexture2D* process(const GTexture2D* source);
         inline void clean_up() { fbos_[0]->clear(); fbos_[1]->clear(); }
 
-        // void serialize_to(ConfigWriter& writer) const;
-        // void deserialize_from(const ConfigReader& reader);
+        void serialize_to(ConfigWriter& writer, const RkDylib& dylib) const;
+        void deserialize_from(const ConfigReader& reader, const RkDylib& dylib);
 
         void on_imgui_render(uint32 tree_flags = 0);
         void on_viewport_resized(uint32 w, uint32 h);
     private:
-        String name_;
         Scope<FrameBuffer> fbos_[2]{};
         uint32 viewport_w_{}, viewport_h_{};
         std::vector<Scope<PostProcessEffect>> effects_stack_{}; // sequential

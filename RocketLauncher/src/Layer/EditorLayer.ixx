@@ -58,14 +58,10 @@ export namespace rke
         Ticker ticker_{ 60 }; // hard-coded, may modify
 
         static constexpr glm::vec4 clear_color{ 0.1f, 0.1f, 0.1f, 1.0f };
-        SceneRenderer main_renderer_{ &get_owner(),
-            math::srgb_to_linear(clear_color) };
-        SceneRenderer cam_renderer_ { &get_owner(),
-            math::srgb_to_linear(clear_color) };
-        PostProcessor post_processor_{ u8"Post-Processor",
-            math::srgb_to_linear(clear_color) };
-        PostProcessor cam_post_processor_{ u8"Cam Post-Processor",
-            math::srgb_to_linear(clear_color) };
+        SceneRenderer main_renderer_{ &get_owner(), math::srgb_to_linear(clear_color) };
+        SceneRenderer cam_renderer_ { &get_owner(), math::srgb_to_linear(clear_color) };
+        PostProcessor post_processor_{ math::srgb_to_linear(clear_color) };
+        PostProcessor cam_post_processor_{ math::srgb_to_linear(clear_color) };
 
         EntityHandle hovering_id_{ entity_handle_null };
         Project* context_{};

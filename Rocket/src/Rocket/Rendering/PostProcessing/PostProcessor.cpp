@@ -8,8 +8,7 @@ import Application;
 
 namespace rke
 {
-    PostProcessor::PostProcessor(String name, glm::vec4 clear_color)
-        : name_(std::move(name))
+    PostProcessor::PostProcessor(glm::vec4 clear_color)
     {
         FrameBuffer::Specification spec
             { .attachment_spec{{ GTexture::Format::RGBA16F, clear_color }}};
@@ -53,6 +52,16 @@ namespace rke
         app().render_command().enable_depth_test();
         app().render_command().enable_blend();
         return ping_pong;
+    }
+
+    void PostProcessor::serialize_to(ConfigWriter& writer, const RkDylib& dylib) const
+    {
+
+    }
+
+    void PostProcessor::deserialize_from(const ConfigReader& reader, const RkDylib& dylib)
+    {
+
     }
 
     void PostProcessor::on_imgui_render(uint32 tree_flags)

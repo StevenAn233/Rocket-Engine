@@ -1,9 +1,11 @@
 ﻿module;
 
-#include <utility>
+#include <vector>
 #include <memory>
+#include <utility>
 #include <filesystem>
 #include <unordered_map>
+#include <glm/glm.hpp>
 #include "rke_macros.h"
 
 export module Project;
@@ -18,6 +20,9 @@ import PhysicsLayers;
 import AssetsManager;
 import RkDylib;
 import RkDylibLoader;
+import PostProcessor;
+import MathUtils;
+import ConfigProxy;
 
 export namespace rke
 {
@@ -31,7 +36,6 @@ export namespace rke
 
         struct Config // serialized in .rkproj file
         {
-            String name{ u8"Untitled" };
             PhysicsLayers physics_layers{};
             uint32 samples{};
         };
@@ -42,7 +46,7 @@ export namespace rke
         bool save();
         void scripts_hot_reloading();
 
-        inline const String& get_name() const { return project_config_.name; }
+        inline const String& get_name() const { return name_; }
         inline const Config& get_config() const { return project_config_; }
         inline const Path& get_project_dir() const { return project_dir_; }
         inline const Path& get_rkproj_path() const { return rkproj_path_; }
@@ -52,7 +56,7 @@ export namespace rke
         inline PhysicsLayers& get_physics_layers() { return project_config_.physics_layers; }
         inline const PhysicsLayers& get_physics_layers() const { return project_config_.physics_layers; }
 
-        inline void set_name(String name) { project_config_.name = std::move(name); }
+        inline void set_name(String name) { name_ = std::move(name); }
         uint8 get_samples_shift() const;
         void set_samples(uint8 shift);
 
@@ -75,6 +79,8 @@ export namespace rke
     private:
         Path project_dir_; // to project folder
         Path rkproj_path_; // to .rkproj file
+
+        String name_{};
         Config project_config_{};
 
         std::unordered_map<String, Scope<Scene>> scene_map_{};
@@ -83,5 +89,8 @@ export namespace rke
 
         Scope<RkDylibLoader> dylib_loader_{};
         Scope<RkDylib> fresh_dylib_{};
+
+        static constexpr glm::vec4 clear_color{ 0.1f, 0.1f, 0.1f, 1.0f }; // to modify
+        PostProcessor post_processor_{ math::srgb_to_linear(clear_color) };
     };
 }

@@ -3,7 +3,6 @@ module Project;
 
 import Log;
 import FileUtils;
-import ConfigProxy;
 import ProjectEvent;
 import Application;
 
@@ -13,17 +12,27 @@ namespace rke
         : rkproj_path_(rkproj_path), project_dir_(rkproj_path.parent_path())
     {
         Scope<ConfigReader> reader{ ConfigReader::create(rkproj_path) };
-        auto& config{ project_config_ };
-        config.name = reader->get_at(u8"Project", String{});
-        if(config.name.empty()) {
-            CORE_ERROR(u8"Project: Invalid project file format in '{}'!", rkproj_path);
+        if(!reader) {
+            CORE_ERROR(u8"Project: Project path '{}' invalid!",
+                rkproj_path);
+            return;
+        }
+        name_ = reader->get_at(u8"Project", String{});
+        if(name_.empty()) {
+            CORE_ERROR(u8"Project: Invalid project file format in '{}'!",
+                rkproj_path);
             return;
         }
         
+        assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
+        dylib_loader_ = create_scope<RkDylibLoader>
+            (project_dir_ / u8"bin" / RKE_CONFIG_NAME, name_);
+        scripts_hot_reloading();
+        CORE_INFO(u8"Project: Project '{}' loaded.", rkproj_path_);
+
+        auto& config{ project_config_ };
         Scope<ConfigReader> config_reader{ reader->get_child(u8"Config") };
-        if(!config_reader)
-            CORE_ERROR(u8"Project: 'Config' not found in '{}'!", rkproj_path);
-        else {
+        if(config_reader) {
             Scope<ConfigReader> layers{ config_reader->get_child(u8"Physics Layers") };
             if(layers) layers->for_each
             ([&config](String name, Scope<ConfigReader> layer)
@@ -40,13 +49,7 @@ namespace rke
             config.physics_layers.set_showed_layer_count(showed_layers);
             config.samples = config_reader->get_at(u8"Samples", 1u);
         }
-
-        assets_manager_ = create_scope<AssetsManager>(get_assets_dir());
-        dylib_loader_ = create_scope<RkDylibLoader>
-            (project_dir_ / u8"bin" / RKE_CONFIG_NAME, project_config_.name);
-
-        CORE_INFO(u8"Project: Project '{}' loaded.", rkproj_path_);
-        scripts_hot_reloading();
+        if(fresh_dylib_) post_processor_.deserialize_from(*reader, *fresh_dylib_);
     }
 
     Project::~Project()
@@ -71,7 +74,7 @@ namespace rke
         Scope<ConfigWriter> writer{ ConfigWriter::create() };
         writer->begin_map();
 
-        writer->write(u8"Project", project_config_.name);
+        writer->write(u8"Project", name_);
 
         writer->begin_map(u8"Config");
         writer->begin_map(u8"Physics Layers");
@@ -85,9 +88,13 @@ namespace rke
             writer->end_map();
         }
         writer->end_map(); // Physics Layers
+
         writer->write(u8"Showed Layers", static_cast<uint32>(layers.get_showed_layer_count()));
         writer->write(u8"Samples", project_config_.samples);
+
         writer->end_map(); // Config
+
+        if(fresh_dylib_) post_processor_.serialize_to(*writer, *fresh_dylib_);
 
         writer->end_map();
         writer->push_to_file(rkproj_path_);
@@ -102,8 +109,24 @@ namespace rke
             CORE_ERROR(u8"Project: Failed to load dylib!");
             return;
         }
+
         Scope<RkDylib> old_dylib{ std::move(fresh_dylib_) };
         fresh_dylib_ = std::move(dylib);
+
+        String snapshot{};
+        if(old_dylib) {
+            Scope<ConfigWriter> writer{ ConfigWriter::create() };
+            CORE_ASSERT(writer, u8"Project: Failed to create config writer!");
+            post_processor_.serialize_to(*writer, *old_dylib);
+            snapshot = writer->dump();
+        }
+        if(!snapshot.empty())
+        {
+            Scope<ConfigReader> reader{ ConfigReader::create(snapshot) };
+            CORE_ASSERT(reader, u8"Project: Failed to create config reader!");
+            post_processor_.deserialize_from(*reader, *fresh_dylib_);
+        }
+
         if(old_dylib) {
             for(auto& [_, scene] : scene_map_)
                 scene->on_script_dylib_hot_reloading(*old_dylib, *fresh_dylib_);
