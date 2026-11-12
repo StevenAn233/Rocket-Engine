@@ -109,6 +109,7 @@ namespace rke
             CORE_ERROR(u8"Project: Failed to load dylib!");
             return;
         }
+        dylib->owner_ = this;
 
         Scope<RkDylib> old_dylib{ std::move(fresh_dylib_) };
         fresh_dylib_ = std::move(dylib);

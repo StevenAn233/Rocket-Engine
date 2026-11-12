@@ -12,7 +12,7 @@ import EffectAccess;
 namespace rke
 {
 // WindowsRkDylib
-    struct WindowsRkDylib : public RkDylib
+    class WindowsRkDylib : public RkDylib
     {
     public:
         friend class RkDylibLoader;
@@ -23,7 +23,7 @@ namespace rke
         HMODULE handle_{};
     };
 
-    WindowsRkDylib::WindowsRkDylib(const Path& path) : RkDylib()
+    WindowsRkDylib::WindowsRkDylib(const Path& path)
     {
         using ScriptsGetter = void (*)(ScriptsView*);
         using EffectsGetter = void (*)(EffectsView*);

@@ -8,7 +8,7 @@ import RkDylib;
 
 export namespace rke
 {
-    class RkDylibLoader final
+    class RkDylibLoader
     {
     public:
         RkDylibLoader(Path dir, String name);
@@ -27,8 +27,8 @@ export namespace rke
         void prune_temp_files();
         void delete_temp_files();
     private:
-        Path dylib_dir_{};
-        String dylib_name_{};
-        uint32 reload_count_{};
+        Path dylib_dir_;
+        String dylib_name_;
+        uint32 reload_count_{ 0 };
     };
 }

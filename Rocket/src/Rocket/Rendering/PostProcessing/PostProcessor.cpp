@@ -127,6 +127,7 @@ namespace rke
                     u8"Failed to construct effect '{}'!", type_name);
                 continue;
             }
+            effect->context_ = dylib.get_owner();
             effect->deserialize_from(*entry);
             loaded.push_back(std::move(effect));
         }

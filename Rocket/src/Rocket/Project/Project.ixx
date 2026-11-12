@@ -5,7 +5,6 @@
 #include <utility>
 #include <filesystem>
 #include <unordered_map>
-#include <glm/glm.hpp>
 #include "rke_macros.h"
 
 export module Project;

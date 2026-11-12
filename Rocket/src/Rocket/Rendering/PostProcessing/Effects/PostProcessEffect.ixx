@@ -2,6 +2,7 @@
 
 #include <bit>
 #include "rke_macros.h"
+namespace rke { class Project; }
 
 export module PostProcessEffect;
 
@@ -49,7 +50,10 @@ export namespace rke
 
         virtual void on_imgui_render();
         virtual void on_viewport_resized(uint32 w, uint32 h) {}; // for client framebuffer
+
+        inline Project* get_context() const { return context_; }
     private:
+        Project* context_{}; // set by PostProcessor
         String name_;
         bool enabled_{ true };
     };
