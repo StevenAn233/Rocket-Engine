@@ -19,6 +19,7 @@ export namespace rke
     {
     public:
         friend class PostProcessor;
+        friend class RkDylib;
 
         enum class Category
         {
@@ -49,11 +50,11 @@ export namespace rke
         virtual void on_deserialize(const ConfigReader& reader) {}
 
         virtual void on_imgui_render();
-        virtual void on_viewport_resized(uint32 w, uint32 h) {}; // for client framebuffer
+        virtual void on_viewport_resized(uint32 w, uint32 h) {}
 
         inline Project* get_context() const { return context_; }
     private:
-        Project* context_{}; // set by PostProcessor
+        Project* context_{}; // set by RkDylib
         String name_;
         bool enabled_{ true };
     };

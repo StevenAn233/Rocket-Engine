@@ -74,6 +74,7 @@ export namespace rke
         const GTexture2D* cam_output_ {}; // may modify
 
     // Panels
+        Scope<ProjectSettingPanel> project_setting_panel_{};
         Scope<EditorSettingPanel> editor_setting_panel_{};
         Scope<ContentBrowserPanel> content_browser_panel_{};
         Scope<Viewport> main_viewport_{};

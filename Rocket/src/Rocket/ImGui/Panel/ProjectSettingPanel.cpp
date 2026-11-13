@@ -5,8 +5,12 @@
 
 module ProjectSettingPanel;
 
+import Layout;
+import PostProcessor;
+
 namespace {
-    void add_text_vertical(ImDrawList* draw_list, const char* text, ImVec2 pos, ImU32 text_color)
+    void add_text_vertical(ImDrawList* draw_list,
+        const char* text, ImVec2 pos, ImU32 text_color)
     {
         constexpr float angle{ 1.570796f }; // 90 deg
         static float cos_a{ std::cosf(angle) };
@@ -29,28 +33,27 @@ namespace rke
         ImGui::PushID(get_name().raw());
         ImGui::Begin (get_name().raw());
 
-        Project* active{ app().get_project() };
-        if(!active) { ImGui::Text("No Active Project"); goto end; }
+        if(!context_) { ImGui::Text("No Active Project"); goto end; }
 
         if(ImGui::BeginTabBar("##project_settings_tabs"))
         {
             if(ImGui::BeginTabItem("Config"))
             {
-                layout::tree_node_branch<u8"Name">([this, active]()
+                layout::tree_node_branch<u8"Name">([this]()
                 {
-                    const String& name{ active->get_name() };
+                    const String& name{ context_->get_name() };
                     char name_buffer[256]{};
                     std::memcpy(name_buffer, name.raw(),
                         std::min(name.length(), sizeof(name_buffer) - 1));
                     if(ImGui::InputText("##tag", name_buffer, sizeof(name_buffer),
                         ImGuiInputTextFlags_EnterReturnsTrue))
-                        active->set_name(String(str::to_char8(name_buffer)));
+                        context_->set_name(String(str::to_char8(name_buffer)));
                 });
                 ImGui::EndTabItem();
             }
             if(ImGui::BeginTabItem("Physics"))
             {
-                draw_layer_collision_matrix(active->get_physics_layers());
+                draw_layer_collision_matrix(context_->get_physics_layers());
                 ImGui::EndTabItem();
             }
             if(ImGui::BeginTabItem("Render"))
@@ -59,9 +62,15 @@ namespace rke
                 {
                     constexpr const char* opts[]
                         { "1x", "2x", "4x", "8x", "16x" };
-                    int shift{ static_cast<int>(active->get_samples_shift()) };
+                    int shift{ static_cast<int>(context_->get_samples_shift()) };
                     if(ImGui::Combo("##aa", &shift, opts, static_cast<int>(std::size(opts))))
-                        { active->set_samples(static_cast<uint8>(shift)); }
+                        { context_->set_samples(static_cast<uint8>(shift)); }
+                });
+                layout::tree_node_branch<u8"Post-Process">([&]()
+                {
+                    if(context_->post_processor_.empty())
+                        ImGui::TextDisabled("- No effects");
+                    else context_->post_processor_.on_imgui_render();
                 });
                 ImGui::EndTabItem();
             }

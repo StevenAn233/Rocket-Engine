@@ -43,6 +43,7 @@ export import PanelRegistry;
 export import DockSpace;
 export import AnimationEditorPanel;
 export import SceneHierarchyPanel;
+export import ProjectSettingPanel;
 
 export import Gravity;
 export import PhysicsLayers;
@@ -81,3 +82,4 @@ export import ScriptManager;
 
 export import RkDylib;
 export import Project;
+export import BindingPoint;

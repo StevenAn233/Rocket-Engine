@@ -27,7 +27,8 @@ namespace rke
 
     void EditorLayer::on_attach()
     {
-        editor_setting_panel_ = create_scope<EditorSettingPanel>(u8"Editor Settings", this);
+        project_setting_panel_ = create_scope<ProjectSettingPanel>(u8"Project Settings");
+        editor_setting_panel_  = create_scope<EditorSettingPanel >(u8"Editor Settings", this);
         content_browser_panel_ = create_scope<ContentBrowserPanel>(u8"Content Browser");
         main_viewport_ = create_scope<Viewport>(u8"Main Viewport",
             [this]() { return main_output_; });
@@ -242,7 +243,8 @@ namespace rke
         });
 
     // PanelRegistry
-        app().register_panel(editor_setting_panel_.get());
+        app().register_panel(project_setting_panel_.get());
+        app().register_panel(editor_setting_panel_ .get());
         app().register_panel(content_browser_panel_.get());
         app().register_panel(main_viewport_.get(),
         {
@@ -279,7 +281,8 @@ namespace rke
         writer->end_map();
         writer->push_to_file(file::editor_dir() / u8"settings" / u8"editor.yaml");
 
-        app().unregister_panel(editor_setting_panel_.get());
+        app().unregister_panel(project_setting_panel_.get());
+        app().unregister_panel(editor_setting_panel_ .get());
         app().unregister_panel(content_browser_panel_.get());
         app().unregister_panel(main_viewport_.get());
         app().unregister_panel(cam_viewport_.get());
@@ -288,7 +291,8 @@ namespace rke
         app().unregister_panel(&animation_editor_panel_);
         app().unregister_panel(&toolbar_);
 
-        editor_setting_panel_.reset();
+        project_setting_panel_.reset();
+        editor_setting_panel_ .reset();
         content_browser_panel_.reset();
         main_viewport_.reset();
         cam_viewport_.reset();
@@ -410,6 +414,7 @@ namespace rke
         attach_scene(nullptr);
 
         context_ = project;
+        project_setting_panel_->set_context(context_);
         content_browser_panel_->on_project_loaded(context_);
         animation_editor_panel_.on_project_loaded(context_);
     }

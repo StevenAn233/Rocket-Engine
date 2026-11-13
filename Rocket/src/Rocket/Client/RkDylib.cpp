@@ -68,6 +68,7 @@ namespace rke
         {
             Scope<PostProcessEffect> effect{ reinterpret_cast
                 <PostProcessEffect*>(std::invoke(it->second, name)) };
+            effect->context_ = owner_;
             return effect;
         }
         return nullptr;

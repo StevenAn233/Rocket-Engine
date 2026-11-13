@@ -4,7 +4,6 @@ import EditorLayer;
 
 import LogPanel;
 import ApplicationPanel;
-import ProjectSettingPanel;
 
 namespace rke
 {
@@ -22,7 +21,6 @@ namespace rke
 
         Scope<LogPanel> log_panel_{};
         Scope<ApplicationPanel> app_panel_{};
-        Scope<ProjectSettingPanel> proj_panel_{};
     };
 
     void RocketLauncher::init()
@@ -53,14 +51,12 @@ namespace rke
         dockspace_->set_editor_runtime_func
             ([this]() { return editor_layer_->testing(); });
 
-        log_panel_  = create_scope<LogPanel>(u8"Log");
-        app_panel_  = create_scope<ApplicationPanel>(u8"Application");
-        proj_panel_ = create_scope<ProjectSettingPanel>(u8"Project Settings");
+        log_panel_ = create_scope<LogPanel>(u8"Log");
+        app_panel_ = create_scope<ApplicationPanel>(u8"Application");
         log_panel_->load_from(file::editor_dir() / u8"settings" / u8"log.yaml");
 
-        register_panel(log_panel_ .get());
-        register_panel(app_panel_ .get());
-        register_panel(proj_panel_.get());
+        register_panel(log_panel_.get());
+        register_panel(app_panel_.get());
         register_panel(main_window.get_panel_handle());
 
         RKE_INFO(u8"Welcome to Rocket Engine!");
