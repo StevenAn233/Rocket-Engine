@@ -27,12 +27,17 @@ namespace rke
 
     PostProcessEffect* PostProcessor::push_effect(Scope<PostProcessEffect> effect)
     {
+        if(!effect) return nullptr;
+        if(viewport_w_ && viewport_h_)
+            effect->on_viewport_resized(viewport_w_, viewport_h_);
+
         effects_stack_.push_back(std::move(effect));
         return effects_stack_.back().get();
     }
 
     Scope<PostProcessEffect> PostProcessor::pop_effect()
     {
+        if(effects_stack_.empty()) return nullptr;
         Scope<PostProcessEffect> effect{ std::move(effects_stack_.back()) };
         effects_stack_.pop_back();
         return effect;
@@ -87,6 +92,7 @@ namespace rke
 
     void PostProcessor::deserialize_from(const ConfigReader& reader, const RkDylib& dylib)
     {
+        clear(); // may modify
         Scope<ConfigReader> entries{ reader.get_child(u8"Post-Process") };
         if(!entries) {
             CORE_WARN(u8"PostProcessor: No 'Post-Process' entry, "
@@ -132,7 +138,8 @@ namespace rke
         }
 
         effects_stack_ = std::move(loaded);
-        if(viewport_w_ && viewport_h_) on_viewport_resized(viewport_w_, viewport_h_);
+        if(viewport_w_ && viewport_h_)
+            on_viewport_resized(viewport_w_, viewport_h_);
     }
 
     void PostProcessor::on_imgui_render(uint32 tree_flags)
@@ -152,6 +159,8 @@ namespace rke
 
     void PostProcessor::on_viewport_resized(uint32 w, uint32 h)
     {
+        viewport_w_ = w;
+        viewport_h_ = h;
         fbos_[0]->resize(w, h);
         fbos_[1]->resize(w, h);
         for(auto& effect : effects_stack_)

@@ -6,6 +6,15 @@ import FileUtils;
 import ProjectEvent;
 import Application;
 
+namespace {
+    using namespace rke;
+    String read_template(StringView file_name)
+    {
+        return file::read_file_string
+            (file::assets_dir() / u8"proj-templates" / file_name);
+    }
+}
+
 namespace rke
 {
     Project::Project(const Path& rkproj_path)
@@ -55,6 +64,7 @@ namespace rke
     Project::~Project()
     {
         scene_map_.clear();
+        post_processor_.clear();
         fresh_dylib_.reset();
         dylib_loader_.reset();
     }
@@ -118,12 +128,14 @@ namespace rke
         if(old_dylib) {
             Scope<ConfigWriter> writer{ ConfigWriter::create() };
             CORE_ASSERT(writer, u8"Project: Failed to create config writer!");
+            writer->begin_map();
             post_processor_.serialize_to(*writer, *old_dylib);
+            writer->end_map();
             snapshot = writer->dump();
         }
         if(!snapshot.empty())
         {
-            Scope<ConfigReader> reader{ ConfigReader::create(snapshot) };
+            Scope<ConfigReader> reader{ ConfigReader::create_from_string(snapshot) };
             CORE_ASSERT(reader, u8"Project: Failed to create config reader!");
             post_processor_.deserialize_from(*reader, *fresh_dylib_);
         }
@@ -219,6 +231,12 @@ namespace rke
     }
 
     void Project::remove_scene(const String& name) { scene_map_.erase(name); }
+
+    const GTexture2D* Project::post_process(const GTexture2D* source)
+        { return post_processor_.process(source); }
+
+    void Project::on_viewport_resized(uint32 w, uint32 h)
+        { post_processor_.on_viewport_resized(w, h); }
     
 // static
     bool Project::create_files(const Path& rkproj_path)
@@ -237,20 +255,35 @@ namespace rke
             return false;
         }
 
-        Path assets_dir{ project_dir / u8"assets" };
-        Path scenes_dir{ assets_dir  / u8"scenes" };
-        Path src_dir   { project_dir / u8"src"    };
-        fs::create_directory(assets_dir );
-        fs::create_directory(scenes_dir );
-        fs::create_directory(src_dir    );
+        Path assets_dir { project_dir / u8"assets"  };
+        Path scenes_dir { assets_dir  / u8"scenes"  };
+        Path shaders_dir{ assets_dir  / u8"shaders" };
+        Path shader_srcs_dir{ shaders_dir / u8"src" };
+        Path src_dir{ project_dir / u8"src" };
+        fs::create_directory(assets_dir);
+        fs::create_directory(scenes_dir);
+        fs::create_directories(shader_srcs_dir);
+        fs::create_directory(src_dir);
 
-        String cmake_content{ get_cmake_lists_txt() };
+        String cmake_content{ read_template(u8"CMakeLists.txt.txt") };
         cmake_content.replace_search_by(u8"%{ProjectName}", project_name);
         file::write_file_string(project_dir / u8"CMakeLists.txt", cmake_content);
 
-        file::write_file_string(project_dir / u8"CMakePresets.json", get_cmake_presets_json());
-        file::write_file_string(project_dir / u8".editorconfig", get_editorconfig());
-        file::write_file_string(src_dir     / u8"MyScript.cpp" , get_myscript_cpp());
+        file::write_file_string(project_dir / u8"CMakePresets.json",
+            read_template(u8"CMakePresets.json.txt"));
+        file::write_file_string(project_dir / u8".editorconfig",
+            read_template(u8"MyScript.cpp.txt"));
+        file::write_file_string(src_dir / u8"MyScript.cpp",
+            read_template(u8".editorconfig.txt"));
+
+        file::write_file_string(src_dir / u8"MyEffect.cpp",
+            read_template(u8"MyEffect.cpp.txt"));
+        file::write_file_string(shaders_dir / u8"MyEffect.rkshdr",
+            read_template(u8"MyEffect.rkshdr.txt"));
+        file::write_file_string(shader_srcs_dir / u8"MyEffect.vert",
+            read_template(u8"MyEffect.vert.txt"));
+        file::write_file_string(shader_srcs_dir / u8"MyEffect.frag",
+            read_template(u8"MyEffect.frag.txt"));
 
         Scope<ConfigWriter> writer{ ConfigWriter::create() };
         writer->begin_map();
@@ -277,33 +310,5 @@ namespace rke
         CORE_INFO(u8"Project: Created new project '{}.rkproj' at '{}'.",
             project_name, project_dir);
         return true;
-    }
-
-    const String& Project::get_cmake_lists_txt()
-    {
-        static const String s_cmake_lists_txt{ file::read_file_string
-            (file::assets_dir() / u8"proj-templates" / u8"CMakeLists.txt.txt") };
-        return s_cmake_lists_txt;
-    }
-
-    const String& Project::get_cmake_presets_json()
-    {
-        static const String s_cmake_presets_json{ file::read_file_string
-            (file::assets_dir() / u8"proj-templates" / u8"CMakePresets.json.txt") };
-        return s_cmake_presets_json;
-    }
-
-    const String& Project::get_myscript_cpp()
-    {
-        static const String s_myscript_cpp{ file::read_file_string
-            (file::assets_dir() / u8"proj-templates" / u8"MyScript.cpp.txt") };
-        return s_myscript_cpp;
-    }
-
-    const String& Project::get_editorconfig()
-    {
-        static const String s_editorconfig{ file::read_file_string
-            (file::assets_dir() / u8"proj-templates" / u8".editorconfig.txt") };
-        return s_editorconfig;
     }
 }

@@ -28,7 +28,9 @@ export namespace rke
         PostProcessor(PostProcessor&&) = delete;
         PostProcessor& operator=(PostProcessor&&) = delete;
 
+        inline void clear() { effects_stack_.clear(); }
         inline bool empty() const { return effects_stack_.empty(); }
+        
         PostProcessEffect* push_effect(Scope<PostProcessEffect> effect);
         Scope<PostProcessEffect> pop_effect();
         // swap/sort effect...

@@ -20,6 +20,7 @@ export namespace rke
     private:
         void on_imgui_render() override;
         void draw_layer_collision_matrix(PhysicsLayers& layers);
+        void effect_popup();
     private:
         Project* context_{};
     };

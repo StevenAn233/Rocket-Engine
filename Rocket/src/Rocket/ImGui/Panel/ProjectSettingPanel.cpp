@@ -5,8 +5,14 @@
 
 module ProjectSettingPanel;
 
+import Log;
 import Layout;
+import String;
+import HeapManager;
 import PostProcessor;
+import PostProcessEffect;
+import EffectAccess;
+import RkDylib;
 
 namespace {
     void add_text_vertical(ImDrawList* draw_list,
@@ -72,6 +78,7 @@ namespace rke
                         ImGui::TextDisabled("- No effects");
                     else context_->post_processor_.on_imgui_render();
                 });
+                effect_popup();
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
@@ -79,6 +86,50 @@ namespace rke
     end:
         ImGui::End();
         ImGui::PopID();
+    }
+
+    void ProjectSettingPanel::effect_popup()
+    {
+        if(ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow)
+        && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+            ImGui::OpenPopup("##effect_popup");
+
+        if(!ImGui::BeginPopup("##effect_popup")) return;
+
+        PostProcessor& post_processor{ context_->post_processor_ };
+        const RkDylib* dylib{ context_->get_dylib() };
+
+        if(dylib) {
+            const auto& effect_types{ dylib->get_effect_types() };
+            if(ImGui::BeginMenu("Push"))
+            {
+                for(EffectType type : effect_types)
+                {
+                    const String type_name{ dylib->get_effect_name(type) };
+                    if(!ImGui::MenuItem(type_name.raw())) continue;
+                    Scope<PostProcessEffect> effect
+                        { dylib->construct_effect(type, type_name) };
+                    if(!effect) {
+                        CORE_ERROR(u8"ProjectSettingPanel: "
+                            u8"Failed to construct effect '{}'!", type_name);
+                        continue;
+                    }
+                    CORE_INFO(u8"ProjectSettingPanel: Pushed effect '{}'.", type_name);
+                    post_processor.push_effect(std::move(effect));
+                }
+                if(effect_types.empty()) ImGui::TextDisabled("No effects.");
+                ImGui::EndMenu();
+            }
+        }
+
+        if(ImGui::MenuItem("Pop", nullptr, false, !post_processor.empty()))
+        {
+            Scope<PostProcessEffect> popped{ post_processor.pop_effect() };
+            if(popped) CORE_INFO(u8"ProjectSettingPanel: "
+                u8"Popped effect '{}'.", popped->get_name());
+        } // popped effect is destroyed here
+
+        ImGui::EndPopup();
     }
 
     void ProjectSettingPanel::draw_layer_collision_matrix(PhysicsLayers& layers)

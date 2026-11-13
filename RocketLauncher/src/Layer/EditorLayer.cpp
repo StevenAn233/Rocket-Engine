@@ -449,6 +449,7 @@ namespace rke
 
             main_renderer_ .on_viewport_resized(w, h);
             post_processor_.on_viewport_resized(w, h);
+            if(context_) context_->on_viewport_resized(w, h);
         }
         if(cam_viewport_->resized())
         {
@@ -458,6 +459,12 @@ namespace rke
 
             cam_renderer_.on_viewport_resized(w, h);
             cam_post_processor_.on_viewport_resized(w, h);
+        }
+
+        if(!context_)
+        {
+            main_output_ = cam_output_ = nullptr;
+            return;
         }
 
         if(editing())
@@ -484,7 +491,10 @@ namespace rke
         else if(testing())
         {
             main_output_ = post_processor_.process
-                (main_renderer_.render(scene_test_->get_master_camera()));
+            (
+                context_->post_process(main_renderer_
+                    .render(scene_test_->get_master_camera()))
+            );
         }
         else { main_output_ = nullptr; }
 
@@ -492,11 +502,16 @@ namespace rke
          && !cam_viewport_->hidden() && cam_viewport_->visible())
         {
             Scene& scene{ *current_scene() };
-            auto cv_size{ cam_viewport_->get_size() };
-            scene.set_viewport(static_cast<uint32>(cv_size.x), static_cast<uint32>(cv_size.y));
-            cam_output_ = cam_post_processor_.process
-                (cam_renderer_.render(scene.get_demo_camera()));
+            auto cv_size{ cam_viewport_ ->get_size() };
             auto mv_size{ main_viewport_->get_size() };
+
+            scene.set_viewport(static_cast<uint32>(cv_size.x), static_cast<uint32>(cv_size.y));
+            context_->on_viewport_resized(static_cast<uint32>(cv_size.x), static_cast<uint32>(cv_size.y));
+
+            cam_output_ = cam_post_processor_.process
+                (context_->post_process(cam_renderer_.render(scene.get_demo_camera())));
+
+            context_->on_viewport_resized(static_cast<uint32>(mv_size.x), static_cast<uint32>(mv_size.y));
             scene.set_viewport(static_cast<uint32>(mv_size.x), static_cast<uint32>(mv_size.y));
         }
         else cam_output_ = nullptr;

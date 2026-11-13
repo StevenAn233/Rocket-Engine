@@ -9,18 +9,19 @@
 
 export module Project;
 
+import Path;
 import Types;
+import String;
+import HeapManager;
 import Scene;
 import SceneSerializer;
-import String;
-import Path;
-import HeapManager;
 import PhysicsLayers;
 import AssetsManager;
 import RkDylib;
 import RkDylibLoader;
 import PostProcessor;
 import ConfigProxy;
+import GTexture;
 
 export namespace rke
 {
@@ -28,6 +29,7 @@ export namespace rke
     {
     public:
         friend class Application;
+        friend class ProjectSettingPanel;
 
         Project(const Path& rkproj_path);
         ~Project();
@@ -68,12 +70,10 @@ export namespace rke
         void save_scene(const String& name, SceneSerializer& scene_serializer);
         void remove_scene(const String& name);
 
+        const GTexture2D* post_process(const GTexture2D* source);
+        void on_viewport_resized(uint32 w, uint32 h);
+
         static bool create_files(const Path& path);
-    private:
-        static const String& get_cmake_lists_txt();
-        static const String& get_cmake_presets_json();
-        static const String& get_myscript_cpp();
-        static const String& get_editorconfig();
     private:
         Path project_dir_; // to project folder
         Path rkproj_path_; // to .rkproj file
