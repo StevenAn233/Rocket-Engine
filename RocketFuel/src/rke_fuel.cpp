@@ -45,13 +45,13 @@ namespace rke::fuel
     }
 
     void push_effect_entry(const char8_t* type_name,
-        void* (*constructor)(const String&))
+        void* (*constructor)())
     {
         if(!type_name) return;
         get_effect_entires_cache().emplace_back
         (
             std::bit_cast<EffectType>(type_name),
-            constructor
+            EffectRecipe(constructor)
         );
     }
 }

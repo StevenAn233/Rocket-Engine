@@ -28,11 +28,9 @@ export namespace rke
             System    // e.g. FXAA, SMAA
         };
 
-        PostProcessEffect(String name);
+        PostProcessEffect() = default;
         virtual ~PostProcessEffect() = default;
         virtual Category get_category() const { return Category::Standard; }
-
-        inline const String& get_name() const { return name_; }
 
         // if returns true , use destination->get_gtexture_attached();
         // if returns false, use (original)source
@@ -51,11 +49,8 @@ export namespace rke
 
         virtual void on_imgui_render();
         virtual void on_viewport_resized(uint32 w, uint32 h) {}
-
-        inline Project* get_context() const { return context_; }
-    private:
+    protected:
         Project* context_{}; // set by RkDylib
-        String name_;
         bool enabled_{ true };
     };
 

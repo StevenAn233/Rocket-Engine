@@ -2,7 +2,6 @@ module;
 module EditorLayer;
 
 import Gizmo;
-import FXAAEffect;
 
 namespace {
     using namespace rke;
@@ -44,7 +43,7 @@ namespace rke
             { editor_cam_.deserialize_from(reader); });
 
     // Effects
-        auto selected{ create_scope<OutlineEffect>(u8"Selected Outline") };
+        auto selected{ create_scope<OutlineEffect>() };
         selected->set_enabled_extra (
             [this]() -> bool
             {
@@ -74,7 +73,7 @@ namespace rke
             }
         });
 
-        auto hovering{ create_scope<OutlineEffect>(u8"Hovering Outline") };
+        auto hovering{ create_scope<OutlineEffect>() };
         hovering->set_enabled_extra (
             [this]() -> bool
             {
@@ -101,7 +100,7 @@ namespace rke
             }
         });
 
-        auto plane_boxes{ create_scope<OutlineEffect>(u8"Plane Box Outline") };
+        auto plane_boxes{ create_scope<OutlineEffect>() };
         plane_boxes->set_context ({
             [this]() -> std::vector<OutlineEffect::Target>
             {
@@ -140,8 +139,8 @@ namespace rke
             }
         });
         
-        auto fxaa{ create_scope<FXAAEffect>(u8"Fxaa") };
-        auto tone_mapping{ create_scope<ToneMapping>(u8"Tone Mapping") };
+        auto fxaa{ create_scope<FXAAEffect>() };
+        auto tone_mapping{ create_scope<ToneMapping>() };
 
         Path filepath{ file::editor_dir() / u8"settings" / u8"editor.yaml" };
         file::check_to_create_dir(filepath);
@@ -151,12 +150,27 @@ namespace rke
         auto effects_reader{ reader->get_child(u8"Post-Process") };
         if(effects_reader)
         {
-            selected->deserialize_from(*effects_reader);
-            hovering->deserialize_from(*effects_reader);
-            plane_boxes->deserialize_from(*effects_reader);
-            fxaa->deserialize_from(*effects_reader);
-            tone_mapping->deserialize_from(*effects_reader);
+            auto selected_outline{ effects_reader->get_child(u8"Selected Outline") };
+            if(selected_outline) selected->deserialize_from(*selected_outline);
+
+            auto hovering_outline{ effects_reader->get_child(u8"Hovering Outline") };
+            if(hovering_outline) hovering->deserialize_from(*hovering_outline);
+
+            auto planebox_outline{ effects_reader->get_child(u8"Plane Box Outline") };
+            if(planebox_outline) plane_boxes->deserialize_from(*planebox_outline);
+
+            auto fxaa_effect{ effects_reader->get_child(u8"Fxaa") };
+            if(fxaa_effect) fxaa->deserialize_from(*fxaa_effect);
+
+            auto tone_mapping_effect{ effects_reader->get_child(u8"Tone Mapping") };
+            if(tone_mapping_effect) tone_mapping->deserialize_from(*tone_mapping_effect);
         }
+
+        selected_outline_ = selected.get();
+        hovering_outline_ = hovering.get();
+        planebox_outline_ = plane_boxes.get();
+        fxaa_ = fxaa.get();
+        tone_mapping_ = tone_mapping.get();
 
         post_processor_.push_effect(std::move(plane_boxes));
         post_processor_.push_effect(std::move(selected));
@@ -165,7 +179,7 @@ namespace rke
         post_processor_.push_effect(std::move(tone_mapping));
 
         cam_renderer_.set_samples(1);
-        cam_post_processor_.push_effect(create_scope<ToneMapping>(u8"Tone Mapping"));
+        cam_post_processor_.push_effect(create_scope<ToneMapping>());
 
     // Panels
         editor_setting_panel_->load_from(*reader);
@@ -270,16 +284,34 @@ namespace rke
         editor_setting_panel_->save_to(*writer);
 
         writer->begin_map(u8"Post-Process");
-        while(!post_processor_.empty())
         {
-            Scope<PostProcessEffect> effect{ post_processor_.pop_effect() };
-            CORE_ASSERT(effect, u8"EditorLayer: Effect Empty!");
-            effect->serialize_to(*writer);
+            writer->begin_map(u8"Selected Outline");
+            selected_outline_->serialize_to(*writer);
+            writer->end_map();
+
+            writer->begin_map(u8"Hovering Outline");
+            hovering_outline_->serialize_to(*writer);
+            writer->end_map();
+
+            writer->begin_map(u8"Plane Box Outline");
+            planebox_outline_->serialize_to(*writer);
+            writer->end_map();
+
+            writer->begin_map(u8"Fxaa");
+            fxaa_->serialize_to(*writer);
+            writer->end_map();
+
+            writer->begin_map(u8"Tone Mapping");
+            tone_mapping_->serialize_to(*writer);
+            writer->end_map();
         }
         writer->end_map();
-        
+
         writer->end_map();
         writer->push_to_file(file::editor_dir() / u8"settings" / u8"editor.yaml");
+
+        post_processor_.clear();
+        cam_post_processor_.clear();
 
         app().unregister_panel(project_setting_panel_.get());
         app().unregister_panel(editor_setting_panel_ .get());

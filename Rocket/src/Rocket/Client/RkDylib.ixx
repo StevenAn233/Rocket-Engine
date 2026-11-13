@@ -31,7 +31,7 @@ export namespace rke
         ScriptType get_script_type(const String& type_name) const; // expensive
         bool has_script(const String& type_name) const; // expensive
 
-        Scope<PostProcessEffect> construct_effect(EffectType type, const String& name) const;
+        Scope<PostProcessEffect> construct_effect(EffectType type) const;
         bool has_effect_type(EffectType type) const;
     
         String get_effect_name(EffectType type) const;
@@ -49,6 +49,6 @@ export namespace rke
         std::vector<ScriptType> script_types_{};
         std::unordered_map<uintptr, ScriptRecipe> script_recipes_{};
         std::vector<EffectType> effect_types_{};
-        std::unordered_map<uintptr, void* (*)(const String&)> effect_recipes_{};
+        std::unordered_map<uintptr, EffectRecipe> effect_recipes_{};
     };
 }

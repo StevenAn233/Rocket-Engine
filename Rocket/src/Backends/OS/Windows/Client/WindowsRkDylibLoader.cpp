@@ -70,7 +70,7 @@ namespace rke
         {
             const EffectEntry& entry{ *(effects_view.data + i) };
             effect_types_.push_back(entry.type);
-            effect_recipes_.emplace(static_cast<uintptr>(entry.type), entry.constructor);
+            effect_recipes_.emplace(static_cast<uintptr>(entry.type), entry.recipe);
         }
     }
 

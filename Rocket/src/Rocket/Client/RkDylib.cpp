@@ -59,7 +59,7 @@ namespace rke
     bool RkDylib::has_script(const String& type_name) const
         { return static_cast<bool>(get_script_type(type_name)); }
 
-    Scope<PostProcessEffect> RkDylib::construct_effect(EffectType type, const String& name) const
+    Scope<PostProcessEffect> RkDylib::construct_effect(EffectType type) const
     {
         // only do address compare, not string compare
         if(type == effect_type_null) return nullptr;
@@ -67,7 +67,7 @@ namespace rke
         if(it != effect_recipes_.end())
         {
             Scope<PostProcessEffect> effect{ reinterpret_cast
-                <PostProcessEffect*>(std::invoke(it->second, name)) };
+                <PostProcessEffect*>(std::invoke(it->second.constructor)) };
             effect->context_ = owner_;
             return effect;
         }

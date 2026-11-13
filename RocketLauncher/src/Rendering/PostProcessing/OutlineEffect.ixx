@@ -47,7 +47,7 @@ export namespace rke
             }
         };
 
-        OutlineEffect(String name);
+        OutlineEffect();
         ~OutlineEffect() override {}
         Category get_category() const override { return Category::Helper; }
 

@@ -22,7 +22,7 @@ export namespace rke
             float gamma	  { 2.2f };
         };
 
-        ToneMapping(String name);
+        ToneMapping();
         ~ToneMapping() override {}
 
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;

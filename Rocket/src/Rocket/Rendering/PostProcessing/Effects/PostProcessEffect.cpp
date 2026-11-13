@@ -4,15 +4,12 @@ module PostProcessEffect;
 import Log;
 
 namespace rke
-{
-    PostProcessEffect::PostProcessEffect(String name)
-        : name_(name.empty() ? u8"Untitled" : std::move(name)) {}
-    
+{    
     bool PostProcessEffect::is_enabled() const { return enabled_; }
 
     void PostProcessEffect::serialize_to(ConfigWriter& writer) const
     {
-        writer.begin_map(get_name());
+        writer.begin_map(u8"Para");
         writer.write(u8"Enabled", enabled_);
         on_serialize(writer);
         writer.end_map();
@@ -20,14 +17,14 @@ namespace rke
 
     void PostProcessEffect::deserialize_from(const ConfigReader& reader)
     {
-        auto child_reader{ reader.get_child(get_name()) };
-        if(!child_reader || !child_reader->is_map())
+        auto para{ reader.get_child(u8"Para") };
+        if(!para || !para->is_map())
         {
-            CORE_ERROR(u8"PostProcessEffect: Child reader invalid!");
+            CORE_ERROR(u8"PostProcessEffect: Para reader invalid!");
             return;
         }
-        enabled_ = child_reader->get_at(u8"Enabled", true);
-        on_deserialize(*child_reader);
+        enabled_ = para->get_at(u8"Enabled", true);
+        on_deserialize(*para);
     }
 
     void PostProcessEffect::on_imgui_render()

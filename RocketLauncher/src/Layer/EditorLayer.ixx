@@ -3,6 +3,7 @@ export module EditorLayer;
 
 import rke;
 import OutlineEffect;
+import FXAAEffect;
 import Toolbar;
 import Viewport;
 import EditorSettingPanel;
@@ -62,6 +63,13 @@ export namespace rke
         SceneRenderer cam_renderer_ { &get_owner(), math::srgb_to_linear(clear_color) };
         PostProcessor post_processor_{};
         PostProcessor cam_post_processor_{};
+
+    // Effects(for serialization)
+        const OutlineEffect* selected_outline_{};
+        const OutlineEffect* hovering_outline_{};
+        const OutlineEffect* planebox_outline_{};
+        const FXAAEffect* fxaa_{};
+        const ToneMapping* tone_mapping_{};
 
         EntityHandle hovering_id_{ entity_handle_null };
         Project* context_{};

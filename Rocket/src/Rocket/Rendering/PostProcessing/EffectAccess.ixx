@@ -8,10 +8,15 @@ export namespace rke
     enum class EffectType : uintptr {};
     constexpr EffectType effect_type_null{ static_cast<EffectType>(0) };
 
+    struct EffectRecipe
+    {
+        void* (*constructor)();
+    };
+
     struct EffectEntry
     {
         EffectType type;
-        void* (*constructor)(const String& name);
+        EffectRecipe recipe;
     };
 
     struct EffectsView

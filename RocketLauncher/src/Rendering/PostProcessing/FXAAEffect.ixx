@@ -10,7 +10,7 @@ export namespace rke
     public:
         struct Uniforms { glm::vec2 inverse_viewport_size{}; };
 
-        FXAAEffect(String name);
+        FXAAEffect();
         ~FXAAEffect() override {}
         Category get_category() const override { return Category::System; }
 

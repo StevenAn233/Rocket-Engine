@@ -76,15 +76,13 @@ namespace rke
             if(!effect) continue;
             if(!dylib.has_effect_type(effect->get_effect_type()))
             {
-                CORE_WARN(u8"PostProcessor: Effect '{}' "
-                    u8"isn't registered in dylib!", effect->get_name());
+                CORE_WARN(u8"PostProcessor: Effect type not found!");
                 continue;
             }
 
             writer.begin_map();
             writer.write(u8"Type", String(effect->get_type_name()));
-            writer.write(u8"Name", String(effect->get_name()));
-            effect->serialize_to(writer); // <name>: { Enabled: ..., ... }
+            effect->serialize_to(writer);
             writer.end_map();
         }
         writer.end_array();
@@ -120,14 +118,7 @@ namespace rke
                 continue;
             }
             
-            String name{ entry->get_at(u8"Name", String{}) };
-            if(name.empty())
-            {
-                CORE_WARN(u8"PostProcessor: Effect name empty!");
-                continue;
-            }
-
-            Scope<PostProcessEffect> effect{ dylib.construct_effect(type, name) };
+            Scope<PostProcessEffect> effect{ dylib.construct_effect(type) };
             if(!effect) {
                 CORE_ERROR(u8"PostProcessor: "
                     u8"Failed to construct effect '{}'!", type_name);
@@ -148,9 +139,10 @@ namespace rke
         {
             Scope<PostProcessEffect>& effect{ effects_stack_[i] };
             CORE_ASSERT(effect, u8"PostProcessor: Effect Empty!");
-            if(layout::begin_tree_node_branch_impl
-                (effect->get_name(), tree_flags, std::bit_cast<void*>(i)))
-            {
+            if(layout::begin_tree_node_branch_impl (
+                StringView(effect->get_type_name()),
+                tree_flags, std::bit_cast<void*>(i))
+            ){
                 effect->on_imgui_render();
                 layout::end_tree_node_branch_impl();
             }

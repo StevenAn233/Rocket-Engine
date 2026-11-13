@@ -4,8 +4,7 @@ module OutlineEffect;
 namespace rke
 {
 // public
-    OutlineEffect::OutlineEffect(String name)
-        : PostProcessEffect(std::move(name))
+    OutlineEffect::OutlineEffect()
     {
         ubo_ = UniformBuffer::create(sizeof(Uniforms));
         set_color(glm::vec4(1.0f));

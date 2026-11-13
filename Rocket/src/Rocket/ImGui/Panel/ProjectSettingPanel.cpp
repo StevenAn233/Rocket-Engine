@@ -107,8 +107,7 @@ namespace rke
                 {
                     const String type_name{ dylib->get_effect_name(type) };
                     if(!ImGui::MenuItem(type_name.raw())) continue;
-                    Scope<PostProcessEffect> effect
-                        { dylib->construct_effect(type, type_name) };
+                    Scope<PostProcessEffect> effect{ dylib->construct_effect(type) };
                     if(!effect) {
                         CORE_ERROR(u8"ProjectSettingPanel: "
                             u8"Failed to construct effect '{}'!", type_name);
@@ -125,8 +124,7 @@ namespace rke
         if(ImGui::MenuItem("Pop", nullptr, false, !post_processor.empty()))
         {
             Scope<PostProcessEffect> popped{ post_processor.pop_effect() };
-            if(popped) CORE_INFO(u8"ProjectSettingPanel: "
-                u8"Popped effect '{}'.", popped->get_name());
+            if(popped) CORE_INFO(u8"ProjectSettingPanel: Popped effect.");
         } // popped effect is destroyed here
 
         ImGui::EndPopup();
