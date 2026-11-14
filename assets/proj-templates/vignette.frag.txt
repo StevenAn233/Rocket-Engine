@@ -1,0 +1,27 @@
+#version 450
+
+#include "../include/binding_points.glsl"
+
+layout(location = 0) out vec4 o_color;
+
+layout(location = 0) in vec2 v_uv_coord;
+
+layout(binding = Sampler2D_0) uniform sampler2D u_texture;
+
+layout(std140, binding = UBO_PostProcess) uniform Uniforms
+{
+    vec4 tint_strength; // rgb: tint(linear), a: strength
+    vec4 viewport;      // xy: 1/size, zw: size in pixels
+} u_data;
+
+void main()
+{
+    vec3 color = texture(u_texture, v_uv_coord).rgb;
+
+    vec2 centred = (v_uv_coord - vec2(0.5)) * u_data.viewport.zw; // pixels
+    float radius = length(centred) / length(u_data.viewport.zw * 0.5);
+    vec3  graded = color * u_data.tint_strength.rgb * mix(0.75, 1.0, 1.0 - radius);
+
+// strength blends the graded frame with the untouched one
+    o_color = vec4(mix(color, graded, u_data.tint_strength.a), 1.0);
+}

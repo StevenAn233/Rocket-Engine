@@ -787,9 +787,9 @@ namespace rke
         to_destroy_.clear();
         entity_map_.clear();
 
-        demo_cam_ = {};
-        master_cam_ = {};
-        selected_entity_ = {};
+        demo_cam_ = entity_handle_null;
+        master_cam_ = entity_handle_null;
+        selected_entity_ = entity_handle_null;
     }
 
     void Scene::on_update(double dt)

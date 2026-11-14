@@ -530,8 +530,8 @@ namespace rke
         }
         else { main_output_ = nullptr; }
 
-        if(scene_edit_ && cam_viewport_->on() && current_scene()
-         && !cam_viewport_->hidden() && cam_viewport_->visible())
+        if(current_scene() && current_scene()->get_demo_camera().is_valid()
+        && cam_viewport_->on() && !cam_viewport_->hidden() && cam_viewport_->visible())
         {
             Scene& scene{ *current_scene() };
             auto cv_size{ cam_viewport_ ->get_size() };

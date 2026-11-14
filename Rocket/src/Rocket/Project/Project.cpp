@@ -1,4 +1,4 @@
-﻿module;
+module;
 module Project;
 
 import Log;
@@ -235,6 +235,7 @@ namespace rke
     const GTexture2D* Project::post_process(const GTexture2D* source)
         { return post_processor_.process(source); }
 
+    // not responsible for scene viewport set; may modify
     void Project::on_viewport_resized(uint32 w, uint32 h)
         { post_processor_.on_viewport_resized(w, h); }
     
@@ -258,11 +259,11 @@ namespace rke
         Path assets_dir { project_dir / u8"assets"  };
         Path scenes_dir { assets_dir  / u8"scenes"  };
         Path shaders_dir{ assets_dir  / u8"shaders" };
-        Path shader_srcs_dir{ shaders_dir / u8"src" };
         Path src_dir{ project_dir / u8"src" };
         fs::create_directory(assets_dir);
         fs::create_directory(scenes_dir);
-        fs::create_directories(shader_srcs_dir);
+        fs::create_directories(shaders_dir / u8"src");
+        fs::create_directories(shaders_dir / u8"include");
         fs::create_directory(src_dir);
 
         String cmake_content{ read_template(u8"CMakeLists.txt.txt") };
@@ -271,19 +272,25 @@ namespace rke
 
         file::write_file_string(project_dir / u8"CMakePresets.json",
             read_template(u8"CMakePresets.json.txt"));
-        file::write_file_string(project_dir / u8".editorconfig",
+        file::write_file_string(project_dir / u8"MyScript.cpp",
             read_template(u8"MyScript.cpp.txt"));
-        file::write_file_string(src_dir / u8"MyScript.cpp",
+        file::write_file_string(src_dir / u8".editorconfig",
             read_template(u8".editorconfig.txt"));
 
-        file::write_file_string(src_dir / u8"MyEffect.cpp",
-            read_template(u8"MyEffect.cpp.txt"));
-        file::write_file_string(shaders_dir / u8"MyEffect.rkshdr",
-            read_template(u8"MyEffect.rkshdr.txt"));
-        file::write_file_string(shader_srcs_dir / u8"MyEffect.vert",
-            read_template(u8"MyEffect.vert.txt"));
-        file::write_file_string(shader_srcs_dir / u8"MyEffect.frag",
-            read_template(u8"MyEffect.frag.txt"));
+        file::write_file_string(src_dir / u8"VignetteEffect.cpp",
+            read_template(u8"VignetteEffect.cpp.txt"));
+        file::write_file_string(shaders_dir / u8"vignette.rkshdr",
+            read_template(u8"vignette.rkshdr.txt"));
+        file::write_file_string(shaders_dir / u8"src" / u8"vignette.frag",
+            read_template(u8"vignette.frag.txt"));
+
+        // may modify
+        file::write_file_string(shaders_dir / u8"src" / u8"fullscreen.vert",
+            file::read_file_string(file::assets_dir()
+                / u8"shaders" / u8"src" / u8"fullscreen.vert"));
+        file::write_file_string(shaders_dir / u8"include" / u8"binding_points.glsl",
+            file::read_file_string(file::assets_dir()
+                / u8"shaders" / u8"include" / u8"binding_points.glsl"));
 
         Scope<ConfigWriter> writer{ ConfigWriter::create() };
         writer->begin_map();

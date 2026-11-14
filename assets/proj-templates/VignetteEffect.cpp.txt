@@ -1,0 +1,182 @@
+#include <rke_fuel.h>
+import rke;
+
+class VignetteEffect : public rke::PostProcessEffect
+{
+public:
+    VignetteEffect();
+    ~VignetteEffect() override {}
+
+    rke::PostProcessEffect::Category get_category() const override
+        { return Category::Standard; } // or Helper(System for AA like passes)
+
+    bool apply(const rke::GTexture2D* source, rke::FrameBuffer* destination) override;
+    void on_imgui_render() override;
+    void on_viewport_resized(rke::uint32 w, rke::uint32 h) override;
+
+    inline void set_shader(rke::AssetUUID uuid) { shader_uuid_ = uuid; }
+    inline rke::AssetUUID get_shader_uuid() const { return shader_uuid_; }
+
+    inline void set_tint(glm::vec3 tint) // linear
+    {
+        *reinterpret_cast<glm::vec3*>(&uniforms_.tint_strength) = tint;
+        upload_uniforms();
+    }
+
+    inline void set_strength(float strength)
+    {
+        uniforms_.tint_strength.w = glm::clamp(strength, 0.0f, 1.0f);
+        upload_uniforms();
+    }
+
+    inline glm::vec3 get_tint() const { return glm::vec3(uniforms_.tint_strength); } // linear
+    inline float get_strength() const { return uniforms_.tint_strength.w; }
+
+    RKE_EFFECT_TYPE_INTERFACE;
+private:
+    struct Uniforms
+    {
+        glm::vec4 tint_strength; // rgb: tint(linear), a: strength
+        glm::vec4 viewport;      // xy: 1/size, zw: size in pixels
+    };
+
+    void on_serialize(rke::ConfigWriter& writer) const override;
+    void on_deserialize(const rke::ConfigReader& reader) override;
+
+    inline void upload_uniforms()
+        { if(ubo_) ubo_->set_data(&uniforms_, sizeof(Uniforms)); }
+
+    rke::GShader* resolve_gshader();
+private:
+    rke::Ref<rke::UniformBuffer> ubo_{};
+    Uniforms uniforms_{ glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), glm::vec4(0.0f) };
+
+    rke::AssetUUID shader_uuid_{ 0 };
+    rke::AssetResolve resolved_shader_{};
+};
+
+RKE_REGISTER_EFFECT(VignetteEffect);
+
+VignetteEffect::VignetteEffect()
+{
+    ubo_ = rke::UniformBuffer::create(sizeof(Uniforms));
+    upload_uniforms();
+}
+
+bool VignetteEffect::apply(const rke::GTexture2D* source, rke::FrameBuffer* destination)
+{
+    if(!source || !destination || !ubo_) return false;
+
+    rke::GShader* gshader{ resolve_gshader() };
+    if(!gshader) {
+        CORE_ERROR(u8"VignetteEffect: Shader unavailable, the frame is left untouched!");
+        return false; // keep the source texture
+    }
+
+    destination->clear();
+    destination->upload([this, source, gshader]()
+    {
+        source->bind(rke::BindingPoint::Sampler2D_0);
+        ubo_->bind(rke::BindingPoint::UBO_PostProcess);
+
+        gshader->bind();
+        rke::app().render_command().draw_quad();
+        gshader->unbind();
+    });
+    return true;
+}
+
+void VignetteEffect::on_imgui_render()
+{
+    rke::PostProcessEffect::on_imgui_render();
+
+    rke::layout::two_columns_table<u8"Shader">([this]()
+    {
+        rke::String label{ u8"<drag a .rkshdr here>" };
+        if(context_ && !shader_uuid_.empty())
+        {
+            auto& assets{ context_->get_assets_manager_mut() };
+            label = assets.get_asset_path(shader_uuid_).filename().string();
+        }
+        
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        ImGui::Button(label.raw(), ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
+
+        if(ImGui::BeginDragDropTarget())
+        {
+            if(const ImGuiPayload* payload{ ImGui::
+                AcceptDragDropPayload("CONTENT_BROWSER_ASSET_SHADER") })
+                set_shader(*reinterpret_cast<const rke::AssetUUID*>(payload->Data));
+            ImGui::EndDragDropTarget();
+        }
+    });
+
+    rke::layout::two_columns_table<u8"Tint">([this]()
+    {
+        glm::vec4 srgb{ rke::math::linear_to_srgb
+            (glm::vec4(glm::vec3(uniforms_.tint_strength), 1.0f)) };
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        constexpr ImGuiColorEditFlags flags{ ImGuiColorEditFlags_Float
+            | ImGuiColorEditFlags_InputRGB };
+        if(ImGui::ColorEdit3("##tint", glm::value_ptr(srgb), flags))
+        {
+            const glm::vec4 linear{ rke::math::srgb_to_linear(srgb) };
+            set_tint({ linear.x, linear.y, linear.z });
+        }
+    });
+
+    if(rke::layout::drag_float_control<u8"Strength">
+        (uniforms_.tint_strength.w, 0.01f, 0.0f, glm::vec2(0.0f, 1.0f)))
+        upload_uniforms();
+}
+
+void VignetteEffect::on_viewport_resized(rke::uint32 w, rke::uint32 h)
+{
+    if(!w || !h) return;
+    uniforms_.viewport = glm::vec4(1.0f / w, 1.0f / h,
+        static_cast<float>(w), static_cast<float>(h));
+    upload_uniforms();
+}
+
+void VignetteEffect::on_serialize(rke::ConfigWriter& writer) const
+{
+    writer.write(u8"Tint", rke::math::linear_to_srgb
+        (glm::vec4(glm::vec3(uniforms_.tint_strength), 1.0f)));
+    writer.write(u8"Strength", uniforms_.tint_strength.w);
+    writer.write(u8"Shader", shader_uuid_.value());
+}
+
+void VignetteEffect::on_deserialize(const rke::ConfigReader& reader)
+{
+    const glm::vec4 linear{ rke::math::srgb_to_linear
+        (reader.get_at(u8"Tint", glm::vec4(1.0f))) };
+    uniforms_.tint_strength.x = linear.x;
+    uniforms_.tint_strength.y = linear.y;
+    uniforms_.tint_strength.z = linear.z;
+    uniforms_.tint_strength.w = reader.get_at(u8"Strength", 0.5f);
+
+    set_shader(rke::AssetUUID
+        { reader.get_at(u8"Shader", static_cast<rke::uint64>(0)) });
+
+    upload_uniforms();
+}
+
+rke::GShader* VignetteEffect::resolve_gshader()
+{
+    if(!context_) return nullptr;
+    rke::AssetsManager& assets{ context_->get_assets_manager_mut() };
+
+    if(shader_uuid_.empty())
+    {
+        shader_uuid_ = assets.get_asset_uuid
+            (context_->get_assets_dir() / u8"shaders" / u8"vignette.rkshdr");
+        if(shader_uuid_.empty()) return nullptr;
+    }
+
+    const auto [handle, refreshed]{ assets.resolve(resolved_shader_, shader_uuid_) };
+    if(refreshed) CORE_INFO(u8"VignetteEffect: Shader '{}' resolved.",
+        assets.get_asset_path(shader_uuid_));
+
+    rke::Shader* shader{ assets.get_asset<rke::Shader>(handle) };
+    return shader ? shader->get_gshader() : nullptr;
+}
