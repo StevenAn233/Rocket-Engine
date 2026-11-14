@@ -62,7 +62,7 @@ export namespace rke
         SceneRenderer main_renderer_{ &get_owner(), math::srgb_to_linear(clear_color) };
         SceneRenderer cam_renderer_ { &get_owner(), math::srgb_to_linear(clear_color) };
         
-        PostProcessor post_processor_{};
+        PostProcessor editor_post_processor_{};
         PostProcessor cam_post_processor_{};
 
     // Effects(for serialization)

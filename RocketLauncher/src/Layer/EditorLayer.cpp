@@ -172,11 +172,11 @@ namespace rke
         fxaa_ = fxaa.get();
         tone_mapping_ = tone_mapping.get();
 
-        post_processor_.push_effect(std::move(plane_boxes));
-        post_processor_.push_effect(std::move(selected));
-        post_processor_.push_effect(std::move(hovering));
-        post_processor_.push_effect(std::move(fxaa));
-        post_processor_.push_effect(std::move(tone_mapping));
+        editor_post_processor_.push_effect(std::move(plane_boxes));
+        editor_post_processor_.push_effect(std::move(selected));
+        editor_post_processor_.push_effect(std::move(hovering));
+        editor_post_processor_.push_effect(std::move(fxaa));
+        editor_post_processor_.push_effect(std::move(tone_mapping));
 
         cam_renderer_.set_samples(1);
         cam_post_processor_.push_effect(create_scope<ToneMapping>());
@@ -310,7 +310,7 @@ namespace rke
         writer->end_map();
         writer->push_to_file(file::editor_dir() / u8"settings" / u8"editor.yaml");
 
-        post_processor_.clear();
+        editor_post_processor_.clear();
         cam_post_processor_.clear();
 
         app().unregister_panel(project_setting_panel_.get());
@@ -480,7 +480,7 @@ namespace rke
             if(current_scene()) current_scene()->set_viewport(w, h);
 
             main_renderer_ .on_viewport_resized(w, h);
-            post_processor_.on_viewport_resized(w, h);
+            editor_post_processor_.on_viewport_resized(w, h);
             if(context_) context_->on_viewport_resized(w, h);
         }
         if(cam_viewport_->resized())
@@ -501,7 +501,7 @@ namespace rke
 
         if(editing())
         {
-            main_output_ = post_processor_.process
+            main_output_ = editor_post_processor_.process
             (
                 main_renderer_.render (
                     scene_edit_,
@@ -522,7 +522,7 @@ namespace rke
         }
         else if(testing())
         {
-            main_output_ = post_processor_.process
+            main_output_ = editor_post_processor_.process
             (
                 context_->post_process(main_renderer_
                     .render(scene_test_->get_master_camera()))
@@ -586,11 +586,11 @@ namespace rke
         main_renderer_.clean_up();
         cam_renderer_ .clean_up();
 
-        if(!scene) return;
-        
-        glm::vec2 size{ main_viewport_ ?
-            main_viewport_->get_size() : glm::vec2(0.0f) };
-        scene->set_viewport(size.x, size.y);
+        if(scene) {
+            glm::vec2 size{ main_viewport_ ?
+                main_viewport_->get_size() : glm::vec2(0.0f) };
+            scene->set_viewport(size.x, size.y);
+        }
     }
 
     bool EditorLayer::load_scene_edit(const String& name)
