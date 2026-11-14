@@ -26,6 +26,7 @@ export namespace rke
         ~ToneMapping() override {}
 
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
+        void on_imgui_render() override;
 
         void set_exposure(float exposure);
         void set_gamma(float gamma);
@@ -38,7 +39,6 @@ export namespace rke
         void on_serialize(ConfigWriter& writer) const override;
         void on_deserialize(const ConfigReader& reader) override;
 
-        void on_imgui_render() override;
         static Shader& get_shader();
     private:
         Uniforms uniforms_{};

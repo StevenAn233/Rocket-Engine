@@ -71,6 +71,38 @@ namespace rke
             (enabled_extra_ ? enabled_extra_() : true);
     }
 
+    void OutlineEffect::on_imgui_render()
+    {
+        PostProcessEffect::on_imgui_render();
+
+        layout::two_columns_table<u8"Color">([this]()
+        {
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+            constexpr ImGuiColorEditFlags flags
+            {	ImGuiColorEditFlags_Float
+              | ImGuiColorEditFlags_InputRGB
+              | ImGuiColorEditFlags_AlphaBar
+            };
+            glm::vec4 color{ math::linear_to_srgb(uniforms_.outline_color) };
+            if(ImGui::ColorEdit4("##color", glm::value_ptr(color), flags)) set_color(color);
+        });
+        layout::drag_float_control<u8"Thickness">
+            (thickness_, 0.1f, 1.0f, glm::vec2(0.0f, 20.0f));
+        layout::two_columns_table<u8"Samples">([this]()
+        {
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+            constexpr const char* opts[]
+                { "1x", "2x", "4x", "8x", "16x" };
+            int shift{ static_cast<int>(get_samples_shift()) };
+            if(ImGui::Combo("##aa", &shift, opts, static_cast<int>(std::size(opts))))
+                { set_samples(static_cast<uint8>(shift)); }
+        });
+        ImGui::Checkbox("Wireframe", &wireframe_);
+    }
+
+    void OutlineEffect::on_viewport_resized(uint32 w, uint32 h)
+        { outline_fbo_->resize(w, h); }
+
     uint8 OutlineEffect::get_samples_shift() const
     {
         uint8 shift{};
@@ -118,38 +150,6 @@ namespace rke
         outline_fbo_->set_samples(samples_);
         wireframe_ = reader.get_at(u8"Wireframe", false);
     }
-
-    void OutlineEffect::on_imgui_render()
-    {
-        PostProcessEffect::on_imgui_render();
-
-        layout::two_columns_table<u8"Color">([this]()
-        {
-            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-            constexpr ImGuiColorEditFlags flags
-            {	ImGuiColorEditFlags_Float
-              | ImGuiColorEditFlags_InputRGB
-              | ImGuiColorEditFlags_AlphaBar
-            };
-            glm::vec4 color{ math::linear_to_srgb(uniforms_.outline_color) };
-            if(ImGui::ColorEdit4("##color", glm::value_ptr(color), flags)) set_color(color);
-        });
-        layout::drag_float_control<u8"Thickness">
-            (thickness_, 0.1f, 1.0f, glm::vec2(0.0f, 20.0f));
-        layout::two_columns_table<u8"Samples">([this]()
-        {
-            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-            constexpr const char* opts[]
-                { "1x", "2x", "4x", "8x", "16x" };
-            int shift{ static_cast<int>(get_samples_shift()) };
-            if(ImGui::Combo("##aa", &shift, opts, static_cast<int>(std::size(opts))))
-                { set_samples(static_cast<uint8>(shift)); }
-        });
-        ImGui::Checkbox("Wireframe", &wireframe_);
-    }
-
-    void OutlineEffect::on_viewport_resized(uint32 w, uint32 h)
-        { outline_fbo_->resize(w, h); }
 
     void OutlineEffect::ensure_buffers(Size edge_capacity)
     {

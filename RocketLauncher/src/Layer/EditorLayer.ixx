@@ -61,15 +61,16 @@ export namespace rke
         static constexpr glm::vec4 clear_color{ 0.1f, 0.1f, 0.1f, 1.0f };
         SceneRenderer main_renderer_{ &get_owner(), math::srgb_to_linear(clear_color) };
         SceneRenderer cam_renderer_ { &get_owner(), math::srgb_to_linear(clear_color) };
+        
         PostProcessor post_processor_{};
         PostProcessor cam_post_processor_{};
 
     // Effects(for serialization)
-        const OutlineEffect* selected_outline_{};
-        const OutlineEffect* hovering_outline_{};
-        const OutlineEffect* planebox_outline_{};
-        const FXAAEffect* fxaa_{};
-        const ToneMapping* tone_mapping_{};
+        OutlineEffect* selected_outline_{};
+        OutlineEffect* hovering_outline_{};
+        OutlineEffect* planebox_outline_{};
+        FXAAEffect* fxaa_{};
+        ToneMapping* tone_mapping_{};
 
         EntityHandle hovering_id_{ entity_handle_null };
         Project* context_{};

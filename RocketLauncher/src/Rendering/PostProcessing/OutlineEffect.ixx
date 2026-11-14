@@ -54,6 +54,9 @@ export namespace rke
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
         bool is_enabled() const override;
 
+        void on_imgui_render() override;
+        void on_viewport_resized(uint32 w, uint32 h) override;
+
         inline void set_context(Context context) { context_ = std::move(context); }
         inline void set_enabled_extra(std::function<bool()> extra)
             { enabled_extra_ = std::move(extra); }
@@ -81,9 +84,6 @@ export namespace rke
     private:
         void on_serialize(ConfigWriter& writer) const override;
         void on_deserialize(const ConfigReader& reader) override;
-
-        void on_imgui_render() override;
-        void on_viewport_resized(uint32 w, uint32 h) override;
 
         void ensure_buffers(Size edge_capacity);
         uint32 build_outline(const std::vector<Target>& targets,

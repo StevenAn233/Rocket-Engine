@@ -15,12 +15,13 @@ export namespace rke
         Category get_category() const override { return Category::System; }
 
         bool apply(const GTexture2D* source, FrameBuffer* destination) override;
+        void on_viewport_resized(uint32 w, uint32 h) override;
+
         static void refresh_shader() { get_shader().clear_gshaders(); }
 
         static const char8_t* get_static_type_name();
         const char8_t* get_type_name() const override;
     private:
-        void on_viewport_resized(uint32 w, uint32 h) override;
         static Shader& get_shader();
     private:
         Ref<UniformBuffer> ubo_{};

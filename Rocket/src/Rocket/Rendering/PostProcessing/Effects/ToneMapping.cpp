@@ -41,6 +41,18 @@ namespace rke
         return true;
     }
 
+    void ToneMapping::on_imgui_render()
+    {
+        PostProcessEffect::on_imgui_render();
+
+        bool modified{ false };
+        if(layout::drag_float_control<u8"Exposure">(uniforms_.exposure, 0.01f, 1.0f))
+            modified = true;
+        if(layout::drag_float_control<u8"Gamma">(uniforms_.gamma, 0.01f, 2.2f))
+            modified = true;
+        if(modified) ubo_->set_data(&uniforms_, sizeof(Uniforms));
+    }
+
     void ToneMapping::set_exposure(float exposure)
     {
         uniforms_.exposure = exposure;
@@ -68,18 +80,6 @@ namespace rke
         uniforms_.exposure = reader.get_at(u8"Exposure", 1.0f);
         uniforms_.gamma = reader.get_at(u8"Gamma", 2.2f);
         ubo_->set_data(&uniforms_, sizeof(Uniforms));
-    }
-
-    void ToneMapping::on_imgui_render()
-    {
-        PostProcessEffect::on_imgui_render();
-
-        bool modified{ false };
-        if(layout::drag_float_control<u8"Exposure">(uniforms_.exposure, 0.01f, 1.0f))
-            modified = true;
-        if(layout::drag_float_control<u8"Gamma">(uniforms_.gamma, 0.01f, 2.2f))
-            modified = true;
-        if(modified) ubo_->set_data(&uniforms_, sizeof(Uniforms));
     }
 
 // static

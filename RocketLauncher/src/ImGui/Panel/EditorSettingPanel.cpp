@@ -86,7 +86,16 @@ namespace rke
         }
         if(ImGui::BeginTabItem("Post-Process"))
         {
-            owner_->post_processor_.on_imgui_render();
+            layout::tree_node_branch<u8"Plane Boxes">([this]
+                { owner_->planebox_outline_->on_imgui_render(); });
+            layout::tree_node_branch<u8"Hovering Outline">([this]
+                { owner_->hovering_outline_->on_imgui_render(); });
+            layout::tree_node_branch<u8"Selected Outline">([this]
+                { owner_->selected_outline_->on_imgui_render(); });
+            layout::tree_node_branch<u8"Fxaa">([this]
+                { owner_->fxaa_->on_imgui_render(); });
+            layout::tree_node_branch<u8"Tone Mapping">([this]
+                { owner_->tone_mapping_->on_imgui_render(); });
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

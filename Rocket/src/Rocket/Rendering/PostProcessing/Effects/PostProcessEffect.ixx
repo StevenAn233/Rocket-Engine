@@ -37,6 +37,9 @@ export namespace rke
         virtual bool apply(const GTexture2D* source, FrameBuffer* destination) = 0;
         virtual bool is_enabled() const;
 
+        virtual void on_imgui_render();
+        virtual void on_viewport_resized(uint32 w, uint32 h) {}
+
         void serialize_to(ConfigWriter& writer) const;
         void deserialize_from(const ConfigReader& reader);
 
@@ -46,9 +49,6 @@ export namespace rke
     protected:
         virtual void on_serialize(ConfigWriter& writer) const {}
         virtual void on_deserialize(const ConfigReader& reader) {}
-
-        virtual void on_imgui_render();
-        virtual void on_viewport_resized(uint32 w, uint32 h) {}
     protected:
         Project* context_{}; // set by RkDylib
         bool enabled_{ true };
