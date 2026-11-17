@@ -1,4 +1,4 @@
-module;
+﻿module;
 module EditorLayer;
 
 import Gizmo;
@@ -595,12 +595,13 @@ namespace rke
 
     bool EditorLayer::load_scene_edit(const String& name)
     {
+        clear_scene_edit();
+        if(name.empty()) return false;
+
         if(!context_) {
             CORE_ERROR(u8"EditorLayer: Context project null!");
-            clear_scene_edit();
             return false;
         }
-        clear_scene_edit();
         scene_edit_ = context_->load_scene(name, scene_serializer_);
         if(scene_edit_)
         {

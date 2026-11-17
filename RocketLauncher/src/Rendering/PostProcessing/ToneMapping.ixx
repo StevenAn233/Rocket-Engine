@@ -1,19 +1,11 @@
 ﻿module;
-
-#include "rke_macros.h"
-
 export module ToneMapping;
 
-import PostProcessEffect;
-import GTexture;
-import FrameBuffer;
-import HeapManager;
-import Shader;
-import GBuffers;
+import rke;
 
 export namespace rke
 {
-    class RKE_API ToneMapping : public PostProcessEffect
+    class ToneMapping : public PostProcessEffect
     {
     public:
         struct Uniforms

@@ -1,15 +1,6 @@
 ﻿module;
 module ToneMapping;
 
-import Log;
-import Layout;
-import BindingPoint;
-import AssetsManager;
-import Application;
-import RenderCommand;
-import FileUtils;
-import GShader;
-
 namespace rke
 {
     ToneMapping::ToneMapping()

@@ -37,8 +37,8 @@ namespace rke
     void Application::load_project(const Path& path)
     {
         clear_project();
-        if(path.empty() || !path.exists())
-        {
+        if(path.empty()) return;
+        if(!path.exists()) {
             CORE_ERROR(u8"Application: Project path '{}' invalid!", path);
             return;
         }

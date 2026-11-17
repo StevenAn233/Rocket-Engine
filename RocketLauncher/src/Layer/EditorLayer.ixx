@@ -1,9 +1,10 @@
-module;
+﻿module;
 export module EditorLayer;
 
 import rke;
 import OutlineEffect;
 import FXAAEffect;
+import ToneMapping;
 import Toolbar;
 import Viewport;
 import EditorSettingPanel;
